@@ -1,0 +1,14 @@
+{
+  "name": "TreeCo",
+  "short_name": "TreeCo",
+  "description": "Urban Tree Services job management",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#2C2416",
+  "theme_color": "#2C2416",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml", "purpose": "any maskable" },
+    { "src": "/tree.svg",     "sizes": "any",     "type": "image/svg+xml" }
+  ]
+}
