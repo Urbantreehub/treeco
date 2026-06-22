@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import ImageMarkup from '../components/ImageMarkup'
+import { searchSor, CHARGE_CODES } from '../data/sorCodes'
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragOverlay,
 } from '@dnd-kit/core'
@@ -120,6 +121,93 @@ const iu = {
 }
 
 // ── Line item (builder) ────────────────────────────────────────────────────
+function SorAutocomplete({ value, onChange, onSelect }) {
+  const [results, setResults] = useState([])
+  const [open, setOpen]       = useState(false)
+  const [cursor, setCursor]   = useState(-1)
+  const wrapRef = useRef(null)
+
+  function handleChange(e) {
+    const v = e.target.value
+    onChange(v)
+    const hits = searchSor(v)
+    setResults(hits)
+    setOpen(hits.length > 0)
+    setCursor(-1)
+  }
+
+  function pick(sor) {
+    onSelect(sor)
+    setOpen(false)
+    setResults([])
+  }
+
+  function handleKeyDown(e) {
+    if (!open) return
+    if (e.key === 'ArrowDown') { e.preventDefault(); setCursor(c => Math.min(c + 1, results.length - 1)) }
+    if (e.key === 'ArrowUp')   { e.preventDefault(); setCursor(c => Math.max(c - 1, 0)) }
+    if (e.key === 'Enter' && cursor >= 0) { e.preventDefault(); pick(results[cursor]) }
+    if (e.key === 'Escape') setOpen(false)
+  }
+
+  // Close on outside click
+  useEffect(() => {
+    function handler(e) { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  return (
+    <div ref={wrapRef} style={{ flex: 1, position: 'relative' }}>
+      <input
+        style={{ ...b.lineTitle, width: '100%' }}
+        placeholder="Item name / SOR code / description of work…"
+        value={value}
+        onChange={handleChange}
+        onKeyDown={handleKeyDown}
+        onFocus={() => results.length > 0 && setOpen(true)}
+        autoComplete="off"
+      />
+      {open && (
+        <div style={ac.dropdown}>
+          {results.map((sor, i) => (
+            <div
+              key={sor.code}
+              onMouseDown={() => pick(sor)}
+              style={{
+                ...ac.row,
+                background: i === cursor ? 'var(--cream)' : '#fff',
+              }}
+            >
+              <span style={ac.code}>{sor.code}</span>
+              <span style={ac.desc}>{sor.desc}</span>
+              <span style={{ ...ac.uom, background: sor.uom === '$' ? '#E8F0E6' : '#F5F5F5', color: sor.uom === '$' ? '#4A6741' : '#888' }}>
+                {sor.uom || '—'}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+const ac = {
+  dropdown: {
+    position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0,
+    background: '#fff', border: '1.5px solid var(--border)', borderRadius: '8px',
+    boxShadow: '0 4px 16px rgba(0,0,0,0.10)', zIndex: 999, overflow: 'hidden',
+    maxHeight: '280px', overflowY: 'auto',
+  },
+  row: {
+    display: 'flex', alignItems: 'center', gap: '10px',
+    padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid #F5F5F5',
+  },
+  code: { fontFamily: 'monospace', fontSize: '12px', fontWeight: '700', color: '#4A6741', minWidth: '72px' },
+  desc: { flex: 1, fontSize: '13px', color: '#3a3028' },
+  uom:  { fontSize: '11px', fontWeight: '600', borderRadius: '4px', padding: '2px 6px' },
+}
+
 function LineItem({ item, onChange, onDelete, onMarkup }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: item.id })
@@ -154,11 +242,15 @@ function LineItem({ item, onChange, onDelete, onMarkup }) {
       <div style={b.lineBody}>
         {/* ── Header row: description + Fixed/Optional toggle ── */}
         <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
-          <input
-            style={{ ...b.lineTitle, flex: 1 }}
-            placeholder="Item name / description of work…"
+          <SorAutocomplete
             value={item.description}
-            onChange={e => onChange({ ...item, description: e.target.value })}
+            onChange={desc => onChange({ ...item, description: desc })}
+            onSelect={sor => onChange({
+              ...item,
+              description: `${sor.code} — ${sor.desc}`,
+              detail: item.detail || `UOM: ${sor.uom}`,
+              qty: CHARGE_CODES.has(sor.code) ? 1 : item.qty,
+            })}
           />
           {/* Fixed / Optional segmented control */}
           <div style={b.segWrap}>

@@ -5,6 +5,28 @@ import { useAuth } from '../context/AuthContext'
 import StatusBadge from './StatusBadge'
 import { JOB_STATUSES, STATUS_ORDER } from '../config/statuses'
 
+// Kāinga Ora SLA timeframes by priority code
+const KO_SLA = {
+  URG: { label: 'URG — Urgent', respond: 'Respond & complete within 4 hours', color: '#C0392B', bg: '#FFF0EE' },
+  URS: { label: 'URS — Urgent Response', respond: 'Respond within 12 hours, complete within 48 hours', color: '#D4851A', bg: '#FDF3E3' },
+  EPS: { label: 'EPS — Emergency', respond: 'Respond & complete within 4 hours', color: '#C0392B', bg: '#FFF0EE' },
+  GNL: { label: 'GNL — General', respond: 'Respond within 48 hours, complete within 10 days', color: '#4A7FA5', bg: '#EBF3FA' },
+  RSC: { label: 'RSC — Responsive', respond: 'Respond within 48 hours, complete within 10 days', color: '#4A7FA5', bg: '#EBF3FA' },
+  VSC: { label: 'VSC — Void', respond: 'Respond within 48 hours, complete within 10 days', color: '#4A7FA5', bg: '#EBF3FA' },
+  RM:  { label: 'RM — Responsive Maintenance', respond: 'Respond within 48 hours, complete within 10 days', color: '#4A7FA5', bg: '#EBF3FA' },
+  PM:  { label: 'PM — Planned Maintenance', respond: 'Respond within 48 hours, complete within 10 days', color: '#7A7A7A', bg: '#F5F5F5' },
+}
+
+function extractPriority(job) {
+  // Try [PRIORITY] prefix in title first
+  const titleMatch = (job.title || '').match(/^\[([A-Z]{2,4})\]/)
+  if (titleMatch) return titleMatch[1]
+  // Fall back to "Priority: XXX" in description
+  const descMatch = (job.description || '').match(/Priority:\s*([A-Z]{2,4})/)
+  if (descMatch) return descMatch[1]
+  return null
+}
+
 export default function JobDetailPanel({ job, onClose, onUpdated }) {
   const { isFullAccess } = useAuth()
   const navigate = useNavigate()
@@ -44,6 +66,9 @@ export default function JobDetailPanel({ job, onClose, onUpdated }) {
     onUpdated()
   }
 
+  const priority = extractPriority(job)
+  const sla = priority ? KO_SLA[priority] : null
+
   return (
     <>
       {/* Backdrop */}
@@ -52,6 +77,31 @@ export default function JobDetailPanel({ job, onClose, onUpdated }) {
       {/* Slide-over panel */}
       <div style={styles.panel}>
         <div style={styles.panelInner}>
+          {/* KO SLA banner */}
+          {sla && (
+            <div style={{ background: sla.bg, border: `1px solid ${sla.color}33`, borderRadius: '8px', padding: '10px 14px', marginBottom: '16px' }}>
+              <div style={{ fontSize: '11px', fontWeight: '700', color: sla.color, marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                Kāinga Ora SLA — {sla.label}
+              </div>
+              <div style={{ fontSize: '13px', color: sla.color, fontWeight: '500' }}>{sla.respond}</div>
+              {(priority === 'URG' || priority === 'EPS') && (
+                <div style={{ fontSize: '11px', color: sla.color, marginTop: '4px', opacity: 0.8 }}>
+                  Notify KO immediately if timeframe cannot be met.
+                </div>
+              )}
+              {priority === 'URS' && (
+                <div style={{ fontSize: '11px', color: sla.color, marginTop: '4px', opacity: 0.8 }}>
+                  Log contact attempts or appointment in the work order.
+                </div>
+              )}
+              {priority === 'GNL' && (
+                <div style={{ fontSize: '11px', color: sla.color, marginTop: '4px', opacity: 0.8 }}>
+                  If 10 days cannot be achieved, notify admin by day 5 to request EOT.
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Header */}
           <div style={styles.panelHeader}>
             <div>
@@ -115,16 +165,26 @@ export default function JobDetailPanel({ job, onClose, onUpdated }) {
             <div style={styles.section}>
               <div style={styles.sectionTitle}>Quote</div>
               {job.quotes && job.quotes.length > 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {job.quotes.map(q => (
                     <button
                       key={q.id}
-                      style={styles.quoteBtn}
+                      style={styles.quoteOpenBtn}
                       onClick={() => { onClose(); navigate(`/quotes/${q.id}`) }}
                     >
-                      <span>View quote</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ fontSize: '18px' }}>📄</span>
+                        <div style={{ textAlign: 'left' }}>
+                          <div style={{ fontWeight: '600', fontSize: '14px' }}>Open quote</div>
+                          {q.total != null && (
+                            <div style={{ fontSize: '12px', color: '#888', marginTop: '1px' }}>
+                              ${Number(q.total).toLocaleString('en-NZ')} incl GST
+                            </div>
+                          )}
+                        </div>
+                      </div>
                       <span style={{
-                        fontSize: '11px', fontWeight: '600', borderRadius: '20px', padding: '2px 8px',
+                        fontSize: '11px', fontWeight: '600', borderRadius: '20px', padding: '3px 10px',
                         background: QUOTE_STATUS_BG[q.status] ?? '#eee',
                         color: QUOTE_STATUS_COLOR[q.status] ?? '#888',
                       }}>
@@ -133,7 +193,7 @@ export default function JobDetailPanel({ job, onClose, onUpdated }) {
                     </button>
                   ))}
                   <button
-                    style={{ ...styles.ghostBtn, marginTop: '4px' }}
+                    style={{ ...styles.ghostBtn, marginTop: '2px' }}
                     onClick={() => { onClose(); navigate(`/quotes/new?job=${job.id}`) }}
                   >
                     + New quote
@@ -261,6 +321,12 @@ const styles = {
     background: 'none', border: '1px solid var(--border)',
     borderRadius: '8px', padding: '9px 16px', fontSize: '14px',
     color: 'var(--bark)', cursor: 'pointer', fontFamily: 'var(--font)',
+  },
+  quoteOpenBtn: {
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    background: '#F0F7EE', border: '1.5px solid #4A6741',
+    borderRadius: '10px', padding: '12px 14px', fontSize: '14px',
+    color: 'var(--bark)', cursor: 'pointer', fontFamily: 'var(--font)', width: '100%',
   },
   quoteBtn: {
     display: 'flex', justifyContent: 'space-between', alignItems: 'center',

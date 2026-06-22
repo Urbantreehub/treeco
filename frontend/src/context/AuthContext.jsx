@@ -1,13 +1,16 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../config/supabase'
+import { DEMO_PROFILE } from '../demo/mockData'
 
+const IS_DEMO = import.meta.env.VITE_DEMO === 'true'
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
-  const [session, setSession] = useState(undefined) // undefined = loading
-  const [profile, setProfile] = useState(null)
+  const [session, setSession] = useState(IS_DEMO ? { user: DEMO_PROFILE } : undefined)
+  const [profile, setProfile] = useState(IS_DEMO ? DEMO_PROFILE : null)
 
   useEffect(() => {
+    if (IS_DEMO) return
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       if (session) fetchProfile(session.user.id)

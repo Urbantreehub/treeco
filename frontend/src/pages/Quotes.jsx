@@ -45,6 +45,9 @@ export default function Quotes() {
         <div style={styles.titleRow}>
           <h1 style={styles.title}>Quotes</h1>
           <span style={styles.count}>{filtered.length}</span>
+          {isFullAccess && (
+            <button onClick={() => navigate('/quotes/new')} style={styles.newBtn}>+ New quote</button>
+          )}
         </div>
 
         <div style={styles.tabs}>
@@ -116,6 +119,7 @@ const styles = {
     flexShrink: 0,
   },
   titleRow: { display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' },
+  newBtn: { marginLeft: 'auto', background: 'var(--moss)', color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 16px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap' },
   title: { fontSize: '20px', fontWeight: '700', color: 'var(--bark)' },
   count: {
     fontSize: '12px', color: '#888', background: 'var(--cream)',

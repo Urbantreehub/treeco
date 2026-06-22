@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../config/supabase'
+import { DEMO_CLIENTS, DEMO_JOBS } from '../demo/mockData'
 
+const IS_DEMO = import.meta.env.VITE_DEMO === 'true'
 const SUPABASE_FN = import.meta.env.VITE_SUPABASE_URL + '/functions/v1'
 const XERO_CLIENT_ID = import.meta.env.VITE_XERO_CLIENT_ID ?? ''
 const XERO_REDIRECT_URI = import.meta.env.VITE_XERO_REDIRECT_URI ?? ''
@@ -265,9 +267,9 @@ const JOB_STATUS_COLOR = {
 
 // ── Main page ──────────────────────────────────────────────────────────────
 export default function Clients() {
-  const [clients,    setClients]    = useState([])
-  const [jobs,       setJobs]       = useState([])
-  const [loading,    setLoading]    = useState(true)
+  const [clients,    setClients]    = useState(IS_DEMO ? DEMO_CLIENTS : [])
+  const [jobs,       setJobs]       = useState(IS_DEMO ? DEMO_JOBS : [])
+  const [loading,    setLoading]    = useState(!IS_DEMO)
   const [search,     setSearch]     = useState('')
   const [modal,      setModal]      = useState(null)   // null | 'new' | { client }
   const [panel,      setPanel]      = useState(null)   // selected client
@@ -281,6 +283,7 @@ export default function Clients() {
   }
 
   async function load() {
+    if (IS_DEMO) return
     setLoading(true)
     const [{ data: c }, { data: j }] = await Promise.all([
       supabase.from('clients').select('*').order('name'),

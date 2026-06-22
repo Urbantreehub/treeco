@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
+
+const IS_DEMO = import.meta.env.VITE_DEMO === 'true'
 import Layout from './components/Layout'
 import Login from './pages/Login'
 import Pipeline from './pages/Pipeline'
@@ -12,6 +14,7 @@ import Settings from './pages/Settings'
 
 function RequireAuth({ children }) {
   const { session, loading } = useAuth()
+  if (IS_DEMO) return children
   if (loading) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'var(--bark)' }}>Loading…</div>
   if (!session) return <Navigate to="/login" replace />
   return children
@@ -28,7 +31,7 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/login" element={<Login />} />
+          <Route path="/login" element={IS_DEMO ? <Navigate to="/pipeline" replace /> : <Login />} />
 
           {/* Public client-facing quote view — no auth */}
           <Route path="/q/:token" element={<QuoteView />} />

@@ -299,6 +299,62 @@ function XeroImportModal({ contacts, onClose, onDone, toast }) {
   )
 }
 
+// ── DBS Portal card ────────────────────────────────────────────────────────
+function DbsCard({ toast }) {
+  const [syncing,  setSyncing]  = useState(false)
+  const [lastSync, setLastSync] = useState(() => localStorage.getItem('dbs_last_sync'))
+  const [result,   setResult]   = useState(null) // { created, updated, skipped }
+
+  async function runSync() {
+    setSyncing(true)
+    setResult(null)
+    try {
+      // Calls the local sync server started by run_dbs_sync.sh
+      const res = await fetch('http://localhost:7700/sync', { method: 'POST' })
+      if (!res.ok) throw new Error(`Server returned ${res.status}`)
+      const data = await res.json()
+      const ts = new Date().toLocaleString('en-NZ')
+      localStorage.setItem('dbs_last_sync', ts)
+      setLastSync(ts)
+      setResult(data)
+      toast(`DBS sync complete — ${data.created} new, ${data.updated} updated`)
+    } catch (err) {
+      toast('DBS sync failed — is the sync server running? See instructions below.', true)
+    } finally {
+      setSyncing(false)
+    }
+  }
+
+  return (
+    <div style={t.integrationCard}>
+      <div style={t.intLogo}>
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+          <rect width="32" height="32" rx="6" fill="#1a3a5c"/>
+          <text x="5" y="22" fontFamily="monospace" fontWeight="bold" fontSize="13" fill="#fff">DBS</text>
+        </svg>
+      </div>
+      <div style={{ flex: 1 }}>
+        <div style={t.intName}>DBS Portal (Spencer Henshaw)</div>
+        <div style={t.intDesc}>
+          {result
+            ? `Last sync: ${lastSync} — ${result.created} created, ${result.updated} updated`
+            : lastSync
+            ? `Last synced: ${lastSync}`
+            : 'Pull all active Kāinga Ora jobs from the SHL portal into the pipeline'}
+        </div>
+        {!syncing && (
+          <div style={{ fontSize: '11px', color: '#aaa', marginTop: '4px' }}>
+            Requires local sync server — run <code style={{ background: '#f0ede8', padding: '1px 4px', borderRadius: '3px' }}>bash scripts/run_dbs_sync.sh</code> first
+          </div>
+        )}
+      </div>
+      <button style={syncing ? t.intBtnSecondary : t.intBtn} onClick={runSync} disabled={syncing}>
+        {syncing ? 'Syncing…' : 'Sync DBS jobs'}
+      </button>
+    </div>
+  )
+}
+
 // ── Integrations tab ───────────────────────────────────────────────────────
 function IntegrationsTab({ toast }) {
   const [xeroConn,     setXeroConn]     = useState(null)
@@ -388,6 +444,9 @@ function IntegrationsTab({ toast }) {
           )}
         </div>
       </div>
+
+      {/* DBS Portal */}
+      <DbsCard toast={toast} />
 
       {/* Edge Functions deployment note */}
       <div style={t.deployNote}>
