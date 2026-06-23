@@ -3,10 +3,11 @@ import { useAuth } from '../context/AuthContext'
 import { useIsMobile } from '../hooks/useIsMobile'
 
 const FULL_NAV = [
-  { to: '/pipeline', label: 'Pipeline', icon: PipelineIcon },
-  { to: '/calendar', label: 'Calendar', icon: CalendarIcon },
-  { to: '/clients',  label: 'Clients',  icon: ClientsIcon },
-  { to: '/quotes',   label: 'Quotes',   icon: QuotesIcon },
+  { to: '/dashboard', label: 'Dashboard', icon: DashboardIcon },
+  { to: '/pipeline',  label: 'Pipeline',  icon: PipelineIcon },
+  { to: '/calendar',  label: 'Calendar',  icon: CalendarIcon },
+  { to: '/clients',   label: 'Clients',   icon: ClientsIcon },
+  { to: '/quotes',    label: 'Quotes',    icon: QuotesIcon },
 ]
 
 const CREW_NAV = [
@@ -62,7 +63,7 @@ export default function Layout() {
     <div style={d.shell}>
       <nav style={d.nav}>
         <div style={d.navTop}>
-          <NavLink to={isFullAccess ? '/pipeline' : '/calendar'} style={d.brand}>
+          <NavLink to={isFullAccess ? '/dashboard' : '/calendar'} style={d.brand}>
             <span style={{ fontSize: '20px' }}>🌲</span>
             <span style={d.brandName}>TreeCo</span>
           </NavLink>
@@ -100,6 +101,14 @@ export default function Layout() {
 }
 
 // ── SVG icon components ───────────────────────────────────────────────────
+function DashboardIcon({ active, size = 22 }) {
+  const c = active ? '#fff' : 'rgba(255,255,255,0.55)'
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round">
+      <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+    </svg>
+  )
+}
 function PipelineIcon({ active, size = 22 }) {
   const c = active ? '#fff' : 'rgba(255,255,255,0.55)'
   return (

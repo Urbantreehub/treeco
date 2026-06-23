@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 
 const IS_DEMO = import.meta.env.VITE_DEMO === 'true'
+const AUTO_LOGIN = !!import.meta.env.VITE_DEMO_EMAIL
 import Layout from './components/Layout'
 import Login from './pages/Login'
 import Pipeline from './pages/Pipeline'
@@ -11,17 +12,24 @@ import QuoteView from './pages/QuoteView'
 import Calendar from './pages/Calendar'
 import Clients from './pages/Clients'
 import Settings from './pages/Settings'
+import Dashboard from './pages/Dashboard'
 
 function RequireAuth({ children }) {
   const { session, loading } = useAuth()
-  if (IS_DEMO) return children
+  if (IS_DEMO || AUTO_LOGIN) {
+    // Skip auth gate — auto-login handles session in the background
+    if (loading) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'var(--bark)' }}>Loading…</div>
+    return children
+  }
   if (loading) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'var(--bark)' }}>Loading…</div>
   if (!session) return <Navigate to="/login" replace />
   return children
 }
 
 function RequireFullAccess({ children }) {
-  const { isFullAccess } = useAuth()
+  const { isFullAccess, loading, session, profile } = useAuth()
+  // Wait for session, then wait for profile to load before evaluating access
+  if (loading || (session && !profile)) return null
   if (!isFullAccess) return <Navigate to="/calendar" replace />
   return children
 }
@@ -31,7 +39,7 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/login" element={IS_DEMO ? <Navigate to="/pipeline" replace /> : <Login />} />
+          <Route path="/login" element={(IS_DEMO || AUTO_LOGIN) ? <Navigate to="/pipeline" replace /> : <Login />} />
 
           {/* Public client-facing quote view — no auth */}
           <Route path="/q/:token" element={<QuoteView />} />
@@ -44,7 +52,8 @@ export default function App() {
               </RequireAuth>
             }
           >
-            <Route index element={<Navigate to="/pipeline" replace />} />
+            <Route index element={<Navigate to="/dashboard" replace />} />
+            <Route path="dashboard" element={<RequireFullAccess><Dashboard /></RequireFullAccess>} />
             <Route path="pipeline"  element={<RequireFullAccess><Pipeline /></RequireFullAccess>} />
             <Route path="calendar"  element={<Calendar />} />
             <Route path="clients"   element={<RequireFullAccess><Clients /></RequireFullAccess>} />
