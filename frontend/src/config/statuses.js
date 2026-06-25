@@ -57,6 +57,12 @@ export const JOB_STATUSES = {
     color: '#A85C5C',
     description: 'Paused — client delay, weather, access issue etc.',
   },
+  declined: {
+    key: 'declined',
+    label: 'Declined',
+    color: '#8C4A4A',
+    description: 'Client declined the quote',
+  },
 }
 
 // Ordered list for pipeline column rendering
@@ -70,6 +76,7 @@ export const STATUS_ORDER = [
   'complete_to_invoice',
   'invoiced',
   'on_hold',
+  'declined',
 ]
 
 export function getStatus(key) {

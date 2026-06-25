@@ -3,14 +3,15 @@ import { supabase } from '../config/supabase'
 import { DEMO_JOBS } from '../demo/mockData'
 
 const IS_DEMO = import.meta.env.VITE_DEMO === 'true'
+const IS_PURE_DEMO = IS_DEMO && !import.meta.env.VITE_SUPABASE_URL
 
 export function useJobs() {
-  const [jobs, setJobs] = useState(IS_DEMO ? DEMO_JOBS : [])
-  const [loading, setLoading] = useState(!IS_DEMO)
+  const [jobs, setJobs] = useState(IS_PURE_DEMO ? DEMO_JOBS : [])
+  const [loading, setLoading] = useState(!IS_PURE_DEMO)
   const [error, setError] = useState(null)
 
   const fetchJobs = useCallback(async () => {
-    if (IS_DEMO) return
+    if (IS_PURE_DEMO) return
     setLoading(true)
     const { data, error } = await supabase
       .from('jobs')
@@ -37,7 +38,7 @@ export function useJobs() {
       ? { ...j, status: newStatus, status_changed_at: new Date().toISOString() }
       : j
     ))
-    if (IS_DEMO) return
+    if (IS_PURE_DEMO) return
 
     const { error } = await supabase
       .from('jobs')

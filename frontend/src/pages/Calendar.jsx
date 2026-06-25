@@ -14,6 +14,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { supabase } from '../config/supabase'
+import CartrackMap from '../components/CartrackMap'
 
 // ── Resources ──────────────────────────────────────────────────────────────
 const RESOURCES = [
@@ -400,13 +401,18 @@ export default function Calendar() {
 }
 
 function FullCalendar_() {
-  const isMobile = useIsMobile()
+  const isMobile = useIsMobile(640)
   const calRef   = useRef()
   const [unscheduled,       setUnscheduled]       = useState([])
   const [events,            setEvents]            = useState([])
   const [loading,           setLoading]           = useState(true)
   const [popover,           setPopover]           = useState(null)
   const [toast,             setToast]             = useState(null)
+  const [trayWidth,         setTrayWidth]         = useState(220)
+  const [traySearch,        setTraySearch]        = useState('')
+  const [showTracker,       setShowTracker]       = useState(false)
+  const trayResizing        = useRef(false)
+  const trayResizeStart     = useRef(null)
   const [viewTitle,         setViewTitle]         = useState('')
   const [activeView,        setActiveView]        = useState('resourceTimelineDay')
   const [weekStart,         setWeekStart]         = useState(() => weekMonday(new Date()))
@@ -449,7 +455,7 @@ function FullCalendar_() {
       supabase
         .from('jobs')
         .select('id, title, status, job_type, address, clients(name, phone)')
-        .in('status', ['accepted_to_schedule', 'scheduled', 'in_progress'])
+        .in('status', ['accepted_to_schedule', 'scheduled'])
         .order('created_at', { ascending: false }),
       supabase
         .from('schedule')
@@ -567,6 +573,33 @@ function FullCalendar_() {
 
   const displayTitle = activeView === 'week' ? weekTitle : viewTitle
 
+  // Tray resize handlers
+  function onResizeMouseDown(e) {
+    e.preventDefault()
+    trayResizing.current = true
+    trayResizeStart.current = { x: e.clientX, w: trayWidth }
+    function onMove(e) {
+      if (!trayResizing.current) return
+      const delta = e.clientX - trayResizeStart.current.x
+      setTrayWidth(Math.max(180, Math.min(500, trayResizeStart.current.w + delta)))
+    }
+    function onUp() {
+      trayResizing.current = false
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }
+
+  const trayQ = traySearch.trim().toLowerCase()
+  const filteredUnscheduled = trayQ
+    ? unscheduled.filter(j =>
+        [j.title, j.clients?.name, j.address, j.job_type]
+          .some(v => v?.toLowerCase().includes(trayQ))
+      )
+    : unscheduled
+
   const VIEWS = [
     { v: 'resourceTimelineDay', label: 'Day' },
     { v: 'week',                label: 'Week' },
@@ -577,19 +610,41 @@ function FullCalendar_() {
     <div style={{ ...s.shell, flexDirection: isMobile ? 'column' : 'row' }}>
 
       {/* ── Tray (hidden on mobile) ── */}
-      {!isMobile && <div style={s.tray}>
+      {!isMobile && <div style={{ ...s.tray, width: trayWidth, minWidth: 180, maxWidth: 500, position: 'relative' }}>
         <div style={s.trayTop}>
           <div style={s.trayHead}>
             <span style={s.trayLabel}>Unscheduled</span>
-            {unscheduled.length > 0 && <span style={s.trayBadge}>{unscheduled.length}</span>}
+            {unscheduled.length > 0 && (
+              <span style={s.trayBadge}>
+                {trayQ && filteredUnscheduled.length !== unscheduled.length
+                  ? `${filteredUnscheduled.length}/${unscheduled.length}`
+                  : unscheduled.length}
+              </span>
+            )}
           </div>
-          <p style={s.trayHint}>Drag onto the calendar to schedule</p>
+
+          {/* Search */}
+          <div style={s.traySearchWrap}>
+            <span style={s.traySearchIcon}>🔍</span>
+            <input
+              placeholder="Search jobs…"
+              value={traySearch}
+              onChange={e => setTraySearch(e.target.value)}
+              style={s.traySearchInput}
+            />
+            {traySearch && (
+              <button onClick={() => setTraySearch('')} style={s.traySearchClear}>✕</button>
+            )}
+          </div>
+
           <div style={s.trayList}>
             {loading && <div style={s.empty}>Loading…</div>}
-            {!loading && unscheduled.length === 0 && (
-              <div style={s.empty}>All jobs scheduled ✓</div>
+            {!loading && filteredUnscheduled.length === 0 && (
+              <div style={s.empty}>
+                {trayQ ? 'No matches' : 'All jobs scheduled ✓'}
+              </div>
             )}
-            {unscheduled.map(j => <TrayCard key={j.id} job={j} />)}
+            {filteredUnscheduled.map(j => <TrayCard key={j.id} job={j} />)}
           </div>
         </div>
 
@@ -602,6 +657,9 @@ function FullCalendar_() {
             </div>
           ))}
         </div>
+
+        {/* Resize handle */}
+        <div style={s.trayResizeHandle} onMouseDown={onResizeMouseDown} />
       </div>}
 
       {/* ── Calendar ── */}
@@ -708,6 +766,19 @@ function FullCalendar_() {
             />
           </div>
         )}
+
+        {/* ── Truck Tracker panel ── */}
+        <div style={s.trackerSection}>
+          <button style={s.trackerToggle} onClick={() => setShowTracker(v => !v)}>
+            <span>🚛 Truck Trackers</span>
+            <span style={{ ...s.trackerChevron, transform: showTracker ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>⌄</span>
+          </button>
+          {showTracker && (
+            <div style={s.trackerBody}>
+              <CartrackMap />
+            </div>
+          )}
+        </div>
       </div>
 
       {popover && (
@@ -837,17 +908,42 @@ const s = {
     display: 'flex', flexDirection: 'column', overflow: 'hidden',
   },
   trayTop:  { flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: '14px 0 0' },
-  trayHead: { display: 'flex', alignItems: 'center', gap: '7px', padding: '0 14px 4px' },
+  trayHead: { display: 'flex', alignItems: 'center', gap: '7px', padding: '0 14px 6px' },
   trayLabel:{ fontSize: '11px', fontWeight: '700', color: '#2C2416', textTransform: 'uppercase', letterSpacing: '0.05em' },
   trayBadge:{ fontSize: '10px', fontWeight: '700', background: '#D4851A', color: '#fff', borderRadius: '20px', padding: '1px 7px', lineHeight: 1.6 },
-  trayHint: { fontSize: '10px', color: '#bbb', margin: '0 14px 8px', lineHeight: 1.4 },
+  traySearchWrap: { position: 'relative', margin: '0 10px 8px', display: 'flex', alignItems: 'center' },
+  traySearchIcon: { position: 'absolute', left: '8px', fontSize: '11px', pointerEvents: 'none', opacity: 0.5 },
+  traySearchInput: {
+    width: '100%', padding: '6px 24px 6px 26px', fontSize: '12px',
+    border: '1.5px solid #E2DDD6', borderRadius: '7px',
+    background: '#FAF8F4', color: '#2C2416', outline: 'none',
+    fontFamily: 'var(--font)',
+  },
+  traySearchClear: {
+    position: 'absolute', right: '6px', background: 'none', border: 'none',
+    color: '#aaa', cursor: 'pointer', fontSize: '11px', padding: 0, lineHeight: 1,
+  },
   trayList: { flex: 1, overflowY: 'auto', padding: '2px 10px 10px' },
+  trayResizeHandle: {
+    position: 'absolute', right: 0, top: 0, bottom: 0, width: '5px',
+    cursor: 'col-resize', zIndex: 10,
+    background: 'transparent',
+  },
+  trayResizeHandle_hover: { background: 'rgba(74,103,65,0.15)' },
   empty:    { textAlign: 'center', color: '#ccc', fontSize: '11px', padding: '20px 0' },
   legend:     { borderTop: '1px solid #E2DDD6', padding: '12px 14px' },
   legendRow:  { display: 'flex', alignItems: 'center', gap: '8px', padding: '3px 0' },
   legendDot:  { width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0 },
   legendName: { fontSize: '11px', color: '#555', fontWeight: '500' },
-  main:    { flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#fff' },
+  main:    { flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', overflowX: 'hidden', background: '#fff' },
+  trackerSection: { flexShrink: 0, borderTop: '1px solid #E2DDD6', background: '#fff' },
+  trackerToggle: {
+    width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    padding: '10px 16px', background: 'none', border: 'none', cursor: 'pointer',
+    fontFamily: 'var(--font)', fontSize: '13px', fontWeight: '600', color: '#2C2416',
+  },
+  trackerChevron: { fontSize: '22px', color: '#4A6741', lineHeight: 1, display: 'inline-block' },
+  trackerBody: { padding: '0 16px 16px' },
   toolbar: {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     padding: '10px 16px', background: '#fff', borderBottom: '1px solid #E2DDD6', flexShrink: 0,
@@ -882,7 +978,7 @@ const s = {
     background: '#D4851A', color: '#fff', fontSize: '10px', fontWeight: '700',
     borderRadius: '20px', padding: '1px 6px', lineHeight: 1.6,
   },
-  calWrap: { flex: 1, overflowY: 'auto', overflowX: 'hidden' },
+  calWrap: { flexShrink: 0, overflowY: 'auto', overflowX: 'hidden' },
   toast: {
     position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)',
     color: '#fff', padding: '10px 22px', borderRadius: '8px',

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../config/supabase'
+import { useAuth } from '../context/AuthContext'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -465,9 +466,73 @@ function IntegrationsTab({ toast }) {
   )
 }
 
+// ── Account tab (full access only) ─────────────────────────────────────────
+function AccountTab({ toast }) {
+  const [form, setForm]       = useState({ current: '', next: '', confirm: '' })
+  const [saving, setSaving]   = useState(false)
+  const [err, setErr]         = useState(null)
+
+  async function handleChange(e) {
+    e.preventDefault()
+    setErr(null)
+    if (form.next.length < 8) { setErr('New password must be at least 8 characters'); return }
+    if (form.next !== form.confirm) { setErr('Passwords do not match'); return }
+    setSaving(true)
+    const { error } = await supabase.auth.updateUser({ password: form.next })
+    setSaving(false)
+    if (error) { setErr(error.message); return }
+    toast('Password updated successfully')
+    setForm({ current: '', next: '', confirm: '' })
+  }
+
+  return (
+    <div style={{ ...t.section, maxWidth: '480px' }}>
+      <div style={t.sectionTitle}>Account</div>
+
+      <div style={{ background: '#fff', border: '1.5px solid #E2DDD6', borderRadius: '12px', overflow: 'hidden' }}>
+        <div style={{ padding: '18px 20px', borderBottom: '1px solid #F0EDE8' }}>
+          <div style={{ fontSize: '13px', fontWeight: '700', color: '#2C2416', marginBottom: '2px' }}>Change Password</div>
+          <div style={{ fontSize: '12px', color: '#aaa' }}>Only visible to full-access users</div>
+        </div>
+        <form onSubmit={handleChange} style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={t.fieldGroup}>
+            <label style={t.fieldLabel}>New password</label>
+            <input
+              type="password"
+              style={t.input}
+              value={form.next}
+              onChange={e => setForm(f => ({ ...f, next: e.target.value }))}
+              placeholder="At least 8 characters"
+              autoComplete="new-password"
+            />
+          </div>
+          <div style={t.fieldGroup}>
+            <label style={t.fieldLabel}>Confirm new password</label>
+            <input
+              type="password"
+              style={t.input}
+              value={form.confirm}
+              onChange={e => setForm(f => ({ ...f, confirm: e.target.value }))}
+              placeholder="Repeat new password"
+              autoComplete="new-password"
+            />
+          </div>
+          {err && <div style={t.fieldErr}>{err}</div>}
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <button type="submit" style={t.saveBtn} disabled={saving || !form.next || !form.confirm}>
+              {saving ? 'Updating…' : 'Update password'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 // ── Main Settings page ─────────────────────────────────────────────────────
 export default function Settings() {
   const [tab,   setTab]   = useState('team')
+  const { isFullAccess }  = useAuth()
   const [toast, setToast] = useState(null)
 
   function showToast(msg, err) {
@@ -475,7 +540,7 @@ export default function Settings() {
     setTimeout(() => setToast(null), 4000)
   }
 
-  // Handle xero callback redirect
+  // Handle redirect callbacks (Xero OAuth + password reset link)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     if (params.get('xero') === 'connected') {
@@ -485,6 +550,9 @@ export default function Settings() {
     } else if (params.get('xero_error')) {
       showToast(`Xero error: ${params.get('xero_error')}`, true)
       setTab('integrations')
+      window.history.replaceState({}, '', '/settings')
+    } else if (params.get('tab') === 'account') {
+      setTab('account')
       window.history.replaceState({}, '', '/settings')
     }
   }, [])
@@ -496,7 +564,7 @@ export default function Settings() {
       </div>
 
       <div style={s.tabs}>
-        {[['team', 'Team'], ['integrations', 'Integrations']].map(([id, label]) => (
+        {[['team', 'Team'], ['integrations', 'Integrations'], ...(isFullAccess ? [['account', 'Account']] : [])].map(([id, label]) => (
           <button key={id} style={{ ...s.tab, ...(tab === id ? s.tabActive : {}) }} onClick={() => setTab(id)}>
             {label}
           </button>
@@ -506,6 +574,7 @@ export default function Settings() {
       <div style={s.body}>
         {tab === 'team'         && <TeamTab         toast={showToast} />}
         {tab === 'integrations' && <IntegrationsTab toast={showToast} />}
+        {tab === 'account'      && <AccountTab      toast={showToast} />}
       </div>
 
       {toast && (

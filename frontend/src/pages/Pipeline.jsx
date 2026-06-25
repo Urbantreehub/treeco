@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, closestCorners } from '@dnd-kit/core'
+import { DndContext, DragOverlay, MouseSensor, TouchSensor, useSensor, useSensors, closestCorners } from '@dnd-kit/core'
 import { JOB_STATUSES, STATUS_ORDER } from '../config/statuses'
 import { useJobs } from '../hooks/useJobs'
 import { useAuth } from '../context/AuthContext'
@@ -20,7 +20,8 @@ export default function Pipeline() {
   const [statusFilter, setStatusFilter] = useState(new Set()) // empty = show all
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 8 } })
   )
 
   const filteredJobs = useMemo(() => {
@@ -164,7 +165,7 @@ export default function Pipeline() {
                   status={JOB_STATUSES[key]}
                   jobs={jobsByStatus[key] ?? []}
                   onCardClick={setSelectedJob}
-                  defaultOpen={jobsByStatus[key]?.length > 0}
+                  defaultOpen={false}
                 />
               ))}
             </div>

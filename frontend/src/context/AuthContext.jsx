@@ -3,14 +3,40 @@ import { supabase } from '../config/supabase'
 import { DEMO_PROFILE } from '../demo/mockData'
 
 const IS_DEMO = import.meta.env.VITE_DEMO === 'true'
+const IS_PURE_DEMO = IS_DEMO && !import.meta.env.VITE_SUPABASE_URL
+const AUTO_LOGIN = !!import.meta.env.VITE_DEMO_EMAIL
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
-  const [session, setSession] = useState(IS_DEMO ? { user: DEMO_PROFILE } : undefined)
-  const [profile, setProfile] = useState(IS_DEMO ? DEMO_PROFILE : null)
+  const [session, setSession] = useState(IS_PURE_DEMO ? { user: DEMO_PROFILE } : undefined)
+  const [profile, setProfile] = useState(IS_PURE_DEMO ? DEMO_PROFILE : null)
 
   useEffect(() => {
-    if (IS_DEMO) return
+    if (IS_PURE_DEMO) return
+
+    if (IS_DEMO || AUTO_LOGIN) {
+      // Auto-login: sign in silently so anyone can open the link without a login screen
+      const email = import.meta.env.VITE_DEMO_EMAIL
+      const password = import.meta.env.VITE_DEMO_PASSWORD
+      supabase.auth.getSession().then(({ data: { session: existing } }) => {
+        if (existing) {
+          setSession(existing)
+          fetchProfile(existing.user.id)
+        } else {
+          supabase.auth.signInWithPassword({ email, password }).then(({ data, error }) => {
+            if (!error && data.session) {
+              setSession(data.session)
+              fetchProfile(data.session.user.id)
+            } else {
+              setSession({ user: DEMO_PROFILE })
+              setProfile(DEMO_PROFILE)
+            }
+          })
+        }
+      })
+      return
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       if (session) fetchProfile(session.user.id)

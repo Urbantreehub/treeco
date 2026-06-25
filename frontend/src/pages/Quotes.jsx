@@ -2,6 +2,19 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../config/supabase'
 import { useAuth } from '../context/AuthContext'
+import { DEMO_JOBS } from '../demo/mockData'
+
+const IS_DEMO = import.meta.env.VITE_DEMO === 'true'
+const IS_PURE_DEMO = IS_DEMO && !import.meta.env.VITE_SUPABASE_URL
+
+const DEMO_QUOTES = DEMO_JOBS
+  .filter(j => j.quotes?.length > 0)
+  .flatMap(j => j.quotes.map(q => ({
+    ...q,
+    created_at: j.created_at,
+    sent_at: q.status === 'sent' ? j.created_at : null,
+    jobs: { id: j.id, address: j.address, job_type: j.job_type, clients: j.clients },
+  })))
 
 const STATUS_STYLES = {
   draft:    { label: 'Draft',    bg: '#F5F5F5', color: '#888' },
@@ -9,6 +22,8 @@ const STATUS_STYLES = {
   viewed:   { label: 'Viewed',   bg: '#EBF3FA', color: '#4A7FA5' },
   accepted: { label: 'Accepted', bg: '#E8F0E6', color: '#4A6741' },
   declined: { label: 'Declined', bg: '#FFF0EE', color: '#C0392B' },
+  complete: { label: 'Complete', bg: '#E6F4EC', color: '#1A7A4A' },
+  invoiced: { label: 'Invoiced', bg: '#E8EEFA', color: '#2A4AB0' },
 }
 
 function nzd(v) {
@@ -19,11 +34,12 @@ function nzd(v) {
 export default function Quotes() {
   const { isFullAccess } = useAuth()
   const navigate = useNavigate()
-  const [quotes, setQuotes] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [quotes, setQuotes] = useState(IS_PURE_DEMO ? DEMO_QUOTES : [])
+  const [loading, setLoading] = useState(!IS_PURE_DEMO)
   const [filter, setFilter] = useState('all')
 
   useEffect(() => {
+    if (IS_PURE_DEMO) return
     async function load() {
       const { data } = await supabase
         .from('quotes')
@@ -36,7 +52,7 @@ export default function Quotes() {
     load()
   }, [])
 
-  const STATUS_TABS = ['all', 'draft', 'sent', 'viewed', 'accepted', 'declined']
+  const STATUS_TABS = ['all', 'draft', 'sent', 'viewed', 'accepted', 'complete', 'invoiced', 'declined']
   const filtered = filter === 'all' ? quotes : quotes.filter(q => q.status === filter)
 
   return (

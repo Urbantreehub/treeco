@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useIsMobile } from '../hooks/useIsMobile'
 import ImageMarkup from '../components/ImageMarkup'
 import { searchSor, CHARGE_CODES } from '../data/sorCodes'
 import {
@@ -17,9 +18,9 @@ const GST = 0.15
 const COMPANY = {
   name: 'Urban Tree Services Limited',
   address: 'Wellington, New Zealand',
-  phone: '0210 771 520',
-  website: 'www.urban.services.net',
-  email: 'josh@urbantreeservices.net',
+  phone: '027 203 1446',
+  website: 'www.urbantreeservices.net',
+  email: 'office@urbantreeservices.net',
   gstNumber: '132-299-374',
   preparedBy: 'Josh Micallef',
 }
@@ -30,7 +31,7 @@ Cash or direct bank transfer is accepted
 Cheers,
 Josh
 Urban Tree Services · Wellington
-josh@urbantreeservices.net`
+office@urbantreeservices.net · 027 203 1446`
 
 function nzd(v, dp = 2) {
   return '$' + Number(v || 0).toLocaleString('en-NZ', { minimumFractionDigits: dp, maximumFractionDigits: dp })
@@ -349,17 +350,20 @@ function LineItem({ item, onChange, onDelete, onMarkup }) {
 // ── Preview — live iframe of the actual client view ───────────────────────
 function QuotePreview({ quote, onClose, onSend, saving }) {
   const token = quote?.client_view_token
-  const src = token ? `${window.location.origin}/q/${token}?preview=1` : null
+  const src = token ? `${window.location.origin}/q/${token}` : null
+  const isMobile = useIsMobile()
 
   return (
     <div style={pv.overlay}>
       <div style={pv.bar}>
-        <button style={pv.backBtn} onClick={onClose}>← Continue Editing</button>
-        <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.55)', fontStyle: 'italic' }}>
-          Live preview — exactly what your client sees
-        </div>
+        <button style={{ ...pv.backBtn, whiteSpace: 'nowrap' }} onClick={onClose}>← Continue Editing</button>
+        {!isMobile && (
+          <div style={{ flex: 1, textAlign: 'center', fontSize: '13px', color: 'rgba(255,255,255,0.55)', fontStyle: 'italic' }}>
+            Live preview — exactly what your client sees
+          </div>
+        )}
         <button style={pv.sendBtn} onClick={onSend} disabled={saving}>
-          {saving ? 'Saving…' : 'Send to client →'}
+          {saving ? 'Saving…' : isMobile ? 'Send →' : 'Send to client →'}
         </button>
       </div>
       {src ? (
@@ -578,10 +582,47 @@ const sm = {
   sentBtn: { background: '#4A6741', color: '#fff', border: 'none', borderRadius: '7px', padding: '8px 18px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
 }
 
+// ── Email modal ─────────────────────────────────────────────────────────────
+function EmailModal({ quote, onClose, onSend, sending }) {
+  const clientEmail = quote?.jobs?.clients?.email
+  const clientName  = quote?.jobs?.clients?.name ?? ''
+  const total       = quote?.total ?? 0
+  function nzd(v) { return '$' + Number(v||0).toLocaleString('en-NZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
+
+  return (
+    <div style={sm.backdrop}>
+      <div style={sm.box}>
+        <div style={sm.header}>
+          <div style={sm.title}>Email quote to {clientName}</div>
+          <button style={sm.close} onClick={onClose}>✕</button>
+        </div>
+        <div style={sm.body}>
+          <div style={{ background: '#F8FAF7', border: '1px solid #D4E4D0', borderRadius: '8px', padding: '14px 16px' }}>
+            <div style={{ fontSize: '11px', fontWeight: '700', color: '#6A8060', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>Will send to</div>
+            <div style={{ fontSize: '14px', fontWeight: '600', color: '#2C2416' }}>{clientEmail}</div>
+            <div style={{ fontSize: '12px', color: '#888', marginTop: '2px' }}>Subject: Your quote from Urban Tree Services — {nzd(total)}</div>
+          </div>
+          <div style={sm.note}>
+            A branded email will be sent with the total amount and a "View &amp; Accept Quote" button.
+            {quote?.status === 'draft' && ' The quote will also be marked as Sent.'}
+          </div>
+        </div>
+        <div style={sm.footer}>
+          <button style={sm.cancelBtn} onClick={onClose}>Cancel</button>
+          <button style={{ ...sm.sentBtn, background: '#4A7FA5' }} onClick={onSend} disabled={sending}>
+            {sending ? 'Sending…' : `Send email →`}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Main builder ────────────────────────────────────────────────────────────
 export default function QuoteBuilder() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const isMobile = useIsMobile()
   const isNew = id === 'new'
   const preselectedJobId = isNew ? new URLSearchParams(window.location.search).get('job') : null
 
@@ -597,7 +638,10 @@ export default function QuoteBuilder() {
   const [activeId, setActiveId] = useState(null)
   const [showPreview, setShowPreview] = useState(false)
   const [showSendModal, setShowSendModal] = useState(false)
+  const [showEmailModal, setShowEmailModal] = useState(false)
   const [markupItem, setMarkupItem] = useState(null)
+  const [xeroLoading, setXeroLoading] = useState(false)
+  const [emailLoading, setEmailLoading] = useState(false)
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
@@ -662,11 +706,13 @@ export default function QuoteBuilder() {
     if (isNew) {
       if (!jobId) { showToast('Select a job first', 'error'); setSaving(false); return }
       const token = uuid().replace(/-/g, '')
+      const validUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
       const { data, error } = await supabase.from('quotes')
-        .insert({ job_id: jobId, status: newStatus ?? 'draft', client_view_token: token, ...payload })
+        .insert({ job_id: jobId, status: newStatus ?? 'draft', client_view_token: token, valid_until: validUntil, ...payload })
         .select().single()
       if (error) showToast(error.message, 'error')
-      else { showToast('Quote created'); navigate(`/quotes/${data.id}`, { replace: true }) }
+      else if (data) { showToast('Quote created'); navigate(`/quotes/${data.id}`, { replace: true }) }
+      else showToast('Quote created')
     } else {
       const { error } = await supabase.from('quotes').update(payload).eq('id', id)
       if (error) showToast(error.message, 'error')
@@ -695,6 +741,60 @@ export default function QuoteBuilder() {
     setShowSendModal(false)
   }
 
+  async function markComplete() {
+    await save('complete')
+  }
+
+  async function sendToXero() {
+    if (!quote) return
+    setXeroLoading(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/xero-invoice`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ quote_id: quote.id }),
+      })
+      const body = await res.json()
+      if (!res.ok) throw new Error(body.error ?? 'Xero sync failed')
+      showToast('Invoice created in Xero ✓')
+      // Refresh quote data
+      const { data } = await supabase.from('quotes')
+        .select(`*, jobs (id, address, job_type, title, clients (id, name, email, phone))`)
+        .eq('id', quote.id).single()
+      if (data) { setQuote(data); setJob(data.jobs) }
+    } catch (err) {
+      showToast(err.message, 'error')
+    } finally {
+      setXeroLoading(false)
+    }
+  }
+
+  async function sendEmail() {
+    if (!quote) return
+    setEmailLoading(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/send-quote-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ quote_id: quote.id }),
+      })
+      const body = await res.json()
+      if (!res.ok) throw new Error(body.error ?? 'Email failed')
+      showToast(`Email sent to ${body.to} ✓`)
+      setShowEmailModal(false)
+      // Mark as sent if still draft
+      if (quote.status === 'draft') await save('sent')
+    } catch (err) {
+      showToast(err.message, 'error')
+    } finally {
+      setEmailLoading(false)
+    }
+  }
+
   const activeItem = activeId ? items.find(i => i.id === activeId) : null
 
   const ST = {
@@ -703,28 +803,35 @@ export default function QuoteBuilder() {
     viewed:   { label: 'Viewed',   bg: '#EBF3FA', color: '#4A7FA5' },
     accepted: { label: 'Accepted', bg: '#E8F0E6', color: '#4A6741' },
     declined: { label: 'Declined', bg: '#FFF0EE', color: '#C0392B' },
+    complete: { label: 'Complete', bg: '#E6F4EC', color: '#1A7A4A' },
+    invoiced: { label: 'Invoiced', bg: '#E8EEFA', color: '#2A4AB0' },
   }
   const st = quote?.status ? ST[quote.status] : null
+  const clientEmail = quote?.jobs?.clients?.email
+  const canEmail    = !!clientEmail && quote?.client_view_token && quote?.status !== 'draft'
+  const canComplete = quote?.status === 'accepted'
+  const canXero     = quote?.status === 'complete'
 
   return (
     <>
       <div style={s.page}>
         {/* ── Header ── */}
-        <div style={s.header}>
+        <div style={{ ...s.header, flexWrap: isMobile ? 'wrap' : 'nowrap', padding: isMobile ? '10px 14px' : '12px 20px' }}>
           <div style={s.hLeft}>
-            <button style={s.iconBtn} onClick={() => navigate('/pipeline')} title="Home">🏠</button>
             <button style={s.backBtn} onClick={() => navigate('/quotes')}>← Quotes</button>
             <div>
-              <div style={s.title}>{isNew ? 'New Quote' : (job?.clients?.name ?? 'Quote')}</div>
+              <div style={{ ...s.title, fontSize: isMobile ? '14px' : '16px' }}>{isNew ? 'New Quote' : (job?.clients?.name ?? 'Quote')}</div>
               {!isNew && job && <div style={s.sub}>{job.address}{job.job_type ? ` · ${job.job_type}` : ''}</div>}
             </div>
           </div>
-          <div style={s.hRight}>
+          <div style={{ ...s.hRight, flexWrap: 'wrap' }}>
             {st && <span style={{ ...s.badge, background: st.bg, color: st.color }}>{st.label}</span>}
-            <button style={s.previewBtn} onClick={async () => { await save(); setShowPreview(true) }} disabled={saving}>
-              {saving ? 'Saving…' : 'Preview'}
-            </button>
-            {quote?.client_view_token && (
+            {!isMobile && (
+              <button style={s.previewBtn} onClick={async () => { await save(); setShowPreview(true) }} disabled={saving}>
+                {saving ? 'Saving…' : 'Preview'}
+              </button>
+            )}
+            {!isMobile && quote?.client_view_token && (
               <button
                 style={s.pdfBtn}
                 onClick={async () => {
@@ -737,13 +844,34 @@ export default function QuoteBuilder() {
                 ⬇ PDF
               </button>
             )}
-            <button style={s.saveBtn} onClick={() => save()} disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
-            <button style={s.sendBtn} onClick={handleSend} disabled={saving}>Send to client →</button>
+            {canEmail && (
+              <button style={s.emailBtn} onClick={() => setShowEmailModal(true)} disabled={emailLoading}>
+                ✉ Email
+              </button>
+            )}
+            {canComplete && (
+              <button style={s.completeBtn} onClick={markComplete} disabled={saving}>
+                Mark Complete ✓
+              </button>
+            )}
+            {canXero && (
+              <button style={s.xeroBtn} onClick={sendToXero} disabled={xeroLoading}>
+                {xeroLoading ? 'Sending…' : '→ Xero'}
+              </button>
+            )}
+            {quote?.status !== 'invoiced' && (
+              <>
+                <button style={s.saveBtn} onClick={() => save()} disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+                {quote?.status !== 'complete' && (
+                  <button style={s.sendBtn} onClick={handleSend} disabled={saving}>{isMobile ? 'Send →' : 'Send to client →'}</button>
+                )}
+              </>
+            )}
           </div>
         </div>
 
         {/* ── Body ── */}
-        <div style={s.body}>
+        <div style={{ ...s.body, flexDirection: isMobile ? 'column' : 'row' }}>
           <div style={s.main}>
 
             {/* Job selector */}
@@ -817,7 +945,7 @@ export default function QuoteBuilder() {
           </div>
 
           {/* Sidebar */}
-          <div style={s.sidebar}>
+          <div style={{ ...s.sidebar, width: isMobile ? '100%' : '260px', position: isMobile ? 'static' : 'sticky' }}>
             <div style={s.totalsCard}>
               <div style={s.cardTitle}>Summary</div>
               {items.some(i => i.optional) && (
@@ -837,6 +965,14 @@ export default function QuoteBuilder() {
                   <button style={s.copyBtn} onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/q/${quote.client_view_token}`); showToast('Link copied!') }}>
                     Copy link
                   </button>
+                </div>
+              )}
+              {isMobile && (
+                <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                  <button style={{ ...s.previewBtn, flex: 1 }} onClick={async () => { await save(); setShowPreview(true) }} disabled={saving}>Preview</button>
+                  {quote?.client_view_token && (
+                    <button style={{ ...s.pdfBtn, flex: 1 }} onClick={async () => { await save(); window.open(`${window.location.origin}/q/${quote.client_view_token}?download=1`, '_blank') }} disabled={saving}>⬇ PDF</button>
+                  )}
                 </div>
               )}
             </div>
@@ -889,6 +1025,15 @@ export default function QuoteBuilder() {
         />
       )}
 
+      {showEmailModal && quote && (
+        <EmailModal
+          quote={quote}
+          onClose={() => setShowEmailModal(false)}
+          onSend={sendEmail}
+          sending={emailLoading}
+        />
+      )}
+
       {toast && (
         <div style={{ ...s.toast, background: toast.type === 'error' ? '#C0392B' : '#4A6741' }}>
           {toast.msg}
@@ -919,6 +1064,9 @@ const s = {
   pdfBtn: { background: '#FAF8F4', border: '1px solid #E2DDD6', borderRadius: '7px', padding: '7px 12px', fontSize: '13px', fontWeight: '600', color: '#2C2416', cursor: 'pointer', fontFamily: 'var(--font)' },
   saveBtn: { background: '#FAF8F4', border: '1px solid #E2DDD6', borderRadius: '7px', padding: '7px 14px', fontSize: '13px', fontWeight: '600', color: '#2C2416', cursor: 'pointer', fontFamily: 'var(--font)' },
   sendBtn: { background: '#4A6741', color: '#fff', border: 'none', borderRadius: '7px', padding: '8px 16px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
+  emailBtn: { background: '#EBF3FA', color: '#4A7FA5', border: '1.5px solid #4A7FA5', borderRadius: '7px', padding: '7px 14px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
+  completeBtn: { background: '#E6F4EC', color: '#1A7A4A', border: '1.5px solid #1A7A4A', borderRadius: '7px', padding: '7px 14px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
+  xeroBtn: { background: '#1A7A4A', color: '#fff', border: 'none', borderRadius: '7px', padding: '8px 16px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
   body: { flex: 1, overflowY: 'auto', padding: '18px 20px', display: 'flex', gap: '18px', alignItems: 'flex-start' },
   main: { flex: 1, display: 'flex', flexDirection: 'column', gap: '14px', minWidth: 0 },
   sidebar: { width: '260px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '12px', position: 'sticky', top: 0 },

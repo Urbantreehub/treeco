@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../config/supabase'
+import CartrackMap from '../components/CartrackMap'
 
 const CREW_DAY_RATE = 2500   // $ per crew per day
 
@@ -109,15 +110,17 @@ function Section({ title, children }) {
 
 export default function Dashboard() {
   const nav = useNavigate()
-  const [quotes, setQuotes] = useState([])
-  const [jobs,   setJobs]   = useState([])
+  const [quotes,   setQuotes]   = useState([])
+  const [jobs,     setJobs]     = useState([])
   const [vehicles, setVehicles] = useState([])
-  const [editVeh, setEditVeh] = useState(null)   // vehicle being edited inline
+  const [xeroPnl,  setXeroPnl]  = useState(null)   // { revenue, expenses, netProfit, months, source }
+  const [editVeh,  setEditVeh]  = useState(null)
   const [savingVeh, setSavingVeh] = useState(false)
-  const [loading, setLoading] = useState(true)
+  const [loading,  setLoading]  = useState(true)
 
   const load = useCallback(async () => {
     setLoading(true)
+
     const [qRes, jRes, vRes] = await Promise.all([
       supabase.from('quotes').select('id, status, subtotal, total, created_at, jobs(job_type)'),
       supabase.from('jobs').select('id, status, job_type, created_at'),
@@ -126,44 +129,61 @@ export default function Dashboard() {
     if (qRes.data) setQuotes(qRes.data)
     if (jRes.data) setJobs(jRes.data)
     if (vRes.data) setVehicles(vRes.data)
+
+    // Try to load Xero P&L — silently skip if not connected
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/xero-pnl`,
+        { headers: { Authorization: `Bearer ${session?.access_token}` } }
+      )
+      const body = await res.json()
+      if (res.ok && body.revenue != null) setXeroPnl(body)
+    } catch { /* Xero not set up */ }
+
     setLoading(false)
   }, [])
 
   useEffect(() => { load() }, [load])
 
-  // ── Revenue calcs (tree work only, accepted quotes) ──────────────────────
-  const treeQuotes = quotes.filter(q => !isStumpJob(q.jobs?.job_type))
-  const acceptedTree = treeQuotes.filter(q => q.status === 'accepted')
-  const treeRevenue = acceptedTree.reduce((s, q) => s + (Number(q.subtotal) || 0), 0)
-  const crewDays = treeRevenue / CREW_DAY_RATE
+  // ── Revenue calcs — Xero P&L if connected, else accepted quotes ──────────
+  const REVENUE_STATUSES = ['accepted', 'complete', 'invoiced']
+  const treeQuotes   = quotes.filter(q => !isStumpJob(q.jobs?.job_type))
+  const acceptedTree = treeQuotes.filter(q => REVENUE_STATUSES.includes(q.status))
+  const quotesTreeRevenue = acceptedTree.reduce((s, q) => s + (Number(q.subtotal) || 0), 0)
 
-  const stumpQuotes = quotes.filter(q => isStumpJob(q.jobs?.job_type))
-  const stumpRevenue = stumpQuotes.filter(q => q.status === 'accepted')
+  const stumpQuotes  = quotes.filter(q => isStumpJob(q.jobs?.job_type))
+  const stumpRevenue = stumpQuotes.filter(q => REVENUE_STATUSES.includes(q.status))
     .reduce((s, q) => s + (Number(q.subtotal) || 0), 0)
 
+  // Use Xero if available
+  const usingXero   = !!xeroPnl
+  const treeRevenue = usingXero ? xeroPnl.revenue : quotesTreeRevenue
+  const crewDays    = treeRevenue / CREW_DAY_RATE
+  const monthlyData = usingXero
+    ? xeroPnl.months
+    : (() => {
+        const now = new Date()
+        return Array.from({ length: 6 }, (_, i) => {
+          const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1)
+          const next = new Date(d.getFullYear(), d.getMonth() + 1, 1)
+          const label = d.toLocaleString('en-NZ', { month: 'short' })
+          const revenue = acceptedTree
+            .filter(q => { const c = new Date(q.created_at); return c >= d && c < next })
+            .reduce((s, q) => s + (Number(q.subtotal) || 0), 0)
+          return { label, revenue }
+        })
+      })()
+
   // ── Quote success rate ───────────────────────────────────────────────────
-  const sent     = quotes.filter(q => ['sent', 'viewed', 'accepted', 'declined'].includes(q.status))
-  const accepted = quotes.filter(q => q.status === 'accepted')
+  const sent        = quotes.filter(q => ['sent', 'viewed', 'accepted', 'declined', 'complete', 'invoiced'].includes(q.status))
+  const accepted    = quotes.filter(q => REVENUE_STATUSES.includes(q.status))
   const successRate = sent.length ? Math.round((accepted.length / sent.length) * 100) : null
 
   // ── Pipeline snapshot ────────────────────────────────────────────────────
-  const newJobs  = jobs.filter(j => j.status === 'new').length
-  const inProg   = jobs.filter(j => j.status === 'in_progress').length
-  const totalActive = jobs.filter(j => !['completed', 'cancelled'].includes(j.status)).length
-
-  // ── Monthly trend (last 6 months) ────────────────────────────────────────
-  const monthlyData = (() => {
-    const now = new Date()
-    return Array.from({ length: 6 }, (_, i) => {
-      const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1)
-      const next = new Date(d.getFullYear(), d.getMonth() + 1, 1)
-      const label = d.toLocaleString('en-NZ', { month: 'short' })
-      const revenue = acceptedTree
-        .filter(q => { const c = new Date(q.created_at); return c >= d && c < next })
-        .reduce((s, q) => s + (Number(q.subtotal) || 0), 0)
-      return { label, revenue }
-    })
-  })()
+  const newJobs     = jobs.filter(j => j.status === 'new_lead').length
+  const toSchedule  = jobs.filter(j => j.status === 'accepted_to_schedule').length
+  const totalActive = jobs.filter(j => !['completed', 'cancelled', 'declined'].includes(j.status)).length
 
   // ── Advertising suggestion ────────────────────────────────────────────────
   const advice = (() => {
@@ -237,12 +257,20 @@ export default function Dashboard() {
       )}
 
       {/* ── KPI row ── */}
-      <Section title="Revenue snapshot">
+      <Section title={`Revenue snapshot${usingXero ? ' — from Xero' : ' — from accepted quotes'}`}>
+        {usingXero && (
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '12px' }}>
+            <StatCard label="Total revenue (FY)" value={nzd(xeroPnl.revenue)} sub="This financial year · Xero" color="var(--moss)" />
+            <StatCard label="Total expenses (FY)" value={nzd(xeroPnl.expenses)} sub="This financial year · Xero" color="#D4851A" />
+            <StatCard label="Net profit (FY)" value={nzd(xeroPnl.netProfit)} sub="Revenue minus expenses · Xero"
+              color={xeroPnl.netProfit >= 0 ? 'var(--moss)' : '#C0392B'} />
+          </div>
+        )}
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '16px' }}>
           <StatCard
             label="Crew days booked"
             value={crewDays.toFixed(1)}
-            sub={`${nzd(treeRevenue)} tree work ÷ $2,500/day`}
+            sub={`${nzd(treeRevenue)} revenue ÷ $2,500/day`}
             color={crewDays < 5 ? '#C0392B' : crewDays < 10 ? '#D4851A' : 'var(--moss)'}
             onClick={() => nav('/quotes')}
           />
@@ -253,29 +281,41 @@ export default function Dashboard() {
             color={successRate != null && successRate < 40 ? '#D4851A' : 'var(--bark)'}
             onClick={() => nav('/quotes')}
           />
-          <StatCard
-            label="Tree work revenue"
-            value={nzd(treeRevenue)}
-            sub="Accepted quotes (ex GST)"
-            onClick={() => nav('/quotes')}
-          />
-          <StatCard
-            label="Stump grinding"
-            value={nzd(stumpRevenue)}
-            sub="Accepted quotes (ex GST)"
-          />
+          {!usingXero && (
+            <StatCard
+              label="Tree work revenue"
+              value={nzd(treeRevenue)}
+              sub="Accepted quotes (ex GST)"
+              onClick={() => nav('/quotes')}
+            />
+          )}
+          {!usingXero && (
+            <StatCard
+              label="Stump grinding"
+              value={nzd(stumpRevenue)}
+              sub="Accepted quotes (ex GST)"
+            />
+          )}
           <StatCard
             label="Active jobs"
             value={totalActive}
-            sub={`${newJobs} new · ${inProg} in progress`}
+            sub={`${newJobs} new leads · ${toSchedule} to schedule`}
             onClick={() => nav('/pipeline')}
           />
         </div>
 
         {/* Monthly trend */}
         <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: '10px', padding: '18px 22px' }}>
-          <div style={{ fontSize: '12px', color: '#aaa', fontWeight: '600', marginBottom: '12px' }}>Tree work — monthly revenue (last 6 months)</div>
+          <div style={{ fontSize: '12px', color: '#aaa', fontWeight: '600', marginBottom: '12px' }}>
+            {usingXero ? 'Monthly revenue — Xero P&L (this financial year)' : 'Tree work — monthly revenue (last 6 months, accepted quotes)'}
+          </div>
           <MiniBar months={monthlyData} />
+          {!usingXero && (
+            <div style={{ marginTop: '12px', fontSize: '11px', color: '#bbb', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span>💼</span>
+              <span>Connect Xero in <button onClick={() => nav('/settings')} style={{ background: 'none', border: 'none', color: '#4A7FA5', fontSize: '11px', cursor: 'pointer', padding: 0, textDecoration: 'underline', fontFamily: 'var(--font)' }}>Settings → Integrations</button> to pull live P&L data instead.</span>
+            </div>
+          )}
         </div>
       </Section>
 
@@ -397,39 +437,16 @@ export default function Dashboard() {
       </Section>
 
       {/* ── Cartrack GPS ── */}
-      <Section title="Fleet tracking — Cartrack">
+      <Section title="Fleet tracking — live GPS">
         <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px', borderBottom: '1px solid var(--border)' }}>
-            <div>
-              <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--bark)' }}>Live fleet positions</span>
-              <span style={{ fontSize: '12px', color: '#aaa', marginLeft: '10px' }}>Opens Cartrack in a new tab</span>
-            </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
+            <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--bark)' }}>GWL756 · WA2244 — refreshes every 30s</span>
             <a href="https://fleetweb-nz.cartrack.com/map/fleet" target="_blank" rel="noreferrer"
-              style={{ fontSize: '12px', color: 'var(--moss)', fontWeight: '600', textDecoration: 'none', border: '1px solid var(--moss)', borderRadius: '5px', padding: '5px 12px' }}>
-              Open full map ↗
+              style={{ fontSize: '12px', color: 'var(--moss)', fontWeight: '600', textDecoration: 'none', border: '1px solid var(--moss)', borderRadius: '5px', padding: '4px 10px' }}>
+              Open Cartrack ↗
             </a>
           </div>
-          <div style={{ display: 'flex', gap: '0', borderBottom: '1px solid var(--border)' }}>
-            {CARTRACK_VEHICLES.map((v, i) => (
-              <a key={v.plate} href={v.shareUrl} target="_blank" rel="noreferrer"
-                style={{
-                  flex: 1, padding: '18px 20px', textDecoration: 'none',
-                  borderRight: i < CARTRACK_VEHICLES.length - 1 ? '1px solid var(--border)' : 'none',
-                  display: 'flex', alignItems: 'center', gap: '14px',
-                  transition: 'background 0.15s',
-                }}>
-                <span style={{ fontSize: '28px' }}>{v.icon}</span>
-                <div>
-                  <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--bark)' }}>{v.name}</div>
-                  <div style={{ fontSize: '11px', color: '#aaa', marginTop: '2px' }}>{v.plate} · {v.type}</div>
-                  <div style={{ fontSize: '11px', color: 'var(--moss)', fontWeight: '600', marginTop: '4px' }}>📍 Track live →</div>
-                </div>
-              </a>
-            ))}
-          </div>
-          <div style={{ padding: '12px 20px', background: 'var(--bg)', fontSize: '11px', color: '#bbb' }}>
-            Share links expire daily — regenerate in Cartrack → vehicle → Share Location if they stop working.
-          </div>
+          <CartrackMap />
         </div>
       </Section>
 
