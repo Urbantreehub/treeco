@@ -5,6 +5,9 @@ import { useAuth } from '../context/AuthContext'
 import StatusBadge from './StatusBadge'
 import { JOB_STATUSES, STATUS_ORDER } from '../config/statuses'
 
+const SUPABASE_URL  = import.meta.env.VITE_SUPABASE_URL
+const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY
+
 // Kāinga Ora SLA timeframes by priority code
 const KO_SLA = {
   URG: { label: 'URG — Urgent', respond: 'Respond & complete within 4 hours', color: '#C0392B', bg: '#FFF0EE' },
@@ -32,6 +35,27 @@ export default function JobDetailPanel({ job, onClose, onUpdated }) {
   const navigate = useNavigate()
   const [changingStatus, setChangingStatus] = useState(false)
   const [editing, setEditing] = useState(false)
+  const [xeroStatus, setXeroStatus] = useState(null) // null | 'pushing' | 'ok' | 'err' | 'not_connected'
+
+  async function pushToXero(quoteId) {
+    setXeroStatus('pushing')
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/xero-invoice`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+        body: JSON.stringify({ quote_id: quoteId }),
+      })
+      const body = await res.json()
+      if (!res.ok) {
+        setXeroStatus(body?.error?.includes('not connected') ? 'not_connected' : 'err')
+      } else {
+        setXeroStatus('ok')
+      }
+    } catch {
+      setXeroStatus('err')
+    }
+  }
   const [form, setForm] = useState({
     title: job.title,
     address: job.address ?? '',
@@ -198,6 +222,28 @@ export default function JobDetailPanel({ job, onClose, onUpdated }) {
                   >
                     + New quote
                   </button>
+                  {/* Xero invoice push — show for accepted/complete/invoiced quotes */}
+                  {job.quotes.some(q => ['accepted','complete','invoiced'].includes(q.status)) && (
+                    <div style={{ marginTop: '6px' }}>
+                      <button
+                        style={{
+                          ...styles.ghostBtn,
+                          borderColor: '#13B5EA44',
+                          color: xeroStatus === 'ok' ? '#1a7a4a' : xeroStatus === 'err' ? '#c0392b' : '#0E7DC2',
+                          background: xeroStatus === 'ok' ? '#f0fff4' : xeroStatus === 'err' ? '#fff0ee' : '#EBF7FD',
+                          width: '100%',
+                        }}
+                        disabled={xeroStatus === 'pushing'}
+                        onClick={() => pushToXero(job.quotes.find(q => ['accepted','complete','invoiced'].includes(q.status))?.id)}
+                      >
+                        {xeroStatus === 'pushing' && '⏳ Pushing to Xero…'}
+                        {xeroStatus === 'ok'      && '✅ Invoice created in Xero'}
+                        {xeroStatus === 'err'     && '❌ Xero push failed — retry?'}
+                        {xeroStatus === 'not_connected' && '⚠️ Xero not connected (Settings)'}
+                        {!xeroStatus              && '📤 Push invoice to Xero'}
+                      </button>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <button

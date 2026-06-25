@@ -243,14 +243,21 @@ function TrayCard({ job }) {
     return () => draggable.destroy()
   }, [job])
 
+  // SP— jobs from DBS have unhelpful titles — show address as primary label
+  const isSP = job.title?.startsWith('SP —') || job.clients?.name?.startsWith('SP —')
+  const primaryLabel = isSP
+    ? (job.address?.split(',')[0] ?? job.clients?.name ?? job.title ?? '—')
+    : (job.clients?.name ?? job.title ?? '—')
+  const secondaryLabel = isSP
+    ? job.clients?.name?.replace(/^SP — /, '') ?? ''
+    : [job.job_type, job.address?.split(',')[0]].filter(Boolean).join(' · ')
+
   return (
     <div ref={ref} style={tr.card}>
       <div style={{ ...tr.bar, background: jobColor(job) }} />
       <div style={tr.body}>
-        <div style={tr.name}>{job.clients?.name ?? job.title ?? '—'}</div>
-        <div style={tr.meta}>
-          {[job.job_type, job.address?.split(',')[0]].filter(Boolean).join(' · ')}
-        </div>
+        <div style={tr.name}>{primaryLabel}</div>
+        {secondaryLabel ? <div style={tr.meta}>{secondaryLabel}</div> : null}
       </div>
       <span style={tr.grip}>⠿</span>
     </div>
