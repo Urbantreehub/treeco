@@ -57,11 +57,16 @@ export function AuthProvider({ children }) {
   }, [])
 
   async function fetchProfile(userId) {
-    const { data } = await supabase
+    // Select all existing columns rather than a fixed list — if one column
+    // (e.g. resource_id) hasn't been added to the DB yet, an explicit list
+    // makes the whole query 400 and the profile silently null, which drops
+    // the user to restricted access. '*' stays resilient to schema drift.
+    const { data, error } = await supabase
       .from('users')
-      .select('id, name, email, phone, access_level, avatar_url, resource_id')
+      .select('*')
       .eq('id', userId)
       .single()
+    if (error) console.error('fetchProfile failed:', error.message)
     setProfile(data)
   }
 
