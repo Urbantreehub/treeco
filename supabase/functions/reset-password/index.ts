@@ -35,7 +35,7 @@ Deno.serve(async (req: Request) => {
   const { email } = await req.json().catch(() => ({}))
   if (!email) return json({ error: 'email required' }, 400)
 
-  const appUrl = Deno.env.get('APP_URL') ?? 'https://frontend-delta-azure-21.vercel.app'
+  const appUrl = Deno.env.get('APP_URL') ?? 'https://app.urbantreeservices.net'
 
   const { data, error } = await admin.auth.admin.generateLink({
     type: 'recovery',

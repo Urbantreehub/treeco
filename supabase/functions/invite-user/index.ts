@@ -121,7 +121,7 @@ Deno.serve(async (req: Request) => {
     .from('users').select('id').eq('email', email).single()
   if (existing) return json({ error: 'A user with that email already exists' }, 409)
 
-  const appUrl = Deno.env.get('APP_URL') ?? 'https://frontend-delta-azure-21.vercel.app'
+  const appUrl = Deno.env.get('APP_URL') ?? 'https://app.urbantreeservices.net'
 
   // Generate invite link via Supabase (bypasses their rate-limited email)
   const { data: linkData, error: linkErr } = await supabaseAdmin.auth.admin.generateLink({
