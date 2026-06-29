@@ -6,3 +6,4 @@ dist/
 scripts/.env
 .vercel
 .claude/
+scripts/.env*
