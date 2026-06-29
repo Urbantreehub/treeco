@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useIsMobile } from '../hooks/useIsMobile'
@@ -40,7 +41,9 @@ export default function Layout() {
     return (
       <div style={m.shell}>
         <main style={m.main}>
-          <Outlet />
+          <Suspense fallback={<div style={pageFallback}>Loading…</div>}>
+            <Outlet />
+          </Suspense>
         </main>
         <nav style={m.bottomNav}>
           {navItems.map(({ to, label, icon: Icon }) => (
@@ -105,7 +108,11 @@ export default function Layout() {
           <button onClick={handleSignOut} style={d.signOutBtn}>Sign out</button>
         </div>
       </nav>
-      <main style={d.main}><Outlet /></main>
+      <main style={d.main}>
+        <Suspense fallback={<div style={pageFallback}>Loading…</div>}>
+          <Outlet />
+        </Suspense>
+      </main>
     </div>
   )
 }
@@ -166,6 +173,11 @@ function SettingsIcon({ active, size = 22 }) {
       <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
     </svg>
   )
+}
+
+const pageFallback = {
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  height: '100%', minHeight: '40vh', color: 'var(--bark)', opacity: 0.5, fontSize: '14px',
 }
 
 // ── Mobile styles ─────────────────────────────────────────────────────────

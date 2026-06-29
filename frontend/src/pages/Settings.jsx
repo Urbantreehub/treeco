@@ -729,7 +729,7 @@ const t = {
 
 const xi = {
   scrim:    { position: 'fixed', inset: 0, background: 'rgba(44,36,22,0.35)', zIndex: 600, display: 'flex', alignItems: 'center', justifyContent: 'center' },
-  modal:    { background: '#fff', borderRadius: '12px', width: '500px', maxWidth: '95vw', boxShadow: '0 20px 60px rgba(0,0,0,0.2)', display: 'flex', flexDirection: 'column', overflow: 'hidden' },
+  modal:    { background: '#fff', borderRadius: '12px', width: '500px', maxWidth: '95vw', maxHeight: '90dvh', boxShadow: '0 20px 60px rgba(0,0,0,0.2)', display: 'flex', flexDirection: 'column', overflow: 'hidden' },
   header:   { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 18px', borderBottom: '1px solid #E2DDD6' },
   title:    { fontSize: '15px', fontWeight: '800', color: '#2C2416' },
   sub:      { fontSize: '11px', color: '#aaa', marginTop: '2px' },

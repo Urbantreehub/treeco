@@ -452,10 +452,10 @@ export default function QuoteView() {
 }
 
 const p = {
-  page: { minHeight: '100vh', background: '#F4F2EF', fontFamily: 'var(--font)' },
+  page: { minHeight: '100dvh', background: '#F4F2EF', fontFamily: 'var(--font)' },
   loadWrap: {
     display: 'flex', flexDirection: 'column', alignItems: 'center',
-    justifyContent: 'center', height: '100vh', fontFamily: 'var(--font)',
+    justifyContent: 'center', height: '100dvh', fontFamily: 'var(--font)',
   },
   loadText: { fontSize: '14px', color: '#888' },
 

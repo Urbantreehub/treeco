@@ -1,19 +1,27 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
+import Layout from './components/Layout'
+import Login from './pages/Login'
 
 const IS_DEMO = import.meta.env.VITE_DEMO === 'true'
 const AUTO_LOGIN = !!import.meta.env.VITE_DEMO_EMAIL
-import Layout from './components/Layout'
-import Login from './pages/Login'
-import Pipeline from './pages/Pipeline'
-import Quotes from './pages/Quotes'
-import QuoteBuilder from './pages/QuoteBuilder'
-import QuoteView from './pages/QuoteView'
-import Calendar from './pages/Calendar'
-import Clients from './pages/Clients'
-import Settings from './pages/Settings'
-import Dashboard from './pages/Dashboard'
-import Forms from './pages/Forms'
+
+// Route pages are code-split — heavy deps (FullCalendar, jsPDF, Leaflet) load
+// only when their page is first opened, keeping the initial bundle small.
+const Pipeline     = lazy(() => import('./pages/Pipeline'))
+const Quotes       = lazy(() => import('./pages/Quotes'))
+const QuoteBuilder = lazy(() => import('./pages/QuoteBuilder'))
+const QuoteView    = lazy(() => import('./pages/QuoteView'))
+const Calendar     = lazy(() => import('./pages/Calendar'))
+const Clients      = lazy(() => import('./pages/Clients'))
+const Settings     = lazy(() => import('./pages/Settings'))
+const Dashboard    = lazy(() => import('./pages/Dashboard'))
+const Forms        = lazy(() => import('./pages/Forms'))
+
+const PageFallback = () => (
+  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100dvh', color: 'var(--bark)' }}>Loading…</div>
+)
 
 function RequireAuth({ children }) {
   const { session, loading } = useAuth()
@@ -53,6 +61,7 @@ export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <Suspense fallback={<PageFallback />}>
         <Routes>
           <Route path="/login" element={(IS_DEMO || AUTO_LOGIN) ? <Navigate to="/pipeline" replace /> : <Login />} />
 
@@ -81,6 +90,7 @@ export default function App() {
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </Suspense>
       </BrowserRouter>
     </AuthProvider>
   )

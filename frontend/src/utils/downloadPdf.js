@@ -1,9 +1,13 @@
-import html2canvas from 'html2canvas'
-import jsPDF from 'jspdf'
-
 export async function downloadPdf(elementRef, filename = 'quote.pdf') {
   const el = elementRef.current
   if (!el) return
+
+  // Load the heavy PDF libs on demand — only when the user actually downloads,
+  // so they never weigh down initial page load.
+  const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+    import('html2canvas'),
+    import('jspdf'),
+  ])
 
   // Capture at 2× scale for sharp text
   const canvas = await html2canvas(el, {

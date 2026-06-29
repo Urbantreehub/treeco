@@ -244,7 +244,7 @@ const styles = {
     alignItems: 'center',
     gap: '8px',
     flex: 1,
-    minWidth: 0,
+    minWidth: '260px',
   },
   searchWrap: {
     position: 'relative',
@@ -268,7 +268,7 @@ const styles = {
     color: 'var(--bark)',
     background: 'var(--cream)',
     width: '100%',
-    minWidth: '160px',
+    minWidth: '120px',
     outline: 'none',
   },
   clearBtn: {

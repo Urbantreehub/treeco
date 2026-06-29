@@ -345,8 +345,8 @@ export default function Dashboard() {
 
       {/* ── Fleet ── */}
       <Section title="Fleet — COF & RUC">
-        <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+        <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: '10px', overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', minWidth: '560px' }}>
             <thead>
               <tr style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
                 {['Vehicle', 'Plate', 'COF Due', 'RUC Remaining', 'Notes', ''].map(h => (

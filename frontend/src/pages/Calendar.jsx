@@ -179,7 +179,7 @@ function SortableWeekRow({ res, ri, days, today, events, onEventClick, cols }) {
 function WeekGrid({ weekStart, events, onEventClick, resources, onReorder }) {
   const days = Array.from({ length: 5 }, (_, i) => addDays(weekStart, i))
   const today = toYMD(new Date())
-  const cols = `150px repeat(${days.length}, 1fr)`
+  const cols = `150px repeat(${days.length}, minmax(110px, 1fr))`
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
   function handleDragEnd(e) {
@@ -408,7 +408,7 @@ export default function Calendar() {
 }
 
 function FullCalendar_() {
-  const isMobile = useIsMobile(640)
+  const isMobile = useIsMobile()
   const calRef   = useRef()
   const [unscheduled,       setUnscheduled]       = useState([])
   const [events,            setEvents]            = useState([])
@@ -421,7 +421,7 @@ function FullCalendar_() {
   const trayResizing        = useRef(false)
   const trayResizeStart     = useRef(null)
   const [viewTitle,         setViewTitle]         = useState('')
-  const [activeView,        setActiveView]        = useState('resourceTimelineDay')
+  const [activeView,        setActiveView]        = useState(isMobile ? 'listWeek' : 'resourceTimelineDay')
   const [weekStart,         setWeekStart]         = useState(() => weekMonday(new Date()))
   const [showFilter,        setShowFilter]        = useState(false)
   const [orderedResources,  setOrderedResources]  = useState(RESOURCES)
@@ -738,7 +738,7 @@ function FullCalendar_() {
               ref={calRef}
               plugins={[resourceTimelinePlugin, interactionPlugin, listPlugin]}
               schedulerLicenseKey="CC-Attribution-NonCommercial-NoDerivatives"
-              initialView="resourceTimelineDay"
+              initialView={isMobile ? 'listWeek' : 'resourceTimelineDay'}
               headerToolbar={false}
               height="auto"
               resources={activeResources}
@@ -1023,7 +1023,7 @@ const po = {
 
 // ── Week grid styles ───────────────────────────────────────────────────────
 const wg = {
-  wrap: { display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' },
+  wrap: { display: 'flex', flexDirection: 'column', height: '100%', overflow: 'auto' },
   headerRow: {
     display: 'grid',
     gridTemplateColumns: '140px repeat(5, 1fr)',

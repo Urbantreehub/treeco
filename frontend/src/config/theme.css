@@ -55,7 +55,7 @@ a {
   --bottom-nav-height: 64px;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1023px) {
   :root {
     --nav-width: 0px;
   }

@@ -129,7 +129,7 @@ function XeroImportModal({ contacts, existingXeroIds, onImport, onClose }) {
 
   return (
     <div style={m.scrim} onClick={onClose}>
-      <div style={{ ...m.modal, width: '560px', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+      <div style={{ ...m.modal, width: '560px', maxWidth: '95vw', maxHeight: '80dvh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
         <div style={m.header}>
           <div>
             <h2 style={m.title}>Import from Xero</h2>
