@@ -4,7 +4,7 @@
 // POST body: { quote_id, action: 'accepted' | 'declined', reason?: string }
 // Required secrets: RESEND_API_KEY, APP_URL (optional)
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const CORS = {
   'Access-Control-Allow-Origin':  '*',
@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
     const quoteRef  = quote.quote_number ?? quote_id.slice(-6).toUpperCase()
     const total     = Number(quote.total || 0)
     const isAccept  = action === 'accepted'
-    const appUrl    = Deno.env.get('APP_URL') ?? 'https://treeco.vercel.app'
+    const appUrl    = Deno.env.get('APP_URL') ?? 'https://app.urbantreeservices.net'
     const quoteUrl  = `${appUrl}/quotes/${quote_id}`
 
     const resendKey = Deno.env.get('RESEND_API_KEY')

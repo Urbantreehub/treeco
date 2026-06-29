@@ -9,7 +9,7 @@
 //   SUPABASE_URL        — auto-injected
 //   SUPABASE_SERVICE_ROLE_KEY — auto-injected (needed for upsert without RLS)
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const APP_URL = Deno.env.get('APP_URL') ?? 'http://localhost:5173'
 

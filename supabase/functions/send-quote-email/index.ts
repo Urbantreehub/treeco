@@ -9,7 +9,7 @@
 //   APP_URL                — e.g. https://treeco.vercel.app (or auto-detected)
 //   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const CORS = {
   'Access-Control-Allow-Origin':  '*',
@@ -134,7 +134,7 @@ Deno.serve(async (req: Request) => {
     const clientName  = quote.jobs?.clients?.name ?? 'there'
     const firstName   = clientName.split(' ')[0]
     const jobAddress  = quote.jobs?.address ?? 'your property'
-    const appUrl      = Deno.env.get('APP_URL') ?? 'https://treeco.vercel.app'
+    const appUrl      = Deno.env.get('APP_URL') ?? 'https://app.urbantreeservices.net'
     const quoteUrl    = `${appUrl}/q/${quote.client_view_token}`
 
     const html = buildHtml({ clientFirstName: firstName, jobAddress, total: quote.total, quoteUrl })
@@ -146,7 +146,7 @@ Deno.serve(async (req: Request) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from:     'Urban Tree Services <onboarding@resend.dev>',
+        from:     'Urban Tree Services <noreply@urbantreeservices.net>',
         reply_to: 'office@urbantreeservices.net',
         to:       clientEmail,
         subject:  `Your quote from Urban Tree Services — ${nzd(quote.total)}`,

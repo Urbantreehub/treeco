@@ -2,7 +2,7 @@
 // Returns: { revenue, expenses, netProfit, months: [{label, revenue}] }
 // Requires xero_connections row to exist (set up via Settings → Xero).
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const CORS = {
   'Access-Control-Allow-Origin':  '*',
