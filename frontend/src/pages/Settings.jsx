@@ -22,13 +22,16 @@ const ACCESS_LABELS = { full: 'Full access', restricted: 'Crew' }
 
 // ── Team tab ───────────────────────────────────────────────────────────────
 function TeamTab({ toast }) {
-  const [users,    setUsers]    = useState([])
-  const [loading,  setLoading]  = useState(true)
-  const [invite,   setInvite]   = useState(false)
-  const [sent,     setSent]     = useState(null)  // email that was just invited
+  const [users,      setUsers]    = useState([])
+  const [loading,    setLoading]  = useState(true)
+  const [invite,     setInvite]   = useState(false)
+  const [sent,       setSent]     = useState(null)   // email that was just invited
+  const [inviteLink, setInviteLink] = useState(null) // fallback link when email couldn't send
   const [form, setForm] = useState({ email: '', name: '', access_level: 'restricted', resource_id: '' })
   const [saving, setSaving] = useState(false)
   const [formErr, setFormErr] = useState(null)
+  const [resetting, setResetting] = useState(null) // user id currently being reset
+  const [resetLink, setResetLink] = useState(null) // {name, url} when clipboard unavailable
 
   async function load() {
     setLoading(true)
@@ -52,26 +55,76 @@ function TeamTab({ toast }) {
     else { toast('Saved'); load() }
   }
 
+  async function resetPassword(u) {
+    setResetting(u.id)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { toast('Not logged in', true); return }
+      const res = await fetch(`${SUPABASE_FN}/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ email: u.email }),
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) { toast(body.error ?? 'Failed to generate link', true); return }
+      try {
+        await navigator.clipboard.writeText(body.reset_url)
+        toast(`Reset link copied — send to ${u.name}`)
+      } catch {
+        setResetLink({ name: u.name, url: body.reset_url })
+      }
+    } catch (err) {
+      toast('Error: ' + err.message, true)
+    } finally {
+      setResetting(null)
+    }
+  }
+
+  async function deleteUser(u) {
+    if (!window.confirm(`Remove ${u.name} (${u.email}) from the team?\n\nThis will revoke their access immediately.`)) return
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { toast('Not logged in — please refresh', true); return }
+      const res = await fetch(`${SUPABASE_FN}/delete-user`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ user_id: u.id }),
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) toast(body.error ?? `Delete failed (${res.status})`, true)
+      else { toast(`${u.name} removed`); load() }
+    } catch (err) {
+      toast('Network error: ' + err.message, true)
+    }
+  }
+
   async function handleInvite(e) {
     e.preventDefault()
     if (!form.name.trim()) { setFormErr('Name is required'); return }
     if (!form.email.trim()) { setFormErr('Email is required'); return }
     setFormErr(null)
     setSaving(true)
-    const { data: { session } } = await supabase.auth.getSession()
-    const res = await fetch(`${SUPABASE_FN}/invite-user`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-      body: JSON.stringify({ email: form.email, name: form.name, access_level: form.access_level, resource_id: form.resource_id || null }),
-    })
-    const body = await res.json().catch(() => ({}))
-    setSaving(false)
-    if (!res.ok) {
-      setFormErr(body.error ?? 'Invite failed — is the Edge Function deployed?')
-      return
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { setFormErr('Not logged in — please refresh and try again'); return }
+      const res = await fetch(`${SUPABASE_FN}/invite-user`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ email: form.email, name: form.name, access_level: form.access_level, resource_id: form.resource_id || null }),
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setFormErr(body.error ?? `Invite failed (${res.status})`)
+        return
+      }
+      setSent(form.email)
+      if (!body.email_sent && body.invite_url) setInviteLink(body.invite_url)
+      load()
+    } catch (err) {
+      setFormErr('Network error: ' + err.message)
+    } finally {
+      setSaving(false)
     }
-    setSent(form.email)
-    load()
   }
 
   return (
@@ -89,15 +142,22 @@ function TeamTab({ toast }) {
           {sent ? (
             /* ── Success state ── */
             <div style={t.sentBox}>
-              <div style={t.sentIcon}>✉</div>
-              <div style={t.sentTitle}>Invite sent to {sent}</div>
+              <div style={t.sentIcon}>{inviteLink ? '🔗' : '✉'}</div>
+              <div style={t.sentTitle}>{inviteLink ? `Account created for ${sent}` : `Invite sent to ${sent}`}</div>
               <div style={t.sentBody}>
-                They'll receive an email with a link to set up their password and log in to TreeCo.
-                The link expires after 24 hours — you can resend from this screen if needed.
+                {inviteLink
+                  ? 'Email could not be sent yet — copy this link and send it to them directly (e.g. WhatsApp or text). It expires in 24 hours.'
+                  : "They'll receive an email with a link to set up their password and log in to TreeCo. The link expires after 24 hours."}
               </div>
+              {inviteLink && (
+                <div style={{ margin: '12px 0', background: '#F4F7F2', borderRadius: 8, padding: '10px 14px', wordBreak: 'break-all', fontSize: 12, color: '#4A6741', cursor: 'pointer', border: '1px solid #D0D9C8' }}
+                  onClick={() => { navigator.clipboard.writeText(inviteLink); toast('Link copied!') }}>
+                  {inviteLink}
+                </div>
+              )}
               <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '16px' }}>
-                <button style={t.cancelBtn} onClick={() => setInvite(false)}>Done</button>
-                <button style={t.saveBtn} onClick={() => { setSent(null); setForm({ email: '', name: '', access_level: 'restricted', resource_id: '' }) }}>
+                <button style={t.cancelBtn} onClick={() => { setInvite(false); setInviteLink(null) }}>Done</button>
+                <button style={t.saveBtn} onClick={() => { setSent(null); setInviteLink(null); setForm({ email: '', name: '', access_level: 'restricted', resource_id: '' }) }}>
                   Invite another
                 </button>
               </div>
@@ -155,13 +215,21 @@ function TeamTab({ toast }) {
         </div>
       )}
 
-      {/* deploy hint shown only when Edge Function isn't deployed yet */}
-      {invite && !sent && (
-        <div style={t.deployHint}>
-          Invite emails require the <strong>invite-user</strong> Edge Function to be deployed.{' '}
-          <a href="https://supabase.com/dashboard/project/zagwhnnxjtimzvvjaujm/functions" target="_blank" rel="noreferrer" style={{ color: '#4A6741' }}>
-            Check deploy status →
-          </a>
+      {resetLink && (
+        <div style={{ background: '#F4F7F2', border: '1px solid #D0D9C8', borderRadius: 10, padding: '14px 16px', marginBottom: 4 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#2C2416', marginBottom: 6 }}>
+            Reset link for {resetLink.name} — copy and send via WhatsApp or text:
+          </div>
+          <input
+            readOnly
+            value={resetLink.url}
+            onFocus={e => e.target.select()}
+            style={{ ...t.input, fontSize: 11, color: '#4A6741', background: '#fff', cursor: 'text' }}
+          />
+          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+            <button style={t.saveBtn} onClick={() => { navigator.clipboard.writeText(resetLink.url).catch(() => {}); toast('Link copied!') }}>Copy</button>
+            <button style={t.cancelBtn} onClick={() => setResetLink(null)}>Dismiss</button>
+          </div>
         </div>
       )}
 
@@ -191,6 +259,17 @@ function TeamTab({ toast }) {
               >
                 {RESOURCES.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
               </select>
+              <button
+                onClick={() => resetPassword(u)}
+                title="Copy password reset link"
+                disabled={resetting === u.id}
+                style={{ background: 'none', border: '1px solid #D0D9C8', borderRadius: '6px', color: '#4A6741', fontSize: '12px', padding: '6px 10px', cursor: 'pointer', flexShrink: 0, fontFamily: 'var(--font)', fontWeight: 600 }}
+              >{resetting === u.id ? '…' : '🔑'}</button>
+              <button
+                onClick={() => deleteUser(u)}
+                title="Remove user"
+                style={{ background: 'none', border: '1px solid #fca5a5', borderRadius: '6px', color: '#ef4444', fontSize: '13px', padding: '6px 10px', cursor: 'pointer', flexShrink: 0 }}
+              >✕</button>
             </div>
           ))}
         </div>
@@ -378,11 +457,14 @@ function IntegrationsTab({ toast }) {
       toast('Set VITE_XERO_CLIENT_ID and VITE_XERO_REDIRECT_URI in frontend/.env', true)
       return
     }
+    const state = Math.random().toString(36).slice(2)
+    sessionStorage.setItem('xero_state', state)
     const params = new URLSearchParams({
       response_type: 'code',
       client_id:     XERO_CLIENT_ID,
       redirect_uri:  XERO_REDIRECT_URI,
       scope:         'openid profile email accounting.contacts.read offline_access',
+      state,
     })
     window.location.href = `https://login.xero.com/identity/connect/authorize?${params}`
   }
@@ -390,8 +472,9 @@ function IntegrationsTab({ toast }) {
   async function syncXero() {
     setSyncing(true)
     const { data: { session } } = await supabase.auth.getSession()
+    const token = session?.access_token ?? ''
     const res = await fetch(`${SUPABASE_FN}/xero-sync`, {
-      headers: { Authorization: `Bearer ${session.access_token}` },
+      headers: { Authorization: `Bearer ${token}` },
     })
     setSyncing(false)
     if (!res.ok) { toast('Sync failed — check Edge Function logs', true); return }

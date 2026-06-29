@@ -1,3 +1,6 @@
+// Capture hash BEFORE any Supabase imports clear it
+window.__initialHash = window.location.hash
+
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import './config/theme.css'

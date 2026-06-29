@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Toolbox Meeting — Urban Tree Services</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+:root{--green:#2e7d32;--green-light:#4caf50;--green-pale:#e8f5e9;--border:#c8e6c9;--text:#1a1a1a;--muted:#555;--bg:#f4f6f4;--card:#fff;--radius:12px;--shadow:0 2px 8px rgba(0,0,0,0.08);}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:16px;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:120px;}
+.header{background:#fff;padding:16px 20px 12px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,0.10);border-bottom:2px solid #e8ecdb;}
+.header-inner{max-width:700px;margin:0 auto;display:flex;align-items:center;gap:14px;}
+.header-text h1{font-size:18px;font-weight:700;color:#333;}
+.header-text p{font-size:12px;color:#8B9B40;margin-top:2px;letter-spacing:1px;text-transform:uppercase;font-weight:600;}
+.save-ind{margin-left:auto;font-size:12px;background:#f4f6ec;border:1px solid #d4dba0;padding:6px 12px;border-radius:20px;display:flex;align-items:center;gap:6px;white-space:nowrap;color:#555;}
+.save-dot{width:8px;height:8px;border-radius:50%;background:#a5d6a7;transition:background 0.3s;}
+.save-dot.saved{background:#69f0ae;}
+.main{max-width:700px;margin:0 auto;padding:20px 16px;}
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:18px;overflow:hidden;}
+.card-header{background:var(--green);color:#fff;padding:13px 20px;font-size:14px;font-weight:600;display:flex;align-items:center;gap:10px;}
+.card-header .snum{background:rgba(255,255,255,0.25);border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;}
+.card-body{padding:18px 20px;}
+.field{margin-bottom:16px;}
+.field:last-child{margin-bottom:0;}
+label.fl{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;}
+input[type=text],input[type=date],textarea,select{width:100%;padding:12px 14px;border:2px solid var(--border);border-radius:8px;font-size:16px;color:var(--text);background:#fff;-webkit-appearance:none;transition:border-color 0.2s;min-height:48px;}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--green-light);box-shadow:0 0 0 3px rgba(46,125,50,0.12);}
+textarea{min-height:80px;resize:vertical;}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media(max-width:500px){.field-row{grid-template-columns:1fr;}}
+.field-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+@media(max-width:500px){.field-row-3{grid-template-columns:1fr;}}
+.attendee-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #f0f4ef;align-items:start;}
+.attendee-row:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0;}
+.att-name-col{display:flex;gap:6px;align-items:center;}
+.att-name-col select{flex:1;min-height:44px;}
+.att-sig-col{display:flex;flex-direction:column;gap:4px;}
+.sig-wrap-sm{border:2px solid var(--border);border-radius:8px;background:#fafafa;overflow:hidden;position:relative;height:68px;}
+.sig-wrap-sm canvas{display:block;width:100%;height:100%;touch-action:none;cursor:crosshair;}
+.sig-wrap-sm .sig-ph{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#bbb;font-size:11px;pointer-events:none;white-space:nowrap;}
+.btn-clear-sm{font-size:11px;color:var(--muted);background:none;border:1px solid var(--border);border-radius:6px;padding:3px 8px;cursor:pointer;align-self:flex-start;}
+.btn-remove{background:none;border:none;color:#e57373;font-size:20px;cursor:pointer;padding:0 2px;line-height:1;flex-shrink:0;margin-top:10px;}
+.btn-add{width:100%;padding:12px;background:#f4f9f4;border:2px dashed var(--border);border-radius:8px;color:var(--green);font-size:14px;font-weight:600;cursor:pointer;margin-top:10px;-webkit-tap-highlight-color:transparent;}
+.btn-add:hover{background:var(--green-pale);}
+.ppl-row{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid #f0f4ef;}
+.ppl-row:last-child{border-bottom:none;}
+.ppl-name{font-size:15px;color:var(--text);}
+.yn-mini{display:flex;gap:6px;}
+.yn-mini label{display:flex;align-items:center;gap:5px;padding:8px 12px;border:2px solid var(--border);border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s;}
+.yn-mini label input[type=radio]{width:16px;height:16px;accent-color:var(--green);cursor:pointer;}
+.yn-mini label.ok-opt:has(input:checked){background:#e8f5e9;border-color:#4caf50;color:#2e7d32;}
+.yn-mini label.no-opt:has(input:checked){background:#fce4ec;border-color:#f44336;color:#c62828;}
+.sig-wrapper{border:2px solid var(--border);border-radius:10px;background:#fafafa;overflow:hidden;position:relative;}
+.sig-wrapper canvas{display:block;width:100%;height:160px;touch-action:none;cursor:crosshair;}
+.sig-ph{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#bbb;font-size:13px;pointer-events:none;}
+.btn-clear{padding:9px 16px;background:#fff;border:2px solid var(--border);border-radius:8px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;margin-top:8px;min-height:40px;}
+.action-table{width:100%;border-collapse:collapse;font-size:14px;}
+.action-table th{background:var(--green);color:#fff;padding:8px 10px;font-size:12px;font-weight:600;text-align:left;}
+.action-table td{padding:5px 3px;border-bottom:1px solid #eee;vertical-align:top;}
+.action-table input,.action-table select{border:1px solid var(--border);border-radius:6px;padding:7px 8px;font-size:14px;width:100%;background:#fff;min-height:38px;}
+.btn-add-row{font-size:13px;color:var(--green);background:none;border:none;cursor:pointer;padding:8px 0;font-weight:600;}
+.action-bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e0e8d8;padding:12px 16px;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));display:flex;gap:10px;z-index:200;}
+.btn-primary{flex:1;padding:14px;background:var(--green);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;}
+.btn-primary:active{opacity:0.85;}
+.btn-spinner{width:18px;height:18px;border:2.5px solid rgba(255,255,255,0.4);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#323232;color:#fff;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:600;z-index:999;opacity:0;pointer-events:none;transition:opacity 0.3s;white-space:nowrap;}
+.toast.show{opacity:1;}
+.toast.ok{background:#2e7d32;}
+.toast.err{background:#c62828;}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-inner">
+    <div class="header-text">
+      <h1>🧰 Toolbox Meeting</h1>
+      <p>Urban Tree Services</p>
+    </div>
+    <div class="save-ind"><div class="save-dot" id="saveDot"></div><span id="saveLabel">Auto-saved</span></div>
+  </div>
+</div>
+
+<div class="main">
+
+<!-- 1. Meeting Details -->
+<div class="card">
+  <div class="card-header"><span class="snum">1</span> Meeting Details</div>
+  <div class="card-body">
+    <div class="field">
+      <label class="fl">Date</label>
+      <input type="date" id="meetingDate">
+    </div>
+    <div class="field-row-3">
+      <div class="field">
+        <label class="fl">Start Time</label>
+        <input type="text" id="startTime" placeholder="e.g. 07:00">
+      </div>
+      <div class="field">
+        <label class="fl">Finish Time</label>
+        <input type="text" id="finishTime" placeholder="e.g. 08:00">
+      </div>
+      <div class="field">
+        <label class="fl">Chaired By</label>
+        <select id="chairPerson">
+          <option value="">— Select —</option>
+          <option>Stuart Wilson</option>
+          <option>Lea Molloy</option>
+          <option>Joshua Curran</option>
+          <option>Joshua Micallef</option>
+          <option>Sen Aupouri</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 2. Attendees & Signatures -->
+<div class="card">
+  <div class="card-header"><span class="snum">2</span> Attendees</div>
+  <div class="card-body">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;">
+      <label class="fl" style="margin:0;">Name</label>
+      <label class="fl" style="margin:0;">Signature</label>
+    </div>
+    <div id="attendeeRows"></div>
+    <button class="btn-add" onclick="addAttendee()">+ Add Attendee</button>
+    <div class="field" style="margin-top:16px;">
+      <label class="fl">Absent</label>
+      <input type="text" id="absent" placeholder="Names of anyone not present">
+    </div>
+  </div>
+</div>
+
+<!-- 3. Agenda -->
+<div class="card">
+  <div class="card-header"><span class="snum">3</span> Agenda &amp; Review</div>
+  <div class="card-body">
+    <div class="field">
+      <label class="fl">Jobs completed this month</label>
+      <textarea id="jobsCompleted" placeholder="Notable jobs completed…"></textarea>
+    </div>
+    <div class="field">
+      <label class="fl">Upcoming notable jobs</label>
+      <textarea id="upcomingJobs" placeholder="Jobs coming up…"></textarea>
+    </div>
+    <div class="field">
+      <label class="fl">Monthly highs &amp; lows</label>
+      <textarea id="highsLows" placeholder="Wins, challenges, lessons learnt…"></textarea>
+    </div>
+    <div class="field">
+      <label class="fl">Outstanding actions from last meeting</label>
+      <textarea id="outstandingActions" placeholder="Anything carried over…"></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- 4. Health & Safety -->
+<div class="card">
+  <div class="card-header"><span class="snum">4</span> Health &amp; Safety</div>
+  <div class="card-body">
+    <div class="field">
+      <label class="fl">Incidents / Issues</label>
+      <textarea id="incidents" placeholder="Any incidents since last meeting…"></textarea>
+    </div>
+    <div class="field">
+      <label class="fl">Near Misses</label>
+      <textarea id="nearMisses" placeholder="Any near miss events…"></textarea>
+    </div>
+    <div class="field">
+      <label class="fl">Action(s) to Take</label>
+      <textarea id="hsActions" placeholder="What will be done…"></textarea>
+    </div>
+    <div class="field">
+      <label class="fl">Procedure(s) to be Updated</label>
+      <textarea id="procedures" placeholder="Any SOPs to update…"></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- 5. First Aid & PPE -->
+<div class="card">
+  <div class="card-header"><span class="snum">5</span> First Aid Kit &amp; PPE Check</div>
+  <div class="card-body">
+    <div class="field">
+      <label class="fl">First Aid Kit — anything needing restock or replacement?</label>
+      <textarea id="firstAid" placeholder="List items, or write 'All good'…"></textarea>
+    </div>
+    <div class="field" style="margin-top:8px;">
+      <label class="fl">PPE — does anyone need repair or replacement?</label>
+      <div id="ppeCheckRows"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 6. Training -->
+<div class="card">
+  <div class="card-header"><span class="snum">6</span> Training</div>
+  <div class="card-body">
+    <div class="field">
+      <label class="fl">Training Completed</label>
+      <textarea id="trainingDone" placeholder="Any training done since last meeting…"></textarea>
+    </div>
+    <div class="field">
+      <label class="fl">Training Requirements</label>
+      <textarea id="trainingNeeds" placeholder="What training is needed…"></textarea>
+    </div>
+    <div class="field">
+      <label class="fl">Upcoming Training Opportunities</label>
+      <textarea id="trainingUpcoming" placeholder="Courses, certs, workshops…"></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- 7. Gear -->
+<div class="card">
+  <div class="card-header"><span class="snum">7</span> Gear</div>
+  <div class="card-body">
+    <div class="field">
+      <label class="fl">Is any new gear required?</label>
+      <div id="gearCheckRows"></div>
+    </div>
+    <div class="field" style="margin-top:12px;">
+      <label class="fl">Gear notes / requests</label>
+      <textarea id="gearNotes" placeholder="Equipment requests or concerns…"></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- 8. Open Discussion -->
+<div class="card">
+  <div class="card-header"><span class="snum">8</span> Open Discussion &amp; Feedback</div>
+  <div class="card-body">
+    <textarea id="discussion" rows="6" placeholder="Open discussion, feedback, ideas…"></textarea>
+  </div>
+</div>
+
+<!-- 9. Hazards / Actions -->
+<div class="card">
+  <div class="card-header"><span class="snum">9</span> Hazards / Issues Raised</div>
+  <div class="card-body">
+    <table class="action-table">
+      <thead><tr><th style="width:34%">Hazard / Issue</th><th style="width:30%">Action to Take</th><th style="width:22%">Action By</th><th style="width:14%">Due</th></tr></thead>
+      <tbody id="hazardBody"></tbody>
+    </table>
+    <button class="btn-add-row" onclick="addHazardRow()">+ Add row</button>
+  </div>
+</div>
+
+<!-- 10. Manager Sign-Off -->
+<div class="card">
+  <div class="card-header"><span class="snum">10</span> Manager's Sign-Off</div>
+  <div class="card-body">
+    <div class="field">
+      <label class="fl">Manager's Comments</label>
+      <textarea id="managerComments" placeholder="Final comments, decisions made…"></textarea>
+    </div>
+    <div class="field">
+      <label class="fl">Manager</label>
+      <select id="managerName">
+        <option value="">— Select —</option>
+        <option>Stuart Wilson</option>
+        <option>Lea Molloy</option>
+        <option>Joshua Curran</option>
+        <option>Joshua Micallef</option>
+        <option>Sen Aupouri</option>
+      </select>
+    </div>
+    <div class="field">
+      <label class="fl">Manager's Signature</label>
+      <div class="sig-wrapper"><canvas id="sigCanvas"></canvas><span class="sig-ph" id="sigPh">Sign here</span></div>
+      <button class="btn-clear" onclick="clearSig()">Clear Signature</button>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<div class="action-bar">
+  <button class="btn-primary" id="exportBtn" onclick="doExport()">📄 Save &amp; Export PDF</button>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const GOOGLE_CLIENT_ID = '376997677043-ejesngfcmmrub4j6gdftkloiiknm5ppq.apps.googleusercontent.com';
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+const STORE_KEY = 'uts_toolbox_v2';
+const GREEN = [46, 125, 50];
+const STAFF = ['Stuart Wilson', 'Lea Molloy', 'Joshua Curran', 'Joshua Micallef', 'Sen Aupouri'];
+
+// ── Attendees ──────────────────────────────────────────────────────────────
+const attendees = {};
+let attCounter = 0;
+
+function staffOptions(selected) {
+  return STAFF.map(s => `<option value="${s}"${s===selected?' selected':''}>${s}</option>`).join('');
+}
+
+function addAttendee(name, sigData) {
+  const idx = attCounter++;
+  const div = document.createElement('div');
+  div.className = 'attendee-row';
+  div.id = 'att_' + idx;
+  const isOther = name && !STAFF.includes(name);
+  div.innerHTML = `
+    <div class="att-name-col">
+      <select id="att_sel_${idx}" onchange="attChange(${idx})">
+        <option value="">— Select —</option>
+        ${staffOptions(isOther ? '' : (name||''))}
+        <option value="other"${isOther?' selected':''}>Other…</option>
+      </select>
+      <button class="btn-remove" onclick="removeAtt(${idx})" title="Remove">×</button>
+    </div>
+    <div class="att-sig-col">
+      <div class="sig-wrap-sm" id="att_sw_${idx}"><canvas id="att_c_${idx}"></canvas><span class="sig-ph" id="att_ph_${idx}">Sign</span></div>
+      <div style="display:flex;align-items:center;gap:6px;margin-top:3px;">
+        <input type="text" id="att_n_${idx}" placeholder="Type name" style="display:${isOther?'block':'none'};flex:1;min-height:34px;font-size:14px;padding:5px 8px;" value="${isOther?name:''}">
+        <button class="btn-clear-sm" onclick="clearAttSig(${idx})">Clear</button>
+      </div>
+    </div>`;
+  document.getElementById('attendeeRows').appendChild(div);
+
+  const canvas = document.getElementById('att_c_' + idx);
+  const ctx = canvas.getContext('2d');
+  let empty = true, signing = false;
+
+  function resize() {
+    const prev = empty ? null : canvas.toDataURL();
+    canvas.width = canvas.offsetWidth * devicePixelRatio || 200;
+    canvas.height = canvas.offsetHeight * devicePixelRatio || 100;
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+    ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    if (prev) { const img = new Image(); img.onload = () => ctx.drawImage(img, 0, 0, canvas.offsetWidth, canvas.offsetHeight); img.src = prev; }
+  }
+  setTimeout(resize, 60);
+  window.addEventListener('resize', resize);
+
+  const getPos = e => { const r = canvas.getBoundingClientRect(); const t = e.touches?e.touches[0]:e; return {x:t.clientX-r.left,y:t.clientY-r.top}; };
+  canvas.addEventListener('mousedown', e => { e.preventDefault(); signing=true; empty=false; document.getElementById('att_ph_'+idx).style.display='none'; const p=getPos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); });
+  canvas.addEventListener('mousemove', e => { if(!signing)return; e.preventDefault(); const p=getPos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); });
+  canvas.addEventListener('mouseup', e => { if(!signing)return; e.preventDefault(); signing=false; saveData(); });
+  canvas.addEventListener('touchstart', e => { e.preventDefault(); signing=true; empty=false; document.getElementById('att_ph_'+idx).style.display='none'; const p=getPos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); }, {passive:false});
+  canvas.addEventListener('touchmove', e => { if(!signing)return; e.preventDefault(); const p=getPos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); }, {passive:false});
+  canvas.addEventListener('touchend', e => { if(!signing)return; e.preventDefault(); signing=false; saveData(); }, {passive:false});
+
+  attendees[idx] = {
+    canvas, ctx,
+    getEmpty: () => empty,
+    setEmpty: v => { empty = v; },
+  };
+
+  if (sigData) {
+    const img = new Image();
+    img.onload = () => setTimeout(() => { resize(); ctx.drawImage(img, 0, 0, canvas.offsetWidth, canvas.offsetHeight); empty = false; document.getElementById('att_ph_'+idx).style.display='none'; }, 120);
+    img.src = sigData;
+  }
+}
+
+function attChange(idx) {
+  const v = document.getElementById('att_sel_'+idx)?.value;
+  const n = document.getElementById('att_n_'+idx);
+  if (n) n.style.display = v === 'other' ? 'block' : 'none';
+  saveData();
+}
+
+function clearAttSig(idx) {
+  const a = attendees[idx]; if (!a) return;
+  a.ctx.clearRect(0, 0, a.canvas.width, a.canvas.height);
+  a.setEmpty(true);
+  const ph = document.getElementById('att_ph_'+idx); if (ph) ph.style.display = '';
+  saveData();
+}
+
+function removeAtt(idx) {
+  const el = document.getElementById('att_'+idx); if (el) el.remove();
+  delete attendees[idx];
+  saveData();
+}
+
+function getAttName(idx) {
+  const sel = document.getElementById('att_sel_'+idx); if (!sel) return null;
+  return sel.value === 'other' ? (document.getElementById('att_n_'+idx)?.value||'') : sel.value;
+}
+
+function getAttSig(idx) {
+  const a = attendees[idx]; return (a && !a.getEmpty()) ? a.canvas.toDataURL() : null;
+}
+
+// ── Staff check rows (PPE / Gear) ──────────────────────────────────────────
+function buildStaffRows(containerId, prefix) {
+  const c = document.getElementById(containerId); c.innerHTML = '';
+  STAFF.forEach(name => {
+    const sn = name.split(' ')[0];
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'border-bottom:1px solid #f0f4ef;padding-bottom:10px;margin-bottom:4px;';
+    wrapper.innerHTML = `
+      <div class="ppl-row" style="border:none;padding-bottom:0;">
+        <span class="ppl-name">${sn}</span>
+        <div class="yn-mini">
+          <label class="ok-opt"><input type="radio" name="${prefix}_${sn}" value="ok" onchange="toggleNote('${prefix}_${sn}_note',false)"> OK</label>
+          <label class="no-opt"><input type="radio" name="${prefix}_${sn}" value="needs" onchange="toggleNote('${prefix}_${sn}_note',true)"> Needs</label>
+        </div>
+      </div>
+      <div id="${prefix}_${sn}_note" style="display:none;margin-top:8px;">
+        <input type="text" id="${prefix}_${sn}_notetext" placeholder="What does ${sn} need?" style="font-size:14px;padding:9px 12px;min-height:40px;" oninput="saveData()">
+      </div>`;
+    c.appendChild(wrapper);
+  });
+}
+
+function toggleNote(noteId, show) {
+  const el = document.getElementById(noteId);
+  if (el) el.style.display = show ? 'block' : 'none';
+  saveData();
+}
+
+// ── Hazard table ───────────────────────────────────────────────────────────
+let hazCount = 0;
+function addHazardRow(h='', a='', by='', due='') {
+  const i = hazCount++;
+  const tr = document.createElement('tr');
+  tr.id = 'haz_'+i;
+  tr.innerHTML = `
+    <td><input type="text" id="haz_h_${i}" value="${h}" placeholder="Hazard…" oninput="saveData()"></td>
+    <td><input type="text" id="haz_a_${i}" value="${a}" placeholder="Action…" oninput="saveData()"></td>
+    <td><select id="haz_b_${i}" onchange="saveData()"><option value="">—</option>${STAFF.map(s=>`<option value="${s}"${s===by?' selected':''}>${s.split(' ')[0]}</option>`).join('')}</select></td>
+    <td><input type="text" id="haz_d_${i}" value="${due}" placeholder="dd/mm" style="min-width:0;" oninput="saveData()"></td>`;
+  document.getElementById('hazardBody').appendChild(tr);
+}
+
+// ── Manager signature ──────────────────────────────────────────────────────
+let sigCtx, sigEmpty = true, signing = false;
+function initSig() {
+  const c = document.getElementById('sigCanvas'); sigCtx = c.getContext('2d');
+  const resize = () => { const d = sigEmpty?null:c.toDataURL(); c.width=c.offsetWidth*devicePixelRatio; c.height=c.offsetHeight*devicePixelRatio; sigCtx.scale(devicePixelRatio,devicePixelRatio); sigCtx.strokeStyle='#1a1a1a'; sigCtx.lineWidth=2.5; sigCtx.lineCap='round'; sigCtx.lineJoin='round'; if(d){const img=new Image();img.onload=()=>sigCtx.drawImage(img,0,0,c.offsetWidth,c.offsetHeight);img.src=d;} };
+  resize(); window.addEventListener('resize', resize);
+  const pos = e => { const r=c.getBoundingClientRect();const t=e.touches?e.touches[0]:e;return{x:t.clientX-r.left,y:t.clientY-r.top}; };
+  c.addEventListener('mousedown',e=>{e.preventDefault();signing=true;sigEmpty=false;document.getElementById('sigPh').style.display='none';const p=pos(e);sigCtx.beginPath();sigCtx.moveTo(p.x,p.y);});
+  c.addEventListener('mousemove',e=>{if(!signing)return;e.preventDefault();const p=pos(e);sigCtx.lineTo(p.x,p.y);sigCtx.stroke();});
+  c.addEventListener('mouseup',e=>{if(!signing)return;e.preventDefault();signing=false;saveData();});
+  c.addEventListener('touchstart',e=>{e.preventDefault();signing=true;sigEmpty=false;document.getElementById('sigPh').style.display='none';const p=pos(e);sigCtx.beginPath();sigCtx.moveTo(p.x,p.y);},{passive:false});
+  c.addEventListener('touchmove',e=>{if(!signing)return;e.preventDefault();const p=pos(e);sigCtx.lineTo(p.x,p.y);sigCtx.stroke();},{passive:false});
+  c.addEventListener('touchend',e=>{if(!signing)return;e.preventDefault();signing=false;saveData();},{passive:false});
+}
+initSig();
+function clearSig(){const c=document.getElementById('sigCanvas');sigCtx.clearRect(0,0,c.width,c.height);sigEmpty=true;document.getElementById('sigPh').style.display='';saveData();}
+function getSig(){return sigEmpty?null:document.getElementById('sigCanvas').toDataURL();}
+
+// ── Save / restore ─────────────────────────────────────────────────────────
+function gather() {
+  const v = id => document.getElementById(id)?.value||'';
+  const attArr = Object.keys(attendees).filter(k=>attendees[k]).map(k=>+k).map(i=>({name:getAttName(i),sig:getAttSig(i)}));
+  const hazRows = [];
+  for(let i=0;i<hazCount;i++){const h=document.getElementById('haz_h_'+i);if(!h)continue;hazRows.push({h:h.value,a:v('haz_a_'+i),b:v('haz_b_'+i),d:v('haz_d_'+i)});}
+  const ppe={}, gear={};
+  STAFF.forEach(n=>{const sn=n.split(' ')[0];ppe[sn]={val:document.querySelector(`input[name="ppe_${sn}"]:checked`)?.value||'',note:v(`ppe_${sn}_notetext`)};gear[sn]={val:document.querySelector(`input[name="gear_${sn}"]:checked`)?.value||'',note:v(`gear_${sn}_notetext`)};});
+  return {meetingDate:v('meetingDate'),startTime:v('startTime'),finishTime:v('finishTime'),chairPerson:v('chairPerson'),absent:v('absent'),jobsCompleted:v('jobsCompleted'),upcomingJobs:v('upcomingJobs'),highsLows:v('highsLows'),outstandingActions:v('outstandingActions'),incidents:v('incidents'),nearMisses:v('nearMisses'),hsActions:v('hsActions'),procedures:v('procedures'),firstAid:v('firstAid'),ppe,trainingDone:v('trainingDone'),trainingNeeds:v('trainingNeeds'),trainingUpcoming:v('trainingUpcoming'),gear,gearNotes:v('gearNotes'),discussion:v('discussion'),hazRows,managerComments:v('managerComments'),managerName:v('managerName'),managerSig:getSig(),attendees:attArr};
+}
+
+function restore(d) {
+  const s=(id,v)=>{const el=document.getElementById(id);if(el&&v!==undefined)el.value=v;};
+  s('meetingDate',d.meetingDate);s('startTime',d.startTime);s('finishTime',d.finishTime);s('chairPerson',d.chairPerson);s('absent',d.absent);
+  s('jobsCompleted',d.jobsCompleted);s('upcomingJobs',d.upcomingJobs);s('highsLows',d.highsLows);s('outstandingActions',d.outstandingActions);
+  s('incidents',d.incidents);s('nearMisses',d.nearMisses);s('hsActions',d.hsActions);s('procedures',d.procedures);
+  s('firstAid',d.firstAid);s('trainingDone',d.trainingDone);s('trainingNeeds',d.trainingNeeds);s('trainingUpcoming',d.trainingUpcoming);
+  s('gearNotes',d.gearNotes);s('discussion',d.discussion);s('managerComments',d.managerComments);s('managerName',d.managerName);
+  if(d.ppe)STAFF.forEach(n=>{const sn=n.split(' ')[0];const o=d.ppe[sn]||{};const val=typeof o==='string'?o:o.val;if(val){const r=document.querySelector(`input[name="ppe_${sn}"][value="${val}"]`);if(r){r.checked=true;toggleNote(`ppe_${sn}_note`,val==='needs');}};const ni=document.getElementById(`ppe_${sn}_notetext`);if(ni&&o.note)ni.value=o.note;});
+  if(d.gear)STAFF.forEach(n=>{const sn=n.split(' ')[0];const o=d.gear[sn]||{};const val=typeof o==='string'?o:o.val;if(val){const r=document.querySelector(`input[name="gear_${sn}"][value="${val}"]`);if(r){r.checked=true;toggleNote(`gear_${sn}_note`,val==='needs');}};const ni=document.getElementById(`gear_${sn}_notetext`);if(ni&&o.note)ni.value=o.note;});
+  if(d.attendees)d.attendees.forEach(a=>addAttendee(a.name,a.sig));
+  if(d.hazRows)d.hazRows.forEach(r=>addHazardRow(r.h,r.a,r.b,r.d));
+  if(d.managerSig){const img=new Image();img.onload=()=>{const c=document.getElementById('sigCanvas');sigCtx.drawImage(img,0,0,c.offsetWidth,c.offsetHeight);sigEmpty=false;document.getElementById('sigPh').style.display='none';};img.src=d.managerSig;}
+}
+
+let saveTimer;
+function saveData(){clearTimeout(saveTimer);document.getElementById('saveDot').className='save-dot';saveTimer=setTimeout(()=>{localStorage.setItem(STORE_KEY,JSON.stringify(gather()));document.getElementById('saveDot').className='save-dot saved';document.getElementById('saveLabel').textContent='Saved';},700);}
+document.querySelectorAll('input:not([type=radio]),textarea,select').forEach(el=>el.addEventListener('input',saveData));
+document.querySelectorAll('input[type=radio]').forEach(el=>el.addEventListener('change',saveData));
+
+// ── PDF ────────────────────────────────────────────────────────────────────
+function generatePDF() {
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({unit:'mm',format:'a4'});
+  const W=210,M=15;let y=0;
+  const d=gather();
+
+  const checkBreak=(need=18)=>{if(y+need>280){doc.addPage();y=15;drawBand();}};
+  const drawBand=()=>{doc.setFillColor(...GREEN);doc.rect(0,0,W,5,'F');};
+  drawBand();y=14;
+
+  doc.setFillColor(...GREEN);doc.rect(M,y,W-M*2,18,'F');
+  doc.setTextColor(255,255,255);doc.setFontSize(14);doc.setFont('helvetica','bold');
+  doc.text('URBAN TREE SERVICES',W/2,y+7,{align:'center'});
+  doc.setFontSize(10);doc.setFont('helvetica','normal');
+  doc.text('TOOLBOX MEETING',W/2,y+13,{align:'center'});
+  y+=24;doc.setTextColor(30,30,30);
+
+  const section=title=>{checkBreak(22);doc.setFillColor(...GREEN);doc.rect(M,y,W-M*2,8,'F');doc.setTextColor(255,255,255);doc.setFontSize(9);doc.setFont('helvetica','bold');doc.text(title.toUpperCase(),M+4,y+5.5);doc.setTextColor(30,30,30);y+=12;};
+  const row=(label,value)=>{checkBreak(12);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(100,100,100);doc.text(label.toUpperCase(),M,y);doc.setFont('helvetica','normal');doc.setTextColor(30,30,30);doc.setFontSize(10);const lines=doc.splitTextToSize(value||'—',W-M*2);lines.forEach(l=>{checkBreak(7);doc.text(l,M,y+6);y+=6;});y+=6;};
+
+  section('Meeting Details');
+  const date=d.meetingDate?new Date(d.meetingDate).toLocaleDateString('en-NZ',{weekday:'long',day:'2-digit',month:'long',year:'numeric'}):'—';
+  row('Date',date);row('Time',(d.startTime||'—')+' — '+(d.finishTime||'—'));row('Chaired By',d.chairPerson);
+
+  section('Attendees');
+  checkBreak(14);
+  doc.setFontSize(9);doc.setFont('helvetica','bold');
+  doc.setFillColor(220,237,200);doc.rect(M,y,90,7,'F');doc.text('NAME',M+3,y+5);
+  doc.rect(M+90,y,W-M*2-90,7,'F');doc.text('SIGNATURE',M+93,y+5);
+  y+=9;doc.setFont('helvetica','normal');doc.setTextColor(30,30,30);
+  d.attendees.forEach(a=>{checkBreak(18);doc.setDrawColor(200,220,180);doc.rect(M,y,90,16);doc.rect(M+90,y,W-M*2-90,16);doc.setFontSize(10);doc.text(a.name||'—',M+3,y+9);if(a.sig){try{doc.addImage(a.sig,'PNG',M+92,y+1,60,14);}catch(e){}}y+=17;});
+  if(d.absent)row('Absent',d.absent);
+
+  section('Agenda & Review');
+  row('Jobs Completed',d.jobsCompleted);row('Upcoming Jobs',d.upcomingJobs);row('Monthly Highs & Lows',d.highsLows);row('Outstanding Actions',d.outstandingActions);
+
+  section('Health & Safety');
+  row('Incidents / Issues',d.incidents);row('Near Misses',d.nearMisses);row('Actions to Take',d.hsActions);row('Procedures to Update',d.procedures);
+
+  section('First Aid & PPE Check');
+  row('First Aid Kit',d.firstAid);
+  checkBreak(14);
+  doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(100,100,100);doc.text('PPE CHECK:',M,y);y+=7;
+  STAFF.forEach(name=>{checkBreak(10);const sn=name.split(' ')[0];const o=d.ppe[sn]||{};const val=typeof o==='string'?o:o.val;const note=typeof o==='string'?'':o.note||'';const col=val==='ok'?[46,125,50]:val==='needs'?[198,40,40]:[180,180,180];doc.setFillColor(...col);doc.rect(M,y-3,3,4,'F');doc.setTextColor(30,30,30);doc.setFont('helvetica','normal');doc.setFontSize(10);doc.text(sn+': '+(val==='ok'?'OK':val==='needs'?'Needs attention':'—'),M+6,y);y+=7;if(note&&val==='needs'){doc.setFontSize(9);doc.setTextColor(120,60,60);doc.text('  → '+note,M+6,y);doc.setTextColor(30,30,30);y+=6;}});
+  y+=2;
+
+  section('Training');
+  row('Completed',d.trainingDone);row('Requirements',d.trainingNeeds);row('Upcoming Opportunities',d.trainingUpcoming);
+
+  section('Gear');
+  checkBreak(14);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(100,100,100);doc.text('GEAR CHECK:',M,y);y+=7;
+  STAFF.forEach(name=>{checkBreak(10);const sn=name.split(' ')[0];const o=d.gear[sn]||{};const val=typeof o==='string'?o:o.val;const note=typeof o==='string'?'':o.note||'';const col=val==='ok'?[46,125,50]:val==='needs'?[198,40,40]:[180,180,180];doc.setFillColor(...col);doc.rect(M,y-3,3,4,'F');doc.setTextColor(30,30,30);doc.setFont('helvetica','normal');doc.setFontSize(10);doc.text(sn+': '+(val==='ok'?'OK':val==='needs'?'Needs gear':'—'),M+6,y);y+=7;if(note&&val==='needs'){doc.setFontSize(9);doc.setTextColor(120,60,60);doc.text('  → '+note,M+6,y);doc.setTextColor(30,30,30);y+=6;}});
+  if(d.gearNotes)row('Gear Notes',d.gearNotes);y+=2;
+
+  section('Open Discussion & Feedback');
+  row('Discussion',d.discussion);
+
+  if(d.hazRows&&d.hazRows.some(r=>r.h||r.a)){
+    section('Hazards / Issues Raised');
+    checkBreak(14);
+    const cols=[75,55,35,25];const headers=['Hazard / Issue','Action to Take','Action By','Due'];let x=M;
+    headers.forEach((h,i)=>{doc.setFillColor(220,237,200);doc.rect(x,y,cols[i],7,'F');doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(50,80,50);doc.text(h,x+2,y+5);x+=cols[i];});
+    y+=9;doc.setFont('helvetica','normal');doc.setTextColor(30,30,30);
+    d.hazRows.filter(r=>r.h||r.a).forEach(r=>{checkBreak(12);x=M;[r.h,r.a,r.b?r.b.split(' ')[0]:'',r.d].forEach((val,i)=>{doc.setDrawColor(200,220,180);doc.rect(x,y,cols[i],10);doc.setFontSize(9);doc.text(doc.splitTextToSize(val||'',cols[i]-4)[0]||'',x+2,y+6);x+=cols[i];});y+=11;});y+=3;
+  }
+
+  section("Manager's Sign-Off");
+  row('Manager',d.managerName);row('Comments',d.managerComments);
+  if(d.managerSig){checkBreak(40);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(100,100,100);doc.text('SIGNATURE:',M,y);y+=4;doc.addImage(d.managerSig,'PNG',M,y,80,30);y+=36;}
+
+  doc.setFillColor(...GREEN);doc.rect(0,287,W,10,'F');
+  doc.setTextColor(255,255,255);doc.setFontSize(7);doc.setFont('helvetica','normal');
+  doc.text(`Urban Tree Services · Toolbox Meeting · ${new Date().toLocaleDateString('en-NZ')}`,W/2,293,{align:'center'});
+  return doc;
+}
+
+function showToast(msg,type=''){const t=document.getElementById('toast');t.textContent=msg;t.className='toast show'+(type?' '+type:'');setTimeout(()=>t.className='toast',3500);}
+
+let driveToken=null;
+async function getDriveToken(){return new Promise((res,rej)=>{if(!window.google?.accounts){rej(new Error('Google not loaded'));return;}const c=google.accounts.oauth2.initTokenClient({client_id:GOOGLE_CLIENT_ID,scope:DRIVE_SCOPE,callback:r=>r.error?rej(new Error(r.error)):(driveToken=r.access_token,res(r.access_token))});driveToken?res(driveToken):c.requestAccessToken({prompt:''});});}
+async function findOrCreateFolder(t){const q=await fetch(`https://www.googleapis.com/drive/v3/files?q=name='UTS Forms' and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id)`,{headers:{Authorization:'Bearer '+t}});const{files}=await q.json();if(files.length)return files[0].id;const r=await fetch('https://www.googleapis.com/drive/v3/files',{method:'POST',headers:{Authorization:'Bearer '+t,'Content-Type':'application/json'},body:JSON.stringify({name:'UTS Forms',mimeType:'application/vnd.google-apps.folder'})});return(await r.json()).id;}
+async function uploadToDrive(bytes,name,t,fid){const meta=JSON.stringify({name,parents:[fid]});const b=new Blob([bytes],{type:'application/pdf'});const f=new FormData();f.append('metadata',new Blob([meta],{type:'application/json'}));f.append('file',b);return(await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name',{method:'POST',headers:{Authorization:'Bearer '+t},body:f})).json();}
+
+async function doExport(){
+  const btn=document.getElementById('exportBtn');
+  btn.innerHTML='<div class="btn-spinner"></div> Generating…';btn.disabled=true;
+  try{
+    const doc=generatePDF();
+    const d=gather();
+    const date=(d.meetingDate||new Date().toISOString().slice(0,10)).replace(/-/g,'');
+    const filename=`UTS_ToolboxMeeting_${date}.pdf`;
+    doc.save(filename);
+    if(window.google?.accounts){btn.innerHTML='<div class="btn-spinner"></div> Uploading…';
+      try{const t=await getDriveToken();const fid=await findOrCreateFolder(t);await uploadToDrive(doc.output('arraybuffer'),filename,t,fid);showToast('Saved & uploaded to Google Drive ✓','ok');}
+      catch(e){showToast('Downloaded — Drive upload failed: '+e.message,'err');}
+    }else{showToast('PDF downloaded ✓','ok');}
+  }catch(e){showToast('Error: '+e.message,'err');}
+  finally{btn.innerHTML='📄 Save &amp; Export PDF';btn.disabled=false;}
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+buildStaffRows('ppeCheckRows','ppe');
+buildStaffRows('gearCheckRows','gear');
+
+const saved=localStorage.getItem(STORE_KEY);
+if(saved){try{restore(JSON.parse(saved));}catch(e){}}
+else{document.getElementById('meetingDate').value=new Date().toISOString().slice(0,10);addAttendee();addHazardRow();}
+</script>
+</body>
+</html>

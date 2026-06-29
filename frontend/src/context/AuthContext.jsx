@@ -42,7 +42,9 @@ export function AuthProvider({ children }) {
       if (session) fetchProfile(session.user.id)
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      // Don't set session during password recovery — let Login.jsx handle it
+      if (event === 'PASSWORD_RECOVERY') return
       setSession(session)
       if (session) {
         fetchProfile(session.user.id)

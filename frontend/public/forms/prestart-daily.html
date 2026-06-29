@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Daily Equipment Pre-Start — Urban Tree Services</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+:root{--green:#2e7d32;--green-light:#4caf50;--green-pale:#e8f5e9;--border:#c8e6c9;--text:#1a1a1a;--muted:#555;--bg:#f4f6f4;--card:#fff;--radius:12px;--shadow:0 2px 8px rgba(0,0,0,0.08);}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:16px;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:120px;}
+.header{background:#fff;padding:16px 20px 12px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,0.10);border-bottom:2px solid #e8ecdb;}
+.header-inner{max-width:700px;margin:0 auto;display:flex;align-items:center;gap:14px;}
+.header-text h1{font-size:18px;font-weight:700;color:#333;}
+.header-text p{font-size:12px;color:#8B9B40;margin-top:2px;letter-spacing:1px;text-transform:uppercase;font-weight:600;}
+.save-ind{margin-left:auto;font-size:12px;background:#f4f6ec;border:1px solid #d4dba0;padding:6px 12px;border-radius:20px;display:flex;align-items:center;gap:6px;white-space:nowrap;color:#555;}
+.save-dot{width:8px;height:8px;border-radius:50%;background:#a5d6a7;transition:background 0.3s;}
+.save-dot.saved{background:#69f0ae;}
+.main{max-width:700px;margin:0 auto;padding:20px 16px;}
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:18px;overflow:hidden;}
+.card-header{background:var(--green);color:#fff;padding:13px 20px;font-size:14px;font-weight:600;display:flex;align-items:center;gap:10px;}
+.card-header .snum{background:rgba(255,255,255,0.25);border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;}
+.card-body{padding:18px 20px;}
+.field{margin-bottom:16px;}
+.field:last-child{margin-bottom:0;}
+label.fl{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;}
+input[type=text],input[type=date],textarea,select{width:100%;padding:12px 14px;border:2px solid var(--border);border-radius:8px;font-size:16px;color:var(--text);background:#fff;-webkit-appearance:none;transition:border-color 0.2s;min-height:48px;}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--green-light);box-shadow:0 0 0 3px rgba(46,125,50,0.12);}
+textarea{min-height:72px;resize:vertical;}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media(max-width:500px){.field-row{grid-template-columns:1fr;}}
+
+/* Equipment tabs */
+.eq-tabs{display:flex;border:2px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:18px;}
+.eq-tab{flex:1;padding:11px 6px;text-align:center;font-size:13px;font-weight:600;cursor:pointer;background:#fff;color:var(--muted);border:none;transition:background 0.15s,color 0.15s;-webkit-tap-highlight-color:transparent;}
+.eq-tab.active{background:var(--green);color:#fff;}
+
+/* Check rows */
+.check-list{display:flex;flex-direction:column;}
+.check-item{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid #f0f4ef;-webkit-tap-highlight-color:transparent;}
+.check-item:last-child{border-bottom:none;}
+.check-label{flex:1;font-size:15px;line-height:1.3;}
+.check-hint{font-size:11px;color:#aaa;margin-top:2px;}
+.tick-wrap{display:flex;gap:5px;flex-shrink:0;}
+.tick{width:36px;height:36px;border-radius:8px;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;background:#fff;transition:all 0.12s;font-weight:700;-webkit-tap-highlight-color:transparent;}
+.tick.pass{background:#e8f5e9;border-color:#4caf50;color:#2e7d32;}
+.tick.fail{background:#fce4ec;border-color:#f44336;color:#c62828;}
+.tick.na{background:#f3f3f3;border-color:#bbb;color:#888;font-size:14px;}
+.legend{display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap;}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:12px;color:#666;}
+.legend-dot{width:12px;height:12px;border-radius:3px;}
+
+/* Tyre grid */
+.tyre-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.tyre-cell{background:#f8faf8;border:2px solid var(--border);border-radius:8px;padding:10px;text-align:center;}
+.tyre-cell label.fl{font-size:11px;margin-bottom:6px;}
+.tyre-btns{display:flex;justify-content:center;gap:5px;}
+.tyre-btns .tick{width:32px;height:32px;font-size:16px;}
+
+/* Defects */
+.defect-box{display:none;padding:12px;background:#fffbf0;border-left:3px solid #ffc107;border-radius:0 6px 6px 0;margin-top:10px;}
+.defect-box.show{display:block;}
+.yn-row{display:flex;gap:10px;margin-top:6px;}
+.yn-label{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 8px;border:2px solid var(--border);border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.15s;}
+.yn-label input[type=radio]{width:17px;height:17px;accent-color:var(--green);}
+.yn-label.yes-opt:has(input:checked){background:#e8f5e9;border-color:#4caf50;color:#2e7d32;}
+.yn-label.no-opt:has(input:checked){background:#fce4ec;border-color:#f44336;color:#c62828;}
+
+/* Sig */
+.sig-wrapper{border:2px solid var(--border);border-radius:10px;background:#fafafa;overflow:hidden;position:relative;}
+.sig-wrapper canvas{display:block;width:100%;height:160px;touch-action:none;cursor:crosshair;}
+.sig-ph{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#bbb;font-size:13px;pointer-events:none;}
+.btn-clear{padding:9px 16px;background:#fff;border:2px solid var(--border);border-radius:8px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;margin-top:8px;min-height:40px;}
+.info-box{background:#e8f5e9;border:1px solid #c8e6c9;border-radius:8px;padding:11px 14px;font-size:13px;color:#2e7d32;margin-bottom:14px;line-height:1.5;}
+
+.action-bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e0e8d8;padding:12px 16px;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));display:flex;gap:10px;z-index:200;}
+.btn-primary{flex:1;padding:14px;background:var(--green);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;}
+.btn-primary:active{opacity:0.85;}
+.btn-spinner{width:18px;height:18px;border:2.5px solid rgba(255,255,255,0.4);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#323232;color:#fff;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:600;z-index:999;opacity:0;pointer-events:none;transition:opacity 0.3s;white-space:nowrap;}
+.toast.show{opacity:1;}
+.toast.ok{background:#2e7d32;}
+.toast.err{background:#c62828;}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-inner">
+    <div class="header-text">
+      <h1>🔧 Daily Pre-Start Check</h1>
+      <p>Urban Tree Services</p>
+    </div>
+    <div class="save-ind"><div class="save-dot" id="saveDot"></div><span id="saveLabel">Auto-saved</span></div>
+  </div>
+</div>
+
+<div class="main">
+
+<!-- 1. Details -->
+<div class="card">
+  <div class="card-header"><span class="snum">1</span> Details</div>
+  <div class="card-body">
+    <div class="field-row">
+      <div class="field">
+        <label class="fl">Date</label>
+        <input type="date" id="checkDate">
+      </div>
+      <div class="field">
+        <label class="fl">Time</label>
+        <input type="text" id="checkTime" placeholder="e.g. 06:45">
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label class="fl">Operator / Driver</label>
+        <select id="operator">
+          <option value="">— Select —</option>
+          <option>Stuart Wilson</option>
+          <option>Lea Molloy</option>
+          <option>Joshua Curran</option>
+          <option>Joshua Micallef</option>
+          <option>Sen Aupouri</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="fl">Job Site</label>
+        <input type="text" id="location" placeholder="Address or job name">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 2. Equipment -->
+<div class="card">
+  <div class="card-header"><span class="snum">2</span> Equipment Being Checked</div>
+  <div class="card-body">
+    <div class="eq-tabs">
+      <button class="eq-tab active" id="tab-morbark" onclick="selectEq('morbark')">Morbark 1415</button>
+      <button class="eq-tab" id="tab-forst" onclick="selectEq('forst')">Forst ST6PHD</button>
+      <button class="eq-tab" id="tab-truck" onclick="selectEq('truck')">Truck</button>
+    </div>
+    <input type="hidden" id="eqType" value="morbark">
+    <div class="field-row">
+      <div class="field">
+        <label class="fl">Rego / ID</label>
+        <input type="text" id="rego" placeholder="Registration plate">
+      </div>
+      <div class="field">
+        <label class="fl" id="docLabel">RUC Expiry</label>
+        <input type="text" id="rucOrWof" placeholder="e.g. 31/12/2025">
+      </div>
+    </div>
+    <div class="field">
+      <label class="fl" id="odomLabel">Hours / Odometer</label>
+      <input type="text" id="odometer" placeholder="Engine hours or km reading">
+    </div>
+  </div>
+</div>
+
+<!-- 3. Checks -->
+<div class="card">
+  <div class="card-header"><span class="snum">3</span> Pre-Start Checks</div>
+  <div class="card-body">
+    <div class="legend">
+      <span class="legend-item"><span class="legend-dot" style="background:#4caf50"></span>Pass ✓</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#f44336"></span>Fail ✗</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#bbb"></span>N/A</span>
+    </div>
+    <div class="check-list" id="checkList"></div>
+  </div>
+</div>
+
+<!-- 4. Tyres (shown for all) -->
+<div class="card">
+  <div class="card-header"><span class="snum">4</span> Tyres</div>
+  <div class="card-body">
+    <div class="tyre-grid" id="tyreGrid"></div>
+    <div class="field" style="margin-top:12px;">
+      <label class="fl">Tyre notes</label>
+      <textarea id="tyreNotes" placeholder="PSI readings, concerns…"></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- 5. Defects -->
+<div class="card">
+  <div class="card-header"><span class="snum">5</span> Defects</div>
+  <div class="card-body">
+    <div class="field">
+      <label class="fl">Any defects or items requiring attention?</label>
+      <div class="yn-row">
+        <label class="yn-label yes-opt"><input type="radio" name="hasDefects" value="no" onchange="toggleDefects(false)"> No defects</label>
+        <label class="yn-label no-opt"><input type="radio" name="hasDefects" value="yes" onchange="toggleDefects(true)"> Yes — defects found</label>
+      </div>
+      <div class="defect-box" id="defectBox">
+        <label class="fl" style="font-size:12px;margin-bottom:6px;">Describe defects &amp; action taken</label>
+        <textarea id="defects" placeholder="List defects and action taken or planned…"></textarea>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 6. Sign-off -->
+<div class="card">
+  <div class="card-header"><span class="snum">6</span> Operator Sign-Off</div>
+  <div class="card-body">
+    <div class="info-box">By signing you confirm this equipment has been checked and is safe to operate, or that any defects are noted above.</div>
+    <div class="field">
+      <label class="fl">Name</label>
+      <select id="sigName">
+        <option value="">— Select —</option>
+        <option>Stuart Wilson</option>
+        <option>Lea Molloy</option>
+        <option>Joshua Curran</option>
+        <option>Joshua Micallef</option>
+        <option>Sen Aupouri</option>
+      </select>
+    </div>
+    <div class="field">
+      <label class="fl">Signature</label>
+      <div class="sig-wrapper"><canvas id="sigCanvas"></canvas><span class="sig-ph" id="sigPh">Sign here</span></div>
+      <button class="btn-clear" onclick="clearSig()">Clear Signature</button>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<div class="action-bar">
+  <button class="btn-primary" id="exportBtn" onclick="doExport()">📄 Save &amp; Export PDF</button>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const GOOGLE_CLIENT_ID = '376997677043-ejesngfcmmrub4j6gdftkloiiknm5ppq.apps.googleusercontent.com';
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+const STORE_KEY = 'uts_prestart_daily_v1';
+const GREEN = [46, 125, 50];
+
+// ── Check definitions ──────────────────────────────────────────────────────
+const CHECKS = {
+  morbark: [
+    { id:'engine_oil',   label:'Engine oil level',         hint:'Dipstick between MIN/MAX' },
+    { id:'coolant',      label:'Coolant level',             hint:'Reservoir at MAX cold' },
+    { id:'fuel',         label:'Fuel level',                hint:'Sufficient for the day' },
+    { id:'hyd_oil',      label:'Hydraulic oil level',       hint:'Check sight glass or dipstick' },
+    { id:'air_filter',   label:'Air filter',                hint:'Clean, not clogged' },
+    { id:'belts',        label:'Drive belts / V-belts',     hint:'No cracks or fraying' },
+    { id:'disc',         label:'Disc / drum condition',     hint:'No cracks or missing hardware' },
+    { id:'blades',       label:'Blades / cutting knives',   hint:'Sharp, secure, not cracked' },
+    { id:'counter',      label:'Counter/anvil knife',       hint:'Secure, correctly gapped' },
+    { id:'rollers',      label:'Feed rollers',              hint:'Teeth intact, rotate freely' },
+    { id:'discharge',    label:'Discharge chute',           hint:'Clear, deflector intact' },
+    { id:'infeed',       label:'Infeed table/throat',       hint:'No obstructions, secure' },
+    { id:'pto',          label:'PTO engagement',            hint:'Engages/disengages smoothly' },
+    { id:'estop',        label:'Emergency stop',            hint:'Activates and disengages feed' },
+    { id:'feed_bar',     label:'Feed stop / reverse bar',   hint:'Moves freely, returns material' },
+    { id:'guards',       label:'All guards in place',       hint:'Belt and rotating part guards secure' },
+    { id:'coupling',     label:'Ball coupling / hitch',     hint:'Locked, pin or clip in place' },
+    { id:'safe_chain',   label:'Safety chain',              hint:'Attached, correct length' },
+    { id:'tow_lights',   label:'Tow lights & plug',         hint:'Brake, tail, indicators working' },
+    { id:'no_leaks',     label:'No fluid leaks',            hint:'Check under machine and fittings' },
+    { id:'fire_ext',     label:'Fire extinguisher',         hint:'Present, charged (gauge green)' },
+  ],
+  forst: [
+    { id:'engine_oil',   label:'Engine oil level',         hint:'Dipstick between MIN/MAX' },
+    { id:'coolant',      label:'Coolant level',             hint:'Reservoir at MAX cold' },
+    { id:'fuel',         label:'Fuel level',                hint:'Sufficient for the day' },
+    { id:'hyd_oil',      label:'Hydraulic oil level',       hint:'Check sight glass or dipstick' },
+    { id:'air_filter',   label:'Air filter',                hint:'Clean, not clogged' },
+    { id:'belts',        label:'Drive belts',               hint:'No cracks or fraying' },
+    { id:'disc',         label:'Disc condition',            hint:'No cracks or missing hardware' },
+    { id:'blades',       label:'Blades / cutting knives',   hint:'Sharp, secure, not cracked' },
+    { id:'counter',      label:'Counter/anvil knife',       hint:'Secure, correctly gapped' },
+    { id:'rollers',      label:'Feed rollers',              hint:'Teeth intact, rotate freely' },
+    { id:'discharge',    label:'Discharge chute',           hint:'Clear, deflector intact' },
+    { id:'feed_ctrl',    label:'Feed control (in/out/stop)',hint:'All functions correct' },
+    { id:'engine_start', label:'Engine starts cleanly',     hint:'No smoke or unusual noise' },
+    { id:'estop',        label:'Emergency stop',            hint:'Activates and stops feed' },
+    { id:'feed_bar',     label:'Feed stop / reverse bar',   hint:'Moves freely, returns material' },
+    { id:'guards',       label:'All guards in place',       hint:'All rotating part guards secure' },
+    { id:'coupling',     label:'Ball coupling / hitch',     hint:'Locked, pin or clip in place' },
+    { id:'safe_chain',   label:'Safety chain',              hint:'Attached, correct length' },
+    { id:'tow_lights',   label:'Tow lights & plug',         hint:'Brake, tail, indicators working' },
+    { id:'no_leaks',     label:'No fluid leaks',            hint:'Check under machine and fittings' },
+    { id:'fire_ext',     label:'Fire extinguisher',         hint:'Present, charged (gauge green)' },
+  ],
+  truck: [
+    { id:'rego_cur',     label:'Registration current',      hint:'Rego sticker not expired' },
+    { id:'wof_cur',      label:'WOF current',               hint:'Warrant of Fitness in date' },
+    { id:'ruc_cur',      label:'RUC licence current',       hint:'Odometer within purchased km' },
+    { id:'engine_oil',   label:'Engine oil level',         hint:'Dipstick between MIN/MAX' },
+    { id:'coolant',      label:'Coolant level',             hint:'Reservoir correct cold level' },
+    { id:'fuel',         label:'Fuel level',                hint:'Sufficient for the day' },
+    { id:'no_leaks',     label:'No visible leaks',          hint:'Check under truck before start' },
+    { id:'headlights',   label:'Headlights (low & high)',   hint:'Both working' },
+    { id:'tail_lights',  label:'Tail & brake lights',       hint:'All working' },
+    { id:'indicators',   label:'Indicators & hazards',      hint:'All four corners' },
+    { id:'horn',         label:'Horn',                      hint:'Audible and working' },
+    { id:'wipers',       label:'Wipers & washers',          hint:'Blades intact, fluid present' },
+    { id:'mirrors',      label:'Mirrors clean & adjusted',  hint:'All positions correct' },
+    { id:'windscreen',   label:'Windscreen clear',          hint:'No cracks in driver\'s view' },
+    { id:'seatbelt',     label:'Seatbelt(s)',               hint:'Latch and retract correctly' },
+    { id:'gauges',       label:'No warning lights',         hint:'All dash lights clear after warm-up' },
+    { id:'foot_brake',   label:'Foot brake effective',      hint:'Firm pedal, no pull' },
+    { id:'park_brake',   label:'Handbrake holds',           hint:'Holds on a slope' },
+    { id:'steering',     label:'Steering — no excess play', hint:'Less than 1/4 turn free play' },
+    { id:'load_secure',  label:'Load secured',              hint:'Straps attached and tensioned' },
+    { id:'tailgate',     label:'Tailgate / drop sides',     hint:'Pins in and locked' },
+    { id:'fire_ext',     label:'Fire extinguisher',         hint:'Present, charged (gauge green)' },
+    { id:'first_aid',    label:'First aid kit',             hint:'In cab and stocked' },
+  ],
+};
+
+const TYRES = {
+  morbark: [
+    { id:'t_l', label:'Left tyre' },
+    { id:'t_r', label:'Right tyre' },
+  ],
+  forst: [
+    { id:'t_l', label:'Left tyre' },
+    { id:'t_r', label:'Right tyre' },
+  ],
+  truck: [
+    { id:'t_fl', label:'Front Left' },
+    { id:'t_fr', label:'Front Right' },
+    { id:'t_rl', label:'Rear Left (outer)' },
+    { id:'t_rr', label:'Rear Right (outer)' },
+    { id:'t_rli', label:'Rear Left (inner)' },
+    { id:'t_rri', label:'Rear Right (inner)' },
+  ],
+};
+
+const EQ_NAMES = { morbark:'Morbark 1415', forst:'Forst ST6PHD', truck:'Truck' };
+
+// ── State ──────────────────────────────────────────────────────────────────
+const checks = {};
+let currentEq = 'morbark';
+
+// ── Equipment switcher ─────────────────────────────────────────────────────
+function selectEq(eq) {
+  currentEq = eq;
+  document.getElementById('eqType').value = eq;
+  ['morbark','forst','truck'].forEach(t => {
+    document.getElementById('tab-'+t).className = 'eq-tab' + (t===eq?' active':'');
+  });
+  // Update label
+  if (eq === 'truck') {
+    document.getElementById('docLabel').textContent = 'WOF / RUC Expiry';
+    document.getElementById('odomLabel').textContent = 'Odometer (km)';
+    document.getElementById('rucOrWof').placeholder = 'WOF & RUC dates';
+    document.getElementById('odometer').placeholder = 'Current km reading';
+  } else {
+    document.getElementById('docLabel').textContent = 'RUC Expiry';
+    document.getElementById('odomLabel').textContent = 'Engine Hours';
+    document.getElementById('rucOrWof').placeholder = 'e.g. 31/12/2025 or N/A';
+    document.getElementById('odometer').placeholder = 'Engine hours';
+  }
+  buildChecks();
+  buildTyres();
+  restoreCheckState();
+  saveData();
+}
+
+function buildChecks() {
+  const list = document.getElementById('checkList');
+  list.innerHTML = '';
+  (CHECKS[currentEq]||[]).forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'check-item';
+    div.innerHTML = `
+      <div class="check-label">${item.label}${item.hint?`<div class="check-hint">${item.hint}</div>`:''}
+      </div>
+      <div class="tick-wrap">
+        <div class="tick" id="tp_${item.id}" onclick="setCheck('${item.id}','pass')">✓</div>
+        <div class="tick" id="tf_${item.id}" onclick="setCheck('${item.id}','fail')">✗</div>
+        <div class="tick" id="tn_${item.id}" onclick="setCheck('${item.id}','na')">—</div>
+      </div>`;
+    list.appendChild(div);
+  });
+}
+
+function buildTyres() {
+  const grid = document.getElementById('tyreGrid');
+  grid.innerHTML = '';
+  (TYRES[currentEq]||[]).forEach(t => {
+    const cell = document.createElement('div');
+    cell.className = 'tyre-cell';
+    cell.innerHTML = `
+      <label class="fl">${t.label}</label>
+      <div class="tyre-btns">
+        <div class="tick tyre-btns" id="tp_${t.id}" onclick="setCheck('${t.id}','pass')" style="width:32px;height:32px;font-size:16px;">✓</div>
+        <div class="tick" id="tf_${t.id}" onclick="setCheck('${t.id}','fail')" style="width:32px;height:32px;font-size:16px;">✗</div>
+        <div class="tick" id="tn_${t.id}" onclick="setCheck('${t.id}','na')" style="width:32px;height:32px;font-size:14px;">—</div>
+      </div>`;
+    grid.appendChild(cell);
+  });
+}
+
+function setCheck(id, val) {
+  checks[id] = val;
+  ['pass','fail','na'].forEach(s => {
+    const el = document.getElementById(s==='pass'?'tp_'+id:s==='fail'?'tf_'+id:'tn_'+id);
+    if (el) el.className = 'tick' + (s===val?' '+s:'');
+  });
+  saveData();
+}
+
+function restoreCheckState() {
+  const allItems = [...(CHECKS[currentEq]||[]), ...(TYRES[currentEq]||[])];
+  allItems.forEach(item => {
+    const val = checks[item.id];
+    if (!val) return;
+    ['pass','fail','na'].forEach(s => {
+      const el = document.getElementById(s==='pass'?'tp_'+item.id:s==='fail'?'tf_'+item.id:'tn_'+item.id);
+      if (el) el.className = 'tick' + (s===val?' '+s:'');
+    });
+  });
+}
+
+function toggleDefects(show) {
+  document.getElementById('defectBox').className = 'defect-box' + (show?' show':'');
+}
+
+// ── Signature ──────────────────────────────────────────────────────────────
+let sigCtx, sigEmpty = true, signing = false;
+function initSig() {
+  const c = document.getElementById('sigCanvas'); sigCtx = c.getContext('2d');
+  const resize = () => { const d=sigEmpty?null:c.toDataURL(); c.width=c.offsetWidth*devicePixelRatio; c.height=c.offsetHeight*devicePixelRatio; sigCtx.scale(devicePixelRatio,devicePixelRatio); sigCtx.strokeStyle='#1a1a1a'; sigCtx.lineWidth=2.5; sigCtx.lineCap='round'; sigCtx.lineJoin='round'; if(d){const img=new Image();img.onload=()=>sigCtx.drawImage(img,0,0,c.offsetWidth,c.offsetHeight);img.src=d;} };
+  resize(); window.addEventListener('resize',resize);
+  const pos=e=>{const r=c.getBoundingClientRect();const t=e.touches?e.touches[0]:e;return{x:t.clientX-r.left,y:t.clientY-r.top};};
+  c.addEventListener('mousedown',e=>{e.preventDefault();signing=true;sigEmpty=false;document.getElementById('sigPh').style.display='none';const p=pos(e);sigCtx.beginPath();sigCtx.moveTo(p.x,p.y);});
+  c.addEventListener('mousemove',e=>{if(!signing)return;e.preventDefault();const p=pos(e);sigCtx.lineTo(p.x,p.y);sigCtx.stroke();});
+  c.addEventListener('mouseup',e=>{if(!signing)return;e.preventDefault();signing=false;saveData();});
+  c.addEventListener('touchstart',e=>{e.preventDefault();signing=true;sigEmpty=false;document.getElementById('sigPh').style.display='none';const p=pos(e);sigCtx.beginPath();sigCtx.moveTo(p.x,p.y);},{passive:false});
+  c.addEventListener('touchmove',e=>{if(!signing)return;e.preventDefault();const p=pos(e);sigCtx.lineTo(p.x,p.y);sigCtx.stroke();},{passive:false});
+  c.addEventListener('touchend',e=>{if(!signing)return;e.preventDefault();signing=false;saveData();},{passive:false});
+}
+initSig();
+function clearSig(){const c=document.getElementById('sigCanvas');sigCtx.clearRect(0,0,c.width,c.height);sigEmpty=true;document.getElementById('sigPh').style.display='';saveData();}
+function getSig(){return sigEmpty?null:document.getElementById('sigCanvas').toDataURL();}
+
+// ── Save / restore ─────────────────────────────────────────────────────────
+function gather() {
+  const v = id => document.getElementById(id)?.value||'';
+  return {
+    eq: currentEq, checkDate: v('checkDate'), checkTime: v('checkTime'),
+    operator: v('operator'), location: v('location'),
+    rego: v('rego'), rucOrWof: v('rucOrWof'), odometer: v('odometer'),
+    checks: {...checks},
+    tyreNotes: v('tyreNotes'),
+    hasDefects: document.querySelector('input[name=hasDefects]:checked')?.value||'',
+    defects: v('defects'),
+    sigName: v('sigName'), sigData: getSig(),
+  };
+}
+
+function restore(d) {
+  if (d.eq && d.eq !== currentEq) selectEq(d.eq);
+  const s=(id,v)=>{const el=document.getElementById(id);if(el&&v!==undefined)el.value=v;};
+  s('checkDate',d.checkDate);s('checkTime',d.checkTime);s('operator',d.operator);s('location',d.location);
+  s('rego',d.rego);s('rucOrWof',d.rucOrWof);s('odometer',d.odometer);
+  s('tyreNotes',d.tyreNotes);s('defects',d.defects);s('sigName',d.sigName);
+  if(d.hasDefects){const r=document.querySelector(`input[name=hasDefects][value="${d.hasDefects}"]`);if(r){r.checked=true;toggleDefects(d.hasDefects==='yes');}}
+  if(d.checks){Object.assign(checks,d.checks);restoreCheckState();}
+  if(d.sigData){const img=new Image();img.onload=()=>{const c=document.getElementById('sigCanvas');sigCtx.drawImage(img,0,0,c.offsetWidth,c.offsetHeight);sigEmpty=false;document.getElementById('sigPh').style.display='none';};img.src=d.sigData;}
+}
+
+let saveTimer;
+function saveData(){clearTimeout(saveTimer);document.getElementById('saveDot').className='save-dot';saveTimer=setTimeout(()=>{localStorage.setItem(STORE_KEY,JSON.stringify(gather()));document.getElementById('saveDot').className='save-dot saved';document.getElementById('saveLabel').textContent='Saved';},600);}
+document.querySelectorAll('input:not([type=radio]),textarea,select').forEach(el=>el.addEventListener('input',saveData));
+document.querySelectorAll('input[type=radio]').forEach(el=>el.addEventListener('change',saveData));
+
+// ── PDF ────────────────────────────────────────────────────────────────────
+function generatePDF() {
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({unit:'mm',format:'a4'});
+  const W=210,M=15;let y=0;
+  const d=gather();
+  const eqName=EQ_NAMES[d.eq]||d.eq;
+
+  const checkBreak=(need=18)=>{if(y+need>280){doc.addPage();y=15;drawBand();}};
+  const drawBand=()=>{doc.setFillColor(...GREEN);doc.rect(0,0,W,5,'F');};
+  drawBand();y=14;
+
+  doc.setFillColor(...GREEN);doc.rect(M,y,W-M*2,18,'F');
+  doc.setTextColor(255,255,255);doc.setFontSize(14);doc.setFont('helvetica','bold');
+  doc.text('URBAN TREE SERVICES',W/2,y+7,{align:'center'});
+  doc.setFontSize(10);doc.setFont('helvetica','normal');
+  doc.text(`DAILY PRE-START CHECK — ${eqName.toUpperCase()}`,W/2,y+13,{align:'center'});
+  y+=24;doc.setTextColor(30,30,30);
+
+  const section=title=>{checkBreak(22);doc.setFillColor(...GREEN);doc.rect(M,y,W-M*2,8,'F');doc.setTextColor(255,255,255);doc.setFontSize(9);doc.setFont('helvetica','bold');doc.text(title.toUpperCase(),M+4,y+5.5);doc.setTextColor(30,30,30);y+=12;};
+  const row=(label,value)=>{checkBreak(12);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(100,100,100);doc.text(label.toUpperCase(),M,y);doc.setFont('helvetica','normal');doc.setTextColor(30,30,30);doc.setFontSize(10);const lines=doc.splitTextToSize(value||'—',W-M*2);lines.forEach(l=>{checkBreak(7);doc.text(l,M,y+6);y+=6;});y+=6;};
+
+  section('Details');
+  const date=d.checkDate?new Date(d.checkDate).toLocaleDateString('en-NZ',{day:'2-digit',month:'long',year:'numeric'}):'—';
+  row('Equipment',eqName);
+  row('Date',date+(d.checkTime?'  |  Time: '+d.checkTime:''));
+  row('Operator',d.operator);row('Location',d.location);
+  row('Rego / ID',d.rego);
+  row(d.eq==='truck'?'WOF / RUC Expiry':'RUC Expiry',d.rucOrWof);
+  row(d.eq==='truck'?'Odometer (km)':'Engine Hours',d.odometer);
+
+  section('Pre-Start Checks');
+  (CHECKS[d.eq]||[]).forEach(item=>{
+    checkBreak(10);
+    const val=d.checks[item.id]||'';
+    const colors={pass:[46,125,50],fail:[198,40,40],na:[160,160,160]};
+    const labels={pass:'PASS',fail:'FAIL',na:'N/A'};
+    const col=colors[val]||[210,210,210];
+    if(val){doc.setFillColor(...col);doc.rect(M,y-3.5,12,6,'F');doc.setTextColor(255,255,255);doc.setFontSize(7);doc.setFont('helvetica','bold');doc.text(labels[val]||'?',M+6,y,{align:'center'});}
+    else{doc.setDrawColor(210,210,210);doc.rect(M,y-3.5,12,6);doc.setTextColor(200,200,200);doc.setFontSize(7);doc.setFont('helvetica','bold');doc.text('—',M+6,y,{align:'center'});}
+    doc.setTextColor(30,30,30);doc.setFontSize(10);doc.setFont('helvetica','normal');
+    doc.text(item.label,M+15,y);y+=9;
+  });
+  y+=2;
+
+  section('Tyres');
+  (TYRES[d.eq]||[]).forEach(t=>{
+    checkBreak(10);
+    const val=d.checks[t.id]||'';
+    const colors={pass:[46,125,50],fail:[198,40,40],na:[160,160,160]};
+    const labels={pass:'PASS',fail:'FAIL',na:'N/A'};
+    const col=colors[val]||[210,210,210];
+    if(val){doc.setFillColor(...col);doc.rect(M,y-3.5,12,6,'F');doc.setTextColor(255,255,255);doc.setFontSize(7);doc.setFont('helvetica','bold');doc.text(labels[val]||'?',M+6,y,{align:'center'});}
+    else{doc.setDrawColor(210,210,210);doc.rect(M,y-3.5,12,6);doc.setTextColor(200,200,200);doc.setFontSize(7);doc.setFont('helvetica','bold');doc.text('—',M+6,y,{align:'center'});}
+    doc.setTextColor(30,30,30);doc.setFontSize(10);doc.setFont('helvetica','normal');
+    doc.text(t.label,M+15,y);y+=9;
+  });
+  if(d.tyreNotes)row('Tyre Notes',d.tyreNotes);
+
+  section('Defects');
+  row('Defects Found',d.hasDefects==='yes'?'Yes — see below':d.hasDefects==='no'?'No defects':'—');
+  if(d.hasDefects==='yes')row('Details',d.defects);
+
+  section('Sign-Off');
+  row('Operator',d.sigName);
+  if(d.sigData){checkBreak(40);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(100,100,100);doc.text('SIGNATURE:',M,y);y+=4;doc.addImage(d.sigData,'PNG',M,y,80,30);y+=36;}
+
+  doc.setFillColor(...GREEN);doc.rect(0,287,W,10,'F');
+  doc.setTextColor(255,255,255);doc.setFontSize(7);doc.setFont('helvetica','normal');
+  doc.text(`Urban Tree Services · Daily Pre-Start · ${eqName} · ${new Date().toLocaleDateString('en-NZ')}`,W/2,293,{align:'center'});
+  return doc;
+}
+
+function showToast(msg,type=''){const t=document.getElementById('toast');t.textContent=msg;t.className='toast show'+(type?' '+type:'');setTimeout(()=>t.className='toast',3500);}
+
+let driveToken=null;
+async function getDriveToken(){return new Promise((res,rej)=>{if(!window.google?.accounts){rej(new Error('Google not loaded'));return;}const c=google.accounts.oauth2.initTokenClient({client_id:GOOGLE_CLIENT_ID,scope:DRIVE_SCOPE,callback:r=>r.error?rej(new Error(r.error)):(driveToken=r.access_token,res(r.access_token))});driveToken?res(driveToken):c.requestAccessToken({prompt:''});});}
+async function findOrCreateFolder(t){const q=await fetch(`https://www.googleapis.com/drive/v3/files?q=name='UTS Forms' and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id)`,{headers:{Authorization:'Bearer '+t}});const{files}=await q.json();if(files.length)return files[0].id;const r=await fetch('https://www.googleapis.com/drive/v3/files',{method:'POST',headers:{Authorization:'Bearer '+t,'Content-Type':'application/json'},body:JSON.stringify({name:'UTS Forms',mimeType:'application/vnd.google-apps.folder'})});return(await r.json()).id;}
+async function uploadToDrive(bytes,name,t,fid){const meta=JSON.stringify({name,parents:[fid]});const b=new Blob([bytes],{type:'application/pdf'});const f=new FormData();f.append('metadata',new Blob([meta],{type:'application/json'}));f.append('file',b);return(await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name',{method:'POST',headers:{Authorization:'Bearer '+t},body:f})).json();}
+
+async function doExport(){
+  const btn=document.getElementById('exportBtn');
+  btn.innerHTML='<div class="btn-spinner"></div> Generating…';btn.disabled=true;
+  try{
+    const doc=generatePDF();const d=gather();
+    const eqSlug=d.eq==='morbark'?'Morbark1415':d.eq==='forst'?'ForstST6PHD':'Truck';
+    const date=(d.checkDate||new Date().toISOString().slice(0,10)).replace(/-/g,'');
+    const filename=`UTS_PreStart_${eqSlug}_${date}.pdf`;
+    doc.save(filename);
+    if(window.google?.accounts){btn.innerHTML='<div class="btn-spinner"></div> Uploading…';
+      try{const t=await getDriveToken();const fid=await findOrCreateFolder(t);await uploadToDrive(doc.output('arraybuffer'),filename,t,fid);showToast('Saved & uploaded to Google Drive ✓','ok');}
+      catch(e){showToast('Downloaded — Drive upload failed: '+e.message,'err');}
+    }else{showToast('PDF downloaded ✓','ok');}
+  }catch(e){showToast('Error: '+e.message,'err');}
+  finally{btn.innerHTML='📄 Save &amp; Export PDF';btn.disabled=false;}
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+buildChecks();
+buildTyres();
+document.getElementById('checkDate').value=new Date().toISOString().slice(0,10);
+const saved=localStorage.getItem(STORE_KEY);
+if(saved){try{restore(JSON.parse(saved));}catch(e){}}
+</script>
+</body>
+</html>

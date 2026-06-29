@@ -13,6 +13,7 @@ import Calendar from './pages/Calendar'
 import Clients from './pages/Clients'
 import Settings from './pages/Settings'
 import Dashboard from './pages/Dashboard'
+import Forms from './pages/Forms'
 
 function RequireAuth({ children }) {
   const { session, loading } = useAuth()
@@ -61,6 +62,7 @@ export default function App() {
             <Route path="quotes/new" element={<RequireFullAccess><QuoteBuilder /></RequireFullAccess>} />
             <Route path="quotes/:id" element={<RequireFullAccess><QuoteBuilder /></RequireFullAccess>} />
             <Route path="settings"  element={<RequireFullAccess><Settings /></RequireFullAccess>} />
+            <Route path="forms"     element={<Forms />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../config/supabase'
@@ -10,10 +10,50 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
-  const [mode, setMode] = useState('login') // 'login' | 'reset'
+  const [mode, setMode] = useState('login') // 'login' | 'reset' | 'set-password'
   const [resetSent, setResetSent] = useState(false)
   const [resetEmail, setResetEmail] = useState('')
   const [resetLoading, setResetLoading] = useState(false)
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [settingPassword, setSettingPassword] = useState(false)
+
+  // Supabase clears window.location.hash before Login mounts, so we read
+  // window.__initialHash set in index.html before any module scripts run.
+  // Only switch to set-password if there is NO existing session — prevents
+  // a logged-in user accidentally triggering this by visiting /login with a hash.
+  useEffect(() => {
+    const hash = window.__initialHash || ''
+    if (hash) {
+      const params = new URLSearchParams(hash.replace('#', ''))
+      const type = params.get('type')
+      const accessToken = params.get('access_token')
+      if ((type === 'invite' || type === 'recovery') && accessToken) {
+        // Only show set-password if not already logged in
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (!session) setMode('set-password')
+        })
+        return
+      }
+    }
+    // Fallback: catch PASSWORD_RECOVERY event if hash already processed by Supabase
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') setMode('set-password')
+    })
+    return () => subscription.unsubscribe()
+  }, [])
+
+  async function handleSetPassword(e) {
+    e.preventDefault()
+    if (!newPassword || newPassword.length < 8) { setError('Password must be at least 8 characters'); return }
+    if (newPassword !== confirmPassword) { setError('Passwords do not match'); return }
+    setError(null)
+    setSettingPassword(true)
+    const { error: err } = await supabase.auth.updateUser({ password: newPassword })
+    setSettingPassword(false)
+    if (err) { setError(err.message); return }
+    navigate('/', { replace: true })
+  }
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -52,7 +92,28 @@ export default function Login() {
           <h1 style={styles.logoText}>TreeCo</h1>
         </div>
 
-        {mode === 'login' ? (
+        {mode === 'set-password' ? (
+          <form onSubmit={handleSetPassword} style={styles.form}>
+            <div style={{ fontSize: '15px', fontWeight: '600', color: 'var(--bark)', marginBottom: '4px' }}>Set your password</div>
+            <div style={{ fontSize: '13px', color: '#888', marginBottom: '16px', lineHeight: 1.5 }}>
+              Choose a password to complete your account setup.
+            </div>
+            <label style={styles.label}>
+              New password
+              <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)}
+                required autoFocus autoComplete="new-password" style={styles.input} placeholder="At least 8 characters" />
+            </label>
+            <label style={styles.label}>
+              Confirm password
+              <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
+                required autoComplete="new-password" style={styles.input} />
+            </label>
+            {error && <p style={styles.error}>{error}</p>}
+            <button type="submit" disabled={settingPassword} style={styles.button}>
+              {settingPassword ? 'Setting password…' : 'Set password & sign in'}
+            </button>
+          </form>
+        ) : mode === 'login' ? (
           <form onSubmit={handleSubmit} style={styles.form}>
             <label style={styles.label}>
               Email
