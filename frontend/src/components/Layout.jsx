@@ -11,13 +11,21 @@ const FULL_NAV = [
   { to: '/forms',     label: 'Forms',     icon: FormsIcon },
 ]
 
+const OFFICE_NAV = [
+  { to: '/pipeline',  label: 'Pipeline',  icon: PipelineIcon },
+  { to: '/calendar',  label: 'Calendar',  icon: CalendarIcon },
+  { to: '/clients',   label: 'Clients',   icon: ClientsIcon },
+  { to: '/quotes',    label: 'Quotes',    icon: QuotesIcon },
+  { to: '/forms',     label: 'Forms',     icon: FormsIcon },
+]
+
 const CREW_NAV = [
   { to: '/calendar', label: 'Calendar', icon: CalendarIcon },
   { to: '/forms',    label: 'Forms',    icon: FormsIcon },
 ]
 
 export default function Layout() {
-  const { profile, isFullAccess, signOut } = useAuth()
+  const { profile, isFullAccess, isStaff, signOut } = useAuth()
   const navigate   = useNavigate()
   const isMobile   = useIsMobile()
 
@@ -26,7 +34,7 @@ export default function Layout() {
     navigate('/login', { replace: true })
   }
 
-  const navItems = isFullAccess ? FULL_NAV : CREW_NAV
+  const navItems = isFullAccess ? FULL_NAV : isStaff ? OFFICE_NAV : CREW_NAV
 
   if (isMobile) {
     return (

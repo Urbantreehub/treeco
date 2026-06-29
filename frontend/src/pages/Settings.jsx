@@ -18,7 +18,7 @@ const RESOURCES = [
   { id: 'unassigned', label: 'Unassigned' },
 ]
 
-const ACCESS_LABELS = { full: 'Full access', restricted: 'Crew' }
+const ACCESS_LABELS = { full: 'Full access', office: 'Office', restricted: 'Crew' }
 
 // ── Team tab ───────────────────────────────────────────────────────────────
 function TeamTab({ toast }) {
@@ -192,6 +192,7 @@ function TeamTab({ toast }) {
                     <label style={t.fieldLabel}>Access level</label>
                     <select style={t.select} value={form.access_level} onChange={e => setForm(f => ({ ...f, access_level: e.target.value }))}>
                       <option value="full">Full access — sees everything</option>
+                      <option value="office">Office — everything except dashboard</option>
                       <option value="restricted">Crew — today's jobs only</option>
                     </select>
                   </div>
@@ -250,6 +251,7 @@ function TeamTab({ toast }) {
                 onChange={e => updateUser(u.id, { access_level: e.target.value })}
               >
                 <option value="full">Full access</option>
+                <option value="office">Office</option>
                 <option value="restricted">Crew</option>
               </select>
               <select

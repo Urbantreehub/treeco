@@ -29,9 +29,23 @@ function RequireAuth({ children }) {
 
 function RequireFullAccess({ children }) {
   const { isFullAccess, loading, session, profile } = useAuth()
-  // Wait for session, then wait for profile to load before evaluating access
   if (loading || (session && !profile)) return null
   if (!isFullAccess) return <Navigate to="/calendar" replace />
+  return children
+}
+
+function DefaultRedirect() {
+  const { isFullAccess, isStaff, loading, session, profile } = useAuth()
+  if (loading || (session && !profile)) return null
+  if (isFullAccess) return <Navigate to="/dashboard" replace />
+  if (isStaff) return <Navigate to="/pipeline" replace />
+  return <Navigate to="/calendar" replace />
+}
+
+function RequireStaff({ children }) {
+  const { isStaff, loading, session, profile } = useAuth()
+  if (loading || (session && !profile)) return null
+  if (!isStaff) return <Navigate to="/calendar" replace />
   return children
 }
 
@@ -53,14 +67,14 @@ export default function App() {
               </RequireAuth>
             }
           >
-            <Route index element={<Navigate to="/dashboard" replace />} />
+            <Route index element={<DefaultRedirect />} />
             <Route path="dashboard" element={<RequireFullAccess><Dashboard /></RequireFullAccess>} />
-            <Route path="pipeline"  element={<RequireFullAccess><Pipeline /></RequireFullAccess>} />
+            <Route path="pipeline"  element={<RequireStaff><Pipeline /></RequireStaff>} />
             <Route path="calendar"  element={<Calendar />} />
-            <Route path="clients"   element={<RequireFullAccess><Clients /></RequireFullAccess>} />
-            <Route path="quotes"    element={<RequireFullAccess><Quotes /></RequireFullAccess>} />
-            <Route path="quotes/new" element={<RequireFullAccess><QuoteBuilder /></RequireFullAccess>} />
-            <Route path="quotes/:id" element={<RequireFullAccess><QuoteBuilder /></RequireFullAccess>} />
+            <Route path="clients"   element={<RequireStaff><Clients /></RequireStaff>} />
+            <Route path="quotes"    element={<RequireStaff><Quotes /></RequireStaff>} />
+            <Route path="quotes/new" element={<RequireStaff><QuoteBuilder /></RequireStaff>} />
+            <Route path="quotes/:id" element={<RequireStaff><QuoteBuilder /></RequireStaff>} />
             <Route path="settings"  element={<RequireFullAccess><Settings /></RequireFullAccess>} />
             <Route path="forms"     element={<Forms />} />
           </Route>
