@@ -13,7 +13,8 @@ export function useScheduledChecks() {
         .select('*')
         .order('next_due', { ascending: true })
       setChecks(data ?? [])
-    } catch {
+    } catch (err) {
+      console.error('useScheduledChecks:', err)
       setChecks([])
     } finally {
       setLoading(false)

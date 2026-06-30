@@ -745,8 +745,8 @@ export default function QuoteBuilder() {
       else showToast('Quote created')
     } else {
       const { error } = await tryUpsert(payload, false)
-      if (error) showToast(error.message, 'error')
-      else showToast(newStatus === 'sent' ? 'Marked as sent' : 'Saved')
+      if (error) { showToast(error.message, 'error'); setSaving(false); return }
+      showToast(newStatus === 'sent' ? 'Marked as sent' : 'Saved')
       const { data } = await supabase.from('quotes')
         .select(`*, jobs (id, address, job_type, title, clients (id, name, email, phone))`)
         .eq('id', id).single()
@@ -848,7 +848,7 @@ export default function QuoteBuilder() {
         {/* ── Header ── */}
         <div style={{ ...s.header, flexWrap: isMobile ? 'wrap' : 'nowrap', padding: isMobile ? '10px 14px' : '12px 20px' }}>
           <div style={s.hLeft}>
-            <button style={s.backBtn} onClick={() => navigate('/quotes')}>← Quotes</button>
+            <button style={s.backBtn} onClick={() => navigate('/pipeline')}>← Quotes</button>
             <div>
               <div style={{ ...s.title, fontSize: isMobile ? '14px' : '16px' }}>{isNew ? 'New Quote' : (job?.clients?.name ?? 'Quote')}</div>
               {!isNew && job && <div style={s.sub}>{job.address}{job.job_type ? ` · ${job.job_type}` : ''}</div>}

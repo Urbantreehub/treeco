@@ -388,7 +388,6 @@ export const TREE_NAMES = {
   'titoki':             'Alectryon excelsus',
   'maire':              'Nestegis cunninghamii',
   'kaikawaka':          'Libocedrus bidwillii',
-  'kauri':              'Agathis australis',
   'tanekaha':           'Phyllocladus trichomanoides',
   'mataī':              'Prumnopitys taxifolia',
   'tōtara':             'Podocarpus totara',

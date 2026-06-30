@@ -35,6 +35,37 @@ function fmtDate(d) {
   return new Date(d).toLocaleDateString('en-NZ', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
+function AnnotatedText({ text, onOpenGlossary }) {
+  if (!text) return null
+  const segs = annotateSegments(text)
+  return (
+    <>
+      {segs.map((seg, i) => {
+        if (seg.type === 'glossary') {
+          return (
+            <a
+              key={i}
+              href={`#gl-${seg.id}`}
+              onClick={e => { e.preventDefault(); onOpenGlossary(); setTimeout(() => document.getElementById(`gl-${seg.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 80) }}
+              style={p.glossaryLink}
+            >
+              {seg.text}
+            </a>
+          )
+        }
+        if (seg.type === 'tree') {
+          return (
+            <span key={i}>
+              {seg.text}<em style={p.latinName}> ({seg.latin})</em>
+            </span>
+          )
+        }
+        return <span key={i}>{seg.text}</span>
+      })}
+    </>
+  )
+}
+
 export default function QuoteView() {
   const { token } = useParams()
   const searchParams = new URLSearchParams(window.location.search)
@@ -155,38 +186,6 @@ export default function QuoteView() {
     ? fmtDate(quote.valid_until)
     : fmtDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000))
 
-  // Render text with glossary links and Latin tree names
-  function AnnotatedText({ text }) {
-    if (!text) return null
-    const segs = annotateSegments(text)
-    return (
-      <>
-        {segs.map((seg, i) => {
-          if (seg.type === 'glossary') {
-            return (
-              <a
-                key={i}
-                href={`#gl-${seg.id}`}
-                onClick={e => { e.preventDefault(); setShowGlossary(true); setTimeout(() => document.getElementById(`gl-${seg.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 80) }}
-                style={p.glossaryLink}
-              >
-                {seg.text}
-              </a>
-            )
-          }
-          if (seg.type === 'tree') {
-            return (
-              <span key={i}>
-                {seg.text}<em style={p.latinName}> ({seg.latin})</em>
-              </span>
-            )
-          }
-          return <span key={i}>{seg.text}</span>
-        })}
-      </>
-    )
-  }
-
   async function handleDownload() {
     setDownloading(true)
     const filename = `Quote-${quoteNum}-${quote.jobs?.clients?.name?.replace(/\s+/g, '-') ?? 'Urban-Tree'}.pdf`
@@ -298,8 +297,8 @@ export default function QuoteView() {
                   <div style={p.itemBody}>
                     <div style={p.itemTop}>
                       <div style={p.itemDesc}>
-                        <div style={p.itemTitle}><AnnotatedText text={item.description || '—'} /></div>
-                        {item.detail && <div style={p.itemDetail}><AnnotatedText text={item.detail} /></div>}
+                        <div style={p.itemTitle}><AnnotatedText text={item.description || '—'} onOpenGlossary={() => setShowGlossary(true)} /></div>
+                        {item.detail && <div style={p.itemDetail}><AnnotatedText text={item.detail} onOpenGlossary={() => setShowGlossary(true)} /></div>}
                         {(() => {
                           const imgs = item.images?.length ? item.images : (item.image_url ? [item.image_url] : [])
                           return imgs.length > 0 && (
@@ -396,7 +395,7 @@ export default function QuoteView() {
           )}
 
           {/* ── Terms & Conditions ── */}
-          <div style={p.tcSection}>
+          <div style={p.tcSection} data-tc>
             <button style={p.tcToggle} onClick={() => setShowTc(v => !v)}>
               <span style={p.tcToggleLabel}>Terms &amp; Conditions</span>
               <span style={p.tcVersion}>v{TERMS_DATE}</span>

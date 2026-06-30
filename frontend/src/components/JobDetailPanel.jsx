@@ -8,6 +8,16 @@ import { JOB_STATUSES, STATUS_ORDER } from '../config/statuses'
 const SUPABASE_URL  = import.meta.env.VITE_SUPABASE_URL
 const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY
 
+const QUOTE_STATUS_BG = { draft: '#F5F5F5', sent: '#FDF3E3', viewed: '#EBF3FA', accepted: '#E8F0E6', declined: '#FFF0EE' }
+const QUOTE_STATUS_COLOR = { draft: '#888', sent: '#D4851A', viewed: '#4A7FA5', accepted: '#4A6741', declined: '#C0392B' }
+
+const JOB_FORMS = [
+  { id: 'risk_assessment', label: 'SSSP', url: '/forms/risk-assessment.html', icon: '📋', required: true },
+  { id: 'toolbox_meeting', label: 'Toolbox Meeting', url: '/forms/toolbox-meeting.html', icon: '🧰', required: true },
+  { id: 'prestart', label: 'Pre-start Check', url: '/forms/prestart-daily.html', icon: '🔧', required: true },
+  { id: 'incident_report', label: 'Incident Report', url: '/forms/incident-report.html', icon: '🚨', required: false },
+]
+
 // Kāinga Ora SLA timeframes by priority code
 const KO_SLA = {
   URG: { label: 'URG — Urgent', respond: 'Respond & complete within 4 hours', color: '#C0392B', bg: '#FFF0EE' },
@@ -104,16 +114,17 @@ export default function JobDetailPanel({ job, onClose, onUpdated }) {
   })()
 
   async function handleStatusChange(newStatus) {
-    const isComplete = newStatus === 'complete' || newStatus === 'completed'
+    const isComplete = newStatus === 'complete_to_invoice'
     if (isComplete && !sdPhotosReady) {
       alert('During and After photos must be uploaded in the Work Order before this job can be marked complete.')
       return
     }
     setChangingStatus(true)
-    await supabase
+    const { error } = await supabase
       .from('jobs')
       .update({ status: newStatus, status_changed_at: new Date().toISOString() })
       .eq('id', job.id)
+    if (error) { alert(`Failed to update status: ${error.message}`); setChangingStatus(false); return; }
     setChangingStatus(false)
     onUpdated()
     if (newStatus === 'scheduled') {
@@ -124,7 +135,7 @@ export default function JobDetailPanel({ job, onClose, onUpdated }) {
   }
 
   async function handleSave() {
-    await supabase
+    const { error } = await supabase
       .from('jobs')
       .update({
         title: form.title,
@@ -134,6 +145,7 @@ export default function JobDetailPanel({ job, onClose, onUpdated }) {
         estimated_value: form.estimated_value ? Number(form.estimated_value) : null,
       })
       .eq('id', job.id)
+    if (error) { alert(`Save failed: ${error.message}`); return; }
     setEditing(false)
     onUpdated()
   }
@@ -289,8 +301,8 @@ export default function JobDetailPanel({ job, onClose, onUpdated }) {
                   >
                     + New quote
                   </button>
-                  {/* Xero invoice push — show for accepted/complete/invoiced quotes */}
-                  {job.quotes.some(q => ['accepted','complete','invoiced'].includes(q.status)) && (
+                  {/* Xero invoice push — show for accepted/invoiced quotes */}
+                  {job.quotes.some(q => ['accepted','invoiced'].includes(q.status)) && (
                     <div style={{ marginTop: '6px' }}>
                       <button
                         style={{
@@ -301,7 +313,7 @@ export default function JobDetailPanel({ job, onClose, onUpdated }) {
                           width: '100%',
                         }}
                         disabled={xeroStatus === 'pushing'}
-                        onClick={() => pushToXero(job.quotes.find(q => ['accepted','complete','invoiced'].includes(q.status))?.id)}
+                        onClick={() => pushToXero(job.quotes.find(q => ['accepted','invoiced'].includes(q.status))?.id)}
                       >
                         {xeroStatus === 'pushing' && '⏳ Pushing to Xero…'}
                         {xeroStatus === 'ok'      && '✅ Invoice created in Xero'}
@@ -429,16 +441,6 @@ function Input({ value, onChange, type = 'text', placeholder }) {
     />
   )
 }
-
-const QUOTE_STATUS_BG = { draft: '#F5F5F5', sent: '#FDF3E3', viewed: '#EBF3FA', accepted: '#E8F0E6', declined: '#FFF0EE' }
-const QUOTE_STATUS_COLOR = { draft: '#888', sent: '#D4851A', viewed: '#4A7FA5', accepted: '#4A6741', declined: '#C0392B' }
-
-const JOB_FORMS = [
-  { id: 'risk_assessment', label: 'SSSP', url: '/forms/risk-assessment.html', icon: '📋', required: true },
-  { id: 'toolbox_meeting', label: 'Toolbox Meeting', url: '/forms/toolbox-meeting.html', icon: '🧰', required: true },
-  { id: 'prestart', label: 'Pre-start Check', url: '/forms/prestart-daily.html', icon: '🔧', required: true },
-  { id: 'incident_report', label: 'Incident Report', url: '/forms/incident-report.html', icon: '🚨', required: false },
-]
 
 const styles = {
   backdrop: {

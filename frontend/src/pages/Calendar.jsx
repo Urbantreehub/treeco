@@ -754,7 +754,7 @@ function FullCalendar_() {
               ref={calRef}
               plugins={[resourceTimelinePlugin, interactionPlugin, listPlugin]}
               schedulerLicenseKey="CC-Attribution-NonCommercial-NoDerivatives"
-              initialView={isMobile ? 'listWeek' : 'resourceTimelineDay'}
+              initialView={activeView !== 'week' ? activeView : (isMobile ? 'listWeek' : 'resourceTimelineDay')}
               headerToolbar={false}
               height="100%"
               resources={activeResources}

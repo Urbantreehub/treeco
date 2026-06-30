@@ -6,7 +6,7 @@ import JobDetailPanel from '../components/JobDetailPanel'
 import NewJobModal from '../components/NewJobModal'
 
 function nzd(v) {
-  if (!v) return null
+  if (v == null) return null
   return '$' + Number(v).toLocaleString('en-NZ', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
 }
 
@@ -153,7 +153,7 @@ export default function Pipeline() {
               const st = JOB_STATUSES[job.status]
               const quote = bestQuote(job)
               const total = quote ? nzd(quote.total) : null
-              const date = new Date(job.created_at)
+              const date = job.created_at ? new Date(job.created_at) : null
               return (
                 <div key={job.id} style={s.row} onClick={() => setSelectedJob(job)}>
                   <div style={s.rowMain}>
@@ -170,9 +170,7 @@ export default function Pipeline() {
                       </span>
                     )}
                     {total && <div style={s.total}>{total}</div>}
-                    <div style={s.date}>
-                      {date.toLocaleDateString('en-NZ', { day: 'numeric', month: 'short' })}
-                    </div>
+                    {date && <div style={s.date}>{date.toLocaleDateString('en-NZ', { day: 'numeric', month: 'short' })}</div>}
                   </div>
                 </div>
               )

@@ -128,7 +128,7 @@ export default function Safety() {
       {tab === 'swms'        && <div style={s.body}><SWMS /></div>}
       {tab === 'docs'        && <div style={s.body}><HSDocuments /></div>}
 
-      {tab !== 'forms' && tab !== 'checks' && tab !== 'assessments' && tab !== 'docs' && (
+      {tab !== 'forms' && tab !== 'checks' && tab !== 'assessments' && tab !== 'docs' && tab !== 'swms' && (
         loading ? <div style={s.empty}>Loading…</div> : (
           <div style={s.body}>
             {tab === 'overview' && (
@@ -340,38 +340,38 @@ const s = {
 const TYPE_ICONS = { toolbox: '🧰', equipment: '🛠️', audit: '🔍', first_aid: '🩺', licence: '📋', other: '📌' }
 const TYPE_LABELS = { toolbox: 'Toolbox Meeting', equipment: 'Equipment Inspection', audit: 'H&S Audit', first_aid: 'First Aid Check', licence: 'Licence Review', other: 'Other' }
 
+function CheckCard({ check, urgency, confirming, setConfirming, onDone }) {
+  const bg    = urgency === 'overdue' ? '#fff5f5' : urgency === 'soon' ? '#fff8e1' : '#f9fffe'
+  const border= urgency === 'overdue' ? '#e53935' : urgency === 'soon' ? '#fb8c00' : '#00897B'
+  const tag   = urgency === 'overdue' ? { text: 'OVERDUE', color: '#e53935' } : urgency === 'soon' ? { text: 'DUE SOON', color: '#fb8c00' } : { text: 'UPCOMING', color: '#00897B' }
+  return (
+    <div style={{ background: bg, border: `1.5px solid ${border}`, borderRadius: 10, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14 }}>
+      <span style={{ fontSize: 26, flexShrink: 0 }}>{TYPE_ICONS[check.check_type] ?? '📌'}</span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 14, fontWeight: 700, color: '#2C2416' }}>{check.title}</span>
+          <span style={{ fontSize: 10, fontWeight: 700, color: tag.color, background: `${tag.color}18`, borderRadius: 5, padding: '2px 6px' }}>{tag.text}</span>
+        </div>
+        <div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>
+          Due: <strong style={{ color: urgency === 'overdue' ? '#e53935' : '#555' }}>{new Date(check.next_due).toLocaleDateString('en-NZ', { day: 'numeric', month: 'short', year: 'numeric' })}</strong>
+          {check.last_done && <span style={{ marginLeft: 8 }}>· Last done: {new Date(check.last_done).toLocaleDateString('en-NZ', { day: 'numeric', month: 'short', year: 'numeric' })}</span>}
+        </div>
+        {check.notes && <div style={{ fontSize: 12, color: '#777', marginTop: 2 }}>{check.notes}</div>}
+      </div>
+      {confirming === check.id ? (
+        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+          <button onClick={() => { onDone(check.id); setConfirming(null) }} style={{ background: '#2e7d32', color: '#fff', border: 'none', borderRadius: 7, padding: '7px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Confirm ✓</button>
+          <button onClick={() => setConfirming(null)} style={{ background: '#fff', border: '1px solid #ddd', borderRadius: 7, padding: '7px 10px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+        </div>
+      ) : (
+        <button onClick={() => setConfirming(check.id)} style={{ background: '#fff', border: '1.5px solid #ddd', borderRadius: 8, padding: '8px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', color: '#444', flexShrink: 0, fontFamily: 'inherit' }}>Mark done</button>
+      )}
+    </div>
+  )
+}
+
 function ScheduledChecksPanel({ overdue, dueSoon, upcoming, onDone }) {
   const [confirming, setConfirming] = useState(null)
-
-  function CheckCard({ check, urgency }) {
-    const bg    = urgency === 'overdue' ? '#fff5f5' : urgency === 'soon' ? '#fff8e1' : '#f9fffe'
-    const border= urgency === 'overdue' ? '#e53935' : urgency === 'soon' ? '#fb8c00' : '#00897B'
-    const tag   = urgency === 'overdue' ? { text: 'OVERDUE', color: '#e53935' } : urgency === 'soon' ? { text: 'DUE SOON', color: '#fb8c00' } : { text: 'UPCOMING', color: '#00897B' }
-    return (
-      <div style={{ background: bg, border: `1.5px solid ${border}`, borderRadius: 10, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14 }}>
-        <span style={{ fontSize: 26, flexShrink: 0 }}>{TYPE_ICONS[check.check_type] ?? '📌'}</span>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 14, fontWeight: 700, color: '#2C2416' }}>{check.title}</span>
-            <span style={{ fontSize: 10, fontWeight: 700, color: tag.color, background: `${tag.color}18`, borderRadius: 5, padding: '2px 6px' }}>{tag.text}</span>
-          </div>
-          <div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>
-            Due: <strong style={{ color: urgency === 'overdue' ? '#e53935' : '#555' }}>{new Date(check.next_due).toLocaleDateString('en-NZ', { day: 'numeric', month: 'short', year: 'numeric' })}</strong>
-            {check.last_done && <span style={{ marginLeft: 8 }}>· Last done: {new Date(check.last_done).toLocaleDateString('en-NZ', { day: 'numeric', month: 'short', year: 'numeric' })}</span>}
-          </div>
-          {check.notes && <div style={{ fontSize: 12, color: '#777', marginTop: 2 }}>{check.notes}</div>}
-        </div>
-        {confirming === check.id ? (
-          <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-            <button onClick={() => { onDone(check.id); setConfirming(null) }} style={{ background: '#2e7d32', color: '#fff', border: 'none', borderRadius: 7, padding: '7px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Confirm ✓</button>
-            <button onClick={() => setConfirming(null)} style={{ background: '#fff', border: '1px solid #ddd', borderRadius: 7, padding: '7px 10px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
-          </div>
-        ) : (
-          <button onClick={() => setConfirming(check.id)} style={{ background: '#fff', border: '1.5px solid #ddd', borderRadius: 8, padding: '8px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', color: '#444', flexShrink: 0, fontFamily: 'inherit' }}>Mark done</button>
-        )}
-      </div>
-    )
-  }
 
   const empty = overdue.length === 0 && dueSoon.length === 0 && upcoming.length === 0
 
@@ -382,19 +382,19 @@ function ScheduledChecksPanel({ overdue, dueSoon, upcoming, onDone }) {
       {overdue.length > 0 && (
         <div>
           <div style={{ fontSize: 11, fontWeight: 800, color: '#e53935', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Overdue ({overdue.length})</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{overdue.map(c => <CheckCard key={c.id} check={c} urgency="overdue" />)}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{overdue.map(c => <CheckCard key={c.id} check={c} urgency="overdue" confirming={confirming} setConfirming={setConfirming} onDone={onDone} />)}</div>
         </div>
       )}
       {dueSoon.length > 0 && (
         <div>
           <div style={{ fontSize: 11, fontWeight: 800, color: '#fb8c00', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Due within 7 days ({dueSoon.length})</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{dueSoon.map(c => <CheckCard key={c.id} check={c} urgency="soon" />)}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{dueSoon.map(c => <CheckCard key={c.id} check={c} urgency="soon" confirming={confirming} setConfirming={setConfirming} onDone={onDone} />)}</div>
         </div>
       )}
       {upcoming.length > 0 && (
         <div>
           <div style={{ fontSize: 11, fontWeight: 800, color: '#00897B', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Upcoming</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{upcoming.map(c => <CheckCard key={c.id} check={c} urgency="upcoming" />)}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{upcoming.map(c => <CheckCard key={c.id} check={c} urgency="upcoming" confirming={confirming} setConfirming={setConfirming} onDone={onDone} />)}</div>
         </div>
       )}
     </div>
