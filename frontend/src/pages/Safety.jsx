@@ -114,6 +114,7 @@ export default function Safety() {
             ['overview',     `Overview${flagged.length ? ` (${flagged.length})` : ''}`],
             ['assessments',  'Risk Assessments'],
             ['swms',         'SWMS'],
+            ['sop',          'SOPs'],
             ['staff',        'Staff Records'],
             ['company',      'Company & Insurance'],
             ['docs',         'Documents'],
