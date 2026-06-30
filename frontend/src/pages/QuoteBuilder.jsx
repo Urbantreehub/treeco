@@ -251,6 +251,8 @@ function LineItem({ item, onChange, onDelete, onMarkup }) {
               description: `${sor.code} — ${sor.desc}`,
               detail: item.detail || `UOM: ${sor.uom}`,
               qty: CHARGE_CODES.has(sor.code) ? 1 : item.qty,
+              // Prefill the rate-card price; quote-required codes (rate null) keep manual entry
+              rate: sor.rate != null ? sor.rate : item.rate,
             })}
           />
           {/* Fixed / Optional segmented control */}
