@@ -214,16 +214,74 @@ textarea{min-height:80px;resize:vertical;}
   </div>
 </div>
 
-<!-- 7. Gear -->
+<!-- 6b. SWMS Monthly Review -->
 <div class="card">
-  <div class="card-header"><span class="snum">7</span> Gear</div>
+  <div class="card-header"><span class="snum">6b</span> SWMS Monthly Review</div>
   <div class="card-body">
+    <p class="section-note" style="margin-bottom:14px;">SWMS are reviewed with all crew during toolbox meetings — not required to be signed per job. Tick which were covered today.</p>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;" id="swmsReviewList">
+      <label style="display:flex;align-items:center;gap:10px;padding:8px 12px;border:1.5px solid #eee;border-radius:8px;cursor:pointer;font-size:14px;">
+        <input type="checkbox" id="swms001" style="width:16px;height:16px;accent-color:#2e7d32;cursor:pointer;flex-shrink:0;">
+        <span><strong>SWMS-001</strong> — Tree Climbing &amp; Aerial Work</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;padding:8px 12px;border:1.5px solid #eee;border-radius:8px;cursor:pointer;font-size:14px;">
+        <input type="checkbox" id="swms002" style="width:16px;height:16px;accent-color:#2e7d32;cursor:pointer;flex-shrink:0;">
+        <span><strong>SWMS-002</strong> — Aerial Rescue Procedure</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;padding:8px 12px;border:1.5px solid #eee;border-radius:8px;cursor:pointer;font-size:14px;">
+        <input type="checkbox" id="swms003" style="width:16px;height:16px;accent-color:#2e7d32;cursor:pointer;flex-shrink:0;">
+        <span><strong>SWMS-003</strong> — Ground Support Operations</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;padding:8px 12px;border:1.5px solid #eee;border-radius:8px;cursor:pointer;font-size:14px;">
+        <input type="checkbox" id="swms004" style="width:16px;height:16px;accent-color:#2e7d32;cursor:pointer;flex-shrink:0;">
+        <span><strong>SWMS-004</strong> — Chainsaw Operations</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;padding:8px 12px;border:1.5px solid #eee;border-radius:8px;cursor:pointer;font-size:14px;">
+        <input type="checkbox" id="swms005" style="width:16px;height:16px;accent-color:#2e7d32;cursor:pointer;flex-shrink:0;">
+        <span><strong>SWMS-005</strong> — Wood Chipping Operations</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;padding:8px 12px;border:1.5px solid #eee;border-radius:8px;cursor:pointer;font-size:14px;">
+        <input type="checkbox" id="swms006" style="width:16px;height:16px;accent-color:#2e7d32;cursor:pointer;flex-shrink:0;">
+        <span><strong>SWMS-006</strong> — Rigging &amp; Lowering Operations</span>
+      </label>
+    </div>
     <div class="field">
-      <label class="fl">Is any new gear required?</label>
+      <label class="fl">Amendments / updates discussed</label>
+      <textarea id="swmsAmendments" placeholder="Any changes to procedures agreed at this meeting…" rows="3"></textarea>
+    </div>
+    <div class="field">
+      <label class="fl">All crew confirm they understand the reviewed SWMS</label>
+      <p class="section-note" style="margin-bottom:6px;">Covered by crew signatures in Section 10 sign-off.</p>
+    </div>
+  </div>
+</div>
+
+<!-- 7. Equipment Inspection -->
+<div class="card">
+  <div class="card-header"><span class="snum">7</span> Equipment Inspection</div>
+  <div class="card-body">
+    <p class="section-note" style="margin-bottom:12px;">Quick check each item — mark any faults and take out of service until repaired.</p>
+    <table style="width:100%;border-collapse:collapse;font-size:14px;">
+      <thead>
+        <tr>
+          <th style="text-align:left;padding:7px 8px;font-size:11px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:0.04em;border-bottom:2px solid #eee;">Item</th>
+          <th style="padding:7px 6px;font-size:11px;font-weight:700;color:#2e7d32;text-align:center;border-bottom:2px solid #eee;min-width:44px;">✓ OK</th>
+          <th style="padding:7px 6px;font-size:11px;font-weight:700;color:#e53935;text-align:center;border-bottom:2px solid #eee;min-width:44px;">✗ Fault</th>
+          <th style="padding:7px 6px;font-size:11px;font-weight:700;color:#888;text-align:center;border-bottom:2px solid #eee;min-width:44px;">N/A</th>
+        </tr>
+      </thead>
+      <tbody id="equipRows"></tbody>
+    </table>
+    <div class="field" style="margin-top:14px;">
+      <label class="fl">Faults / action required</label>
+      <textarea id="equipFaults" placeholder="Describe faults, responsible person and repair timeline…" rows="3"></textarea>
+    </div>
+    <div class="field" style="margin-top:10px;">
+      <label class="fl">New gear / equipment required</label>
       <div id="gearCheckRows"></div>
     </div>
-    <div class="field" style="margin-top:12px;">
-      <label class="fl">Gear notes / requests</label>
+    <div class="field" style="margin-top:8px;">
+      <label class="fl">Gear notes</label>
       <textarea id="gearNotes" placeholder="Equipment requests or concerns…"></textarea>
     </div>
   </div>
@@ -456,7 +514,9 @@ function gather() {
   for(let i=0;i<hazCount;i++){const h=document.getElementById('haz_h_'+i);if(!h)continue;hazRows.push({h:h.value,a:v('haz_a_'+i),b:v('haz_b_'+i),d:v('haz_d_'+i)});}
   const ppe={}, gear={};
   STAFF.forEach(n=>{const sn=n.split(' ')[0];ppe[sn]={val:document.querySelector(`input[name="ppe_${sn}"]:checked`)?.value||'',note:v(`ppe_${sn}_notetext`)};gear[sn]={val:document.querySelector(`input[name="gear_${sn}"]:checked`)?.value||'',note:v(`gear_${sn}_notetext`)};});
-  return {meetingDate:v('meetingDate'),startTime:v('startTime'),finishTime:v('finishTime'),chairPerson:v('chairPerson'),absent:v('absent'),jobsCompleted:v('jobsCompleted'),upcomingJobs:v('upcomingJobs'),highsLows:v('highsLows'),outstandingActions:v('outstandingActions'),incidents:v('incidents'),nearMisses:v('nearMisses'),hsActions:v('hsActions'),procedures:v('procedures'),firstAid:v('firstAid'),ppe,trainingDone:v('trainingDone'),trainingNeeds:v('trainingNeeds'),trainingUpcoming:v('trainingUpcoming'),gear,gearNotes:v('gearNotes'),discussion:v('discussion'),hazRows,managerComments:v('managerComments'),managerName:v('managerName'),managerSig:getSig(),attendees:attArr};
+  const swmsReviewed=Array.from(document.querySelectorAll('#swmsReviewList input:checked')).map(c=>c.closest('label').querySelector('span').textContent.trim());
+  const equipCheck=EQUIP_ITEMS.map((label,i)=>({label,status:document.querySelector(`input[name="equip_${i}"]:checked`)?.value||''}));
+  return {meetingDate:v('meetingDate'),startTime:v('startTime'),finishTime:v('finishTime'),chairPerson:v('chairPerson'),absent:v('absent'),jobsCompleted:v('jobsCompleted'),upcomingJobs:v('upcomingJobs'),highsLows:v('highsLows'),outstandingActions:v('outstandingActions'),incidents:v('incidents'),nearMisses:v('nearMisses'),hsActions:v('hsActions'),procedures:v('procedures'),firstAid:v('firstAid'),ppe,trainingDone:v('trainingDone'),trainingNeeds:v('trainingNeeds'),trainingUpcoming:v('trainingUpcoming'),swmsReviewed,swmsAmendments:v('swmsAmendments'),equipCheck,equipFaults:v('equipFaults'),gear,gearNotes:v('gearNotes'),discussion:v('discussion'),hazRows,managerComments:v('managerComments'),managerName:v('managerName'),managerSig:getSig(),attendees:attArr};
 }
 
 function restore(d) {
@@ -527,6 +587,26 @@ function generatePDF() {
 
   section('Training');
   row('Completed',d.trainingDone);row('Requirements',d.trainingNeeds);row('Upcoming Opportunities',d.trainingUpcoming);
+  section('SWMS Monthly Review');
+  if(d.swmsReviewed?.length)row('SWMS Covered This Meeting',d.swmsReviewed.join('\n'));
+  else row('SWMS Covered','None ticked');
+  if(d.swmsAmendments)row('Amendments / Updates',d.swmsAmendments);
+
+  section('Equipment Inspection');
+  if(d.equipCheck?.length){
+    checkBreak(16);
+    const faults=d.equipCheck.filter(e=>e.status==='fault');
+    const ok=d.equipCheck.filter(e=>e.status==='ok').length;
+    const na=d.equipCheck.filter(e=>e.status==='na').length;
+    doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(30,30,30);
+    doc.text(`${ok} OK · ${faults.length} fault(s) · ${na} N/A`,M,y);y+=6;
+    if(faults.length){
+      doc.setFont('helvetica','bold');doc.setTextColor(198,40,40);doc.text('FAULTS:',M,y);y+=5;
+      doc.setFont('helvetica','normal');doc.setTextColor(30,30,30);doc.setFontSize(9);
+      faults.forEach(e=>{checkBreak(6);doc.text('• '+e.label,M+4,y);y+=5;});
+    }
+  }
+  if(d.equipFaults)row('Action required',d.equipFaults);y+=2;
 
   section('Gear');
   checkBreak(14);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(100,100,100);doc.text('GEAR CHECK:',M,y);y+=7;
@@ -559,7 +639,8 @@ function showToast(msg,type=''){const t=document.getElementById('toast');t.textC
 
 let driveToken=null;
 async function getDriveToken(){return new Promise((res,rej)=>{if(!window.google?.accounts){rej(new Error('Google not loaded'));return;}const c=google.accounts.oauth2.initTokenClient({client_id:GOOGLE_CLIENT_ID,scope:DRIVE_SCOPE,callback:r=>r.error?rej(new Error(r.error)):(driveToken=r.access_token,res(r.access_token))});driveToken?res(driveToken):c.requestAccessToken({prompt:''});});}
-async function findOrCreateFolder(t){const q=await fetch(`https://www.googleapis.com/drive/v3/files?q=name='UTS Forms' and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id)`,{headers:{Authorization:'Bearer '+t}});const{files}=await q.json();if(files.length)return files[0].id;const r=await fetch('https://www.googleapis.com/drive/v3/files',{method:'POST',headers:{Authorization:'Bearer '+t,'Content-Type':'application/json'},body:JSON.stringify({name:'UTS Forms',mimeType:'application/vnd.google-apps.folder'})});return(await r.json()).id;}
+async function findOrCreateFolder(t,name,parentId=null){const pq=parentId?` and '${parentId}' in parents`:'';const q=await fetch(`https://www.googleapis.com/drive/v3/files?q=name='${name}' and mimeType='application/vnd.google-apps.folder'${pq} and trashed=false&fields=files(id)`,{headers:{Authorization:'Bearer '+t}});const{files}=await q.json();if(files.length)return files[0].id;const body={name,mimeType:'application/vnd.google-apps.folder'};if(parentId)body.parents=[parentId];const r=await fetch('https://www.googleapis.com/drive/v3/files',{method:'POST',headers:{Authorization:'Bearer '+t,'Content-Type':'application/json'},body:JSON.stringify(body)});return(await r.json()).id;}
+async function getSubfolder(t,sub){const root=await findOrCreateFolder(t,'UTS Forms');return findOrCreateFolder(t,sub,root);}
 async function uploadToDrive(bytes,name,t,fid){const meta=JSON.stringify({name,parents:[fid]});const b=new Blob([bytes],{type:'application/pdf'});const f=new FormData();f.append('metadata',new Blob([meta],{type:'application/json'}));f.append('file',b);return(await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name',{method:'POST',headers:{Authorization:'Bearer '+t},body:f})).json();}
 
 async function doExport(){
@@ -571,13 +652,57 @@ async function doExport(){
     const date=(d.meetingDate||new Date().toISOString().slice(0,10)).replace(/-/g,'');
     const filename=`UTS_ToolboxMeeting_${date}.pdf`;
     doc.save(filename);
+    const _jid=new URLSearchParams(location.search).get('job_id');
+    if(_jid&&window.parent!==window){window.parent.postMessage({type:'form_complete',form_id:'toolbox_meeting',job_id:_jid},'*');}
     if(window.google?.accounts){btn.innerHTML='<div class="btn-spinner"></div> Uploading…';
-      try{const t=await getDriveToken();const fid=await findOrCreateFolder(t);await uploadToDrive(doc.output('arraybuffer'),filename,t,fid);showToast('Saved & uploaded to Google Drive ✓','ok');}
+      try{const t=await getDriveToken();let fid;if(_jid){const _jAddr=new URLSearchParams(location.search).get('job_address')||'Job';const _jDate=new URLSearchParams(location.search).get('job_date')||d.meetingDate||'unknown';const root=await findOrCreateFolder(t,'UTS Forms');const jobsId=await findOrCreateFolder(t,'Jobs',root);fid=await findOrCreateFolder(t,`${_jAddr} (${_jDate})`,jobsId);}else{fid=await getSubfolder(t,'Toolbox Meetings');}await uploadToDrive(doc.output('arraybuffer'),filename,t,fid);showToast('Saved & uploaded to Google Drive ✓','ok');}
       catch(e){showToast('Downloaded — Drive upload failed: '+e.message,'err');}
     }else{showToast('PDF downloaded ✓','ok');}
   }catch(e){showToast('Error: '+e.message,'err');}
   finally{btn.innerHTML='📄 Save &amp; Export PDF';btn.disabled=false;}
 }
+
+// ── Equipment inspection table ─────────────────────────────────────────────
+const EQUIP_ITEMS = [
+  // Chainsaws
+  'Chainsaw — chain sharpness & tension',
+  'Chainsaw — chain brake functional',
+  'Chainsaw — throttle lock & guard',
+  'Chainsaw — anti-vibration mounts',
+  // Chipper
+  'Chipper — blades / knives',
+  'Chipper — infeed & discharge guards',
+  'Chipper — emergency stop / kill switch',
+  'Chipper — belts & tension',
+  // Climbing gear
+  'Climbing ropes — no cuts, glazing or core damage',
+  'Harnesses — stitching, buckles, D-rings',
+  'Carabiners & pulleys — gates, wear',
+  'Helmets — no cracks, chin strap ok',
+  // Vehicles & plant
+  'Truck — tyres, lights, brakes, fluids',
+  'Avant / skid steer — fluids, tyres, controls',
+  'Trailer — coupling, lights, tyres',
+  // Other
+  'First aid kit — stocked & in date',
+  'Fire extinguisher — charged & accessible',
+]
+;(function buildEquipTable() {
+  const tbody = document.getElementById('equipRows')
+  if (!tbody) return
+  EQUIP_ITEMS.forEach((label, i) => {
+    const tr = document.createElement('tr')
+    tr.style.borderBottom = '1px solid #f5f5f5'
+    tr.innerHTML = `
+      <td style="padding:8px 8px;font-size:13px;color:#333">${label}</td>
+      ${['ok','fault','na'].map(v => `
+        <td style="text-align:center;padding:4px">
+          <input type="radio" name="equip_${i}" value="${v}" onchange="saveData()" style="width:16px;height:16px;accent-color:${v==='ok'?'#2e7d32':v==='fault'?'#e53935':'#999'};cursor:pointer">
+        </td>`).join('')}
+    `
+    tbody.appendChild(tr)
+  })
+})()
 
 // ── Init ───────────────────────────────────────────────────────────────────
 buildStaffRows('ppeCheckRows','ppe');
@@ -586,6 +711,8 @@ buildStaffRows('gearCheckRows','gear');
 const saved=localStorage.getItem(STORE_KEY);
 if(saved){try{restore(JSON.parse(saved));}catch(e){}}
 else{document.getElementById('meetingDate').value=new Date().toISOString().slice(0,10);addAttendee();addHazardRow();}
+// Pre-fill from job context
+;(function(){const _jp=new URLSearchParams(location.search);const _jid=_jp.get('job_id');if(!_jid)return;const _jDate=_jp.get('job_date')||'';const _jAddr=_jp.get('job_address')||'';if(_jDate&&!saved)document.getElementById('meetingDate').value=_jDate;if(_jAddr){const el=document.getElementById('upcomingJobs');if(el&&!el.value)el.value=_jAddr;}})();
 </script>
 </body>
 </html>

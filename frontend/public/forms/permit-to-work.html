@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Permit to Work — Urban Tree Services</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  :root{--red:#C62828;--red-pale:#FFEBEE;--border:#FFCDD2;--green:#2e7d32;--bg:#f5f5f5;--card:#fff;--text:#1a1a1a;--radius:12px;--shadow:0 2px 8px rgba(0,0,0,0.08)}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:16px;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:100px}
+  .header{background:var(--red);color:#fff;padding:14px 20px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.2)}
+  .header-inner{max-width:700px;margin:0 auto}
+  .header-title{font-size:18px;font-weight:800}
+  .header-sub{font-size:12px;opacity:.85;margin-top:2px}
+  .container{max-width:700px;margin:0 auto;padding:20px 16px;display:flex;flex-direction:column;gap:16px}
+  .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+  .card-header{background:var(--red-pale);border-bottom:1.5px solid var(--border);padding:12px 18px;font-size:13px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.05em}
+  .card-body{padding:18px;display:flex;flex-direction:column;gap:14px}
+  .alert{padding:12px 16px;border-radius:8px;font-size:14px;line-height:1.5}
+  .alert-warn{background:#fff8e1;border-left:4px solid #f9a825;color:#5d4037}
+  .alert-info{background:#e3f2fd;border-left:4px solid #1565c0;color:#0d47a1}
+  label{font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:5px}
+  input[type=text],input[type=date],input[type=time],textarea,select{width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:15px;font-family:inherit;color:var(--text);background:#fafafa;transition:border-color .2s;resize:vertical}
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--red);background:#fff}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .work-type-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .work-tile{border:2px solid #eee;border-radius:10px;padding:14px;cursor:pointer;transition:all .15s;text-align:center}
+  .work-tile:hover{border-color:#C62828;background:var(--red-pale)}
+  .work-tile.selected{border-color:#C62828;background:var(--red-pale)}
+  .work-tile input{position:absolute;opacity:0;pointer-events:none}
+  .work-tile-icon{font-size:28px;display:block;margin-bottom:6px}
+  .work-tile-label{font-size:13px;font-weight:700;color:#2C2416}
+  .work-tile-sub{font-size:11px;color:#888;margin-top:3px}
+  .check-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border:1.5px solid #eee;border-radius:8px;cursor:pointer;font-size:14px}
+  .check-row input{width:16px;height:16px;accent-color:var(--red);flex-shrink:0;cursor:pointer}
+  .check-row.checked{border-color:var(--red);background:var(--red-pale)}
+  .sig-box{border:2px solid #ddd;border-radius:8px;overflow:hidden;background:#fafafa}
+  .sig-canvas{display:block;width:100%;height:110px;touch-action:none;cursor:crosshair}
+  .sig-clear{font-size:12px;color:#999;cursor:pointer;padding:4px 10px;text-align:right;border-top:1px solid #eee;background:#f9f9f9}
+  .permit-status{padding:14px 18px;border-radius:10px;font-size:15px;font-weight:700;text-align:center;margin-bottom:4px}
+  .permit-open{background:#e8f5e9;color:#2e7d32;border:2px solid #2e7d32}
+  .permit-closed{background:#ffebee;color:#C62828;border:2px solid #C62828}
+  .submit-bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #eee;padding:12px 20px;z-index:100;max-width:700px;margin:0 auto;display:flex;gap:10px}
+  .btn-save{flex:1;padding:14px;background:var(--red);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}
+  .btn-drive{padding:14px 18px;background:#fff;border:1.5px solid #ddd;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;color:#444}
+  .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;z-index:9999;display:none}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div class="header-title">Permit to Work</div>
+    <div class="header-sub">Urban Tree Services · Hazardous Work Authorisation</div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- 1. Permit details -->
+  <div class="card">
+    <div class="card-header">1 · Permit Details</div>
+    <div class="card-body">
+      <div class="row2">
+        <div><label>Date</label><input type="date" id="permitDate"></div>
+        <div><label>Permit number</label><input type="text" id="permitNo" placeholder="e.g. PTW-2026-001"></div>
+      </div>
+      <div><label>Site address</label><input type="text" id="siteAddress" placeholder="Full site address"></div>
+      <div class="row2">
+        <div><label>Valid from</label><input type="time" id="validFrom"></div>
+        <div><label>Valid until</label><input type="time" id="validUntil"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Work type -->
+  <div class="card">
+    <div class="card-header">2 · Type of Hazardous Work</div>
+    <div class="card-body">
+      <div class="work-type-grid" id="workTypeGrid">
+        <label class="work-tile" onclick="toggleTile(this)">
+          <input type="checkbox" id="wt_powerline">
+          <span class="work-tile-icon">⚡</span>
+          <span class="work-tile-label">Powerline Clearance</span>
+          <span class="work-tile-sub">Within 4m of live lines</span>
+        </label>
+        <label class="work-tile" onclick="toggleTile(this)">
+          <input type="checkbox" id="wt_traffic">
+          <span class="work-tile-icon">🚦</span>
+          <span class="work-tile-label">Traffic Management</span>
+          <span class="work-tile-sub">Roadside / lane closure</span>
+        </label>
+        <label class="work-tile" onclick="toggleTile(this)">
+          <input type="checkbox" id="wt_height">
+          <span class="work-tile-icon">🧗</span>
+          <span class="work-tile-label">Work at Heights</span>
+          <span class="work-tile-sub">Above 3m, Aerial Rescue Plan required</span>
+        </label>
+        <label class="work-tile" onclick="toggleTile(this)">
+          <input type="checkbox" id="wt_other">
+          <span class="work-tile-icon">⚠️</span>
+          <span class="work-tile-label">Other Hazardous Work</span>
+          <span class="work-tile-sub">Specify below</span>
+        </label>
+      </div>
+      <div><label>Work description / other type</label>
+        <textarea id="workDesc" rows="3" placeholder="Describe the specific work being authorised…"></textarea></div>
+    </div>
+  </div>
+
+  <!-- 3. Hazards & controls -->
+  <div class="card">
+    <div class="card-header">3 · Site-Specific Hazards &amp; Controls</div>
+    <div class="card-body">
+      <div class="alert alert-warn">The SSSP covers general hazards. This permit captures hazards specific to this type of hazardous work.</div>
+      <div><label>Hazards identified for this work</label>
+        <textarea id="hazards" rows="4" placeholder="e.g. Live 11kV conductor 2.5m from work zone; public footpath below drop zone; neighbour's vehicle in exclusion zone…"></textarea></div>
+      <div><label>Controls in place</label>
+        <textarea id="controls" rows="4" placeholder="e.g. Works Line have issued a line isolation (ref WL-2026-4421); exclusion zone established with cones and barriers; spotter positioned on footpath…"></textarea></div>
+    </div>
+  </div>
+
+  <!-- 4. PPE & equipment -->
+  <div class="card">
+    <div class="card-header">4 · Required PPE &amp; Equipment for This Work</div>
+    <div class="card-body">
+      <div style="display:flex;flex-direction:column;gap:8px;" id="ppeList">
+        <label class="check-row"><input type="checkbox"> Hard hat / helmet</label>
+        <label class="check-row"><input type="checkbox"> Hi-vis vest</label>
+        <label class="check-row"><input type="checkbox"> Safety glasses</label>
+        <label class="check-row"><input type="checkbox"> Hearing protection</label>
+        <label class="check-row"><input type="checkbox"> Chainsaw trousers</label>
+        <label class="check-row"><input type="checkbox"> Steel-capped boots</label>
+        <label class="check-row"><input type="checkbox"> Harness (work at heights)</label>
+        <label class="check-row"><input type="checkbox"> Rubber-insulated gloves (powerline work)</label>
+        <label class="check-row"><input type="checkbox"> Traffic management gear (vests, wands)</label>
+        <label class="check-row"><input type="checkbox"> First aid kit on site</label>
+      </div>
+      <div><label>Other PPE / equipment required</label>
+        <input type="text" id="otherPPE" placeholder="Any additional equipment for this specific job…"></div>
+    </div>
+  </div>
+
+  <!-- 5. Workers covered -->
+  <div class="card">
+    <div class="card-header">5 · Workers Covered by This Permit</div>
+    <div class="card-body">
+      <div style="display:flex;flex-direction:column;gap:8px;" id="workerRows">
+        <input type="text" placeholder="Worker name 1" style="margin-bottom:0">
+        <input type="text" placeholder="Worker name 2">
+        <input type="text" placeholder="Worker name 3">
+      </div>
+      <button onclick="addWorker()" style="margin-top:8px;background:none;border:1px dashed #ddd;border-radius:7px;padding:8px 14px;font-size:13px;color:#C62828;cursor:pointer;font-family:inherit;">+ Add worker</button>
+    </div>
+  </div>
+
+  <!-- 6. Permit issuer -->
+  <div class="card">
+    <div class="card-header">6 · Permit Issuer Sign-Off</div>
+    <div class="card-body">
+      <div class="alert alert-warn">The permit issuer confirms all hazards have been identified, controls are in place, and the work is authorised to proceed.</div>
+      <div><label>Issued by (name)</label><input type="text" id="issuerName" placeholder="Name of person authorising this permit"></div>
+      <div><label>Issuer signature</label>
+        <div class="sig-box"><canvas class="sig-canvas" id="sigIssuer"></canvas><div class="sig-clear" onclick="clearSig('sigIssuer')">Clear</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. Worker acknowledgement -->
+  <div class="card">
+    <div class="card-header">7 · Worker Acknowledgement</div>
+    <div class="card-body">
+      <div class="alert alert-info">Workers confirm they have read and understood the permit conditions and will carry out the work as authorised.</div>
+      <div><label>Lead worker / crew lead name</label><input type="text" id="workerLead" placeholder="Name"></div>
+      <div><label>Worker signature</label>
+        <div class="sig-box"><canvas class="sig-canvas" id="sigWorker"></canvas><div class="sig-clear" onclick="clearSig('sigWorker')">Clear</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. Close-out -->
+  <div class="card">
+    <div class="card-header">8 · Permit Close-Out</div>
+    <div class="card-body">
+      <p style="font-size:14px;color:#555;margin-bottom:12px;">Complete after work is finished and site is made safe.</p>
+      <div class="row2">
+        <div><label>Work completed at</label><input type="time" id="closeTime"></div>
+        <div><label>Date</label><input type="date" id="closeDate"></div>
+      </div>
+      <div><label>Site made safe — confirm</label>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-top:6px;" id="closeList">
+          <label class="check-row"><input type="checkbox"> All equipment removed from site</label>
+          <label class="check-row"><input type="checkbox"> Exclusion zones removed</label>
+          <label class="check-row"><input type="checkbox"> Traffic management removed / road reopened</label>
+          <label class="check-row"><input type="checkbox"> Area inspected and left clean</label>
+          <label class="check-row"><input type="checkbox"> Any issues noted and reported</label>
+        </div>
+      </div>
+      <div><label>Close-out notes</label><textarea id="closeNotes" rows="2" placeholder="Any issues, variations or observations at close-out…"></textarea></div>
+      <div><label>Close-out signature</label>
+        <div class="sig-box"><canvas class="sig-canvas" id="sigClose"></canvas><div class="sig-clear" onclick="clearSig('sigClose')">Clear</div></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="submit-bar">
+  <button class="btn-save" onclick="generatePDF()">⬇ Save PDF</button>
+  <button class="btn-drive" id="driveBtn" onclick="saveToDrive()">☁ Drive</button>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const GOOGLE_CLIENT_ID = '376997677043-ejesngfcmmrub4j6gdftkloiiknm5ppq.apps.googleusercontent.com'
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file'
+let driveToken = null
+
+const _jp = new URLSearchParams(location.search)
+const _jid = _jp.get('job_id')
+;(function init() {
+  const today = new Date().toISOString().slice(0, 10)
+  const now   = new Date().toTimeString().slice(0, 5)
+  document.getElementById('permitDate').value = today
+  document.getElementById('closeDate').value  = today
+  document.getElementById('validFrom').value  = now
+  const addr = _jp.get('job_address') || ''
+  if (addr) document.getElementById('siteAddress').value = addr
+  // Auto permit number: PTW-YYYYMMDD
+  document.getElementById('permitNo').value = 'PTW-' + today.replace(/-/g, '')
+})()
+
+function toggleTile(label) {
+  const cb = label.querySelector('input[type=checkbox]')
+  cb.checked = !cb.checked
+  label.classList.toggle('selected', cb.checked)
+}
+
+document.querySelectorAll('#ppeList input, #closeList input').forEach(cb =>
+  cb.addEventListener('change', () => cb.closest('.check-row').classList.toggle('checked', cb.checked))
+)
+
+function addWorker() {
+  const inp = document.createElement('input')
+  inp.type = 'text'; inp.placeholder = 'Worker name'
+  inp.style.marginBottom = '0'
+  document.getElementById('workerRows').appendChild(inp)
+}
+
+const sigs = {}
+function initSig(id) {
+  const canvas = document.getElementById(id)
+  const ctx = canvas.getContext('2d')
+  canvas.width = canvas.offsetWidth * window.devicePixelRatio
+  canvas.height = canvas.offsetHeight * window.devicePixelRatio
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio)
+  ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 2; ctx.lineCap = 'round'
+  sigs[id] = { ctx, drawing: false, hasContent: false }
+  const getPos = e => { const r = canvas.getBoundingClientRect(); const t = e.touches ? e.touches[0] : e; return { x: t.clientX - r.left, y: t.clientY - r.top } }
+  canvas.addEventListener('pointerdown', e => { const p = getPos(e); sigs[id].drawing = true; sigs[id].hasContent = true; ctx.beginPath(); ctx.moveTo(p.x, p.y) })
+  canvas.addEventListener('pointermove', e => { if (!sigs[id].drawing) return; const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke() })
+  canvas.addEventListener('pointerup', () => { sigs[id].drawing = false })
+}
+function clearSig(id) { const c = document.getElementById(id); sigs[id].ctx.clearRect(0,0,c.width,c.height); sigs[id].hasContent = false }
+['sigIssuer','sigWorker','sigClose'].forEach(initSig)
+
+function showToast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 2500) }
+
+async function generatePDF() {
+  const { jsPDF } = window.jspdf
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+  const W = 210, M = 14, CW = W - M * 2
+  const RED = [198,40,40], DARK = [28,28,28]
+  let y = 14
+
+  doc.setFillColor(...RED); doc.rect(0,0,W,30,'F')
+  doc.setTextColor(255,255,255); doc.setFontSize(16); doc.setFont('helvetica','bold')
+  doc.text('PERMIT TO WORK', M, 12)
+  doc.setFontSize(9); doc.setFont('helvetica','normal')
+  doc.text('Urban Tree Services · Hazardous Work Authorisation', M, 20)
+  doc.text(`Permit No: ${document.getElementById('permitNo').value}`, W-M, 12, {align:'right'})
+  doc.text(`Date: ${document.getElementById('permitDate').value}  Valid: ${document.getElementById('validFrom').value}–${document.getElementById('validUntil').value}`, W-M, 20, {align:'right'})
+  doc.text(`Site: ${document.getElementById('siteAddress').value}`, M, 27)
+  y = 38
+
+  function section(title) {
+    if (y > 260) { doc.addPage(); y = 14 }
+    doc.setFillColor(...RED); doc.rect(M,y,CW,7,'F')
+    doc.setTextColor(255,255,255); doc.setFontSize(9); doc.setFont('helvetica','bold')
+    doc.text(title, M+3, y+5); y += 11; doc.setTextColor(...DARK)
+  }
+  function field(label, value) {
+    if (!value?.trim?.()) return
+    doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(100,100,100)
+    doc.text(label.toUpperCase(), M, y); y += 4
+    doc.setFont('helvetica','normal'); doc.setTextColor(...DARK); doc.setFontSize(10)
+    doc.splitTextToSize(value, CW).forEach(l => { if (y > 270) { doc.addPage(); y = 14 }; doc.text(l, M, y); y += 5 }); y += 2
+  }
+
+  const workTypes = ['wt_powerline','wt_traffic','wt_height','wt_other']
+    .filter(id => document.getElementById(id)?.checked)
+    .map(id => document.querySelector(`label:has(#${id}) .work-tile-label`)?.textContent || id)
+
+  section('WORK TYPE')
+  if (workTypes.length) field('Hazardous work type(s)', workTypes.join(', '))
+  field('Work description', document.getElementById('workDesc').value)
+
+  section('HAZARDS & CONTROLS')
+  field('Hazards', document.getElementById('hazards').value)
+  field('Controls', document.getElementById('controls').value)
+
+  section('PPE & EQUIPMENT')
+  const ppe = Array.from(document.querySelectorAll('#ppeList input:checked')).map(c => c.closest('.check-row').textContent.trim())
+  const otherPPE = document.getElementById('otherPPE').value
+  if (ppe.length || otherPPE) field('Required PPE', [...ppe, otherPPE].filter(Boolean).join(', '))
+
+  section('WORKERS COVERED')
+  const workers = Array.from(document.querySelectorAll('#workerRows input')).map(i => i.value.trim()).filter(Boolean)
+  if (workers.length) field('Workers', workers.join(', '))
+
+  section('PERMIT ISSUER SIGN-OFF')
+  field('Issued by', document.getElementById('issuerName').value)
+  if (sigs.sigIssuer?.hasContent) { doc.addImage(document.getElementById('sigIssuer').toDataURL('image/png'),'PNG',M,y,60,18); y += 22 }
+
+  section('WORKER ACKNOWLEDGEMENT')
+  field('Lead worker', document.getElementById('workerLead').value)
+  if (sigs.sigWorker?.hasContent) { doc.addImage(document.getElementById('sigWorker').toDataURL('image/png'),'PNG',M,y,60,18); y += 22 }
+
+  section('CLOSE-OUT')
+  field('Work completed', `${document.getElementById('closeDate').value} ${document.getElementById('closeTime').value}`)
+  const closeItems = Array.from(document.querySelectorAll('#closeList input:checked')).map(c => c.closest('.check-row').textContent.trim())
+  if (closeItems.length) field('Site made safe — confirmed', closeItems.join(', '))
+  field('Close-out notes', document.getElementById('closeNotes').value)
+  if (sigs.sigClose?.hasContent) { doc.addImage(document.getElementById('sigClose').toDataURL('image/png'),'PNG',M,y,60,18); y += 22 }
+
+  doc.setFontSize(8); doc.setTextColor(150,150,150)
+  doc.text('Urban Tree Services — Permit to Work', M, 292)
+  doc.text(`Generated: ${new Date().toLocaleString('en-NZ')}`, W-M, 292, {align:'right'})
+
+  const fname = `permit-to-work-${document.getElementById('permitNo').value}.pdf`
+  doc.save(fname)
+  if (_jid && window.parent !== window) {
+    window.parent.postMessage({ type: 'form_complete', form_id: 'permit_to_work', job_id: _jid }, '*')
+  }
+  return doc
+}
+
+async function getDriveToken() {
+  return new Promise((res, rej) => {
+    if (driveToken) { res(driveToken); return }
+    google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID, scope: DRIVE_SCOPE,
+      callback: r => { if (r.error) rej(r.error); else { driveToken = r.access_token; res(driveToken) } }
+    }).requestAccessToken()
+  })
+}
+async function findOrCreateFolder(t, name, parentId = null) {
+  const pq = parentId ? ` and '${parentId}' in parents` : ''
+  const q = encodeURIComponent(`mimeType='application/vnd.google-apps.folder' and name='${name}' and trashed=false${pq}`)
+  const r = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id)`, { headers: { Authorization: `Bearer ${t}` } })
+  const d = await r.json()
+  if (d.files?.length) return d.files[0].id
+  const cr = await fetch('https://www.googleapis.com/drive/v3/files', {
+    method: 'POST', headers: { Authorization: `Bearer ${t}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, mimeType: 'application/vnd.google-apps.folder', ...(parentId ? { parents: [parentId] } : {}) })
+  })
+  return (await cr.json()).id
+}
+async function saveToDrive() {
+  const btn = document.getElementById('driveBtn'); btn.textContent = '⏳ Uploading…'; btn.disabled = true
+  try {
+    const t = await getDriveToken()
+    const root = await findOrCreateFolder(t, 'UTS Forms')
+    let fid
+    if (_jid) {
+      const addr = (_jp.get('job_address') || 'Job').slice(0, 40)
+      const dt   = _jp.get('job_date') || document.getElementById('permitDate').value
+      const jobsId = await findOrCreateFolder(t, 'Jobs', root)
+      fid = await findOrCreateFolder(t, `${addr} (${dt})`, jobsId)
+    } else {
+      fid = await findOrCreateFolder(t, 'Permits to Work', root)
+    }
+    const pdfDoc = await generatePDF()
+    const bytes = pdfDoc.output('arraybuffer')
+    const fname = `permit-to-work-${document.getElementById('permitNo').value}.pdf`
+    const form = new FormData()
+    form.append('metadata', new Blob([JSON.stringify({ name: fname, parents: [fid], mimeType: 'application/pdf' })], { type: 'application/json' }))
+    form.append('file', new Blob([bytes], { type: 'application/pdf' }))
+    await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', { method: 'POST', headers: { Authorization: `Bearer ${t}` }, body: form })
+    showToast('Uploaded to Google Drive ✓')
+  } catch (e) { showToast('Drive error: ' + e.message) }
+  btn.textContent = '☁ Drive'; btn.disabled = false
+}
+</script>
+</body>
+</html>

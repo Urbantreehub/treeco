@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { supabase } from '../config/supabase'
 import { downloadPdf } from '../utils/downloadPdf'
+import { GLOSSARY, TERMS, TERMS_DATE } from '../data/arboriculture'
+import { annotateSegments } from '../utils/annotateText'
 
 const GST_RATE = 0.15
 
@@ -50,6 +52,9 @@ export default function QuoteView() {
   const [declineStep, setDeclineStep] = useState(false)
   const [declineReason, setDeclineReason] = useState('')
   const [response, setResponse] = useState(null)
+  const [tcAgreed, setTcAgreed] = useState(false)
+  const [showTc, setShowTc] = useState(false)
+  const [showGlossary, setShowGlossary] = useState(false)
 
   useEffect(() => {
     supabase
@@ -149,6 +154,38 @@ export default function QuoteView() {
   const expiryDate = quote.valid_until
     ? fmtDate(quote.valid_until)
     : fmtDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000))
+
+  // Render text with glossary links and Latin tree names
+  function AnnotatedText({ text }) {
+    if (!text) return null
+    const segs = annotateSegments(text)
+    return (
+      <>
+        {segs.map((seg, i) => {
+          if (seg.type === 'glossary') {
+            return (
+              <a
+                key={i}
+                href={`#gl-${seg.id}`}
+                onClick={e => { e.preventDefault(); setShowGlossary(true); setTimeout(() => document.getElementById(`gl-${seg.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 80) }}
+                style={p.glossaryLink}
+              >
+                {seg.text}
+              </a>
+            )
+          }
+          if (seg.type === 'tree') {
+            return (
+              <span key={i}>
+                {seg.text}<em style={p.latinName}> ({seg.latin})</em>
+              </span>
+            )
+          }
+          return <span key={i}>{seg.text}</span>
+        })}
+      </>
+    )
+  }
 
   async function handleDownload() {
     setDownloading(true)
@@ -261,8 +298,8 @@ export default function QuoteView() {
                   <div style={p.itemBody}>
                     <div style={p.itemTop}>
                       <div style={p.itemDesc}>
-                        <div style={p.itemTitle}>{item.description || '—'}</div>
-                        {item.detail && <div style={p.itemDetail}>{item.detail}</div>}
+                        <div style={p.itemTitle}><AnnotatedText text={item.description || '—'} /></div>
+                        {item.detail && <div style={p.itemDetail}><AnnotatedText text={item.detail} /></div>}
                         {(() => {
                           const imgs = item.images?.length ? item.images : (item.image_url ? [item.image_url] : [])
                           return imgs.length > 0 && (
@@ -358,17 +395,83 @@ export default function QuoteView() {
             </div>
           )}
 
+          {/* ── Terms & Conditions ── */}
+          <div style={p.tcSection}>
+            <button style={p.tcToggle} onClick={() => setShowTc(v => !v)}>
+              <span style={p.tcToggleLabel}>Terms &amp; Conditions</span>
+              <span style={p.tcVersion}>v{TERMS_DATE}</span>
+              <span style={p.tcChevron}>{showTc ? '▴' : '▾'}</span>
+            </button>
+            {showTc && (
+              <div style={p.tcBody}>
+                {TERMS.map(t => (
+                  <div key={t.num} style={p.tcClause}>
+                    <div style={p.tcClauseTitle}>{t.num}. {t.title}</div>
+                    <div style={p.tcClauseText}>{t.text}</div>
+                  </div>
+                ))}
+                <div style={p.tcFootnote}>
+                  These Terms are governed by the laws of New Zealand. Your rights under the Consumer Guarantees Act 1993 and Fair Trading Act 1986 are not affected by these Terms.
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ── Glossary ── */}
+          <div style={p.tcSection}>
+            <button style={p.tcToggle} onClick={() => setShowGlossary(v => !v)}>
+              <span style={p.tcToggleLabel}>Arboricultural Glossary</span>
+              <span style={p.tcVersion}>{GLOSSARY.length} terms</span>
+              <span style={p.tcChevron}>{showGlossary ? '▴' : '▾'}</span>
+            </button>
+            {showGlossary && (
+              <div style={p.tcBody}>
+                <p style={p.glossaryIntro}>Terms used in this quote are linked to their definitions below. Click any underlined term in the quote to jump to its definition.</p>
+                {['Pruning', 'Tree Structure', 'Tree Health', 'Operations', 'Qualifications'].map(cat => {
+                  const catTerms = GLOSSARY.filter(g => g.category === cat)
+                  if (!catTerms.length) return null
+                  return (
+                    <div key={cat} style={p.glossaryCat}>
+                      <div style={p.glossaryCatTitle}>{cat}</div>
+                      {catTerms.map(g => (
+                        <div key={g.id} id={`gl-${g.id}`} style={p.glossaryEntry}>
+                          <div style={p.glossaryTerm}>{g.term}</div>
+                          <div style={p.glossaryDef}>{g.definition}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
           {/* ── CTA / Response ── */}
           {!responded ? (
             <div style={p.ctaBox}>
               {!declineStep ? (
                 <>
+                  <label style={p.tcAcknowledge}>
+                    <input
+                      type="checkbox"
+                      checked={tcAgreed}
+                      onChange={e => setTcAgreed(e.target.checked)}
+                      style={p.tcCheckbox}
+                    />
+                    <span>
+                      I have read and agree to the <button type="button" style={p.tcInlineLink} onClick={() => { setShowTc(true); setTimeout(() => document.querySelector('[data-tc]')?.scrollIntoView({ behavior: 'smooth' }), 80) }}>Terms &amp; Conditions</button> above. I understand my rights under the Consumer Guarantees Act 1993 are not affected.
+                    </span>
+                  </label>
                   <div style={p.ctaHint}>
-                    By accepting this quote you agree to proceed with the work described above at the quoted price.
                     This quote is valid until <strong>{expiryDate}</strong>.
                   </div>
                   <div style={p.ctaBtns}>
-                    <button style={p.acceptBtn} onClick={() => respond('accept')} disabled={responding}>
+                    <button
+                      style={{ ...p.acceptBtn, opacity: tcAgreed ? 1 : 0.45, cursor: tcAgreed ? 'pointer' : 'not-allowed' }}
+                      onClick={() => tcAgreed && respond('accept')}
+                      disabled={responding || !tcAgreed}
+                      title={!tcAgreed ? 'Please agree to the Terms & Conditions to accept' : ''}
+                    >
                       {responding ? 'Processing…' : '✓ Accept quote'}
                     </button>
                     <button style={p.declineBtn} onClick={() => setDeclineStep(true)} disabled={responding}>
@@ -547,6 +650,57 @@ const p = {
   // Notes
   notesBox: { background: '#fff', borderRadius: '10px', border: '1px solid var(--border)', padding: '18px 20px', marginBottom: '24px', boxShadow: '0 1px 4px rgba(44,36,22,0.06)' },
   notesText: { fontSize: '14px', color: '#555', lineHeight: 1.8, margin: 0, whiteSpace: 'pre-wrap', fontFamily: 'var(--font)' },
+
+  // Glossary link + Latin
+  glossaryLink: {
+    color: '#4A7FA5', textDecoration: 'underline dotted', textDecorationColor: '#4A7FA577',
+    textUnderlineOffset: '3px', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit',
+  },
+  latinName: {
+    fontSize: '0.85em', color: '#888', fontStyle: 'italic', fontFamily: 'Georgia, serif',
+  },
+
+  // T&C + Glossary collapsible
+  tcSection: {
+    marginBottom: '16px', borderRadius: '10px', border: '1px solid var(--border)',
+    overflow: 'hidden', boxShadow: '0 1px 4px rgba(44,36,22,0.04)',
+  },
+  tcToggle: {
+    width: '100%', display: 'flex', alignItems: 'center', gap: '10px',
+    padding: '14px 18px', background: '#FAFAF8', border: 'none', cursor: 'pointer',
+    fontFamily: 'var(--font)', textAlign: 'left',
+  },
+  tcToggleLabel: { fontSize: '13px', fontWeight: '700', color: 'var(--bark)', flex: 1 },
+  tcVersion: { fontSize: '11px', color: '#bbb', fontWeight: '500' },
+  tcChevron: { fontSize: '11px', color: '#bbb' },
+  tcBody: { padding: '18px 20px', borderTop: '1px solid var(--border)', background: '#fff' },
+  tcClause: { marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid #F0EDE8' },
+  tcClauseTitle: { fontSize: '12px', fontWeight: '700', color: 'var(--bark)', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.04em' },
+  tcClauseText: { fontSize: '13px', color: '#555', lineHeight: 1.75 },
+  tcFootnote: { fontSize: '12px', color: '#aaa', lineHeight: 1.6, fontStyle: 'italic', marginTop: '8px' },
+  glossaryIntro: { fontSize: '13px', color: '#888', marginBottom: '16px', lineHeight: 1.6, margin: '0 0 16px' },
+  glossaryCat: { marginBottom: '20px' },
+  glossaryCatTitle: {
+    fontSize: '10px', fontWeight: '800', color: '#aaa', textTransform: 'uppercase',
+    letterSpacing: '0.08em', marginBottom: '10px', paddingBottom: '6px',
+    borderBottom: '1px solid #F0EDE8',
+  },
+  glossaryEntry: { marginBottom: '12px', paddingLeft: '12px', borderLeft: '3px solid #E2DDD6' },
+  glossaryTerm: { fontSize: '13px', fontWeight: '700', color: 'var(--bark)', marginBottom: '3px' },
+  glossaryDef: { fontSize: '12px', color: '#666', lineHeight: 1.65 },
+
+  // T&C acknowledgement checkbox
+  tcAcknowledge: {
+    display: 'flex', alignItems: 'flex-start', gap: '10px',
+    background: '#F8FAF7', border: '1.5px solid #D4E4D0', borderRadius: '8px',
+    padding: '12px 14px', marginBottom: '14px', cursor: 'pointer',
+    fontSize: '13px', color: '#555', lineHeight: 1.55,
+  },
+  tcCheckbox: { width: '18px', height: '18px', accentColor: 'var(--moss)', flexShrink: 0, marginTop: '2px', cursor: 'pointer' },
+  tcInlineLink: {
+    background: 'none', border: 'none', color: '#4A7FA5', textDecoration: 'underline',
+    cursor: 'pointer', fontFamily: 'var(--font)', fontSize: 'inherit', padding: '0',
+  },
 
   // CTA
   ctaBox: { marginBottom: '32px' },

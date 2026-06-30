@@ -2,35 +2,34 @@ import { Suspense } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { useScheduledChecks } from '../hooks/useScheduledChecks'
 
 const FULL_NAV = [
   { to: '/dashboard', label: 'Dashboard', icon: DashboardIcon },
-  { to: '/pipeline',  label: 'Pipeline',  icon: PipelineIcon },
+  { to: '/pipeline',  label: 'Jobs',      icon: PipelineIcon },
   { to: '/calendar',  label: 'Calendar',  icon: CalendarIcon },
   { to: '/clients',   label: 'Clients',   icon: ClientsIcon },
-  { to: '/quotes',    label: 'Quotes',    icon: QuotesIcon },
-  { to: '/forms',     label: 'Forms',     icon: FormsIcon },
   { to: '/safety',    label: 'Safety',    icon: SafetyIcon },
 ]
 
 const OFFICE_NAV = [
-  { to: '/pipeline',  label: 'Pipeline',  icon: PipelineIcon },
+  { to: '/pipeline',  label: 'Jobs',      icon: PipelineIcon },
   { to: '/calendar',  label: 'Calendar',  icon: CalendarIcon },
   { to: '/clients',   label: 'Clients',   icon: ClientsIcon },
-  { to: '/quotes',    label: 'Quotes',    icon: QuotesIcon },
-  { to: '/forms',     label: 'Forms',     icon: FormsIcon },
   { to: '/safety',    label: 'Safety',    icon: SafetyIcon },
 ]
 
 const CREW_NAV = [
   { to: '/calendar', label: 'Calendar', icon: CalendarIcon },
-  { to: '/forms',    label: 'Forms',    icon: FormsIcon },
+  { to: '/safety',   label: 'Safety',   icon: SafetyIcon },
 ]
 
 export default function Layout() {
   const { profile, isFullAccess, isStaff, signOut } = useAuth()
   const navigate   = useNavigate()
   const isMobile   = useIsMobile()
+  const { overdue, dueSoon } = useScheduledChecks()
+  const alertCount = overdue.length + dueSoon.length
 
   async function handleSignOut() {
     await signOut()
@@ -52,7 +51,12 @@ export default function Layout() {
             <NavLink key={to} to={to} style={({ isActive }) => ({ ...m.tabItem, ...(isActive ? m.tabActive : {}) })}>
               {({ isActive }) => (
                 <>
-                  <Icon active={isActive} />
+                  <div style={{ position: 'relative', display: 'inline-flex' }}>
+                    <Icon active={isActive} />
+                    {to === '/safety' && alertCount > 0 && (
+                      <span style={{ position: 'absolute', top: -4, right: -6, background: '#e53935', color: '#fff', borderRadius: '50%', width: 16, height: 16, fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>{alertCount > 9 ? '9+' : alertCount}</span>
+                    )}
+                  </div>
                   <span style={m.tabLabel}>{label}</span>
                 </>
               )}
@@ -88,6 +92,9 @@ export default function Layout() {
                 <NavLink to={to} style={({ isActive }) => ({ ...d.navLink, ...(isActive ? d.navLinkActive : {}) })}>
                   <Icon active={false} size={16} />
                   {label}
+                  {to === '/safety' && alertCount > 0 && (
+                    <span style={{ marginLeft: 'auto', background: '#e53935', color: '#fff', borderRadius: 10, padding: '1px 6px', fontSize: 10, fontWeight: 700 }}>{alertCount > 9 ? '9+' : alertCount}</span>
+                  )}
                 </NavLink>
               </li>
             ))}

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../config/supabase'
 import { useAuth } from '../context/AuthContext'
@@ -36,6 +36,36 @@ export default function JobDetailPanel({ job, onClose, onUpdated }) {
   const [changingStatus, setChangingStatus] = useState(false)
   const [editing, setEditing] = useState(false)
   const [xeroStatus, setXeroStatus] = useState(null) // null | 'pushing' | 'ok' | 'err' | 'not_connected'
+  const [formStatus, setFormStatus] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(`treeco_job_forms_${job.id}`) ?? '{}') } catch { return {} }
+  })
+  const [activeForm, setActiveForm] = useState(null)
+
+  useEffect(() => {
+    function handleMsg(e) {
+      if (e.data?.type === 'form_complete' && e.data.job_id === job.id) {
+        setFormStatus(prev => {
+          const next = { ...prev, [e.data.form_id]: { completed: true, at: new Date().toISOString() } }
+          localStorage.setItem(`treeco_job_forms_${job.id}`, JSON.stringify(next))
+          return next
+        })
+        setActiveForm(null)
+      }
+    }
+    window.addEventListener('message', handleMsg)
+    return () => window.removeEventListener('message', handleMsg)
+  }, [job.id])
+
+  function buildFormUrl(f) {
+    const p = new URLSearchParams({
+      job_id: job.id,
+      job_address: job.address ?? '',
+      job_date: new Date().toISOString().slice(0, 10),
+      job_type: job.job_type ?? '',
+      form_id: f.id,
+    })
+    return `${f.url}?${p}`
+  }
 
   async function pushToXero(quoteId) {
     setXeroStatus('pushing')
@@ -64,7 +94,21 @@ export default function JobDetailPanel({ job, onClose, onUpdated }) {
     estimated_value: job.estimated_value ?? '',
   })
 
+  const isSD = /spencer|downer/i.test(job.clients?.name ?? '') || /spencer|downer/i.test(job.title ?? '')
+  const sdPhotosReady = !isSD || (() => {
+    try {
+      const during = JSON.parse(localStorage.getItem(`treeco_wo_during_${job.id}`) ?? '[]')
+      const after  = JSON.parse(localStorage.getItem(`treeco_wo_after_${job.id}`)  ?? '[]')
+      return during.length > 0 && after.length > 0
+    } catch { return false }
+  })()
+
   async function handleStatusChange(newStatus) {
+    const isComplete = newStatus === 'complete' || newStatus === 'completed'
+    if (isComplete && !sdPhotosReady) {
+      alert('During and After photos must be uploaded in the Work Order before this job can be marked complete.')
+      return
+    }
     setChangingStatus(true)
     await supabase
       .from('jobs')
@@ -72,6 +116,10 @@ export default function JobDetailPanel({ job, onClose, onUpdated }) {
       .eq('id', job.id)
     setChangingStatus(false)
     onUpdated()
+    if (newStatus === 'scheduled') {
+      // Auto-open Work Order so estimator can review what crew will see
+      navigate(`/workorder/${job.id}`)
+    }
     onClose()
   }
 
@@ -95,6 +143,25 @@ export default function JobDetailPanel({ job, onClose, onUpdated }) {
 
   return (
     <>
+      {/* Form overlay — full-screen iframe when a form is open */}
+      {activeForm && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', flexDirection: 'column', background: '#fff' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderBottom: '1px solid #E8EDE4', flexShrink: 0, background: '#fff' }}>
+            <button
+              onClick={() => setActiveForm(null)}
+              style={{ background: 'none', border: '1px solid #D0D9C8', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#4A6741', fontFamily: 'var(--font)' }}
+            >
+              ← Back to Job
+            </button>
+            <span style={{ fontWeight: 700, fontSize: 15, color: '#2C2416' }}>{activeForm.label}</span>
+            {formStatus[activeForm.id]?.completed && (
+              <span style={{ marginLeft: 'auto', color: '#2e7d32', fontWeight: 700, fontSize: 13 }}>✓ Complete</span>
+            )}
+          </div>
+          <iframe src={buildFormUrl(activeForm)} style={{ flex: 1, border: 'none', width: '100%' }} title={activeForm.label} />
+        </div>
+      )}
+
       {/* Backdrop */}
       <div style={styles.backdrop} onClick={onClose} />
 
@@ -256,6 +323,57 @@ export default function JobDetailPanel({ job, onClose, onUpdated }) {
             </div>
           )}
 
+          {/* Work Order */}
+          <div style={styles.section}>
+            <button
+              onClick={() => { onClose(); navigate(`/workorder/${job.id}`) }}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                width: '100%', padding: '12px 16px', borderRadius: '10px',
+                background: '#F0F7EE', border: '1.5px solid #D0E4CC',
+                cursor: 'pointer', fontFamily: 'var(--font)',
+              }}
+            >
+              <div style={{ textAlign: 'left' }}>
+                <div style={{ fontSize: '14px', fontWeight: '700', color: '#3A5C2E' }}>Work Order</div>
+                <div style={{ fontSize: '12px', color: '#6A8C61', marginTop: '2px' }}>Scope · Forms · Additions · Photos</div>
+              </div>
+              <span style={{ fontSize: '18px', color: '#4A6741' }}>→</span>
+            </button>
+          </div>
+
+          {/* Job Forms */}
+          <div style={styles.section}>
+            <div style={styles.sectionTitle}>Job Forms</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {JOB_FORMS.map(f => {
+                const done = formStatus[f.id]?.completed
+                return (
+                  <button
+                    key={f.id}
+                    onClick={() => setActiveForm(f)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '10px',
+                      padding: '10px 12px', borderRadius: '8px', width: '100%', textAlign: 'left',
+                      border: done ? '1.5px solid #2e7d3244' : f.required ? '1.5px solid #C0392B33' : '1.5px dashed #D0D9C8',
+                      background: done ? '#F0FFF4' : f.required ? '#FFF8F8' : '#FAFAFA',
+                      cursor: 'pointer', fontFamily: 'var(--font)',
+                    }}
+                  >
+                    <span style={{ fontSize: '15px' }}>{f.icon}</span>
+                    <span style={{ flex: 1, fontSize: '13px', fontWeight: '600', color: '#2C2416' }}>{f.label}</span>
+                    {done
+                      ? <span style={{ color: '#2e7d32', fontSize: '17px', fontWeight: '700' }}>✓</span>
+                      : f.required
+                        ? <span style={{ color: '#C0392B', fontSize: '17px', fontWeight: '700' }}>✕</span>
+                        : <span style={{ color: '#aaa', fontSize: '12px', fontWeight: '600' }}>+ add</span>
+                    }
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
           {/* Status change */}
           <div style={styles.section}>
             <div style={styles.sectionTitle}>Move to</div>
@@ -314,6 +432,13 @@ function Input({ value, onChange, type = 'text', placeholder }) {
 
 const QUOTE_STATUS_BG = { draft: '#F5F5F5', sent: '#FDF3E3', viewed: '#EBF3FA', accepted: '#E8F0E6', declined: '#FFF0EE' }
 const QUOTE_STATUS_COLOR = { draft: '#888', sent: '#D4851A', viewed: '#4A7FA5', accepted: '#4A6741', declined: '#C0392B' }
+
+const JOB_FORMS = [
+  { id: 'risk_assessment', label: 'SSSP', url: '/forms/risk-assessment.html', icon: '📋', required: true },
+  { id: 'toolbox_meeting', label: 'Toolbox Meeting', url: '/forms/toolbox-meeting.html', icon: '🧰', required: true },
+  { id: 'prestart', label: 'Pre-start Check', url: '/forms/prestart-daily.html', icon: '🔧', required: true },
+  { id: 'incident_report', label: 'Incident Report', url: '/forms/incident-report.html', icon: '🚨', required: false },
+]
 
 const styles = {
   backdrop: {

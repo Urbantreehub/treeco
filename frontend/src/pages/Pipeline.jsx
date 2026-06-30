@@ -1,30 +1,46 @@
-import { useState, useMemo } from 'react'
-import { DndContext, DragOverlay, MouseSensor, TouchSensor, useSensor, useSensors, closestCorners } from '@dnd-kit/core'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { JOB_STATUSES, STATUS_ORDER } from '../config/statuses'
 import { useJobs } from '../hooks/useJobs'
 import { useAuth } from '../context/AuthContext'
-import { useIsMobile } from '../hooks/useIsMobile'
-import StatusGroup from '../components/StatusGroup'
-import JobCard from '../components/JobCard'
 import JobDetailPanel from '../components/JobDetailPanel'
 import NewJobModal from '../components/NewJobModal'
 
+function nzd(v) {
+  if (!v) return null
+  return '$' + Number(v).toLocaleString('en-NZ', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+}
+
+function bestQuote(job) {
+  const qs = job.quotes ?? []
+  return (
+    qs.find(q => q.status === 'accepted') ||
+    qs.find(q => q.status === 'viewed') ||
+    qs.find(q => q.status === 'sent') ||
+    qs.find(q => q.status === 'draft') ||
+    null
+  )
+}
+
 export default function Pipeline() {
-  const { jobs, loading, updateJobStatus, fetchJobs } = useJobs()
+  const { jobs, loading, fetchJobs } = useJobs()
   const { isFullAccess } = useAuth()
-  const isMobile = useIsMobile()
-  const [activeJob, setActiveJob] = useState(null)
   const [selectedJob, setSelectedJob] = useState(null)
   const [showNewJob, setShowNewJob] = useState(false)
   const [textFilter, setTextFilter] = useState('')
-  const [statusFilter, setStatusFilter] = useState(new Set()) // empty = show all
+  const [statusFilter, setStatusFilter] = useState(new Set())
+  const [showFilterMenu, setShowFilterMenu] = useState(false)
+  const filterRef = useRef(null)
 
-  const sensors = useSensors(
-    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 8 } })
-  )
+  useEffect(() => {
+    if (!showFilterMenu) return
+    function handler(e) {
+      if (filterRef.current && !filterRef.current.contains(e.target)) setShowFilterMenu(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showFilterMenu])
 
-  const filteredJobs = useMemo(() => {
+  const filtered = useMemo(() => {
     return jobs.filter(j => {
       const matchesStatus = statusFilter.size === 0 || statusFilter.has(j.status)
       const q = textFilter.toLowerCase()
@@ -37,20 +53,7 @@ export default function Pipeline() {
     })
   }, [jobs, textFilter, statusFilter])
 
-  const jobsByStatus = useMemo(() =>
-    STATUS_ORDER.reduce((acc, key) => {
-      acc[key] = filteredJobs.filter(j => j.status === key)
-      return acc
-    }, {}),
-    [filteredJobs]
-  )
-
-  // Which statuses to show — if status filter active, only those; else all
-  const visibleStatuses = statusFilter.size > 0
-    ? STATUS_ORDER.filter(k => statusFilter.has(k))
-    : STATUS_ORDER
-
-  function toggleStatusFilter(key) {
+  function toggleStatus(key) {
     setStatusFilter(prev => {
       const next = new Set(prev)
       next.has(key) ? next.delete(key) : next.add(key)
@@ -58,122 +61,123 @@ export default function Pipeline() {
     })
   }
 
-  function handleDragStart({ active }) {
-    setActiveJob(jobs.find(j => j.id === active.id) ?? null)
-  }
-
-  function handleDragEnd({ active, over }) {
-    setActiveJob(null)
-    if (!over) return
-    const draggedJob = jobs.find(j => j.id === active.id)
-    if (!draggedJob) return
-    const targetStatus = STATUS_ORDER.includes(over.id)
-      ? over.id
-      : jobs.find(j => j.id === over.id)?.status
-    if (targetStatus && targetStatus !== draggedJob.status) {
-      updateJobStatus(draggedJob.id, targetStatus)
-    }
-  }
+  const filterActive = statusFilter.size > 0
 
   return (
-    <div style={styles.page}>
+    <div style={s.page}>
 
-      {/* ── Toolbar ── */}
-      <div style={styles.toolbar}>
-        <div style={styles.toolbarTop}>
-          <div style={styles.titleRow}>
-            <h1 style={styles.pageTitle}>Pipeline</h1>
-            <div style={styles.stats}>
-              <span style={styles.stat}>{filteredJobs.length} jobs</span>
-            </div>
-          </div>
-
-          <div style={styles.controls}>
-            {/* Text search */}
-            <div style={styles.searchWrap}>
-              <span style={styles.searchIcon}>🔍</span>
-              <input
-                placeholder="Search by client, address, job type…"
-                value={textFilter}
-                onChange={e => setTextFilter(e.target.value)}
-                style={styles.searchInput}
-              />
-              {textFilter && (
-                <button onClick={() => setTextFilter('')} style={styles.clearBtn}>✕</button>
-              )}
-            </div>
-
-            {isFullAccess && (
-              <button onClick={() => setShowNewJob(true)} style={styles.addBtn}>
-                + New job
-              </button>
-            )}
-          </div>
+      {/* Toolbar */}
+      <div style={s.toolbar}>
+        <div style={s.titleRow}>
+          <h1 style={s.title}>Jobs</h1>
+          <span style={s.countBadge}>{filtered.length}</span>
+          {isFullAccess && (
+            <button onClick={() => setShowNewJob(true)} style={s.newBtn}>+ New job</button>
+          )}
         </div>
 
-        {/* Status filter chips */}
-        <div style={styles.chipRow}>
-          <span style={styles.chipLabel}>Filter by status:</span>
-          <div style={styles.chips}>
-            {STATUS_ORDER.map(key => {
-              const s = JOB_STATUSES[key]
-              const active = statusFilter.has(key)
-              const count = jobs.filter(j => j.status === key).length
-              return (
-                <button
-                  key={key}
-                  onClick={() => toggleStatusFilter(key)}
-                  style={{
-                    ...styles.chip,
-                    background: active ? s.color : 'transparent',
-                    color: active ? '#fff' : s.color,
-                    border: `1.5px solid ${s.color}`,
-                    opacity: count === 0 ? 0.4 : 1,
-                  }}
-                >
-                  {s.label}
-                  <span style={{ ...styles.chipCount, background: active ? 'rgba(255,255,255,0.25)' : s.color + '22' }}>
-                    {count}
-                  </span>
-                </button>
-              )
-            })}
-            {statusFilter.size > 0 && (
-              <button onClick={() => setStatusFilter(new Set())} style={styles.clearChips}>
-                Clear
-              </button>
+        <div style={s.controls}>
+          {/* Search */}
+          <div style={s.searchWrap}>
+            <svg style={s.searchIcon} viewBox="0 0 20 20" fill="none">
+              <circle cx="9" cy="9" r="6" stroke="#aaa" strokeWidth="1.8"/>
+              <path d="M13.5 13.5L17 17" stroke="#aaa" strokeWidth="1.8" strokeLinecap="round"/>
+            </svg>
+            <input
+              placeholder="Search client, address, job type…"
+              value={textFilter}
+              onChange={e => setTextFilter(e.target.value)}
+              style={s.searchInput}
+            />
+            {textFilter && (
+              <button onClick={() => setTextFilter('')} style={s.clearBtn}>✕</button>
+            )}
+          </div>
+
+          {/* Filter */}
+          <div style={{ position: 'relative' }} ref={filterRef}>
+            <button
+              onClick={() => setShowFilterMenu(v => !v)}
+              style={{ ...s.filterBtn, ...(filterActive ? s.filterBtnActive : {}) }}
+            >
+              <svg viewBox="0 0 20 20" width="14" height="14" fill="none">
+                <path d="M3 5h14M6 10h8M9 15h2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+              </svg>
+              Filter
+              {filterActive && <span style={s.filterCount}>{statusFilter.size}</span>}
+            </button>
+
+            {showFilterMenu && (
+              <div style={s.filterMenu}>
+                <div style={s.filterMenuHeader}>
+                  <span style={s.filterMenuTitle}>Status</span>
+                  {filterActive && (
+                    <button onClick={() => setStatusFilter(new Set())} style={s.clearAllBtn}>Clear</button>
+                  )}
+                </div>
+                {STATUS_ORDER.map(key => {
+                  const st = JOB_STATUSES[key]
+                  const checked = statusFilter.has(key)
+                  const count = jobs.filter(j => j.status === key).length
+                  return (
+                    <label key={key} style={s.filterItem}>
+                      <input type="checkbox" checked={checked} onChange={() => toggleStatus(key)} style={{ display: 'none' }}/>
+                      <span style={{ ...s.filterCheck, background: checked ? st.color : '#fff', borderColor: checked ? st.color : '#ddd' }}>
+                        {checked && <svg viewBox="0 0 12 10" width="10" height="10" fill="none">
+                          <path d="M1 5l3.5 3.5L11 1" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>}
+                      </span>
+                      <span style={{ ...s.filterDot, background: st.color }}/>
+                      <span style={s.filterLabel}>{st.label}</span>
+                      <span style={{ ...s.filterCountBadge, color: st.color, background: st.color + '20' }}>{count}</span>
+                    </label>
+                  )
+                })}
+              </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* ── Board ── */}
-      <div style={styles.board}>
+      {/* List */}
+      <div style={s.body}>
         {loading ? (
-          <div style={styles.loading}>Loading jobs…</div>
+          <div style={s.empty}>Loading…</div>
+        ) : filtered.length === 0 ? (
+          <div style={s.empty}>
+            {textFilter || filterActive ? 'No jobs match.' : 'No jobs yet.'}
+          </div>
         ) : (
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCorners}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-          >
-            <div style={styles.groups}>
-              {visibleStatuses.map(key => (
-                <StatusGroup
-                  key={key}
-                  status={JOB_STATUSES[key]}
-                  jobs={jobsByStatus[key] ?? []}
-                  onCardClick={setSelectedJob}
-                  defaultOpen={false}
-                />
-              ))}
-            </div>
-
-            <DragOverlay>
-              {activeJob && <JobCard job={activeJob} onClick={() => {}} showStatus />}
-            </DragOverlay>
-          </DndContext>
+          <div style={s.list}>
+            {filtered.map(job => {
+              const st = JOB_STATUSES[job.status]
+              const quote = bestQuote(job)
+              const total = quote ? nzd(quote.total) : null
+              const date = new Date(job.created_at)
+              return (
+                <div key={job.id} style={s.row} onClick={() => setSelectedJob(job)}>
+                  <div style={s.rowMain}>
+                    <div style={s.client}>{job.clients?.name ?? '—'}</div>
+                    <div style={s.meta}>
+                      {job.job_type && <span style={s.jobType}>{job.job_type}</span>}
+                      {job.address && <span style={s.address}>{job.address}</span>}
+                    </div>
+                  </div>
+                  <div style={s.rowRight}>
+                    {st && (
+                      <span style={{ ...s.statusBadge, background: st.color + '18', color: st.color }}>
+                        {st.label}
+                      </span>
+                    )}
+                    {total && <div style={s.total}>{total}</div>}
+                    <div style={s.date}>
+                      {date.toLocaleDateString('en-NZ', { day: 'numeric', month: 'short' })}
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         )}
       </div>
 
@@ -195,168 +199,93 @@ export default function Pipeline() {
   )
 }
 
-const styles = {
-  page: {
-    display: 'flex',
-    flexDirection: 'column',
-    height: '100%',
-    overflow: 'hidden',
-    background: 'var(--cream)',
-  },
+const s = {
+  page: { display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--cream)' },
   toolbar: {
-    background: '#fff',
-    borderBottom: '1px solid var(--border)',
-    flexShrink: 0,
-    padding: '14px 16px 0',
+    background: '#fff', borderBottom: '1px solid var(--border)',
+    padding: '14px 20px 12px', flexShrink: 0,
+    display: 'flex', flexDirection: 'column', gap: '10px',
   },
-  toolbarTop: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: '12px',
-    gap: '10px',
-    flexWrap: 'wrap',
+  titleRow: { display: 'flex', alignItems: 'center', gap: '10px' },
+  title: { fontSize: '20px', fontWeight: '700', color: 'var(--bark)' },
+  countBadge: {
+    fontSize: '12px', color: '#888', background: 'var(--cream)',
+    border: '1px solid var(--border)', borderRadius: '10px', padding: '2px 9px',
   },
-  titleRow: {
-    display: 'flex',
-    alignItems: 'baseline',
-    gap: '12px',
+  newBtn: {
+    marginLeft: 'auto', background: 'var(--moss)', color: '#fff', border: 'none',
+    borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: '600',
+    cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap',
   },
-  pageTitle: {
-    fontSize: '20px',
-    fontWeight: '700',
-    color: 'var(--bark)',
-  },
-  stats: {
-    display: 'flex',
-    gap: '8px',
-  },
-  stat: {
-    fontSize: '12px',
-    color: '#888',
-    background: 'var(--cream)',
-    border: '1px solid var(--border)',
-    borderRadius: '10px',
-    padding: '2px 9px',
-  },
-  controls: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    flex: 1,
-    minWidth: '260px',
-  },
-  searchWrap: {
-    position: 'relative',
-    display: 'flex',
-    alignItems: 'center',
-    flex: 1,
-    minWidth: 0,
-  },
-  searchIcon: {
-    position: 'absolute',
-    left: '10px',
-    fontSize: '13px',
-    pointerEvents: 'none',
-  },
+  controls: { display: 'flex', alignItems: 'center', gap: '8px' },
+  searchWrap: { position: 'relative', display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 },
+  searchIcon: { position: 'absolute', left: '10px', width: '15px', height: '15px', pointerEvents: 'none' },
   searchInput: {
-    padding: '8px 32px 8px 32px',
-    borderRadius: '8px',
-    border: '1.5px solid var(--border)',
-    fontSize: '13px',
-    fontFamily: 'var(--font)',
-    color: 'var(--bark)',
-    background: 'var(--cream)',
-    width: '100%',
-    minWidth: '120px',
-    outline: 'none',
+    padding: '8px 32px 8px 34px', borderRadius: '8px',
+    border: '1.5px solid var(--border)', fontSize: '13px',
+    fontFamily: 'var(--font)', color: 'var(--bark)', background: 'var(--cream)',
+    width: '100%', outline: 'none',
   },
   clearBtn: {
-    position: 'absolute',
-    right: '8px',
-    background: 'none',
-    border: 'none',
-    color: '#aaa',
-    cursor: 'pointer',
-    fontSize: '13px',
-    padding: '0',
-    lineHeight: 1,
+    position: 'absolute', right: '8px', background: 'none', border: 'none',
+    color: '#aaa', cursor: 'pointer', fontSize: '13px', padding: '0', lineHeight: 1,
   },
-  addBtn: {
-    background: 'var(--moss)',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '8px',
-    padding: '9px 18px',
-    fontSize: '14px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    fontFamily: 'var(--font)',
-    whiteSpace: 'nowrap',
+  filterBtn: {
+    display: 'flex', alignItems: 'center', gap: '5px',
+    padding: '8px 13px', borderRadius: '8px', border: '1.5px solid var(--border)',
+    background: '#fff', color: '#666', fontSize: '13px', fontWeight: '500',
+    cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap',
   },
-  chipRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-    paddingBottom: '14px',
-    flexWrap: 'wrap',
+  filterBtnActive: { borderColor: 'var(--moss)', color: 'var(--moss)', background: 'var(--moss-pale)' },
+  filterCount: {
+    background: 'var(--moss)', color: '#fff', borderRadius: '10px',
+    padding: '1px 6px', fontSize: '11px', fontWeight: '700',
   },
-  chipLabel: {
-    fontSize: '12px',
-    color: '#aaa',
-    fontWeight: '500',
-    whiteSpace: 'nowrap',
+  filterMenu: {
+    position: 'absolute', top: 'calc(100% + 6px)', right: 0,
+    background: '#fff', border: '1.5px solid var(--border)', borderRadius: '10px',
+    boxShadow: '0 4px 20px rgba(0,0,0,0.1)', padding: '6px 0', minWidth: '220px', zIndex: 200,
   },
-  chips: {
-    display: 'flex',
-    gap: '6px',
-    flexWrap: 'wrap',
-    alignItems: 'center',
+  filterMenuHeader: {
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    padding: '6px 14px 10px', borderBottom: '1px solid var(--border)', marginBottom: '4px',
   },
-  chip: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '5px',
-    padding: '4px 10px 4px 10px',
-    borderRadius: '20px',
-    fontSize: '12px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    fontFamily: 'var(--font)',
-    transition: 'background 0.15s, color 0.15s',
-    whiteSpace: 'nowrap',
+  filterMenuTitle: {
+    fontSize: '11px', fontWeight: '700', color: '#aaa',
+    textTransform: 'uppercase', letterSpacing: '0.05em',
   },
-  chipCount: {
-    fontSize: '10px',
-    fontWeight: '700',
-    borderRadius: '10px',
-    padding: '1px 5px',
+  clearAllBtn: {
+    background: 'none', border: 'none', color: 'var(--moss)',
+    fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)', padding: '0',
   },
-  clearChips: {
-    background: 'none',
-    border: '1px solid var(--border)',
-    borderRadius: '20px',
-    padding: '4px 10px',
-    fontSize: '12px',
-    color: '#888',
-    cursor: 'pointer',
-    fontFamily: 'var(--font)',
+  filterItem: { display: 'flex', alignItems: 'center', gap: '9px', padding: '8px 14px', cursor: 'pointer' },
+  filterCheck: {
+    width: '17px', height: '17px', borderRadius: '4px', border: '1.5px solid #ddd',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+    transition: 'background 0.1s, border-color 0.1s',
   },
-  board: {
-    flex: 1,
-    overflowY: 'auto',
-    padding: '16px',
+  filterDot: { width: '9px', height: '9px', borderRadius: '50%', flexShrink: 0 },
+  filterLabel: { fontSize: '13px', color: 'var(--bark)', flex: 1 },
+  filterCountBadge: { fontSize: '11px', fontWeight: '700', borderRadius: '10px', padding: '1px 7px' },
+  body: { flex: 1, overflowY: 'auto', padding: '16px 20px' },
+  list: { display: 'flex', flexDirection: 'column', gap: '8px' },
+  row: {
+    background: '#fff', borderRadius: '10px', border: '1px solid var(--border)',
+    padding: '14px 18px', display: 'flex', alignItems: 'center',
+    justifyContent: 'space-between', gap: '16px', cursor: 'pointer',
+    transition: 'box-shadow 0.15s',
   },
-  groups: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '10px',
+  rowMain: { flex: 1, minWidth: 0 },
+  client: { fontSize: '14px', fontWeight: '600', color: 'var(--bark)', marginBottom: '3px' },
+  meta: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
+  jobType: {
+    fontSize: '11px', background: 'var(--moss-pale)', color: 'var(--moss)',
+    borderRadius: '4px', padding: '2px 6px', fontWeight: '500',
   },
-  loading: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: '200px',
-    color: '#888',
-  },
+  address: { fontSize: '12px', color: '#aaa' },
+  rowRight: { display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 },
+  statusBadge: { fontSize: '11px', fontWeight: '600', borderRadius: '20px', padding: '3px 10px', whiteSpace: 'nowrap' },
+  total: { fontSize: '14px', fontWeight: '700', color: 'var(--bark)', minWidth: '70px', textAlign: 'right' },
+  date: { fontSize: '11px', color: '#aaa', minWidth: '55px', textAlign: 'right' },
+  empty: { textAlign: 'center', color: '#ccc', padding: '60px 0', fontSize: '14px' },
 }

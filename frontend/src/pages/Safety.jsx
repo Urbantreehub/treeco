@@ -1,6 +1,10 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useScheduledChecks } from '../hooks/useScheduledChecks'
 import { supabase } from '../config/supabase'
 import { useAuth } from '../context/AuthContext'
+import RiskAssessments from './RiskAssessment'
+import HSDocuments from './HSDocuments'
+import SWMS from './SWMS'
 
 // ── Vault configs ───────────────────────────────────────────────────────────
 const STAFF_TYPES = [
@@ -41,25 +45,31 @@ async function openFile(file_url) {
 }
 
 export default function Safety() {
-  const { profile } = useAuth()
-  const [tab, setTab] = useState('overview')
+  const { profile, isStaff } = useAuth()
+  const [tab, setTab] = useState(isStaff ? 'overview' : 'forms')
   const [staff, setStaff] = useState([])
   const [company, setCompany] = useState([])
   const [docs, setDocs] = useState([])
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [modal, setModal] = useState(null) // { vault, row }
+  const [activeForm, setActiveForm] = useState(null)
+  const { checks, overdue, dueSoon, upcoming, markDone, reload: reloadChecks } = useScheduledChecks()
+  const checksAlert = overdue.length + dueSoon.length
 
   const load = useCallback(async () => {
     setLoading(true)
-    const [s, c, d, u] = await Promise.all([
-      supabase.from('staff_records').select('*').order('expiry_date', { nullsFirst: false }),
-      supabase.from('company_documents').select('*').order('expiry_date', { nullsFirst: false }),
-      supabase.from('safety_documents').select('*').order('updated_at', { ascending: false }),
-      supabase.from('users').select('id, name').order('name'),
-    ])
-    setStaff(s.data ?? []); setCompany(c.data ?? []); setDocs(d.data ?? []); setUsers(u.data ?? [])
-    setLoading(false)
+    try {
+      const [s, c, d, u] = await Promise.all([
+        supabase.from('staff_records').select('*').order('expiry_date', { nullsFirst: false }),
+        supabase.from('company_documents').select('*').order('expiry_date', { nullsFirst: false }),
+        supabase.from('safety_documents').select('*').order('updated_at', { ascending: false }),
+        supabase.from('users').select('id, name').order('name'),
+      ])
+      setStaff(s.data ?? []); setCompany(c.data ?? []); setDocs(d.data ?? []); setUsers(u.data ?? [])
+    } finally {
+      setLoading(false)
+    }
   }, [])
   useEffect(() => { load() }, [load])
 
@@ -73,46 +83,72 @@ export default function Safety() {
   ].filter(x => x.when).sort((a, b) => new Date(a.when) - new Date(b.when))
   const flagged = expiring.filter(x => daysUntil(x.when) <= 30)
 
+  // Forms iframe mode — full-height takeover
+  if (activeForm) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', background: '#fff', borderBottom: '1px solid #E8EDE4', flexShrink: 0 }}>
+          <button onClick={() => setActiveForm(null)} style={{ background: 'none', border: '1px solid #D0D9C8', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#4A6741' }}>← Back</button>
+          <span style={{ fontWeight: 700, fontSize: 15, color: '#2C2416' }}>{activeForm.title}</span>
+        </div>
+        <iframe src={activeForm.url} style={{ flex: 1, border: 'none', width: '100%' }} title={activeForm.title} />
+      </div>
+    )
+  }
+
   return (
     <div style={s.page}>
       <div style={s.header}>
         <div>
           <h1 style={s.title}>Safety &amp; Compliance</h1>
-          <div style={s.sub}>Documents, staff records, insurances · {profile?.access_level === 'office' ? 'Office' : 'Admin'} access</div>
+          <div style={s.sub}>Documents, staff records, forms &amp; insurances</div>
         </div>
       </div>
 
       <div style={s.tabs}>
-        {[['overview', `Overview${flagged.length ? ` (${flagged.length})` : ''}`], ['staff', 'Staff Records'], ['company', 'Company & Insurance'], ['docs', 'Documents']].map(([k, t]) => (
+        {[
+          ['forms',        'Forms'],
+          ['checks',       `Scheduled Checks${checksAlert ? ` (${checksAlert})` : ''}`],
+          ...(isStaff ? [
+            ['overview',     `Overview${flagged.length ? ` (${flagged.length})` : ''}`],
+            ['assessments',  'Risk Assessments'],
+            ['swms',         'SWMS'],
+            ['staff',        'Staff Records'],
+            ['company',      'Company & Insurance'],
+            ['docs',         'Documents'],
+          ] : []),
+        ].map(([k, t]) => (
           <button key={k} onClick={() => setTab(k)} style={{ ...s.tab, ...(tab === k ? s.tabOn : {}) }}>{t}</button>
         ))}
       </div>
 
-      {loading ? <div style={s.empty}>Loading…</div> : (
-        <div style={s.body}>
-          {tab === 'overview' && (
-            <Overview flagged={flagged} expiring={expiring} staff={staff} company={company} docs={docs}
-              onOpen={x => setTab(x.vault === 'docs' ? 'docs' : x.vault)} />
-          )}
-          {tab === 'staff' && (
-            <Vault title="Staff Records" rows={staff} types={STAFF_TYPES}
-              cols={[['title', 'Document'], ['who', 'Staff'], ['issued_date', 'Issued'], ['expiry_date', 'Expires']]}
-              render={r => ({ who: userName(r.user_id) || r.staff_name || '—' })}
-              onAdd={() => setModal({ vault: 'staff', row: {} })} onEdit={r => setModal({ vault: 'staff', row: r })} />
-          )}
-          {tab === 'company' && (
-            <Vault title="Company & Insurance" rows={company} types={COMPANY_TYPES}
-              cols={[['title', 'Document'], ['issuer', 'Issuer'], ['reference', 'Ref'], ['expiry_date', 'Expires']]}
-              render={() => ({})}
-              onAdd={() => setModal({ vault: 'company', row: {} })} onEdit={r => setModal({ vault: 'company', row: r })} />
-          )}
-          {tab === 'docs' && (
-            <Vault title="Documents (SWMS / SOP / SSSP / Policy)" rows={docs} types={DOC_TYPES}
-              cols={[['title', 'Title'], ['version', 'Ver'], ['status', 'Status'], ['review_date', 'Review']]}
-              render={r => ({ version: `v${r.version}` })}
-              onAdd={() => setModal({ vault: 'docs', row: {} })} onEdit={r => setModal({ vault: 'docs', row: r })} />
-          )}
-        </div>
+      {tab === 'forms'       && <div style={s.body}><FormsPanel onSelect={setActiveForm} /></div>}
+      {tab === 'checks'      && <div style={s.body}><ScheduledChecksPanel overdue={overdue} dueSoon={dueSoon} upcoming={upcoming} onDone={markDone} /></div>}
+      {tab === 'assessments' && <div style={s.body}><RiskAssessments /></div>}
+      {tab === 'swms'        && <div style={s.body}><SWMS /></div>}
+      {tab === 'docs'        && <div style={s.body}><HSDocuments /></div>}
+
+      {tab !== 'forms' && tab !== 'checks' && tab !== 'assessments' && tab !== 'docs' && (
+        loading ? <div style={s.empty}>Loading…</div> : (
+          <div style={s.body}>
+            {tab === 'overview' && (
+              <Overview flagged={flagged} expiring={expiring} staff={staff} company={company} docs={docs}
+                onOpen={x => setTab(x.vault === 'docs' ? 'docs' : x.vault)} />
+            )}
+            {tab === 'staff' && (
+              <Vault title="Staff Records" rows={staff} types={STAFF_TYPES}
+                cols={[['title', 'Document'], ['who', 'Staff'], ['issued_date', 'Issued'], ['expiry_date', 'Expires']]}
+                render={r => ({ who: userName(r.user_id) || r.staff_name || '—' })}
+                onAdd={() => setModal({ vault: 'staff', row: {} })} onEdit={r => setModal({ vault: 'staff', row: r })} />
+            )}
+            {tab === 'company' && (
+              <Vault title="Company & Insurance" rows={company} types={COMPANY_TYPES}
+                cols={[['title', 'Document'], ['issuer', 'Issuer'], ['reference', 'Ref'], ['expiry_date', 'Expires']]}
+                render={() => ({})}
+                onAdd={() => setModal({ vault: 'company', row: {} })} onEdit={r => setModal({ vault: 'company', row: r })} />
+            )}
+          </div>
+        )
       )}
 
       {modal && <RecordModal {...modal} users={users} onClose={() => setModal(null)} onSaved={() => { setModal(null); load() }} createdBy={profile?.id} />}
@@ -299,4 +335,127 @@ const s = {
   saveBtn: { background: 'var(--moss)', color: '#fff', border: 'none', borderRadius: 7, padding: '9px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)' },
   cancelBtn: { background: '#fff', border: '1px solid var(--border)', borderRadius: 7, padding: '9px 16px', fontSize: 13, color: '#666', cursor: 'pointer', fontFamily: 'var(--font)' },
   delBtn: { background: '#fff', border: '1px solid #E0B4B0', borderRadius: 7, padding: '9px 14px', fontSize: 13, color: 'var(--danger)', cursor: 'pointer', fontFamily: 'var(--font)' },
+}
+
+const TYPE_ICONS = { toolbox: '🧰', equipment: '🛠️', audit: '🔍', first_aid: '🩺', licence: '📋', other: '📌' }
+const TYPE_LABELS = { toolbox: 'Toolbox Meeting', equipment: 'Equipment Inspection', audit: 'H&S Audit', first_aid: 'First Aid Check', licence: 'Licence Review', other: 'Other' }
+
+function ScheduledChecksPanel({ overdue, dueSoon, upcoming, onDone }) {
+  const [confirming, setConfirming] = useState(null)
+
+  function CheckCard({ check, urgency }) {
+    const bg    = urgency === 'overdue' ? '#fff5f5' : urgency === 'soon' ? '#fff8e1' : '#f9fffe'
+    const border= urgency === 'overdue' ? '#e53935' : urgency === 'soon' ? '#fb8c00' : '#00897B'
+    const tag   = urgency === 'overdue' ? { text: 'OVERDUE', color: '#e53935' } : urgency === 'soon' ? { text: 'DUE SOON', color: '#fb8c00' } : { text: 'UPCOMING', color: '#00897B' }
+    return (
+      <div style={{ background: bg, border: `1.5px solid ${border}`, borderRadius: 10, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14 }}>
+        <span style={{ fontSize: 26, flexShrink: 0 }}>{TYPE_ICONS[check.check_type] ?? '📌'}</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: '#2C2416' }}>{check.title}</span>
+            <span style={{ fontSize: 10, fontWeight: 700, color: tag.color, background: `${tag.color}18`, borderRadius: 5, padding: '2px 6px' }}>{tag.text}</span>
+          </div>
+          <div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>
+            Due: <strong style={{ color: urgency === 'overdue' ? '#e53935' : '#555' }}>{new Date(check.next_due).toLocaleDateString('en-NZ', { day: 'numeric', month: 'short', year: 'numeric' })}</strong>
+            {check.last_done && <span style={{ marginLeft: 8 }}>· Last done: {new Date(check.last_done).toLocaleDateString('en-NZ', { day: 'numeric', month: 'short', year: 'numeric' })}</span>}
+          </div>
+          {check.notes && <div style={{ fontSize: 12, color: '#777', marginTop: 2 }}>{check.notes}</div>}
+        </div>
+        {confirming === check.id ? (
+          <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+            <button onClick={() => { onDone(check.id); setConfirming(null) }} style={{ background: '#2e7d32', color: '#fff', border: 'none', borderRadius: 7, padding: '7px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Confirm ✓</button>
+            <button onClick={() => setConfirming(null)} style={{ background: '#fff', border: '1px solid #ddd', borderRadius: 7, padding: '7px 10px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+          </div>
+        ) : (
+          <button onClick={() => setConfirming(check.id)} style={{ background: '#fff', border: '1.5px solid #ddd', borderRadius: 8, padding: '8px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', color: '#444', flexShrink: 0, fontFamily: 'inherit' }}>Mark done</button>
+        )}
+      </div>
+    )
+  }
+
+  const empty = overdue.length === 0 && dueSoon.length === 0 && upcoming.length === 0
+
+  if (empty) return <div style={{ color: '#bbb', fontSize: 14, padding: '48px 0', textAlign: 'center' }}>No scheduled checks found — apply migration 008 in Supabase to activate.</div>
+
+  return (
+    <div style={{ maxWidth: 680, display: 'flex', flexDirection: 'column', gap: 24 }}>
+      {overdue.length > 0 && (
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 800, color: '#e53935', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Overdue ({overdue.length})</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{overdue.map(c => <CheckCard key={c.id} check={c} urgency="overdue" />)}</div>
+        </div>
+      )}
+      {dueSoon.length > 0 && (
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 800, color: '#fb8c00', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Due within 7 days ({dueSoon.length})</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{dueSoon.map(c => <CheckCard key={c.id} check={c} urgency="soon" />)}</div>
+        </div>
+      )}
+      {upcoming.length > 0 && (
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 800, color: '#00897B', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Upcoming</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{upcoming.map(c => <CheckCard key={c.id} check={c} urgency="upcoming" />)}</div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+const FORM_GROUPS = [
+  {
+    group: 'Per-Job (on site)',
+    forms: [
+      { id: 'sssp',              title: 'SSSP',              description: 'Site-Specific Safety Plan — hazard ID, risk matrix, PPE & crew sign-off. Complete before work starts.',              icon: '📋', url: '/forms/risk-assessment.html' },
+      { id: 'toolbox-meeting',   title: 'Toolbox Meeting',   description: 'Pre-work briefing — scope, hazards, PPE, SWMS review, equipment check & crew sign-off',                            icon: '🧰', url: '/forms/toolbox-meeting.html' },
+      { id: 'prestart-daily',    title: 'Pre-Start Check',   description: 'Morbark 1415, Forst ST6PHD or truck — select machine, check fluids, safety & sign off before operation',            icon: '🔧', url: '/forms/prestart-daily.html' },
+      { id: 'aerial-rescue-plan',title: 'Aerial Rescue Plan','description': 'Required before any climbing above 3m — rescue coordinator, emergency contacts, procedure & crew signatures',     icon: '🧗', url: '/forms/aerial-rescue-plan.html' },
+      { id: 'permit-to-work',    title: 'Permit to Work',    description: 'Required for powerline clearance, traffic management or confined space work — issuer & worker sign-off',            icon: '🔐', url: '/forms/permit-to-work.html' },
+    ],
+  },
+  {
+    group: 'Incident & Hazard Reporting',
+    forms: [
+      { id: 'incident-report',   title: 'Incident Report',   description: 'Injuries, near-misses, dangerous events & property damage — corrective actions, WorkSafe notification & sign-off', icon: '🚨', url: '/forms/incident-report.html' },
+    ],
+  },
+  {
+    group: 'Scheduled Audits & Inspections',
+    forms: [
+      { id: 'site-inspection',   title: 'H&S Site Audit',    description: 'Quarterly site safety inspection — SiteWise compliance checklist, findings, ratings & corrective actions',         icon: '🔍', url: '/forms/site-inspection.html' },
+    ],
+  },
+  {
+    group: 'Company Documents',
+    forms: [
+      { id: 'hs-policy',         title: 'Health & Safety Policy', description: 'UTS H&S Policy — roles & responsibilities, SWMS register, employment policies. Sign off annually.',          icon: '📜', url: '/forms/hs-policy.html' },
+    ],
+  },
+]
+
+function FormsPanel({ onSelect }) {
+  return (
+    <div style={{ maxWidth: 680 }}>
+      <p style={{ fontSize: 14, color: '#888', marginBottom: 24 }}>Fill in, sign &amp; export as PDF — uploads automatically to Google Drive.</p>
+      {FORM_GROUPS.map(({ group, forms }) => (
+        <div key={group} style={{ marginBottom: 28 }}>
+          <div style={{ fontSize: 10, fontWeight: 800, color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>{group}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {forms.map(form => (
+              <button key={form.id} onClick={() => onSelect(form)} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px', background: '#fff', border: '1.5px solid #E0E8D8', borderRadius: 12, cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = '#4A6741'; e.currentTarget.style.boxShadow = '0 2px 12px rgba(74,103,65,0.1)' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = '#E0E8D8'; e.currentTarget.style.boxShadow = 'none' }}
+              >
+                <span style={{ fontSize: 28, flexShrink: 0 }}>{form.icon}</span>
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: '#2C2416', marginBottom: 3 }}>{form.title}</div>
+                  <div style={{ fontSize: 13, color: '#777', lineHeight: 1.4 }}>{form.description}</div>
+                </div>
+                <span style={{ marginLeft: 'auto', color: '#C0CABB', fontSize: 20 }}>›</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
 }

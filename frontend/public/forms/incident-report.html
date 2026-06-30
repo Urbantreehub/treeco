@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Incident Report — Urban Tree Services</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.6.0/jspdf.plugin.autotable.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  :root {
+    --green: #2e7d32;
+    --green-light: #4caf50;
+    --green-pale: #e8f5e9;
+    --green-dark: #1b5e20;
+    --border: #c8e6c9;
+    --text: #1a1a1a;
+    --muted: #555;
+    --bg: #f4f6f4;
+    --card: #ffffff;
+    --radius: 12px;
+    --shadow: 0 2px 8px rgba(0,0,0,0.08);
+    --red: #c62828;
+    --red-pale: #ffebee;
+    --amber: #e65100;
+    --amber-pale: #fff3e0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 16px;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: 120px;
+  }
+  .header {
+    background: #fff;
+    padding: 16px 20px 12px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.10);
+    border-bottom: 2px solid #e8ecdb;
+  }
+  .header-inner { max-width: 860px; margin: 0 auto; display: flex; align-items: center; gap: 14px; }
+  .header img { height: 44px; width: auto; object-fit: contain; flex-shrink: 0; }
+  .header-text h1 { font-size: 19px; font-weight: 700; color: #333; }
+  .header-text p { font-size: 12px; color: #8B9B40; margin-top: 2px; letter-spacing: 1px; text-transform: uppercase; font-weight: 600; }
+  .save-ind { margin-left: auto; font-size: 12px; background: #f4f6ec; border: 1px solid #d4dba0; padding: 6px 12px; border-radius: 20px; display: flex; align-items: center; gap: 6px; white-space: nowrap; flex-shrink: 0; color: #555; }
+  .save-dot { width: 8px; height: 8px; border-radius: 50%; background: #a5d6a7; transition: background 0.3s; }
+  .save-dot.saving { background: #ffcc02; }
+  .save-dot.saved { background: #69f0ae; }
+  .main { max-width: 860px; margin: 0 auto; padding: 20px 16px; }
+  .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 20px; overflow: hidden; }
+  .card-header {
+    background: var(--green);
+    color: #fff;
+    padding: 13px 20px;
+    font-size: 14px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .card-header.red { background: var(--red); }
+  .card-header .snum { background: rgba(255,255,255,0.25); border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+  .card-body { padding: 20px; }
+  .field { margin-bottom: 18px; }
+  .field:last-child { margin-bottom: 0; }
+  label.fl { display: block; font-size: 13px; font-weight: 700; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .req { color: #c62828; }
+  input[type=text], input[type=date], input[type=time], input[type=tel], select, textarea {
+    width: 100%; padding: 12px 14px; border: 2px solid var(--border); border-radius: 8px;
+    font-size: 16px; color: var(--text); background: #fff; -webkit-appearance: none; appearance: none;
+    transition: border-color 0.2s, box-shadow 0.2s; min-height: 50px; font-family: inherit;
+  }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--green-light); box-shadow: 0 0 0 3px rgba(46,125,50,0.12); }
+  textarea { min-height: 100px; resize: vertical; }
+  select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%232e7d32' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; background-size: 12px; padding-right: 38px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  @media (max-width: 600px) { .row2, .row3 { grid-template-columns: 1fr; } }
+  /* Checkbox tiles */
+  .tile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
+  .tile { border: 2px solid var(--border); border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: border-color 0.2s, background 0.2s; display: flex; align-items: flex-start; gap: 10px; }
+  .tile:hover { border-color: var(--green-light); background: var(--green-pale); }
+  .tile.selected { border-color: var(--green); background: var(--green-pale); }
+  .tile.type-serious { border-color: #e57373; }
+  .tile.type-serious.selected { border-color: var(--red); background: var(--red-pale); }
+  .tile input[type=checkbox] { position: absolute; opacity: 0; pointer-events: none; }
+  .tile-icon { font-size: 22px; flex-shrink: 0; }
+  .tile-text { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.3; }
+  .tile-sub { font-size: 12px; color: #888; margin-top: 2px; }
+  /* Factor checkboxes */
+  .factor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  @media (max-width: 500px) { .factor-grid { grid-template-columns: 1fr; } }
+  .factor-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 2px solid var(--border); border-radius: 8px; cursor: pointer; transition: all 0.15s; }
+  .factor-item:hover { background: var(--green-pale); border-color: var(--green-light); }
+  .factor-item.checked { background: var(--green-pale); border-color: var(--green); }
+  .factor-item input { position: absolute; opacity: 0; }
+  .factor-tick { width: 20px; height: 20px; border: 2px solid #ccc; border-radius: 4px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+  .factor-item.checked .factor-tick { background: var(--green); border-color: var(--green); }
+  .factor-tick-svg { display: none; }
+  .factor-item.checked .factor-tick-svg { display: block; }
+  /* Y/N */
+  .yn-row { display: flex; gap: 10px; }
+  .yn-label { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; border: 2px solid var(--border); border-radius: 8px; padding: 12px; cursor: pointer; font-size: 15px; font-weight: 600; transition: all 0.15s; }
+  .yn-label:hover { border-color: var(--green-light); background: var(--green-pale); }
+  .yn-label input { position: absolute; opacity: 0; }
+  .yn-label.yes:has(input:checked) { border-color: var(--green); background: var(--green-pale); color: var(--green-dark); }
+  .yn-label.no:has(input:checked) { border-color: var(--red); background: var(--red-pale); color: var(--red); }
+  .yn-label.na:has(input:checked) { border-color: #888; background: #f5f5f5; color: #555; }
+  .notif-box { background: var(--red-pale); border: 2px solid #ef9a9a; border-radius: 10px; padding: 14px 18px; margin: 14px 0; display: none; }
+  .notif-box.visible { display: block; }
+  .notif-box strong { color: var(--red); display: block; margin-bottom: 6px; font-size: 15px; }
+  /* Signature */
+  .sig-wrap { border: 2px solid var(--border); border-radius: 10px; background: #fafafa; overflow: hidden; position: relative; }
+  .sig-wrap canvas { display: block; width: 100%; height: 160px; touch-action: none; cursor: crosshair; }
+  .sig-clear { position: absolute; top: 8px; right: 10px; background: none; border: 1px solid #ccc; border-radius: 6px; padding: 4px 10px; font-size: 12px; color: #888; cursor: pointer; }
+  .sig-label { font-size: 11px; color: #aaa; padding: 6px 12px; background: #f5f5f5; border-top: 1px solid #eee; }
+  /* Footer actions */
+  .footer-actions { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 2px solid var(--border); padding: 14px 20px; display: flex; gap: 12px; justify-content: center; z-index: 200; }
+  .btn-primary { background: var(--green); color: #fff; border: none; border-radius: 10px; padding: 14px 28px; font-size: 16px; font-weight: 700; cursor: pointer; flex: 1; max-width: 260px; font-family: inherit; }
+  .btn-secondary { background: #fff; color: var(--green); border: 2px solid var(--green); border-radius: 10px; padding: 14px 28px; font-size: 16px; font-weight: 700; cursor: pointer; max-width: 160px; font-family: inherit; }
+  .btn-danger { background: var(--red); color: #fff; border: none; border-radius: 10px; padding: 14px 20px; font-size: 14px; font-weight: 700; cursor: pointer; max-width: 120px; font-family: inherit; }
+  .section-note { font-size: 13px; color: #888; margin-bottom: 14px; }
+  .worktype-select { display: flex; flex-direction: column; gap: 8px; }
+  .hidden-field { display: none; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <img src="/logo.png" alt="Urban Tree Services" onerror="this.style.display='none'">
+    <div class="header-text">
+      <h1>Incident Report</h1>
+      <p>Urban Tree Services Ltd</p>
+    </div>
+    <div class="save-ind">
+      <div class="save-dot" id="saveDot"></div>
+      <span id="saveLabel">Auto-saved</span>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- SECTION 1: Job / Site Details -->
+  <div class="card">
+    <div class="card-header"><span class="snum">1</span> Job &amp; Site Details</div>
+    <div class="card-body">
+      <div class="row2">
+        <div class="field">
+          <label class="fl">Date of incident <span class="req">*</span></label>
+          <input type="date" id="inc_date">
+        </div>
+        <div class="field">
+          <label class="fl">Time of incident <span class="req">*</span></label>
+          <input type="time" id="inc_time">
+        </div>
+      </div>
+      <div class="field">
+        <label class="fl">Site address <span class="req">*</span></label>
+        <input type="text" id="site_address" placeholder="Full address where incident occurred">
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label class="fl">Supervisor / lead on site</label>
+          <select id="supervisor">
+            <option value="">Select…</option>
+            <option>Josh Micallef</option>
+            <option>Lea Molloy</option>
+            <option>Stuart Fraser Wilson</option>
+            <option>Joel Ewan</option>
+            <option>Josh Curran Mongan</option>
+            <option>Kaleb</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="fl">Weather at time of incident</label>
+          <select id="weather">
+            <option value="">Select…</option>
+            <option>Fine / clear</option>
+            <option>Overcast</option>
+            <option>Light rain</option>
+            <option>Heavy rain</option>
+            <option>Windy (&lt;30km/h)</option>
+            <option>High wind (&gt;30km/h)</option>
+            <option>Hot / sunny</option>
+            <option>Night / low light</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label class="fl">Date this form was completed</label>
+        <input type="date" id="form_date">
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 2: Incident Classification -->
+  <div class="card">
+    <div class="card-header"><span class="snum">2</span> Incident Classification</div>
+    <div class="card-body">
+      <p class="section-note">Select all that apply. Serious / notifiable events are highlighted.</p>
+      <div class="tile-grid">
+        <label class="tile type-serious" id="tile_injury">
+          <input type="checkbox" id="type_injury" onchange="tileToggle(this)">
+          <div><div class="tile-icon">🤕</div><div class="tile-text">Injury / illness</div><div class="tile-sub">Person physically hurt or became ill</div></div>
+        </label>
+        <label class="tile" id="tile_nearmiss">
+          <input type="checkbox" id="type_nearmiss" onchange="tileToggle(this)">
+          <div><div class="tile-icon">⚠️</div><div class="tile-text">Near-miss</div><div class="tile-sub">No injury but could have been</div></div>
+        </label>
+        <label class="tile type-serious" id="tile_dangerous">
+          <input type="checkbox" id="type_dangerous" onchange="tileToggle(this)">
+          <div><div class="tile-icon">⚡</div><div class="tile-text">Dangerous event</div><div class="tile-sub">Unplanned energy release (may be notifiable)</div></div>
+        </label>
+        <label class="tile" id="tile_property">
+          <input type="checkbox" id="type_property" onchange="tileToggle(this)">
+          <div><div class="tile-icon">🏠</div><div class="tile-text">Property damage</div><div class="tile-sub">Damage to property or equipment</div></div>
+        </label>
+        <label class="tile" id="tile_vehicle">
+          <input type="checkbox" id="type_vehicle" onchange="tileToggle(this)">
+          <div><div class="tile-icon">🚛</div><div class="tile-text">Vehicle / plant</div><div class="tile-sub">Vehicle or equipment involved</div></div>
+        </label>
+        <label class="tile" id="tile_environmental">
+          <input type="checkbox" id="type_environmental" onchange="tileToggle(this)">
+          <div><div class="tile-icon">🌿</div><div class="tile-text">Environmental</div><div class="tile-sub">Chemical spill or environmental harm</div></div>
+        </label>
+      </div>
+      <!-- Notifiable prompt -->
+      <div class="notif-box" id="notifBox">
+        <strong>⚠ This may be a NOTIFIABLE EVENT under HSWA 2015</strong>
+        Notifiable events must be reported to WorkSafe NZ immediately: <strong>0800 030 040</strong><br>
+        Do not disturb the scene (except to help the injured or prevent further harm) until WorkSafe advises.
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 3: Person(s) Involved -->
+  <div class="card">
+    <div class="card-header"><span class="snum">3</span> Person(s) Involved</div>
+    <div class="card-body">
+      <div class="row2">
+        <div class="field">
+          <label class="fl">Full name <span class="req">*</span></label>
+          <select id="person_name">
+            <option value="">Select or type below…</option>
+            <option>Josh Micallef</option>
+            <option>Lea Molloy</option>
+            <option>Stuart Fraser Wilson</option>
+            <option>Joel Ewan</option>
+            <option>Josh Curran Mongan</option>
+            <option>Kaleb</option>
+            <option>Ashley Rapana</option>
+            <option>Member of public</option>
+            <option>Subcontractor</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="fl">If "other", enter name</label>
+          <input type="text" id="person_name_other" placeholder="Full name">
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label class="fl">Role / position</label>
+          <select id="person_role">
+            <option value="">Select…</option>
+            <option>Director / Climber</option>
+            <option>Climber</option>
+            <option>Groundsman</option>
+            <option>Office</option>
+            <option>Member of public</option>
+            <option>Subcontractor</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="fl">Contact number</label>
+          <input type="tel" id="person_phone" placeholder="021 …">
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label class="fl">Time in current role</label>
+          <select id="person_experience">
+            <option value="">Select…</option>
+            <option>Less than 3 months</option>
+            <option>3–12 months</option>
+            <option>1–3 years</option>
+            <option>3+ years</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="fl">Additional persons involved</label>
+          <input type="text" id="persons_additional" placeholder="Other names if multiple people affected">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 4: Description -->
+  <div class="card">
+    <div class="card-header"><span class="snum">4</span> Incident Description</div>
+    <div class="card-body">
+      <div class="field">
+        <label class="fl">Activity being performed at time of incident <span class="req">*</span></label>
+        <select id="activity">
+          <option value="">Select…</option>
+          <option>Tree climbing / aerial work (SWMS-001)</option>
+          <option>Aerial rescue (SWMS-002)</option>
+          <option>Ground support (SWMS-003)</option>
+          <option>Chainsaw operations (SWMS-004)</option>
+          <option>Wood chipping (SWMS-005)</option>
+          <option>Rigging &amp; lowering (SWMS-006)</option>
+          <option>Working near traffic (SWMS-007)</option>
+          <option>Chemical application (SWMS-008)</option>
+          <option>Stump grinding (SWMS-009)</option>
+          <option>Tree felling (SWMS-010)</option>
+          <option>Work near power lines (SWMS-011)</option>
+          <option>Storm / emergency work (SWMS-012)</option>
+          <option>Hand tools / general ground (SWMS-013)</option>
+          <option>Driving / travel</option>
+          <option>Manual handling</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="fl">Was a SWMS in use and briefed before work commenced?</label>
+        <div class="yn-row">
+          <label class="yn-label yes"><input type="radio" name="swms_briefed" value="yes"> ✓ Yes</label>
+          <label class="yn-label no"><input type="radio" name="swms_briefed" value="no"> ✗ No</label>
+          <label class="yn-label na"><input type="radio" name="swms_briefed" value="na"> N/A</label>
+        </div>
+      </div>
+      <div class="field">
+        <label class="fl">Describe exactly what happened — step by step <span class="req">*</span></label>
+        <textarea id="description" placeholder="Include: sequence of events, what task was being performed, what went wrong, and what happened immediately after…"></textarea>
+      </div>
+      <div class="field">
+        <label class="fl">Where precisely did it happen?</label>
+        <input type="text" id="location_detail" placeholder="e.g. 'At approximately 6m height on the north face of the tree', 'In the road adjacent to…'">
+      </div>
+      <div class="field">
+        <label class="fl">What could have prevented this?</label>
+        <textarea id="prevention" placeholder="In your view, what could have been done differently to prevent this incident?" style="min-height:80px;"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 5: Injury Details -->
+  <div class="card">
+    <div class="card-header"><span class="snum">5</span> Injury / Illness Details (if applicable)</div>
+    <div class="card-body">
+      <div class="row2">
+        <div class="field">
+          <label class="fl">Body part affected</label>
+          <select id="body_part">
+            <option value="">Not applicable / select…</option>
+            <option>Head / skull</option>
+            <option>Eye(s)</option>
+            <option>Ear(s)</option>
+            <option>Face</option>
+            <option>Neck / cervical spine</option>
+            <option>Shoulder</option>
+            <option>Upper arm</option>
+            <option>Elbow</option>
+            <option>Forearm</option>
+            <option>Wrist</option>
+            <option>Hand / fingers</option>
+            <option>Chest / ribs</option>
+            <option>Back / spine</option>
+            <option>Hip</option>
+            <option>Upper leg / thigh</option>
+            <option>Knee</option>
+            <option>Lower leg</option>
+            <option>Ankle</option>
+            <option>Foot / toes</option>
+            <option>Multiple areas</option>
+            <option>Internal / systemic</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="fl">Nature of injury</label>
+          <select id="injury_nature">
+            <option value="">Not applicable / select…</option>
+            <option>Laceration / cut</option>
+            <option>Abrasion / graze</option>
+            <option>Puncture wound</option>
+            <option>Bruise / contusion</option>
+            <option>Fracture / break</option>
+            <option>Sprain / strain / tear</option>
+            <option>Dislocation</option>
+            <option>Burn (thermal)</option>
+            <option>Burn (chemical)</option>
+            <option>Electric shock</option>
+            <option>Eye injury</option>
+            <option>Concussion / head injury</option>
+            <option>Hearing damage</option>
+            <option>Chemical exposure / illness</option>
+            <option>Heat stress / heat stroke</option>
+            <option>Crush injury</option>
+            <option>Amputation</option>
+            <option>Death</option>
+            <option>Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label class="fl">Severity / treatment required</label>
+        <select id="severity">
+          <option value="">Select…</option>
+          <option>First aid only (on site)</option>
+          <option>Medical treatment (GP / urgent care)</option>
+          <option>Hospitalisation (not overnight)</option>
+          <option>Hospitalisation (overnight or longer)</option>
+          <option>Lost time injury (time off work)</option>
+          <option>Permanent impairment</option>
+          <option>Fatality</option>
+          <option>No injury — near-miss only</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="fl">Medical facility attended (if any)</label>
+        <input type="text" id="medical_facility" placeholder="e.g. Hutt Hospital, Urgent Care, GP name">
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 6: Immediate Actions -->
+  <div class="card">
+    <div class="card-header"><span class="snum">6</span> Immediate Actions Taken</div>
+    <div class="card-body">
+      <div class="factor-grid">
+        <label class="factor-item" id="fi_firstaid"><input type="checkbox" id="fa_firstaid" onchange="factorToggle(this)"><span class="factor-tick"><svg class="factor-tick-svg" width="12" height="10" viewBox="0 0 12 10"><polyline points="1,5 4.5,8.5 11,1" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span>First aid administered</label>
+        <label class="factor-item" id="fi_111"><input type="checkbox" id="fa_111" onchange="factorToggle(this)"><span class="factor-tick"><svg class="factor-tick-svg" width="12" height="10" viewBox="0 0 12 10"><polyline points="1,5 4.5,8.5 11,1" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span>111 / ambulance called</label>
+        <label class="factor-item" id="fi_stopped"><input type="checkbox" id="fa_stopped" onchange="factorToggle(this)"><span class="factor-tick"><svg class="factor-tick-svg" width="12" height="10" viewBox="0 0 12 10"><polyline points="1,5 4.5,8.5 11,1" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span>Work stopped</label>
+        <label class="factor-item" id="fi_secured"><input type="checkbox" id="fa_secured" onchange="factorToggle(this)"><span class="factor-tick"><svg class="factor-tick-svg" width="12" height="10" viewBox="0 0 12 10"><polyline points="1,5 4.5,8.5 11,1" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span>Scene / site secured</label>
+        <label class="factor-item" id="fi_director"><input type="checkbox" id="fa_director" onchange="factorToggle(this)"><span class="factor-tick"><svg class="factor-tick-svg" width="12" height="10" viewBox="0 0 12 10"><polyline points="1,5 4.5,8.5 11,1" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span>Director notified</label>
+        <label class="factor-item" id="fi_nextofkin"><input type="checkbox" id="fa_nextofkin" onchange="factorToggle(this)"><span class="factor-tick"><svg class="factor-tick-svg" width="12" height="10" viewBox="0 0 12 10"><polyline points="1,5 4.5,8.5 11,1" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span>Next of kin notified</label>
+        <label class="factor-item" id="fi_worksafe"><input type="checkbox" id="fa_worksafe" onchange="factorToggle(this)"><span class="factor-tick"><svg class="factor-tick-svg" width="12" height="10" viewBox="0 0 12 10"><polyline points="1,5 4.5,8.5 11,1" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span>WorkSafe NZ notified (0800 030 040)</label>
+        <label class="factor-item" id="fi_photos"><input type="checkbox" id="fa_photos" onchange="factorToggle(this)"><span class="factor-tick"><svg class="factor-tick-svg" width="12" height="10" viewBox="0 0 12 10"><polyline points="1,5 4.5,8.5 11,1" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span>Photos / evidence captured</label>
+      </div>
+      <div class="field" style="margin-top:14px;">
+        <label class="fl">WorkSafe NZ reference number (if notified)</label>
+        <input type="text" id="worksafe_ref" placeholder="WS-XXXX-XXXX or leave blank">
+      </div>
+      <div class="field">
+        <label class="fl">First aider name (if first aid given)</label>
+        <input type="text" id="first_aider" placeholder="Name of person who provided first aid">
+      </div>
+      <div class="field">
+        <label class="fl">Additional immediate actions taken</label>
+        <textarea id="immediate_other" placeholder="Any other actions taken at the scene…" style="min-height:80px;"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 7: Witnesses -->
+  <div class="card">
+    <div class="card-header"><span class="snum">7</span> Witnesses</div>
+    <div class="card-body">
+      <div class="row2">
+        <div class="field">
+          <label class="fl">Witness 1 — name</label>
+          <input type="text" id="witness1_name" placeholder="Full name">
+        </div>
+        <div class="field">
+          <label class="fl">Witness 1 — contact</label>
+          <input type="tel" id="witness1_phone" placeholder="Phone number">
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label class="fl">Witness 2 — name</label>
+          <input type="text" id="witness2_name" placeholder="Full name">
+        </div>
+        <div class="field">
+          <label class="fl">Witness 2 — contact</label>
+          <input type="tel" id="witness2_phone" placeholder="Phone number">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 8: Contributing Factors -->
+  <div class="card">
+    <div class="card-header"><span class="snum">8</span> Contributing Factors</div>
+    <div class="card-body">
+      <p class="section-note">Select all factors that contributed to this incident:</p>
+      <div class="factor-grid">
+        <label class="factor-item" id="fi_c1"><input type="checkbox" id="cf_training" onchange="factorToggle(this)"><span class="factor-tick"><svg class="factor-tick-svg" width="12" height="10" viewBox="0 0 12 10"><polyline points="1,5 4.5,8.5 11,1" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span>Inadequate training / competency</label>
+        <label class="factor-item" id="fi_c2"><input type="checkbox" id="cf_supervision" onchange="factorToggle(this)"><span class="factor-tick"><svg class="factor-tick-svg" width="12" height="10" viewBox="0 0 12 10"><polyline points="1,5 4.5,8.5 11,1" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span>Inadequate supervision</label>
+        <label class="factor-item" id="fi_c3"><input type="checkbox" id="cf_ppe" onchange="factorToggle(this)"><span class="factor-tick"><svg class="factor-tick-svg" width="12" height="10" viewBox="0 0 12 10"><polyline points="1,5 4.5,8.5 11,1" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span>PPE not worn / inadequate</label>
+        <label class="factor-item" id="fi_c4"><input type="checkbox" id="cf_swms" onchange="factorToggle(this)"><span class="factor-tick"><svg class="factor-tick-svg" width="12" height="10" viewBox="0 0 12 10"><polyline points="1,5 4.5,8.5 11,1" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span>SWMS not followed / not in use</label>
+        <label class="factor-item" id="fi_c5"><input type="checkbox" id="cf_equipment" onchange="factorToggle(this)"><span class="factor-tick"><svg class="factor-tick-svg" width="12" height="10" viewBox="0 0 12 10"><polyline points="1,5 4.5,8.5 11,1" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span>Equipment failure / defect</label>
+        <label class="factor-item" id="fi_c6"><input type="checkbox" id="cf_conditions" onchange="factorToggle(this)"><span class="factor-tick"><svg class="factor-tick-svg" width="12" height="10" viewBox="0 0 12 10"><polyline points="1,5 4.5,8.5 11,1" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span>Site conditions (ground, weather, obstacles)</label>
+        <label class="factor-item" id="fi_c7"><input type="checkbox" id="cf_fatigue" onchange="factorToggle(this)"><span class="factor-tick"><svg class="factor-tick-svg" width="12" height="10" viewBox="0 0 12 10"><polyline points="1,5 4.5,8.5 11,1" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span>Fatigue / rush / time pressure</label>
+        <label class="factor-item" id="fi_c8"><input type="checkbox" id="cf_comms" onchange="factorToggle(this)"><span class="factor-tick"><svg class="factor-tick-svg" width="12" height="10" viewBox="0 0 12 10"><polyline points="1,5 4.5,8.5 11,1" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span>Communication failure</label>
+        <label class="factor-item" id="fi_c9"><input type="checkbox" id="cf_unexpected" onchange="factorToggle(this)"><span class="factor-tick"><svg class="factor-tick-svg" width="12" height="10" viewBox="0 0 12 10"><polyline points="1,5 4.5,8.5 11,1" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span>Unexpected event / hazard</label>
+        <label class="factor-item" id="fi_c10"><input type="checkbox" id="cf_other_factor" onchange="factorToggle(this)"><span class="factor-tick"><svg class="factor-tick-svg" width="12" height="10" viewBox="0 0 12 10"><polyline points="1,5 4.5,8.5 11,1" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span>Other (describe below)</label>
+      </div>
+      <div class="field" style="margin-top:12px;">
+        <label class="fl">Additional notes on factors</label>
+        <textarea id="factors_notes" placeholder="Describe contributing factors in more detail…" style="min-height:80px;"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 9: Corrective Actions -->
+  <div class="card">
+    <div class="card-header"><span class="snum">9</span> Corrective Actions</div>
+    <div class="card-body">
+      <div class="field">
+        <label class="fl">Immediate actions (done now / today)</label>
+        <textarea id="corrective_immediate" placeholder="Actions taken immediately to prevent recurrence or further harm…"></textarea>
+      </div>
+      <div class="field">
+        <label class="fl">Short-term actions (within 48 hours)</label>
+        <textarea id="corrective_short" placeholder="e.g. Equipment repaired, SWMS reviewed, crew briefed, site inspection…"></textarea>
+      </div>
+      <div class="field">
+        <label class="fl">Long-term / systemic actions</label>
+        <textarea id="corrective_long" placeholder="e.g. SWMS updated, training programme updated, new equipment purchased, process change…"></textarea>
+      </div>
+      <div class="field">
+        <label class="fl">Does this incident require a SWMS update?</label>
+        <div class="yn-row">
+          <label class="yn-label yes"><input type="radio" name="swms_update" value="yes"> Yes</label>
+          <label class="yn-label no"><input type="radio" name="swms_update" value="no"> No</label>
+          <label class="yn-label na"><input type="radio" name="swms_update" value="unsure"> Unsure</label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 10: Sign-off -->
+  <div class="card">
+    <div class="card-header red"><span class="snum">10</span> Declaration &amp; Sign-off</div>
+    <div class="card-body">
+      <p style="margin-bottom:16px;font-size:14px;color:var(--muted);">
+        The information in this report is accurate and complete to the best of my knowledge.
+        I understand that all incidents must be reported honestly and without delay under HSWA 2015.
+      </p>
+      <div class="row2">
+        <div class="field">
+          <label class="fl">Form completed by <span class="req">*</span></label>
+          <select id="completed_by">
+            <option value="">Select…</option>
+            <option>Josh Micallef</option>
+            <option>Lea Molloy</option>
+            <option>Stuart Fraser Wilson</option>
+            <option>Joel Ewan</option>
+            <option>Josh Curran Mongan</option>
+            <option>Kaleb</option>
+            <option>Ashley Rapana</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="fl">Director / reviewer name</label>
+          <input type="text" id="reviewer" value="Josh Micallef">
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label class="fl">Signature — person completing form</label>
+          <div class="sig-wrap">
+            <canvas id="sigCanvas1" width="800" height="160"></canvas>
+            <button class="sig-clear" onclick="clearSig(1)">Clear</button>
+            <div class="sig-label">Sign above</div>
+          </div>
+        </div>
+        <div class="field">
+          <label class="fl">Signature — Director review</label>
+          <div class="sig-wrap">
+            <canvas id="sigCanvas2" width="800" height="160"></canvas>
+            <button class="sig-clear" onclick="clearSig(2)">Clear</button>
+            <div class="sig-label">Sign above</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer-actions">
+  <button class="btn-secondary" onclick="resetForm()">Clear</button>
+  <button class="btn-primary" onclick="generatePDF()">Save PDF</button>
+</div>
+
+<script>
+// ── Auto-save ────────────────────────────────────────────────────────────────
+const LS_KEY = 'treeco_incident_draft'
+let saveTimer
+
+function getSig(n) {
+  const c = document.getElementById(`sigCanvas${n}`)
+  if (!c) return ''
+  const ctx = c.getContext('2d')
+  const data = ctx.getImageData(0, 0, c.width, c.height).data
+  for (let i = 3; i < data.length; i += 4) { if (data[i] > 0) return c.toDataURL() }
+  return ''
+}
+
+function autoSave() {
+  const dot = document.getElementById('saveDot')
+  const lbl = document.getElementById('saveLabel')
+  dot.className = 'save-dot saving'; lbl.textContent = 'Saving…'
+  clearTimeout(saveTimer)
+  saveTimer = setTimeout(() => {
+    try {
+      const d = collectData()
+      localStorage.setItem(LS_KEY, JSON.stringify(d))
+      dot.className = 'save-dot saved'; lbl.textContent = 'Auto-saved'
+    } catch(e) { lbl.textContent = 'Error saving' }
+  }, 800)
+}
+
+function restoreData() {
+  try {
+    const raw = localStorage.getItem(LS_KEY)
+    if (!raw) { setDefaults(); return }
+    const d = JSON.parse(raw)
+    const set = (id, v) => { const el = document.getElementById(id); if (el && v != null) el.value = v }
+    set('inc_date', d.inc_date); set('inc_time', d.inc_time); set('site_address', d.site_address)
+    set('supervisor', d.supervisor); set('weather', d.weather); set('form_date', d.form_date)
+    set('person_name', d.person_name); set('person_name_other', d.person_name_other)
+    set('person_role', d.person_role); set('person_phone', d.person_phone)
+    set('person_experience', d.person_experience); set('persons_additional', d.persons_additional)
+    set('activity', d.activity); set('description', d.description)
+    set('location_detail', d.location_detail); set('prevention', d.prevention)
+    set('body_part', d.body_part); set('injury_nature', d.injury_nature)
+    set('severity', d.severity); set('medical_facility', d.medical_facility)
+    set('worksafe_ref', d.worksafe_ref); set('first_aider', d.first_aider)
+    set('immediate_other', d.immediate_other)
+    set('witness1_name', d.witness1_name); set('witness1_phone', d.witness1_phone)
+    set('witness2_name', d.witness2_name); set('witness2_phone', d.witness2_phone)
+    set('factors_notes', d.factors_notes)
+    set('corrective_immediate', d.corrective_immediate)
+    set('corrective_short', d.corrective_short); set('corrective_long', d.corrective_long)
+    set('completed_by', d.completed_by); set('reviewer', d.reviewer)
+    // Radios
+    if (d.swms_briefed) { const r = document.querySelector(`input[name=swms_briefed][value="${d.swms_briefed}"]`); if(r) r.checked = true }
+    if (d.swms_update) { const r = document.querySelector(`input[name=swms_update][value="${d.swms_update}"]`); if(r) r.checked = true }
+    // Checkboxes
+    const cbIds = ['type_injury','type_nearmiss','type_dangerous','type_property','type_vehicle','type_environmental',
+      'fa_firstaid','fa_111','fa_stopped','fa_secured','fa_director','fa_nextofkin','fa_worksafe','fa_photos',
+      'cf_training','cf_supervision','cf_ppe','cf_swms','cf_equipment','cf_conditions','cf_fatigue','cf_comms','cf_unexpected','cf_other_factor']
+    cbIds.forEach(id => { const el = document.getElementById(id); if (el && d[id]) { el.checked = true; el.dispatchEvent(new Event('change')) } })
+    checkNotifiable()
+  } catch(e) { setDefaults() }
+}
+
+function setDefaults() {
+  const today = new Date().toISOString().split('T')[0]
+  document.getElementById('form_date').value = today
+}
+
+// ── Tile / factor toggles ────────────────────────────────────────────────────
+function tileToggle(cb) {
+  const tile = cb.closest('label.tile')
+  if (cb.checked) tile.classList.add('selected'); else tile.classList.remove('selected')
+  checkNotifiable()
+  autoSave()
+}
+function checkNotifiable() {
+  const inj = document.getElementById('type_injury')?.checked
+  const dan = document.getElementById('type_dangerous')?.checked
+  document.getElementById('notifBox').className = (inj || dan) ? 'notif-box visible' : 'notif-box'
+}
+function factorToggle(cb) {
+  const item = cb.closest('label.factor-item')
+  if (cb.checked) item.classList.add('checked'); else item.classList.remove('checked')
+  autoSave()
+}
+
+// ── Collect form data ────────────────────────────────────────────────────────
+function val(id) { const el = document.getElementById(id); return el ? el.value.trim() : '' }
+function radio(name) { const r = document.querySelector(`input[name="${name}"]:checked`); return r ? r.value : '' }
+function checked(id) { const el = document.getElementById(id); return el ? el.checked : false }
+
+function collectData() {
+  return {
+    inc_date: val('inc_date'), inc_time: val('inc_time'), site_address: val('site_address'),
+    supervisor: val('supervisor'), weather: val('weather'), form_date: val('form_date'),
+    person_name: val('person_name'), person_name_other: val('person_name_other'),
+    person_role: val('person_role'), person_phone: val('person_phone'),
+    person_experience: val('person_experience'), persons_additional: val('persons_additional'),
+    activity: val('activity'), swms_briefed: radio('swms_briefed'),
+    description: val('description'), location_detail: val('location_detail'), prevention: val('prevention'),
+    body_part: val('body_part'), injury_nature: val('injury_nature'),
+    severity: val('severity'), medical_facility: val('medical_facility'),
+    worksafe_ref: val('worksafe_ref'), first_aider: val('first_aider'), immediate_other: val('immediate_other'),
+    witness1_name: val('witness1_name'), witness1_phone: val('witness1_phone'),
+    witness2_name: val('witness2_name'), witness2_phone: val('witness2_phone'),
+    factors_notes: val('factors_notes'),
+    corrective_immediate: val('corrective_immediate'), corrective_short: val('corrective_short'), corrective_long: val('corrective_long'),
+    swms_update: radio('swms_update'), completed_by: val('completed_by'), reviewer: val('reviewer'),
+    type_injury: checked('type_injury'), type_nearmiss: checked('type_nearmiss'),
+    type_dangerous: checked('type_dangerous'), type_property: checked('type_property'),
+    type_vehicle: checked('type_vehicle'), type_environmental: checked('type_environmental'),
+    fa_firstaid: checked('fa_firstaid'), fa_111: checked('fa_111'), fa_stopped: checked('fa_stopped'),
+    fa_secured: checked('fa_secured'), fa_director: checked('fa_director'), fa_nextofkin: checked('fa_nextofkin'),
+    fa_worksafe: checked('fa_worksafe'), fa_photos: checked('fa_photos'),
+    cf_training: checked('cf_training'), cf_supervision: checked('cf_supervision'),
+    cf_ppe: checked('cf_ppe'), cf_swms: checked('cf_swms'), cf_equipment: checked('cf_equipment'),
+    cf_conditions: checked('cf_conditions'), cf_fatigue: checked('cf_fatigue'), cf_comms: checked('cf_comms'),
+    cf_unexpected: checked('cf_unexpected'), cf_other_factor: checked('cf_other_factor'),
+  }
+}
+
+// ── Signature pads ────────────────────────────────────────────────────────────
+function initSig(n) {
+  const canvas = document.getElementById(`sigCanvas${n}`)
+  if (!canvas) return
+  const ctx = canvas.getContext('2d')
+  ctx.strokeStyle = '#111'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.lineJoin = 'round'
+  let drawing = false, lx = 0, ly = 0
+  function pos(e) {
+    const r = canvas.getBoundingClientRect()
+    const scaleX = canvas.width / r.width
+    const scaleY = canvas.height / r.height
+    const src = e.touches ? e.touches[0] : e
+    return { x: (src.clientX - r.left) * scaleX, y: (src.clientY - r.top) * scaleY }
+  }
+  canvas.addEventListener('mousedown', e => { drawing = true; const p = pos(e); lx = p.x; ly = p.y })
+  canvas.addEventListener('mousemove', e => {
+    if (!drawing) return
+    const p = pos(e)
+    ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(p.x, p.y); ctx.stroke()
+    lx = p.x; ly = p.y; autoSave()
+  })
+  canvas.addEventListener('mouseup', () => { drawing = false })
+  canvas.addEventListener('touchstart', e => { e.preventDefault(); drawing = true; const p = pos(e); lx = p.x; ly = p.y }, { passive: false })
+  canvas.addEventListener('touchmove', e => {
+    e.preventDefault()
+    if (!drawing) return
+    const p = pos(e)
+    ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(p.x, p.y); ctx.stroke()
+    lx = p.x; ly = p.y
+  }, { passive: false })
+  canvas.addEventListener('touchend', () => { drawing = false; autoSave() })
+}
+function clearSig(n) { const c = document.getElementById(`sigCanvas${n}`); const ctx = c.getContext('2d'); ctx.clearRect(0, 0, c.width, c.height) }
+
+function resetForm() {
+  if (!confirm('Clear all fields and start a new report?')) return
+  localStorage.removeItem(LS_KEY)
+  document.querySelectorAll('input[type=text],input[type=date],input[type=time],input[type=tel],textarea,select').forEach(el => el.value = '')
+  document.querySelectorAll('input[type=checkbox]').forEach(el => { el.checked = false; const p = el.closest('label'); if (p) { p.classList.remove('selected','checked') } })
+  document.querySelectorAll('input[type=radio]').forEach(el => el.checked = false)
+  clearSig(1); clearSig(2)
+  document.getElementById('notifBox').className = 'notif-box'
+  setDefaults()
+}
+
+// ── PDF generation ────────────────────────────────────────────────────────────
+async function generatePDF() {
+  const d = collectData()
+  if (!d.inc_date || !d.site_address || !d.description) {
+    alert('Please complete the required fields: Date, Site Address, and Description before saving.'); return
+  }
+  const { jsPDF } = window.jspdf
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' })
+  const W = 210, M = 14, CW = W - M * 2
+  let y = 14
+
+  function hdr(title, sub) {
+    doc.addImage('/logo.png', 'PNG', M, y, 22, 0).catch?.(() => {})
+    doc.setFont('helvetica','bold'); doc.setFontSize(16); doc.setTextColor(30,100,35)
+    doc.text(title, M + 26, y + 6)
+    doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(100)
+    doc.text(sub, M + 26, y + 12)
+    doc.setDrawColor(46,125,50); doc.setLineWidth(0.6); doc.line(M, y + 18, W - M, y + 18)
+    y += 24
+  }
+
+  function sectionTitle(text) {
+    if (y > 260) { doc.addPage(); y = 14 }
+    doc.setFillColor(46,125,50); doc.roundedRect(M, y, CW, 8, 1.5, 1.5, 'F')
+    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(255)
+    doc.text(text, M + 4, y + 5.5)
+    y += 12
+  }
+
+  function row(label, value, opts = {}) {
+    if (!value) return
+    if (y > 272) { doc.addPage(); y = 14 }
+    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(100)
+    doc.text(label.toUpperCase(), M, y)
+    doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(30)
+    const lines = doc.splitTextToSize(value, CW)
+    lines.forEach((ln, i) => { if (y > 272) { doc.addPage(); y = 14 } doc.text(ln, M, y + 5 + i * 5.5) })
+    y += 5 + lines.length * 5.5 + 4
+    doc.setDrawColor(200); doc.setLineWidth(0.2); doc.line(M, y, W - M, y)
+    y += 3
+  }
+
+  function checkRow(label, items) {
+    const selected = items.filter(i => i.val).map(i => i.name)
+    if (!selected.length) return
+    row(label, selected.join(' · '))
+  }
+
+  hdr('Incident / Near-Miss Report', 'Urban Tree Services Ltd · HSWA 2015')
+
+  sectionTitle('1  Job & Site Details')
+  row('Date of incident', d.inc_date ? new Date(d.inc_date + 'T12:00').toLocaleDateString('en-NZ', { day:'numeric', month:'long', year:'numeric' }) : '')
+  row('Time of incident', d.inc_time)
+  row('Site address', d.site_address)
+  row('Supervisor on site', d.supervisor)
+  row('Weather', d.weather)
+  row('Form completed date', d.form_date ? new Date(d.form_date + 'T12:00').toLocaleDateString('en-NZ', { day:'numeric', month:'long', year:'numeric' }) : '')
+
+  sectionTitle('2  Incident Classification')
+  checkRow('Incident types', [
+    { name:'Injury / illness', val: d.type_injury },
+    { name:'Near-miss', val: d.type_nearmiss },
+    { name:'Dangerous event (may be notifiable)', val: d.type_dangerous },
+    { name:'Property damage', val: d.type_property },
+    { name:'Vehicle / plant incident', val: d.type_vehicle },
+    { name:'Environmental incident', val: d.type_environmental },
+  ])
+  if (d.type_injury || d.type_dangerous) {
+    doc.setFillColor(255, 235, 238); doc.roundedRect(M, y, CW, 10, 1.5, 1.5, 'F')
+    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(198, 40, 40)
+    doc.text('⚠ POTENTIAL NOTIFIABLE EVENT — Report to WorkSafe NZ: 0800 030 040', M + 4, y + 6.5)
+    y += 14
+  }
+
+  sectionTitle('3  Person(s) Involved')
+  const personName = d.person_name === 'Other' ? d.person_name_other : d.person_name
+  row('Name', personName)
+  row('Role', d.person_role)
+  row('Contact', d.person_phone)
+  row('Experience in role', d.person_experience)
+  row('Additional persons', d.persons_additional)
+
+  sectionTitle('4  Incident Description')
+  row('Activity', d.activity)
+  row('SWMS briefed before work', d.swms_briefed)
+  row('Description of incident', d.description)
+  row('Precise location', d.location_detail)
+  row('What could have prevented this', d.prevention)
+
+  sectionTitle('5  Injury / Illness Details')
+  row('Body part', d.body_part)
+  row('Nature of injury', d.injury_nature)
+  row('Severity', d.severity)
+  row('Medical facility', d.medical_facility)
+
+  sectionTitle('6  Immediate Actions')
+  checkRow('Actions taken', [
+    { name:'First aid administered', val: d.fa_firstaid },
+    { name:'111 / ambulance called', val: d.fa_111 },
+    { name:'Work stopped', val: d.fa_stopped },
+    { name:'Scene secured', val: d.fa_secured },
+    { name:'Director notified', val: d.fa_director },
+    { name:'Next of kin notified', val: d.fa_nextofkin },
+    { name:'WorkSafe NZ notified (0800 030 040)', val: d.fa_worksafe },
+    { name:'Photos / evidence captured', val: d.fa_photos },
+  ])
+  row('WorkSafe reference number', d.worksafe_ref)
+  row('First aider', d.first_aider)
+  row('Additional actions', d.immediate_other)
+
+  sectionTitle('7  Witnesses')
+  if (d.witness1_name) row('Witness 1', `${d.witness1_name}${d.witness1_phone ? ' — ' + d.witness1_phone : ''}`)
+  if (d.witness2_name) row('Witness 2', `${d.witness2_name}${d.witness2_phone ? ' — ' + d.witness2_phone : ''}`)
+
+  sectionTitle('8  Contributing Factors')
+  checkRow('Factors identified', [
+    { name:'Inadequate training / competency', val: d.cf_training },
+    { name:'Inadequate supervision', val: d.cf_supervision },
+    { name:'PPE not worn / inadequate', val: d.cf_ppe },
+    { name:'SWMS not followed / not in use', val: d.cf_swms },
+    { name:'Equipment failure / defect', val: d.cf_equipment },
+    { name:'Site conditions', val: d.cf_conditions },
+    { name:'Fatigue / rush / time pressure', val: d.cf_fatigue },
+    { name:'Communication failure', val: d.cf_comms },
+    { name:'Unexpected event / hazard', val: d.cf_unexpected },
+    { name:'Other', val: d.cf_other_factor },
+  ])
+  row('Factor notes', d.factors_notes)
+
+  sectionTitle('9  Corrective Actions')
+  row('Immediate (done today)', d.corrective_immediate)
+  row('Short-term (48 hours)', d.corrective_short)
+  row('Long-term / systemic', d.corrective_long)
+  row('SWMS update required', d.swms_update)
+
+  sectionTitle('10  Sign-off')
+  row('Completed by', d.completed_by)
+  row('Director / reviewer', d.reviewer)
+
+  // Signature boxes
+  if (y > 220) { doc.addPage(); y = 14 }
+  const sig1 = getSig(1)
+  const sig2 = getSig(2)
+  const boxH = 28
+  doc.setFillColor(250,250,250); doc.setDrawColor(180); doc.setLineWidth(0.4)
+  doc.roundedRect(M, y, CW / 2 - 4, boxH, 1.5, 1.5, 'FD')
+  doc.roundedRect(M + CW / 2 + 4, y, CW / 2 - 4, boxH, 1.5, 1.5, 'FD')
+  doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(120)
+  doc.text('SIGNATURE — PERSON COMPLETING FORM', M + 3, y + 4)
+  doc.text('SIGNATURE — DIRECTOR / REVIEWER', M + CW / 2 + 7, y + 4)
+  if (sig1) { try { doc.addImage(sig1, 'PNG', M + 2, y + 6, CW / 2 - 8, boxH - 10) } catch(e) {} }
+  if (sig2) { try { doc.addImage(sig2, 'PNG', M + CW / 2 + 6, y + 6, CW / 2 - 8, boxH - 10) } catch(e) {} }
+  y += boxH + 10
+
+  // Footer
+  const totalPages = doc.internal.getNumberOfPages()
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i)
+    doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(160)
+    doc.text(`Urban Tree Services Ltd — Incident Report — ${d.inc_date || 'undated'} — Page ${i} of ${totalPages}`, M, 292)
+  }
+
+  const fname = `Incident_Report_${d.inc_date || 'draft'}_${d.site_address.slice(0,20).replace(/\s+/g,'_') || 'UTS'}.pdf`
+  doc.save(fname)
+  localStorage.removeItem(LS_KEY)
+
+  const _jid = new URLSearchParams(location.search).get('job_id')
+  if (_jid && window.parent !== window) {
+    window.parent.postMessage({ type: 'form_complete', form_id: 'incident_report', job_id: _jid }, '*')
+  }
+
+  if (window.google?.accounts) {
+    try {
+      const token = await getDriveToken()
+      let fid
+      if (_jid) {
+        const _jAddr = new URLSearchParams(location.search).get('job_address') || d.site_address || 'Job'
+        const _jDate = new URLSearchParams(location.search).get('job_date') || d.inc_date || 'unknown'
+        const root = await findOrCreateFolder(token, 'UTS Forms')
+        const jobsId = await findOrCreateFolder(token, 'Jobs', root)
+        fid = await findOrCreateFolder(token, `${_jAddr} (${_jDate})`, jobsId)
+      } else {
+        fid = await getSubfolder(token, 'Incident Reports')
+      }
+      await uploadToDrive(doc.output('arraybuffer'), fname, token, fid)
+    } catch(e) { console.warn('Drive upload failed:', e.message) }
+  }
+}
+
+// ── Google Drive ──────────────────────────────────────────────────────────────
+const GOOGLE_CLIENT_ID = '376997677043-ejesngfcmmrub4j6gdftkloiiknm5ppq.apps.googleusercontent.com'
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file'
+let driveToken = null
+async function getDriveToken() {
+  return new Promise((res, rej) => {
+    if (!window.google?.accounts) { rej(new Error('Google not loaded')); return }
+    const c = google.accounts.oauth2.initTokenClient({ client_id: GOOGLE_CLIENT_ID, scope: DRIVE_SCOPE,
+      callback: r => r.error ? rej(new Error(r.error)) : (driveToken = r.access_token, res(r.access_token)) })
+    driveToken ? res(driveToken) : c.requestAccessToken({ prompt: '' })
+  })
+}
+async function findOrCreateFolder(t, name, parentId = null) {
+  const pq = parentId ? ` and '${parentId}' in parents` : ''
+  const q = await fetch(`https://www.googleapis.com/drive/v3/files?q=name='${name}' and mimeType='application/vnd.google-apps.folder'${pq} and trashed=false&fields=files(id)`, { headers: { Authorization: 'Bearer ' + t } })
+  const { files } = await q.json()
+  if (files.length) return files[0].id
+  const body = { name, mimeType: 'application/vnd.google-apps.folder' }
+  if (parentId) body.parents = [parentId]
+  const r = await fetch('https://www.googleapis.com/drive/v3/files', { method: 'POST', headers: { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+  return (await r.json()).id
+}
+async function getSubfolder(t, sub) { const root = await findOrCreateFolder(t, 'UTS Forms'); return findOrCreateFolder(t, sub, root) }
+async function uploadToDrive(bytes, name, t, fid) {
+  const f = new FormData()
+  f.append('metadata', new Blob([JSON.stringify({ name, parents: [fid] })], { type: 'application/json' }))
+  f.append('file', new Blob([bytes], { type: 'application/pdf' }))
+  return (await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name', { method: 'POST', headers: { Authorization: 'Bearer ' + t }, body: f })).json()
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  initSig(1); initSig(2)
+  restoreData()
+  document.querySelectorAll('input,select,textarea').forEach(el => {
+    el.addEventListener('input', autoSave)
+    el.addEventListener('change', autoSave)
+  })
+  // Pre-fill from job context
+  const _jp = new URLSearchParams(location.search)
+  const _jid = _jp.get('job_id')
+  if (_jid) {
+    const _jAddr = _jp.get('job_address') || ''
+    const _jDate = _jp.get('job_date') || ''
+    if (_jAddr && !document.getElementById('site_address').value) document.getElementById('site_address').value = _jAddr
+    if (_jDate && !document.getElementById('inc_date').value) document.getElementById('inc_date').value = _jDate
+    if (_jDate && !document.getElementById('form_date').value) document.getElementById('form_date').value = _jDate
+  }
+})
+</script>
+</body>
+</html>

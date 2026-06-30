@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>H&S Site Audit — Urban Tree Services</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  :root{--teal:#00695C;--teal-pale:#E0F2F1;--border:#B2DFDB;--green:#2e7d32;--bg:#f4f6f9;--card:#fff;--text:#1a1a1a;--radius:12px;--shadow:0 2px 8px rgba(0,0,0,0.08)}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:16px;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:100px}
+  .header{background:var(--teal);color:#fff;padding:14px 20px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.2)}
+  .header-inner{max-width:720px;margin:0 auto}
+  .header-title{font-size:18px;font-weight:800}
+  .header-sub{font-size:12px;opacity:.85;margin-top:2px}
+  .container{max-width:720px;margin:0 auto;padding:20px 16px;display:flex;flex-direction:column;gap:16px}
+  .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+  .card-header{background:var(--teal-pale);border-bottom:1.5px solid var(--border);padding:12px 18px;font-size:13px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.05em;display:flex;justify-content:space-between;align-items:center}
+  .card-body{padding:18px;display:flex;flex-direction:column;gap:14px}
+  .alert{padding:12px 16px;border-radius:8px;font-size:14px;line-height:1.5;border-left:4px solid}
+  .alert-info{background:#e3f2fd;border-color:#1565c0;color:#0d47a1}
+  label{font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:5px}
+  input[type=text],input[type=date],textarea,select{width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:15px;font-family:inherit;color:var(--text);background:#fafafa;transition:border-color .2s;resize:vertical}
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--teal);background:#fff}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .audit-table{width:100%;border-collapse:collapse;font-size:14px}
+  .audit-table th{background:#f5f5f5;padding:8px 10px;text-align:left;font-size:11px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.04em;border:1px solid #eee}
+  .audit-table th.rating-col{text-align:center;min-width:36px;padding:8px 4px}
+  .audit-table td{padding:6px 8px;border:1px solid #f0f0f0;vertical-align:middle}
+  .audit-table tr:nth-child(even) td{background:#fafafa}
+  .audit-table td.rating-cell{text-align:center;padding:4px}
+  .audit-table input[type=radio]{width:16px;height:16px;cursor:pointer}
+  .section-group{background:#f9f9f9;font-weight:700;font-size:12px;color:#555;text-transform:uppercase;letter-spacing:.04em;padding:8px 10px;border:1px solid #eee}
+  .rating-legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px}
+  .rating-dot{display:inline-flex;align-items:center;gap:4px}
+  .dot{width:12px;height:12px;border-radius:50%;display:inline-block}
+  .score-bar{background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:16px 18px;margin-top:4px}
+  .score-display{font-size:36px;font-weight:800;color:var(--teal);text-align:center}
+  .score-label{font-size:13px;color:#888;text-align:center;margin-top:4px}
+  .action-table{width:100%;border-collapse:collapse;font-size:14px}
+  .action-table th{background:#f5f5f5;padding:7px 8px;font-size:11px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.04em;border-bottom:2px solid #eee;text-align:left}
+  .action-table td{padding:3px;border-bottom:1px solid #f5f5f5}
+  .action-table td input,.action-table td select{border:none;background:transparent;padding:7px 8px;width:100%;font-size:13px;font-family:inherit}
+  .sig-box{border:2px solid #ddd;border-radius:8px;overflow:hidden;background:#fafafa}
+  .sig-canvas{display:block;width:100%;height:110px;touch-action:none;cursor:crosshair}
+  .sig-clear{font-size:12px;color:#999;cursor:pointer;padding:4px 10px;text-align:right;border-top:1px solid #eee;background:#f9f9f9}
+  .submit-bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #eee;padding:12px 20px;z-index:100;max-width:720px;margin:0 auto;display:flex;gap:10px}
+  .btn-save{flex:1;padding:14px;background:var(--teal);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}
+  .btn-drive{padding:14px 18px;background:#fff;border:1.5px solid #ddd;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;color:#444}
+  .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;z-index:9999;display:none}
+  @media(max-width:480px){.row2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div class="header-title">H&S Site Audit</div>
+    <div class="header-sub">Urban Tree Services · Quarterly SiteWise Compliance Inspection</div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- 1. Audit details -->
+  <div class="card">
+    <div class="card-header">1 · Audit Details</div>
+    <div class="card-body">
+      <div class="row2">
+        <div><label>Audit date</label><input type="date" id="auditDate"></div>
+        <div><label>Quarter</label>
+          <select id="auditQuarter">
+            <option>Q1 (Jan–Mar)</option>
+            <option>Q2 (Apr–Jun)</option>
+            <option>Q3 (Jul–Sep)</option>
+            <option>Q4 (Oct–Dec)</option>
+          </select>
+        </div>
+      </div>
+      <div class="row2">
+        <div><label>Inspector / auditor</label><input type="text" id="inspector" placeholder="Name of person conducting audit"></div>
+        <div><label>Location audited</label><input type="text" id="location" placeholder="e.g. Depot, active job site, office"></div>
+      </div>
+      <div><label>Last audit date</label><input type="text" id="lastAudit" placeholder="Date of previous audit"></div>
+      <div class="rating-legend">
+        <span style="font-weight:700;font-size:12px;color:#555;align-self:center">Rating key:</span>
+        <span class="rating-dot"><span class="dot" style="background:#2e7d32"></span> C = Compliant</span>
+        <span class="rating-dot"><span class="dot" style="background:#fb8c00"></span> P = Partial</span>
+        <span class="rating-dot"><span class="dot" style="background:#e53935"></span> N = Non-compliant</span>
+        <span class="rating-dot"><span class="dot" style="background:#bbb"></span> NA = Not applicable</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Audit checklist -->
+  <div class="card">
+    <div class="card-header">
+      <span>2 · Audit Checklist</span>
+      <span id="scoreDisplay" style="font-size:15px;font-weight:800;color:var(--teal)">–</span>
+    </div>
+    <div class="card-body" style="padding:0">
+      <table class="audit-table">
+        <thead>
+          <tr>
+            <th style="width:55%">Requirement</th>
+            <th class="rating-col" style="background:#e8f5e9;color:#2e7d32">C</th>
+            <th class="rating-col" style="background:#fff8e1;color:#f57c00">P</th>
+            <th class="rating-col" style="background:#ffebee;color:#e53935">N</th>
+            <th class="rating-col">NA</th>
+          </tr>
+        </thead>
+        <tbody id="auditBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 3. Score summary -->
+  <div class="card">
+    <div class="card-header">3 · Score Summary</div>
+    <div class="card-body">
+      <div class="score-bar">
+        <div class="score-display" id="scorePct">—</div>
+        <div class="score-label" id="scoreGrade">Complete the checklist above</div>
+      </div>
+      <div><label>Overall observations</label>
+        <textarea id="observations" rows="4" placeholder="General observations, context, notable strengths or systemic issues…"></textarea></div>
+    </div>
+  </div>
+
+  <!-- 4. Corrective actions -->
+  <div class="card">
+    <div class="card-header">4 · Corrective Actions Required</div>
+    <div class="card-body">
+      <table class="action-table">
+        <thead><tr><th style="width:38%">Finding / non-compliance</th><th style="width:30%">Corrective action</th><th style="width:18%">Responsible</th><th style="width:14%">Due date</th></tr></thead>
+        <tbody id="actionBody"></tbody>
+      </table>
+      <button onclick="addAction()" style="margin-top:8px;background:none;border:1px dashed #ddd;border-radius:7px;padding:8px 14px;font-size:13px;color:var(--teal);cursor:pointer;font-family:inherit">+ Add action</button>
+    </div>
+  </div>
+
+  <!-- 5. Follow-up from last audit -->
+  <div class="card">
+    <div class="card-header">5 · Follow-Up from Previous Audit</div>
+    <div class="card-body">
+      <div><label>Actions from last audit — status</label>
+        <textarea id="prevActions" rows="3" placeholder="Were actions from the last audit completed? List any outstanding items…"></textarea></div>
+    </div>
+  </div>
+
+  <!-- 6. Sign-off -->
+  <div class="card">
+    <div class="card-header">6 · Inspector Sign-Off</div>
+    <div class="card-body">
+      <div class="alert alert-info">The inspector confirms this audit was conducted on the date stated and the findings accurately reflect the H&S status observed.</div>
+      <div><label>Inspector signature</label>
+        <div class="sig-box"><canvas class="sig-canvas" id="sigInspector"></canvas><div class="sig-clear" onclick="clearSig('sigInspector')">Clear</div></div>
+      </div>
+      <div><label>Director / manager review (if different from inspector)</label>
+        <div class="sig-box"><canvas class="sig-canvas" id="sigManager"></canvas><div class="sig-clear" onclick="clearSig('sigManager')">Clear</div></div>
+      </div>
+      <div><label>Next audit due</label><input type="date" id="nextAudit"></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="submit-bar">
+  <button class="btn-save" onclick="generatePDF()">⬇ Save PDF</button>
+  <button class="btn-drive" id="driveBtn" onclick="saveToDrive()">☁ Drive</button>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const GOOGLE_CLIENT_ID = '376997677043-ejesngfcmmrub4j6gdftkloiiknm5ppq.apps.googleusercontent.com'
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file'
+let driveToken = null
+
+const CHECKLIST = [
+  { group: 'H&S Management System' },
+  { id: 'hsp_documented',    text: 'H&S Policy is documented, current and signed by the director' },
+  { id: 'hsp_communicated',  text: 'H&S Policy has been communicated to all workers' },
+  { id: 'hsp_reviewed',      text: 'Policy reviewed in the last 12 months or after a significant incident' },
+  { id: 'doc_control',       text: 'H&S documents are version-controlled and accessible to workers' },
+
+  { group: 'Worker Participation & Consultation' },
+  { id: 'toolbox_monthly',   text: 'Toolbox meetings held at least monthly with records kept' },
+  { id: 'toolbox_swms',      text: 'SWMS reviewed with crew at monthly toolbox meetings' },
+  { id: 'worker_input',      text: 'Workers are consulted on hazard identification and safe work procedures' },
+  { id: 'rep_elected',       text: 'Worker H&S representative elected or mechanism for consultation in place' },
+
+  { group: 'Hazard Management' },
+  { id: 'sssp_completed',    text: 'SSSP completed before work commences on each job' },
+  { id: 'hazard_register',   text: 'Hazard register or equivalent risk register maintained' },
+  { id: 'hierarchy_applied', text: 'Hierarchy of controls applied (eliminate before PPE)' },
+  { id: 'powerline_controls',text: 'Controls for working near powerlines are documented and followed (ECP 34)' },
+  { id: 'height_controls',   text: 'Working at height controls in place — Aerial Rescue Plan completed before climbing' },
+  { id: 'traffic_mgmt',      text: 'Traffic management requirements followed for roadside work (CoPTTM NZ)' },
+
+  { group: 'SWMS' },
+  { id: 'swms_current',      text: '13 generic SWMS documents are current and accessible' },
+  { id: 'swms_reviewed',     text: 'SWMS reviewed and updated annually or after incident/change' },
+  { id: 'swms_relevant',     text: 'SWMS cover all activities carried out by the company' },
+
+  { group: 'Training & Competency' },
+  { id: 'induction_done',    text: 'New workers receive H&S induction before first day on site' },
+  { id: 'certs_current',     text: 'Worker qualifications and certifications are current (arborist certs, chainsaw, first aid, licence)' },
+  { id: 'apprentice_sup',    text: 'Apprentices and trainees directly supervised for all tasks' },
+  { id: 'training_records',  text: 'Training records maintained for all workers' },
+
+  { group: 'Incident Reporting' },
+  { id: 'incidents_reported',text: 'All incidents, near-misses and injuries recorded in incident report form' },
+  { id: 'notifiable_worksafe',text:'Notifiable events reported to WorkSafe NZ within required timeframe' },
+  { id: 'investigation_done',text: 'Root cause investigation completed for all significant incidents' },
+  { id: 'corrective_closed', text: 'Corrective actions from incidents followed up and closed out' },
+
+  { group: 'PPE' },
+  { id: 'ppe_available',     text: 'Required PPE is available and in serviceable condition for all workers' },
+  { id: 'ppe_worn',          text: 'Workers observed wearing required PPE correctly on site' },
+  { id: 'ppe_replaced',      text: 'Damaged or expired PPE removed from service and replaced' },
+
+  { group: 'Plant & Equipment' },
+  { id: 'prestart_done',     text: 'Daily pre-start checks completed and records kept for all plant' },
+  { id: 'equip_serviced',    text: 'Equipment serviced in accordance with manufacturer intervals' },
+  { id: 'equip_defects',     text: 'Defects reported and tagged out of service until repaired' },
+  { id: 'chainsaw_inspect',  text: 'Chainsaws inspected — chain, brake, guards, anti-vibe mounts' },
+  { id: 'climb_gear_inspect',text: 'Climbing ropes, harnesses and carabiners inspected regularly' },
+
+  { group: 'Emergency Preparedness' },
+  { id: 'emergency_plan',    text: 'Emergency procedures documented and communicated to workers' },
+  { id: 'first_aid_kit',     text: 'First aid kit available on site, stocked and in date' },
+  { id: 'first_aider',       text: 'At least one first aider on site or first aid training completed' },
+  { id: 'emergency_contacts',text: 'Emergency contact numbers available to all workers on site' },
+
+  { group: 'SiteWise / Principal Contractor Requirements' },
+  { id: 'sitewise_grade',    text: 'SiteWise pre-qualification grading current and appropriate for contract work' },
+  { id: 'client_requirements',text:'Principal contractor H&S requirements reviewed and complied with' },
+  { id: 'subcontractor_check',text:'Subcontractor H&S competency verified before engagement' },
+]
+
+let actionCount = 0
+
+function addAction() {
+  const tbody = document.getElementById('actionBody')
+  const i = actionCount++
+  const tr = document.createElement('tr')
+  tr.id = `act_${i}`
+  tr.innerHTML = `
+    <td><input type="text" id="act_f_${i}" placeholder="Finding…"></td>
+    <td><input type="text" id="act_a_${i}" placeholder="Action…"></td>
+    <td><input type="text" id="act_r_${i}" placeholder="Who"></td>
+    <td><input type="date" id="act_d_${i}"></td>
+  `
+  tbody.appendChild(tr)
+}
+
+function buildChecklist() {
+  const tbody = document.getElementById('auditBody')
+  CHECKLIST.forEach((item, i) => {
+    if (item.group) {
+      const tr = document.createElement('tr')
+      tr.innerHTML = `<td colspan="5" class="section-group">${item.group}</td>`
+      tbody.appendChild(tr)
+      return
+    }
+    const tr = document.createElement('tr')
+    tr.innerHTML = `
+      <td style="font-size:13px;color:#333;padding:8px 10px">${item.text}</td>
+      ${['c','p','n','na'].map((v,ci) => `
+        <td class="rating-cell">
+          <input type="radio" name="${item.id}" value="${v}"
+            style="accent-color:${ci===0?'#2e7d32':ci===1?'#fb8c00':ci===2?'#e53935':'#bbb'}"
+            onchange="updateScore()">
+        </td>`).join('')}
+    `
+    tbody.appendChild(tr)
+  })
+  addAction()
+}
+
+function updateScore() {
+  const items = CHECKLIST.filter(i => i.id)
+  let total = 0, score = 0
+  items.forEach(item => {
+    const val = document.querySelector(`input[name="${item.id}"]:checked`)?.value
+    if (val === 'na') return
+    total++
+    if (val === 'c') score += 1
+    if (val === 'p') score += 0.5
+  })
+  if (total === 0) { document.getElementById('scorePct').textContent = '—'; document.getElementById('scoreGrade').textContent = 'Complete the checklist above'; document.getElementById('scoreDisplay').textContent = '–'; return }
+  const pct = Math.round((score / total) * 100)
+  const grade = pct >= 90 ? '⭐ Excellent — SiteWise Gold standard' : pct >= 75 ? '✓ Good — minor improvements needed' : pct >= 60 ? '⚠ Acceptable — corrective actions required' : '✗ Below standard — immediate action required'
+  const color = pct >= 90 ? '#2e7d32' : pct >= 75 ? '#00695C' : pct >= 60 ? '#fb8c00' : '#e53935'
+  document.getElementById('scorePct').textContent = `${pct}%`
+  document.getElementById('scorePct').style.color = color
+  document.getElementById('scoreGrade').textContent = grade
+  document.getElementById('scoreDisplay').textContent = `${pct}%`
+}
+
+const sigs = {}
+function initSig(id) {
+  const canvas = document.getElementById(id)
+  const ctx = canvas.getContext('2d')
+  canvas.width = canvas.offsetWidth * window.devicePixelRatio
+  canvas.height = canvas.offsetHeight * window.devicePixelRatio
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio)
+  ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 2; ctx.lineCap = 'round'
+  sigs[id] = { ctx, drawing: false, hasContent: false }
+  const getPos = e => { const r = canvas.getBoundingClientRect(); const t = e.touches ? e.touches[0] : e; return { x: t.clientX - r.left, y: t.clientY - r.top } }
+  canvas.addEventListener('pointerdown', e => { const p = getPos(e); sigs[id].drawing = true; sigs[id].hasContent = true; ctx.beginPath(); ctx.moveTo(p.x, p.y) })
+  canvas.addEventListener('pointermove', e => { if (!sigs[id].drawing) return; const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke() })
+  canvas.addEventListener('pointerup', () => { sigs[id].drawing = false })
+}
+function clearSig(id) { const c = document.getElementById(id); sigs[id].ctx.clearRect(0,0,c.width,c.height); sigs[id].hasContent = false }
+
+function showToast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 2500) }
+
+;(function init() {
+  const today = new Date().toISOString().slice(0, 10)
+  document.getElementById('auditDate').value = today
+  const m = new Date().getMonth()
+  document.getElementById('auditQuarter').selectedIndex = Math.floor(m / 3)
+  // Next audit = 3 months from now
+  const next = new Date(); next.setMonth(next.getMonth() + 3)
+  document.getElementById('nextAudit').value = next.toISOString().slice(0, 10)
+  buildChecklist()
+  ;['sigInspector','sigManager'].forEach(initSig)
+})()
+
+function getActions() {
+  const rows = []
+  for (let i = 0; i < actionCount; i++) {
+    const f = document.getElementById(`act_f_${i}`)?.value?.trim()
+    if (f) rows.push({ finding: f, action: document.getElementById(`act_a_${i}`)?.value||'', resp: document.getElementById(`act_r_${i}`)?.value||'', due: document.getElementById(`act_d_${i}`)?.value||'' })
+  }
+  return rows
+}
+
+async function generatePDF() {
+  const { jsPDF } = window.jspdf
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+  const W = 210, M = 14, CW = W - M * 2
+  const TEAL = [0, 105, 92], DARK = [28, 28, 28]
+  let y = 14
+
+  doc.setFillColor(...TEAL); doc.rect(0,0,W,30,'F')
+  doc.setTextColor(255,255,255); doc.setFontSize(16); doc.setFont('helvetica','bold')
+  doc.text('H&S SITE AUDIT', M, 12)
+  doc.setFontSize(9); doc.setFont('helvetica','normal')
+  doc.text('Urban Tree Services · Quarterly SiteWise Compliance Inspection', M, 20)
+  doc.text(`${document.getElementById('auditQuarter').value} · ${document.getElementById('auditDate').value}`, W-M, 12, {align:'right'})
+  doc.text(`Inspector: ${document.getElementById('inspector').value}  ·  Location: ${document.getElementById('location').value}`, W-M, 20, {align:'right'})
+  const scoreTxt = document.getElementById('scorePct').textContent
+  if (scoreTxt !== '—') { doc.setFontSize(11); doc.setFont('helvetica','bold'); doc.text(`Score: ${scoreTxt}`, W-M, 27, {align:'right'}) }
+  y = 38
+
+  function section(title) {
+    if (y > 262) { doc.addPage(); y = 14 }
+    doc.setFillColor(...TEAL); doc.rect(M,y,CW,7,'F')
+    doc.setTextColor(255,255,255); doc.setFontSize(9); doc.setFont('helvetica','bold')
+    doc.text(title, M+3, y+5); y += 11; doc.setTextColor(...DARK)
+  }
+  function field(label, value) {
+    if (!value?.trim?.()) return
+    doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(100,100,100)
+    doc.text(label.toUpperCase(), M, y); y += 4
+    doc.setFont('helvetica','normal'); doc.setTextColor(...DARK); doc.setFontSize(10)
+    doc.splitTextToSize(value, CW).forEach(l => { if (y > 272) { doc.addPage(); y = 14 }; doc.text(l, M, y); y += 5 }); y += 2
+  }
+
+  section('AUDIT CHECKLIST')
+  const items = CHECKLIST.filter(i => i.id)
+  let currentGroup = ''
+  items.forEach(item => {
+    const val = document.querySelector(`input[name="${item.id}"]:checked`)?.value || '—'
+    const groupItem = CHECKLIST.find(c => c.group && CHECKLIST.indexOf(c) < CHECKLIST.indexOf(item) && CHECKLIST.slice(CHECKLIST.indexOf(c)+1).findIndex(x => x.group) > CHECKLIST.slice(CHECKLIST.indexOf(c)+1).indexOf(item))
+    if (y > 265) { doc.addPage(); y = 14 }
+    const color = val==='c'?[46,125,50]:val==='p'?[251,140,0]:val==='n'?[229,57,53]:[180,180,180]
+    doc.setFillColor(...color); doc.rect(M,y-3,3,4,'F')
+    doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(...DARK)
+    doc.text(item.text, M+6, y, {maxWidth:CW-24})
+    doc.setFont('helvetica','bold')
+    const label = val==='c'?'C':val==='p'?'P':val==='n'?'N':val==='na'?'NA':'–'
+    doc.text(label, W-M, y, {align:'right'})
+    doc.setFont('helvetica','normal')
+    y += 6
+  })
+  y += 4
+
+  const pctText = document.getElementById('scorePct').textContent
+  const gradeText = document.getElementById('scoreGrade').textContent
+  if (pctText !== '—') { field('Overall score', `${pctText} — ${gradeText}`) }
+  field('Observations', document.getElementById('observations').value)
+
+  const actions = getActions()
+  if (actions.length) {
+    section('CORRECTIVE ACTIONS')
+    doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(100,100,100)
+    doc.text('Finding', M+2, y); doc.text('Action', M+75, y); doc.text('Who', M+135, y); doc.text('Due', M+165, y); y+=5
+    doc.setFont('helvetica','normal'); doc.setTextColor(...DARK)
+    actions.forEach(a => {
+      if (y > 265) { doc.addPage(); y = 14 }
+      doc.setFontSize(9)
+      doc.text(a.finding.slice(0,35), M+2, y)
+      doc.text(a.action.slice(0,30), M+75, y)
+      doc.text(a.resp.slice(0,15), M+135, y)
+      doc.text(a.due, M+165, y)
+      y += 7
+    })
+    y += 2
+  }
+
+  field('Actions from previous audit', document.getElementById('prevActions').value)
+  field('Next audit due', document.getElementById('nextAudit').value)
+
+  if (sigs.sigInspector?.hasContent) {
+    section('SIGN-OFF')
+    doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(100,100,100)
+    doc.text('INSPECTOR SIGNATURE', M, y); y += 4
+    doc.addImage(document.getElementById('sigInspector').toDataURL('image/png'),'PNG',M,y,60,18); y += 22
+  }
+  if (sigs.sigManager?.hasContent) {
+    doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(100,100,100)
+    doc.text('MANAGER / DIRECTOR SIGNATURE', M, y); y += 4
+    doc.addImage(document.getElementById('sigManager').toDataURL('image/png'),'PNG',M,y,60,18); y += 22
+  }
+
+  doc.setFontSize(8); doc.setTextColor(150,150,150)
+  doc.text('Urban Tree Services — H&S Site Audit', M, 292)
+  doc.text(`Generated: ${new Date().toLocaleString('en-NZ')}`, W-M, 292, {align:'right'})
+
+  const fname = `hs-site-audit-${document.getElementById('auditDate').value}.pdf`
+  doc.save(fname)
+  return doc
+}
+
+async function getDriveToken() {
+  return new Promise((res, rej) => {
+    if (driveToken) { res(driveToken); return }
+    google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID, scope: DRIVE_SCOPE,
+      callback: r => { if (r.error) rej(r.error); else { driveToken = r.access_token; res(driveToken) } }
+    }).requestAccessToken()
+  })
+}
+async function findOrCreateFolder(t, name, parentId = null) {
+  const pq = parentId ? ` and '${parentId}' in parents` : ''
+  const q = encodeURIComponent(`mimeType='application/vnd.google-apps.folder' and name='${name}' and trashed=false${pq}`)
+  const r = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id)`, { headers: { Authorization: `Bearer ${t}` } })
+  const d = await r.json()
+  if (d.files?.length) return d.files[0].id
+  const cr = await fetch('https://www.googleapis.com/drive/v3/files', {
+    method: 'POST', headers: { Authorization: `Bearer ${t}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, mimeType: 'application/vnd.google-apps.folder', ...(parentId ? { parents: [parentId] } : {}) })
+  })
+  return (await cr.json()).id
+}
+async function saveToDrive() {
+  const btn = document.getElementById('driveBtn'); btn.textContent = '⏳ Uploading…'; btn.disabled = true
+  try {
+    const t = await getDriveToken()
+    const root = await findOrCreateFolder(t, 'UTS Forms')
+    const auditId = await findOrCreateFolder(t, 'H&S Site Audits', root)
+    const pdfDoc = await generatePDF()
+    const bytes = pdfDoc.output('arraybuffer')
+    const fname = `hs-site-audit-${document.getElementById('auditDate').value}.pdf`
+    const form = new FormData()
+    form.append('metadata', new Blob([JSON.stringify({ name: fname, parents: [auditId], mimeType: 'application/pdf' })], { type: 'application/json' }))
+    form.append('file', new Blob([bytes], { type: 'application/pdf' }))
+    await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', { method: 'POST', headers: { Authorization: `Bearer ${t}` }, body: form })
+    showToast('Uploaded to Google Drive ✓')
+  } catch (e) { showToast('Drive error: ' + e.message) }
+  btn.textContent = '☁ Drive'; btn.disabled = false
+}
+</script>
+</body>
+</html>

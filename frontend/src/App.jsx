@@ -10,15 +10,14 @@ const AUTO_LOGIN = !!import.meta.env.VITE_DEMO_EMAIL
 // Route pages are code-split — heavy deps (FullCalendar, jsPDF, Leaflet) load
 // only when their page is first opened, keeping the initial bundle small.
 const Pipeline     = lazy(() => import('./pages/Pipeline'))
-const Quotes       = lazy(() => import('./pages/Quotes'))
 const QuoteBuilder = lazy(() => import('./pages/QuoteBuilder'))
 const QuoteView    = lazy(() => import('./pages/QuoteView'))
 const Calendar     = lazy(() => import('./pages/Calendar'))
 const Clients      = lazy(() => import('./pages/Clients'))
 const Settings     = lazy(() => import('./pages/Settings'))
 const Dashboard    = lazy(() => import('./pages/Dashboard'))
-const Forms        = lazy(() => import('./pages/Forms'))
 const Safety       = lazy(() => import('./pages/Safety'))
+const WorkOrder    = lazy(() => import('./pages/WorkOrder'))
 
 const PageFallback = () => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100dvh', color: 'var(--bark)' }}>Loading…</div>
@@ -82,12 +81,12 @@ export default function App() {
             <Route path="pipeline"  element={<RequireStaff><Pipeline /></RequireStaff>} />
             <Route path="calendar"  element={<Calendar />} />
             <Route path="clients"   element={<RequireStaff><Clients /></RequireStaff>} />
-            <Route path="quotes"    element={<RequireStaff><Quotes /></RequireStaff>} />
+            <Route path="quotes"    element={<Navigate to="/pipeline" replace />} />
             <Route path="quotes/new" element={<RequireStaff><QuoteBuilder /></RequireStaff>} />
             <Route path="quotes/:id" element={<RequireStaff><QuoteBuilder /></RequireStaff>} />
             <Route path="settings"  element={<RequireFullAccess><Settings /></RequireFullAccess>} />
-            <Route path="forms"     element={<Forms />} />
-            <Route path="safety"    element={<RequireStaff><Safety /></RequireStaff>} />
+            <Route path="safety"          element={<Safety />} />
+            <Route path="workorder/:jobId" element={<WorkOrder />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

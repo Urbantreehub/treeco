@@ -33,6 +33,21 @@ Josh
 Urban Tree Services · Wellington
 office@urbantreeservices.net · 027 203 1446`
 
+const JP_TOOLS = [
+  { id: 'hedge_trimmers', label: 'Hedge trimmers' },
+  { id: 'ladder',         label: 'Ladder' },
+  { id: 'pole_saw',       label: 'Pole saw' },
+  { id: 'rigging_small',  label: 'Rigging gear (small)' },
+  { id: 'rigging_large',  label: 'Rigging gear (large)' },
+  { id: 'winch',          label: 'Winch' },
+  { id: 'plywood',        label: 'Plywood' },
+  { id: 'cones',          label: 'Cones' },
+  { id: 'signs',          label: 'Signs' },
+]
+const DIFF_COLORS = { 1: '#2e7d32', 2: '#7FA650', 3: '#D4851A', 4: '#E05C33', 5: '#C0392B' }
+const jpLabel = { fontSize: '11px', fontWeight: '700', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '5px' }
+const jpInput = { width: '100%', padding: '8px 10px', borderRadius: '7px', border: '1.5px solid #E2DDD6', fontSize: '13px', fontFamily: 'var(--font)', color: '#2C2416', boxSizing: 'border-box' }
+
 function nzd(v, dp = 2) {
   return '$' + Number(v || 0).toLocaleString('en-NZ', { minimumFractionDigits: dp, maximumFractionDigits: dp })
 }
@@ -633,6 +648,7 @@ export default function QuoteBuilder() {
   const [items, setItems] = useState([])
   const [notes, setNotes] = useState(DEFAULT_SIGNATURE)
   const [privateNotes, setPrivateNotes] = useState('')
+  const [jobPack,      setJobPack]      = useState({})
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState(null)
   const [jobId, setJobId] = useState(preselectedJobId)
@@ -662,6 +678,7 @@ export default function QuoteBuilder() {
           setItems((data.line_items ?? []).map(i => ({ ...i, id: i.id ?? uuid() })))
           setNotes(data.notes ?? DEFAULT_SIGNATURE)
           setPrivateNotes(data.private_notes ?? '')
+          setJobPack(data.job_pack ?? {})
         })
     } else {
       supabase.from('jobs')
@@ -701,22 +718,33 @@ export default function QuoteBuilder() {
     setSaving(true)
     const payload = {
       line_items: items, subtotal: totals.subtotal, gst: totals.gst, total: totals.total,
-      notes, private_notes: privateNotes,
+      notes, private_notes: privateNotes, job_pack: jobPack,
       ...(newStatus ? { status: newStatus } : {}),
       ...(newStatus === 'sent' ? { sent_at: new Date().toISOString() } : {}),
+    }
+    // Graceful fallback if job_pack column doesn't exist yet (migration 007)
+    async function tryUpsert(p, isInsert, insertMeta) {
+      let res = isInsert
+        ? await supabase.from('quotes').insert({ ...insertMeta, ...p }).select().single()
+        : await supabase.from('quotes').update(p).eq('id', id)
+      if (res.error?.message?.includes('job_pack')) {
+        const { job_pack: _, ...pFallback } = p
+        res = isInsert
+          ? await supabase.from('quotes').insert({ ...insertMeta, ...pFallback }).select().single()
+          : await supabase.from('quotes').update(pFallback).eq('id', id)
+      }
+      return res
     }
     if (isNew) {
       if (!jobId) { showToast('Select a job first', 'error'); setSaving(false); return }
       const token = uuid().replace(/-/g, '')
       const validUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
-      const { data, error } = await supabase.from('quotes')
-        .insert({ job_id: jobId, status: newStatus ?? 'draft', client_view_token: token, valid_until: validUntil, ...payload })
-        .select().single()
+      const { data, error } = await tryUpsert(payload, true, { job_id: jobId, status: newStatus ?? 'draft', client_view_token: token, valid_until: validUntil })
       if (error) showToast(error.message, 'error')
       else if (data) { showToast('Quote created'); navigate(`/quotes/${data.id}`, { replace: true }) }
       else showToast('Quote created')
     } else {
-      const { error } = await supabase.from('quotes').update(payload).eq('id', id)
+      const { error } = await tryUpsert(payload, false)
       if (error) showToast(error.message, 'error')
       else showToast(newStatus === 'sent' ? 'Marked as sent' : 'Saved')
       const { data } = await supabase.from('quotes')
@@ -912,6 +940,127 @@ export default function QuoteBuilder() {
 
               {items.length === 0 && <div style={s.emptyItems}>No items yet</div>}
               <button style={s.addBtn} onClick={addItem}>+ Add line item</button>
+            </div>
+
+            {/* Job Pack — crew-facing ops checklist */}
+            <div style={{ ...s.card, border: '1.5px solid #4A674133', background: '#F8FAF7' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                <span style={{ fontSize: '15px' }}>📋</span>
+                <span style={{ fontSize: '11px', fontWeight: '700', color: '#4A6741', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Job Pack</span>
+                <span style={{ fontSize: '11px', background: '#E8F0E6', color: '#4A6741', borderRadius: '10px', padding: '1px 8px', fontWeight: '600' }}>Crew info — not on quote</span>
+              </div>
+
+              {/* Time + Staff */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '14px' }}>
+                <div>
+                  <div style={jpLabel}>Time required</div>
+                  <input style={jpInput} placeholder="e.g. Half day, 4–6 hrs" value={jobPack.time_required ?? ''} onChange={e => setJobPack(p => ({ ...p, time_required: e.target.value }))} />
+                </div>
+                <div>
+                  <div style={jpLabel}>Number of staff</div>
+                  <select style={jpInput} value={jobPack.staff_count ?? ''} onChange={e => setJobPack(p => ({ ...p, staff_count: e.target.value ? Number(e.target.value) : null }))}>
+                    <option value="">—</option>
+                    {[1,2,3,4,5,6].map(n => <option key={n} value={n}>{n}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              {/* Equipment */}
+              <div style={{ marginBottom: '14px' }}>
+                <div style={jpLabel}>Equipment</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                  {/* Chipper */}
+                  <div>
+                    <div style={{ fontSize: '11px', color: '#888', marginBottom: '5px' }}>Chipper</div>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      {['Small', 'Large', 'None'].map(v => (
+                        <button key={v} onClick={() => setJobPack(p => ({ ...p, chipper: p.chipper === v ? null : v }))} style={{
+                          flex: 1, padding: '5px 2px', borderRadius: '6px', border: '1.5px solid',
+                          borderColor: jobPack.chipper === v ? '#4A6741' : '#E2DDD6',
+                          background: jobPack.chipper === v ? '#E8F0E6' : '#fff',
+                          color: jobPack.chipper === v ? '#4A6741' : '#aaa',
+                          fontSize: '11px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)',
+                        }}>{v}</button>
+                      ))}
+                    </div>
+                  </div>
+                  {/* Avant */}
+                  <div>
+                    <div style={{ fontSize: '11px', color: '#888', marginBottom: '5px' }}>Avant</div>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      {['Yes', 'No'].map(v => {
+                        const active = v === 'Yes' ? jobPack.avant === true : jobPack.avant === false
+                        return (
+                          <button key={v} onClick={() => setJobPack(p => { const n = v === 'Yes'; return { ...p, avant: p.avant === n ? null : n } })} style={{
+                            flex: 1, padding: '5px 2px', borderRadius: '6px', border: '1.5px solid',
+                            borderColor: active ? '#4A6741' : '#E2DDD6',
+                            background: active ? '#E8F0E6' : '#fff',
+                            color: active ? '#4A6741' : '#aaa',
+                            fontSize: '11px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)',
+                          }}>{v}</button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                  {/* Stump grinder */}
+                  <div>
+                    <div style={{ fontSize: '11px', color: '#888', marginBottom: '5px' }}>Stump grinder</div>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      {['Yes', 'No'].map(v => {
+                        const active = v === 'Yes' ? jobPack.stump_grinder === true : jobPack.stump_grinder === false
+                        return (
+                          <button key={v} onClick={() => setJobPack(p => { const n = v === 'Yes'; return { ...p, stump_grinder: p.stump_grinder === n ? null : n } })} style={{
+                            flex: 1, padding: '5px 2px', borderRadius: '6px', border: '1.5px solid',
+                            borderColor: active ? '#4A6741' : '#E2DDD6',
+                            background: active ? '#E8F0E6' : '#fff',
+                            color: active ? '#4A6741' : '#aaa',
+                            fontSize: '11px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)',
+                          }}>{v}</button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Difficulty */}
+              <div style={{ marginBottom: '14px' }}>
+                <div style={jpLabel}>Difficulty</div>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  {[1,2,3,4,5].map(n => (
+                    <button key={n} onClick={() => setJobPack(p => ({ ...p, difficulty: p.difficulty === n ? null : n }))} style={{
+                      width: '36px', height: '36px', borderRadius: '8px',
+                      border: `1.5px solid ${jobPack.difficulty === n ? DIFF_COLORS[n] : '#E2DDD6'}`,
+                      background: jobPack.difficulty === n ? DIFF_COLORS[n] + '22' : '#fff',
+                      color: jobPack.difficulty === n ? DIFF_COLORS[n] : '#ccc',
+                      fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)', flexShrink: 0,
+                    }}>{n}</button>
+                  ))}
+                  {jobPack.difficulty && (
+                    <span style={{ fontSize: '12px', color: DIFF_COLORS[jobPack.difficulty], fontWeight: '600', marginLeft: '4px' }}>
+                      {['','Easy','Moderate','Challenging','Difficult','Extreme'][jobPack.difficulty]}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Tools */}
+              <div>
+                <div style={jpLabel}>Tools needed</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+                  {JP_TOOLS.map(tool => (
+                    <label key={tool.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#2C2416' }}>
+                      <input
+                        type="checkbox"
+                        checked={!!((jobPack.tools ?? {})[tool.id])}
+                        onChange={e => { const checked = e.target.checked; setJobPack(p => ({ ...p, tools: { ...(p.tools ?? {}), [tool.id]: checked } })) }}
+                        style={{ width: '15px', height: '15px', cursor: 'pointer', accentColor: '#4A6741' }}
+                      />
+                      {tool.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
             </div>
 
             {/* Private notes */}

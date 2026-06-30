@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Aerial Rescue Plan — Urban Tree Services</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  :root { --blue:#1565C0; --blue-pale:#E3F2FD; --border:#BBDEFB; --green:#2e7d32; --bg:#f4f6f9; --card:#fff; --text:#1a1a1a; --radius:12px; --shadow:0 2px 8px rgba(0,0,0,0.08); }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:16px;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:100px}
+  .header{background:var(--blue);color:#fff;padding:14px 20px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.18)}
+  .header-inner{max-width:700px;margin:0 auto;display:flex;align-items:center;gap:12px}
+  .header-title{font-size:18px;font-weight:800}
+  .header-sub{font-size:12px;opacity:0.85}
+  .badge{background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;margin-top:4px;display:inline-block}
+  .container{max-width:700px;margin:0 auto;padding:20px 16px;display:flex;flex-direction:column;gap:16px}
+  .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+  .card-header{background:var(--blue-pale);border-bottom:1.5px solid var(--border);padding:12px 18px;font-size:13px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:0.05em}
+  .card-body{padding:18px;display:flex;flex-direction:column;gap:14px}
+  .alert{background:#FFF8E1;border-left:4px solid #F9A825;border-radius:0 8px 8px 0;padding:12px 16px;font-size:14px;color:#5D4037;line-height:1.5}
+  label{font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:5px}
+  input[type=text],input[type=date],input[type=time],textarea,select{width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:15px;font-family:inherit;color:var(--text);background:#fafafa;transition:border-color 0.2s;resize:vertical}
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--blue);background:#fff}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+  .yn-row{display:flex;gap:10px}
+  .yn-btn{flex:1;padding:10px;border-radius:8px;border:1.5px solid #ddd;background:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;text-align:center;color:#888;transition:all 0.15s}
+  .yn-btn.active-yes{border-color:#2e7d32;background:#e8f5e9;color:#2e7d32}
+  .yn-btn.active-no{border-color:#e53935;background:#ffebee;color:#c62828}
+  .equip-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+  .equip-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1.5px solid #eee;border-radius:8px;cursor:pointer;font-size:14px}
+  .equip-item input{width:16px;height:16px;accent-color:var(--blue);flex-shrink:0;cursor:pointer}
+  .equip-item.checked{border-color:var(--blue);background:var(--blue-pale)}
+  .crew-table{width:100%;border-collapse:collapse;font-size:14px}
+  .crew-table th{background:#f5f5f5;padding:8px 10px;text-align:left;font-size:11px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:0.04em;border:1px solid #eee}
+  .crew-table td{padding:4px;border:1px solid #eee}
+  .crew-table td input{border:none;background:transparent;padding:6px 8px;width:100%;font-size:14px}
+  .sig-box{border:2px solid #ddd;border-radius:8px;overflow:hidden;background:#fafafa}
+  .sig-canvas{display:block;width:100%;height:110px;touch-action:none;cursor:crosshair}
+  .sig-clear{font-size:12px;color:#999;cursor:pointer;padding:4px 10px;text-align:right;border-top:1px solid #eee;background:#f9f9f9}
+  .submit-bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #eee;padding:12px 20px;z-index:100;max-width:700px;margin:0 auto;display:flex;gap:10px}
+  .btn-save{flex:1;padding:14px;background:var(--blue);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}
+  .btn-drive{padding:14px 18px;background:#fff;border:1.5px solid #ddd;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;color:#444}
+  .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;z-index:9999;display:none}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div>
+      <div class="header-title">Aerial Rescue Plan</div>
+      <div class="header-sub">Urban Tree Services · Required before climbing above 3m</div>
+      <div class="badge">⚠️ WorkSafe NZ requirement</div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+  <div class="alert">
+    This plan must be completed and communicated to all crew <strong>before</strong> any climbing above 3 metres begins. The designated rescue person must remain on the ground whenever the climber is aloft.
+  </div>
+
+  <!-- 1. Site details -->
+  <div class="card">
+    <div class="card-header">1 · Site & Job Details</div>
+    <div class="card-body">
+      <div><label>Site address</label><input type="text" id="siteAddress" placeholder="Full site address"></div>
+      <div class="row2">
+        <div><label>Date</label><input type="date" id="jobDate"></div>
+        <div><label>Job type / description</label><input type="text" id="jobDesc" placeholder="e.g. Pruning, removal"></div>
+      </div>
+      <div><label>Tree / location details</label><textarea id="treeDetails" rows="2" placeholder="Species, height, condition, proximity to structures…"></textarea></div>
+    </div>
+  </div>
+
+  <!-- 2. Personnel -->
+  <div class="card">
+    <div class="card-header">2 · Crew on Site</div>
+    <div class="card-body">
+      <table class="crew-table">
+        <thead><tr><th>Name</th><th>Role</th><th>First aid cert?</th></tr></thead>
+        <tbody id="crewBody">
+          <tr><td><input type="text" placeholder="Climber name"></td><td><select style="border:none;background:transparent;font-size:14px;width:100%"><option>Climber</option><option>Rescue coordinator</option><option>Ground crew</option><option>Spotter</option></select></td><td><select style="border:none;background:transparent;font-size:14px;width:100%"><option>Yes</option><option>No</option><option>Expired</option></select></td></tr>
+          <tr><td><input type="text" placeholder="Name"></td><td><select style="border:none;background:transparent;font-size:14px;width:100%"><option>Rescue coordinator</option><option>Climber</option><option>Ground crew</option><option>Spotter</option></select></td><td><select style="border:none;background:transparent;font-size:14px;width:100%"><option>Yes</option><option>No</option><option>Expired</option></select></td></tr>
+          <tr><td><input type="text" placeholder="Name (optional)"></td><td><select style="border:none;background:transparent;font-size:14px;width:100%"><option>Ground crew</option><option>Climber</option><option>Rescue coordinator</option><option>Spotter</option></select></td><td><select style="border:none;background:transparent;font-size:14px;width:100%"><option>Yes</option><option>No</option><option>Expired</option></select></td></tr>
+        </tbody>
+      </table>
+      <div><label>Rescue coordinator (designated ground person)</label><input type="text" id="rescueCoord" placeholder="Name of person coordinating rescue"></div>
+      <div><label>Rescue coordinator: aerial rescue trained?</label>
+        <div class="yn-row">
+          <button class="yn-btn" onclick="toggle(this,'active-yes')">✓ Yes</button>
+          <button class="yn-btn" onclick="toggle(this,'active-no')">✗ No — training required</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Rescue procedure -->
+  <div class="card">
+    <div class="card-header">3 · Rescue Procedure</div>
+    <div class="card-body">
+      <div class="alert" style="background:#e8f5e9;border-left-color:#2e7d32;color:#1b5e20">
+        Describe the specific rescue steps for this job. Consider the tree, access, equipment available and number of crew.
+      </div>
+      <div><label>Step 1 — If climber becomes unresponsive / incapacitated</label>
+        <textarea id="proc1" rows="3" placeholder="e.g. Call climber by name, assess response. If no response, immediately call 111 and begin rescue…"></textarea></div>
+      <div><label>Step 2 — Lowering / retrieval method</label>
+        <textarea id="proc2" rows="3" placeholder="e.g. Use secondary rope attached to climber's harness, release friction hitch, lower to ground…"></textarea></div>
+      <div><label>Step 3 — Ground care until emergency services arrive</label>
+        <textarea id="proc3" rows="2" placeholder="e.g. Place in recovery position, do not remove helmet, apply first aid if trained…"></textarea></div>
+      <div><label>Emergency evacuation route from site</label>
+        <textarea id="evacRoute" rows="2" placeholder="e.g. Through gate on Smith St, vehicle access via laneway…"></textarea></div>
+    </div>
+  </div>
+
+  <!-- 4. Emergency contacts -->
+  <div class="card">
+    <div class="card-header">4 · Emergency Contacts</div>
+    <div class="card-body">
+      <div class="row2">
+        <div><label>Nearest hospital / A&E</label><input type="text" id="hospital" placeholder="Wellington Regional Hospital"></div>
+        <div><label>Hospital distance / time</label><input type="text" id="hospitalDist" placeholder="e.g. 8 min, 3.2km"></div>
+      </div>
+      <div class="row3">
+        <div><label>Emergency</label><input type="text" value="111" readonly style="background:#fff3e0;font-weight:700;color:#e65100"></div>
+        <div><label>Josh Micallef (Director)</label><input type="text" value="027 203 1446" readonly style="background:#e8f5e9"></div>
+        <div><label>WorkSafe NZ</label><input type="text" value="0800 030 040" readonly style="background:#e8f5e9"></div>
+      </div>
+      <div><label>Nearest first aid kit location</label><input type="text" id="firstAidLoc" placeholder="e.g. In cab of truck, job box"></div>
+      <div><label>AED / defibrillator available on site?</label>
+        <div class="yn-row">
+          <button class="yn-btn" onclick="toggle(this,'active-yes')">✓ Yes</button>
+          <button class="yn-btn" onclick="toggle(this,'active-no')">✗ No</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Equipment check -->
+  <div class="card">
+    <div class="card-header">5 · Rescue Equipment Available on Site</div>
+    <div class="card-body">
+      <div class="equip-grid" id="equipGrid">
+        <label class="equip-item"><input type="checkbox"> First aid kit</label>
+        <label class="equip-item"><input type="checkbox"> Rescue / lowering rope</label>
+        <label class="equip-item"><input type="checkbox"> Harness (rescue rated)</label>
+        <label class="equip-item"><input type="checkbox"> Carabiners & friction device</label>
+        <label class="equip-item"><input type="checkbox"> Throwline / throw bag</label>
+        <label class="equip-item"><input type="checkbox"> Mobile phone (charged)</label>
+        <label class="equip-item"><input type="checkbox"> Emergency blanket</label>
+        <label class="equip-item"><input type="checkbox"> Spine board / stretcher</label>
+      </div>
+      <div><label>Other rescue equipment on site</label><input type="text" id="otherEquip" placeholder="Any other relevant equipment…"></div>
+    </div>
+  </div>
+
+  <!-- 6. Communication -->
+  <div class="card">
+    <div class="card-header">6 · Communication Plan</div>
+    <div class="card-body">
+      <div><label>Signal to use if climber needs immediate assistance</label>
+        <input type="text" id="distressSignal" placeholder="e.g. Three shouts / whistle blasts, radio channel 1"></div>
+      <div><label>Mobile phone reception on site?</label>
+        <div class="yn-row">
+          <button class="yn-btn" onclick="toggle(this,'active-yes')">✓ Yes</button>
+          <button class="yn-btn" onclick="toggle(this,'active-no')">✗ No — advise crew</button>
+        </div>
+      </div>
+      <div><label>Communications backup / alternative</label>
+        <input type="text" id="commBackup" placeholder="e.g. UHF radio, adjacent property landline…"></div>
+    </div>
+  </div>
+
+  <!-- 7. Sign-off -->
+  <div class="card">
+    <div class="card-header">7 · Pre-Climb Briefing & Sign-Off</div>
+    <div class="card-body">
+      <div class="alert" style="background:#fff8e1;border-left-color:#f9a825;color:#5d4037">
+        By signing, crew confirm they have been briefed on this rescue plan, understand their role, and agree all rescue equipment is present and serviceable.
+      </div>
+      <div><label>Briefed by</label><input type="text" id="briefedBy" placeholder="Name of person who conducted the briefing"></div>
+      <div><label>Date &amp; time of briefing</label>
+        <div class="row2">
+          <input type="date" id="briefDate">
+          <input type="time" id="briefTime">
+        </div>
+      </div>
+      <div><label>Crew lead / climber signature</label>
+        <div class="sig-box"><canvas class="sig-canvas" id="sigClimber"></canvas><div class="sig-clear" onclick="clearSig('sigClimber')">Clear</div></div>
+      </div>
+      <div><label>Rescue coordinator signature</label>
+        <div class="sig-box"><canvas class="sig-canvas" id="sigRescue"></canvas><div class="sig-clear" onclick="clearSig('sigRescue')">Clear</div></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="submit-bar">
+  <button class="btn-save" onclick="generatePDF()">⬇ Save PDF</button>
+  <button class="btn-drive" id="driveBtn" onclick="saveToDrive()">☁ Drive</button>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const GOOGLE_CLIENT_ID = '376997677043-ejesngfcmmrub4j6gdftkloiiknm5ppq.apps.googleusercontent.com'
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file'
+let driveToken = null
+
+const _jp = new URLSearchParams(location.search)
+const _jid = _jp.get('job_id')
+if (_jid) {
+  const addr = _jp.get('job_address') || ''
+  const dt   = _jp.get('job_date') || new Date().toISOString().slice(0, 10)
+  const type = _jp.get('job_type') || ''
+  if (addr) document.getElementById('siteAddress').value = addr
+  if (dt)   document.getElementById('jobDate').value = dt
+  if (type) document.getElementById('jobDesc').value = type
+}
+if (!document.getElementById('jobDate').value) document.getElementById('jobDate').value = new Date().toISOString().slice(0, 10)
+if (!document.getElementById('briefDate').value) document.getElementById('briefDate').value = new Date().toISOString().slice(0, 10)
+document.getElementById('briefTime').value = new Date().toTimeString().slice(0, 5)
+
+function toggle(btn, cls) {
+  const siblings = btn.parentElement.querySelectorAll('.yn-btn')
+  siblings.forEach(b => { b.className = 'yn-btn' })
+  btn.classList.add(cls)
+}
+
+document.querySelectorAll('.equip-item input').forEach(cb => {
+  cb.addEventListener('change', () => cb.closest('.equip-item').classList.toggle('checked', cb.checked))
+})
+
+const sigs = {}
+function initSig(id) {
+  const canvas = document.getElementById(id)
+  const ctx = canvas.getContext('2d')
+  canvas.width = canvas.offsetWidth * window.devicePixelRatio
+  canvas.height = canvas.offsetHeight * window.devicePixelRatio
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio)
+  ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 2; ctx.lineCap = 'round'
+  sigs[id] = { ctx, drawing: false, hasContent: false }
+  const getPos = e => { const r = canvas.getBoundingClientRect(); const t = e.touches ? e.touches[0] : e; return { x: t.clientX - r.left, y: t.clientY - r.top } }
+  canvas.addEventListener('pointerdown', e => { const p = getPos(e); sigs[id].drawing = true; sigs[id].hasContent = true; ctx.beginPath(); ctx.moveTo(p.x, p.y) })
+  canvas.addEventListener('pointermove', e => { if (!sigs[id].drawing) return; const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke() })
+  canvas.addEventListener('pointerup', () => { sigs[id].drawing = false })
+}
+function clearSig(id) { sigs[id].ctx.clearRect(0, 0, document.getElementById(id).width, document.getElementById(id).height); sigs[id].hasContent = false }
+['sigClimber','sigRescue'].forEach(initSig)
+
+function showToast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 2500) }
+
+function getCrewRows() {
+  return Array.from(document.querySelectorAll('#crewBody tr')).map(r => {
+    const cells = r.querySelectorAll('td')
+    return { name: cells[0].querySelector('input').value, role: cells[1].querySelector('select').value, firstAid: cells[2].querySelector('select').value }
+  }).filter(r => r.name.trim())
+}
+
+async function generatePDF() {
+  const { jsPDF } = window.jspdf
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+  const W = 210, M = 14, CW = W - M * 2
+  const BLUE = [21, 101, 192], DARK = [28, 28, 28]
+  let y = 14
+
+  doc.setFillColor(...BLUE); doc.rect(0, 0, W, 30, 'F')
+  doc.setTextColor(255, 255, 255); doc.setFontSize(16); doc.setFont('helvetica', 'bold')
+  doc.text('AERIAL RESCUE PLAN', M, 12)
+  doc.setFontSize(9); doc.setFont('helvetica', 'normal')
+  doc.text('Urban Tree Services · Required before any climbing above 3m', M, 20)
+  doc.text(`Site: ${document.getElementById('siteAddress').value}`, M, 27)
+  doc.text(`Date: ${document.getElementById('jobDate').value}`, W - M, 12, { align: 'right' })
+  y = 38
+
+  function section(title) {
+    if (y > 260) { doc.addPage(); y = 14 }
+    doc.setFillColor(...BLUE); doc.rect(M, y, CW, 7, 'F')
+    doc.setTextColor(255, 255, 255); doc.setFontSize(9); doc.setFont('helvetica', 'bold')
+    doc.text(title, M + 3, y + 5); y += 11; doc.setTextColor(...DARK)
+  }
+  function field(label, value) {
+    if (!value?.trim()) return
+    doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(100, 100, 100)
+    doc.text(label.toUpperCase(), M, y); y += 4
+    doc.setFont('helvetica', 'normal'); doc.setTextColor(...DARK); doc.setFontSize(10)
+    doc.splitTextToSize(value, CW).forEach(l => { if (y > 270) { doc.addPage(); y = 14 }; doc.text(l, M, y); y += 5 })
+    y += 2
+  }
+
+  section('1 · SITE & JOB DETAILS')
+  field('Job description', document.getElementById('jobDesc').value)
+  field('Tree / location details', document.getElementById('treeDetails').value)
+
+  section('2 · CREW ON SITE')
+  const crew = getCrewRows()
+  if (crew.length) {
+    doc.setFontSize(9); doc.setFont('helvetica', 'bold')
+    doc.text('Name', M + 2, y); doc.text('Role', M + 80, y); doc.text('First Aid', M + 150, y); y += 5
+    doc.setFont('helvetica', 'normal')
+    crew.forEach(r => { doc.text(r.name, M + 2, y); doc.text(r.role, M + 80, y); doc.text(r.firstAid, M + 150, y); y += 6 })
+    y += 2
+  }
+  field('Rescue coordinator', document.getElementById('rescueCoord').value)
+
+  section('3 · RESCUE PROCEDURE')
+  field('Step 1 — If climber incapacitated', document.getElementById('proc1').value)
+  field('Step 2 — Lowering / retrieval', document.getElementById('proc2').value)
+  field('Step 3 — Ground care', document.getElementById('proc3').value)
+  field('Evacuation route', document.getElementById('evacRoute').value)
+
+  section('4 · EMERGENCY CONTACTS')
+  doc.setFontSize(10); doc.setFont('helvetica', 'bold')
+  doc.text('Emergency: 111', M, y); doc.text('Director: 027 203 1446', M + 60, y); doc.text('WorkSafe: 0800 030 040', M + 120, y); y += 7
+  doc.setFont('helvetica', 'normal')
+  field('Nearest hospital', `${document.getElementById('hospital').value} (${document.getElementById('hospitalDist').value})`)
+  field('First aid kit location', document.getElementById('firstAidLoc').value)
+
+  section('5 · RESCUE EQUIPMENT')
+  const equip = Array.from(document.querySelectorAll('#equipGrid input:checked')).map(c => c.closest('.equip-item').textContent.trim())
+  if (equip.length) field('Equipment confirmed on site', equip.join(', '))
+  field('Other equipment', document.getElementById('otherEquip').value)
+
+  section('6 · COMMUNICATION')
+  field('Distress signal', document.getElementById('distressSignal').value)
+  field('Communications backup', document.getElementById('commBackup').value)
+
+  section('7 · SIGN-OFF')
+  field('Briefed by', document.getElementById('briefedBy').value)
+  field('Briefing time', `${document.getElementById('briefDate').value} ${document.getElementById('briefTime').value}`)
+
+  if (sigs.sigClimber?.hasContent) {
+    doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(100, 100, 100)
+    doc.text('CLIMBER SIGNATURE', M, y); y += 4
+    doc.addImage(document.getElementById('sigClimber').toDataURL('image/png'), 'PNG', M, y, 60, 18); y += 22
+  }
+  if (sigs.sigRescue?.hasContent) {
+    doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(100, 100, 100)
+    doc.text('RESCUE COORDINATOR SIGNATURE', M, y); y += 4
+    doc.addImage(document.getElementById('sigRescue').toDataURL('image/png'), 'PNG', M, y, 60, 18); y += 22
+  }
+
+  doc.setFontSize(8); doc.setTextColor(150, 150, 150)
+  doc.text('Urban Tree Services — Aerial Rescue Plan', M, 292)
+  doc.text(`Generated: ${new Date().toLocaleString('en-NZ')}`, W - M, 292, { align: 'right' })
+
+  const fname = `aerial-rescue-${document.getElementById('jobDate').value}-${(document.getElementById('siteAddress').value || 'site').slice(0, 20).replace(/\s+/g, '-')}.pdf`
+  doc.save(fname)
+
+  if (_jid && window.parent !== window) {
+    window.parent.postMessage({ type: 'form_complete', form_id: 'aerial_rescue', job_id: _jid }, '*')
+  }
+  return doc
+}
+
+async function getDriveToken() {
+  return new Promise((resolve, reject) => {
+    if (driveToken) { resolve(driveToken); return }
+    google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID, scope: DRIVE_SCOPE,
+      callback: r => { if (r.error) reject(r.error); else { driveToken = r.access_token; resolve(driveToken) } }
+    }).requestAccessToken()
+  })
+}
+async function findOrCreateFolder(t, name, parentId = null) {
+  const pq = parentId ? ` and '${parentId}' in parents` : ''
+  const q = encodeURIComponent(`mimeType='application/vnd.google-apps.folder' and name='${name}' and trashed=false${pq}`)
+  const r = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id)`, { headers: { Authorization: `Bearer ${t}` } })
+  const d = await r.json()
+  if (d.files?.length) return d.files[0].id
+  const cr = await fetch('https://www.googleapis.com/drive/v3/files', {
+    method: 'POST', headers: { Authorization: `Bearer ${t}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, mimeType: 'application/vnd.google-apps.folder', ...(parentId ? { parents: [parentId] } : {}) })
+  })
+  return (await cr.json()).id
+}
+async function saveToDrive() {
+  const btn = document.getElementById('driveBtn'); btn.textContent = '⏳ Uploading…'; btn.disabled = true
+  try {
+    const t = await getDriveToken()
+    const root = await findOrCreateFolder(t, 'UTS Forms')
+    let fid
+    if (_jid) {
+      const addr = (_jp.get('job_address') || 'Job').slice(0, 40)
+      const dt   = _jp.get('job_date') || new Date().toISOString().slice(0, 10)
+      const jobsId = await findOrCreateFolder(t, 'Jobs', root)
+      fid = await findOrCreateFolder(t, `${addr} (${dt})`, jobsId)
+    } else {
+      fid = await findOrCreateFolder(t, 'Aerial Rescue Plans', root)
+    }
+    const pdfDoc = await generatePDF()
+    const bytes = pdfDoc.output('arraybuffer')
+    const fname = `aerial-rescue-${document.getElementById('jobDate').value}.pdf`
+    const form = new FormData()
+    form.append('metadata', new Blob([JSON.stringify({ name: fname, parents: [fid], mimeType: 'application/pdf' })], { type: 'application/json' }))
+    form.append('file', new Blob([bytes], { type: 'application/pdf' }))
+    await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', { method: 'POST', headers: { Authorization: `Bearer ${t}` }, body: form })
+    showToast('Uploaded to Google Drive ✓')
+  } catch (e) { showToast('Drive error: ' + e.message) }
+  btn.textContent = '☁ Drive'; btn.disabled = false
+}
+</script>
+</body>
+</html>

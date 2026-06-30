@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useIsMobile } from '../hooks/useIsMobile'
 import FullCalendar from '@fullcalendar/react'
@@ -298,6 +299,7 @@ function Popover({ info, weekEvent, onClose, onUnschedule }) {
 // ── Crew (restricted) calendar view ───────────────────────────────────────
 function CrewCalendar() {
   const { profile } = useAuth()
+  const navigate    = useNavigate()
   const resourceId  = profile?.resource_id
   const myResource  = RESOURCES.find(r => r.id === resourceId)
 
@@ -373,6 +375,12 @@ function CrewCalendar() {
                     </a>
                   )}
                   {ev.notes && <div style={cw.jobNotes}>{ev.notes}</div>}
+                  <button
+                    onClick={() => navigate(`/workorder/${ev.job_id}`)}
+                    style={cw.woBtn}
+                  >
+                    View Work Order →
+                  </button>
                 </div>
               )
             })}
@@ -398,6 +406,12 @@ const cw = {
   jobClient:{ fontSize: '13px', color: '#666', marginBottom: '4px' },
   jobAddr:  { display: 'block', fontSize: '13px', color: '#4A7FA5', textDecoration: 'none', marginBottom: '4px' },
   jobNotes: { fontSize: '12px', color: '#888', marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #F0EDE8', lineHeight: 1.5 },
+  woBtn: {
+    display: 'block', width: '100%', marginTop: '12px', padding: '10px 0',
+    background: '#F0F7EE', border: '1.5px solid #D0E4CC', borderRadius: '8px',
+    fontSize: '14px', fontWeight: '700', color: '#3A5C2E', cursor: 'pointer',
+    fontFamily: 'var(--font)', textAlign: 'center',
+  },
 }
 
 // ── Main export — switches between full and crew views ─────────────────────
@@ -711,26 +725,28 @@ function FullCalendar_() {
 
         {/* Week custom grid */}
         {activeView === 'week' ? (
-          <div style={s.calWrap}>
-            <WeekGrid
-              weekStart={weekStart}
-              events={events}
-              onEventClick={ev => setPopover({ weekEvent: ev })}
-              resources={activeResources}
-              onReorder={reordered => {
-                // Merge hidden resources back in their original positions
-                setOrderedResources(prev => {
-                  const hiddenInOrder = prev.filter(r => !visibleIds.has(r.id))
-                  const result = [...reordered]
-                  // Re-insert hidden ones at their old relative positions (append after)
-                  hiddenInOrder.forEach(h => {
-                    const oldIdx = prev.findIndex(r => r.id === h.id)
-                    result.splice(Math.min(oldIdx, result.length), 0, h)
+          <div style={s.calWrapWeek}>
+            <div style={{ minWidth: '680px' }}>
+              <WeekGrid
+                weekStart={weekStart}
+                events={events}
+                onEventClick={ev => setPopover({ weekEvent: ev })}
+                resources={activeResources}
+                onReorder={reordered => {
+                  // Merge hidden resources back in their original positions
+                  setOrderedResources(prev => {
+                    const hiddenInOrder = prev.filter(r => !visibleIds.has(r.id))
+                    const result = [...reordered]
+                    // Re-insert hidden ones at their old relative positions (append after)
+                    hiddenInOrder.forEach(h => {
+                      const oldIdx = prev.findIndex(r => r.id === h.id)
+                      result.splice(Math.min(oldIdx, result.length), 0, h)
+                    })
+                    return result
                   })
-                  return result
-                })
-              }}
-            />
+                }}
+              />
+            </div>
           </div>
         ) : (
           <div style={s.calWrap}>
@@ -740,7 +756,7 @@ function FullCalendar_() {
               schedulerLicenseKey="CC-Attribution-NonCommercial-NoDerivatives"
               initialView={isMobile ? 'listWeek' : 'resourceTimelineDay'}
               headerToolbar={false}
-              height="auto"
+              height="100%"
               resources={activeResources}
               resourceOrder="index"
               events={events}
@@ -942,7 +958,7 @@ const s = {
   legendRow:  { display: 'flex', alignItems: 'center', gap: '8px', padding: '3px 0' },
   legendDot:  { width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0 },
   legendName: { fontSize: '11px', color: '#555', fontWeight: '500' },
-  main:    { flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', overflowX: 'hidden', background: '#fff' },
+  main:    { flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#fff' },
   trackerSection: { flexShrink: 0, borderTop: '1px solid #E2DDD6', background: '#fff' },
   trackerToggle: {
     width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -985,7 +1001,8 @@ const s = {
     background: '#D4851A', color: '#fff', fontSize: '10px', fontWeight: '700',
     borderRadius: '20px', padding: '1px 6px', lineHeight: 1.6,
   },
-  calWrap: { flexShrink: 0, overflowY: 'auto', overflowX: 'hidden' },
+  calWrap: { flex: 1, overflow: 'hidden', minHeight: 0 },
+  calWrapWeek: { flex: 1, overflowX: 'auto', overflowY: 'auto', minHeight: 0 },
   toast: {
     position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)',
     color: '#fff', padding: '10px 22px', borderRadius: '8px',

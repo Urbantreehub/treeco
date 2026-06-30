@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Health &amp; Safety Policy — Urban Tree Services</title>
+<style>
+  :root {
+    --green:      #3A5C2E;
+    --green-mid:  #4A6741;
+    --green-pale: #EFF5ED;
+    --green-dark: #2C4019;
+    --border:     #D4E0CE;
+    --text:       #1a1a1a;
+    --muted:      #666;
+    --bg:         #F5F7F3;
+    --card:       #ffffff;
+    --radius:     10px;
+    --shadow:     0 2px 8px rgba(0,0,0,0.07);
+    --red:        #C0392B;
+    --amber:      #B5770F;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14.5px;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: 80px;
+  }
+
+  /* ── Header ── */
+  .header {
+    background: #fff;
+    padding: 14px 20px 12px;
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.09);
+    border-bottom: 3px solid var(--green);
+  }
+  .header-inner { max-width: 860px; margin: 0 auto; display: flex; align-items: center; gap: 14px; }
+  .header img { height: 44px; width: auto; object-fit: contain; flex-shrink: 0; }
+  .header-text h1 { font-size: 18px; font-weight: 800; color: var(--green-dark); }
+  .header-text p  { font-size: 11px; color: var(--green-mid); margin-top: 2px; letter-spacing: 1.2px; text-transform: uppercase; font-weight: 700; }
+  .print-btn {
+    margin-left: auto; background: var(--green); color: #fff; border: none;
+    border-radius: 8px; padding: 9px 18px; font-size: 13px; font-weight: 700;
+    cursor: pointer; flex-shrink: 0; font-family: inherit;
+  }
+  .print-btn:hover { background: var(--green-dark); }
+
+  /* ── Layout ── */
+  .main { max-width: 860px; margin: 0 auto; padding: 22px 16px; }
+
+  /* ── Cards ── */
+  .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 16px; overflow: hidden; border: 1px solid var(--border); }
+  .card-header {
+    background: var(--green); color: #fff;
+    padding: 11px 18px; font-size: 13px; font-weight: 700;
+    letter-spacing: 0.04em; text-transform: uppercase;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .card-header .num {
+    background: rgba(255,255,255,0.22); border-radius: 50%;
+    width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 800; flex-shrink: 0;
+  }
+  .card-body { padding: 18px 20px; }
+
+  /* ── Text ── */
+  p { margin-bottom: 11px; line-height: 1.65; color: var(--text); font-size: 14px; }
+  p:last-child { margin-bottom: 0; }
+  ul { margin: 8px 0 11px 18px; }
+  li { margin-bottom: 6px; line-height: 1.6; font-size: 14px; }
+  ul:last-child { margin-bottom: 0; }
+  strong { color: var(--green-dark); }
+
+  /* ── Meta table ── */
+  .meta-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .meta-table td { padding: 7px 10px; border: 1px solid var(--border); vertical-align: top; }
+  .meta-table td:first-child { font-weight: 700; color: var(--muted); background: var(--green-pale); width: 38%; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+
+  /* ── Statement box ── */
+  .statement {
+    background: var(--green-dark); color: #fff;
+    border-radius: 10px; padding: 20px 24px; margin-bottom: 18px;
+    font-size: 14.5px; line-height: 1.7;
+  }
+  .statement .label { font-size: 11px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; opacity: 0.7; margin-bottom: 10px; }
+  .statement .sig { margin-top: 14px; border-top: 1px solid rgba(255,255,255,0.25); padding-top: 11px; font-size: 13px; opacity: 0.8; }
+
+  /* ── Note box ── */
+  .note { background: var(--green-pale); border-left: 4px solid var(--green); padding: 10px 14px; border-radius: 0 8px 8px 0; margin: 12px 0; font-size: 13.5px; line-height: 1.6; }
+  .warn { background: #FFF8EE; border-left: 4px solid #E8C570; padding: 10px 14px; border-radius: 0 8px 8px 0; margin: 12px 0; font-size: 13.5px; color: #7A5500; line-height: 1.6; }
+  .alert { background: #FFF0EE; border-left: 4px solid var(--red); padding: 10px 14px; border-radius: 0 8px 8px 0; margin: 12px 0; font-size: 13.5px; color: var(--red); line-height: 1.6; }
+
+  /* ── Role blocks ── */
+  .role-block { margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+  .role-block:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+  .role-title { font-weight: 800; font-size: 14px; color: var(--green); margin-bottom: 7px; }
+
+  /* ── PPE grid ── */
+  .ppe-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+  @media (max-width: 540px) { .ppe-grid { grid-template-columns: 1fr; } }
+  .ppe-item { display: flex; align-items: flex-start; gap: 8px; background: var(--green-pale); border-radius: 7px; padding: 8px 10px; border: 1px solid var(--border); }
+  .ppe-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); margin-top: 5px; flex-shrink: 0; }
+  .ppe-name { font-size: 13.5px; font-weight: 600; line-height: 1.4; }
+  .ppe-std { font-size: 11px; color: var(--muted); display: block; margin-top: 1px; }
+
+  /* ── MIS ref tags ── */
+  .ref { display: inline-block; background: #E8F0E6; color: var(--green); font-size: 10.5px; font-weight: 700; border-radius: 4px; padding: 2px 6px; margin: 1px; border: 1px solid var(--border); }
+  .ref-red { background: #FFF0EE; color: var(--red); border-color: #f5c6c4; }
+  .ref-amber { background: #FFF8EE; color: var(--amber); border-color: #f0d8a8; }
+
+  /* ── SiteWise matrix ── */
+  .sw-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
+  .sw-table th { background: var(--green); color: #fff; padding: 8px 10px; text-align: left; font-size: 12px; font-weight: 700; border: 1px solid var(--green-dark); }
+  .sw-table td { padding: 7px 10px; border: 1px solid var(--border); vertical-align: top; }
+  .sw-table tr:nth-child(even) td { background: var(--green-pale); }
+
+  /* ── Sign-off ── */
+  .sign-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 14px; }
+  @media (max-width: 500px) { .sign-grid { grid-template-columns: 1fr; } }
+  .sign-field label { display: block; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+  .sign-value { font-weight: 700; font-size: 15px; padding: 6px 0; color: var(--green-dark); }
+  .sign-line { border-bottom: 1.5px solid #333; min-height: 38px; margin-top: 4px; }
+
+  /* ── SWMS list ── */
+  .swms-list { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+  .swms-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--green-pale); border-radius: 7px; border: 1px solid var(--border); font-size: 13px; }
+  .swms-num { font-weight: 800; color: var(--green); min-width: 80px; font-size: 12px; }
+  .swms-title { flex: 1; font-weight: 600; }
+
+  @media print {
+    body { background: #fff; font-size: 10.5pt; padding-bottom: 0; }
+    .header { position: static; box-shadow: none; border-bottom: 3px solid var(--green); }
+    .print-btn { display: none; }
+    .card { box-shadow: none; page-break-inside: avoid; margin-bottom: 12px; }
+    @page { margin: 12mm 14mm; size: A4; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <img src="/logo.png" alt="Urban Tree Services" onerror="this.style.display='none'">
+    <div class="header-text">
+      <h1>Health &amp; Safety Policy</h1>
+      <p>Urban Tree Services Ltd · Wellington, New Zealand</p>
+    </div>
+    <button class="print-btn" onclick="window.print()">Print / Save PDF</button>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- Document meta -->
+  <div class="card">
+    <div class="card-body" style="padding:14px 20px;">
+      <table class="meta-table">
+        <tr><td>Document title</td><td>Health &amp; Safety Policy</td></tr>
+        <tr><td>Document number</td><td>HSP-001</td></tr>
+        <tr><td>Version</td><td>1.0</td></tr>
+        <tr><td>Issue date</td><td>June 2026</td></tr>
+        <tr><td>Review date</td><td>June 2027</td></tr>
+        <tr><td>Prepared &amp; approved by</td><td>Josh Micallef, Director — Urban Tree Services Ltd</td></tr>
+        <tr><td>Applies to</td><td>All Urban Tree Services Ltd directors, employees, labour-hire workers, and subcontractors on all UTS-controlled work sites</td></tr>
+        <tr><td>Legislative basis</td>
+          <td>Health and Safety at Work Act 2015 (HSWA) <span class="ref">Primary</span><br>
+              Health and Safety at Work (General Risk &amp; Workplace Management) Regulations 2016 <span class="ref">Supporting</span><br>
+              Electricity (Safety) Regulations 2010 / ECP 34 <span class="ref">Power lines</span></td></tr>
+        <tr><td>Standards &amp; guidance</td>
+          <td>NZArb Code of Practice (2021) <span class="ref">NZArb</span>
+              ArbAus Method of Instruction Sheets MIS 01–14 <span class="ref">ArbAus</span>
+              WorkSafe NZ guidance documents
+              AS/NZS standards as referenced in individual SWMS documents
+              SiteWise Green Star grading requirements</td></tr>
+        <tr><td>Related documents</td>
+          <td>SWMS-001 to SWMS-013 (Activity SWMS) · Site-Specific Safety Plan (SSSP) · Risk Assessment Form ·
+              Toolbox Meeting Record · Incident Report Form · Training &amp; Competency Register</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- Policy Statement -->
+  <div class="statement">
+    <div class="label">Policy Statement</div>
+    Urban Tree Services Ltd is absolutely committed to providing and maintaining a safe, healthy working
+    environment for all directors, employees, subcontractors, clients, and members of the public affected
+    by our work. The health, safety, and wellbeing of our people is our first and non-negotiable priority —
+    it takes precedence over production, scheduling, and cost at all times.<br><br>
+    We acknowledge that arboricultural work carries serious inherent risk — work at height, chainsaw use,
+    working near power lines, and operating heavy plant. We manage these risks through disciplined hazard
+    identification, generic Safe Work Method Statements (SWMS) aligned to ArbAus MIS 01–14, and a
+    job-specific Site-Specific Safety Plan (SSSP) completed before every job. Every worker has the right
+    and the responsibility to stop work if they believe conditions are unsafe.<br><br>
+    This policy meets the requirements of the Health and Safety at Work Act 2015 and aligns with
+    SiteWise Green Star grading expectations. It is reviewed annually and communicated to all workers
+    at induction and at toolbox meetings.
+    <div class="sig">Josh Micallef — Director, Urban Tree Services Ltd</div>
+  </div>
+
+  <!-- Section 1: Scope -->
+  <div class="card">
+    <div class="card-header"><span class="num">1</span> Scope &amp; Application</div>
+    <div class="card-body">
+      <p>This policy applies to:</p>
+      <ul>
+        <li>All permanent, casual, and part-time employees of Urban Tree Services Ltd</li>
+        <li>All subcontractors and labour-hire workers performing work on behalf of Urban Tree Services Ltd</li>
+        <li>All work sites, vehicles, plant, and premises under Urban Tree Services Ltd management or control</li>
+      </ul>
+      <p>All workers, regardless of employment status or tenure, must read, understand, and comply with this
+      policy and the SSSP for each job before commencing work. SWMS are reviewed monthly at toolbox meetings — not required to be signed at every job.</p>
+    </div>
+  </div>
+
+  <!-- Section 2: Roles & Responsibilities -->
+  <div class="card">
+    <div class="card-header"><span class="num">2</span> Roles &amp; Responsibilities</div>
+    <div class="card-body">
+      <div class="role-block">
+        <div class="role-title">Director — Josh Micallef <span class="ref">PCBU — primary duty of care (HSWA s36)</span></div>
+        <ul>
+          <li>Ultimate accountability for H&amp;S performance across all Urban Tree Services operations</li>
+          <li>Ensures adequate resources, training, equipment, and supervision are provided for all work</li>
+          <li>Approves, reviews, and updates SWMS documents and this policy annually or after any incident</li>
+          <li>Ensures all workers complete induction and hold the required competencies before commencing work</li>
+          <li>Investigates all incidents and near-misses; implements corrective actions</li>
+          <li>Reports notifiable events to WorkSafe NZ (0800 030 040) without delay</li>
+          <li>Maintains a current Training &amp; Competency Register for all staff</li>
+        </ul>
+      </div>
+      <div class="role-block">
+        <div class="role-title">Lead Climbers / On-site Supervisors</div>
+        <ul>
+          <li>Conduct a toolbox meeting and site hazard assessment (SSSP) before each job commences</li>
+          <li>Confirm crew have reviewed the applicable SWMS at the monthly toolbox meeting; verbally highlight any specific SWMS controls relevant to the day's activities during the pre-job briefing</li>
+          <li>Verify all PPE is worn correctly and in serviceable condition before work begins</li>
+          <li>Maintain exclusion zones and stop work if conditions become unsafe at any time</li>
+          <li>Confirm an aerial-rescue trained second person is present for all work above 3 metres</li>
+          <li>Report all incidents, near-misses, and equipment defects to the Director immediately</li>
+        </ul>
+      </div>
+      <div class="role-block">
+        <div class="role-title">All Workers</div>
+        <ul>
+          <li>Read and understand the SWMS relevant to their work — reviewed and acknowledged monthly at toolbox meetings, not required per job</li>
+          <li>Wear the PPE specified in the relevant SWMS at all times — no exceptions</li>
+          <li>Report all hazards, incidents, and near-misses to the supervisor immediately</li>
+          <li>Exercise the right to refuse unsafe work without fear of penalty or disadvantage (HSWA s83)</li>
+          <li>Not perform work while impaired by fatigue, alcohol, or drugs</li>
+          <li>Participate in toolbox meetings, H&amp;S inductions, and training as required</li>
+          <li>Take reasonable care that their actions do not adversely affect the H&amp;S of others (HSWA s45)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 3: Hazard Management -->
+  <div class="card">
+    <div class="card-header"><span class="num">3</span> Hazard Identification, Risk Assessment &amp; Control</div>
+    <div class="card-body">
+      <p>Urban Tree Services Ltd identifies and manages hazards using the <strong>hierarchy of control</strong> (HSWA s30):</p>
+      <ul>
+        <li><strong>Eliminate</strong> — remove the hazard entirely (e.g. change the work method)</li>
+        <li><strong>Substitute</strong> — replace the hazard with a lower-risk alternative</li>
+        <li><strong>Isolate</strong> — separate the hazard from workers and public (exclusion zones, barriers, lockout)</li>
+        <li><strong>Engineering controls</strong> — physical controls: rigging systems, equipment guards, EWPs</li>
+        <li><strong>Administrative controls</strong> — SWMS, SSSP, toolbox meetings, permits, supervision, scheduling</li>
+        <li><strong>PPE</strong> — last line of defence; must meet the standard specified in the applicable SWMS</li>
+      </ul>
+      <div class="note">
+        <strong>Risk rating method:</strong> Likelihood (1–5) × Consequence (1–5) = Risk Score.
+        LOW (1–4) · MEDIUM (5–9) · HIGH (10–16) · CRITICAL (17–25).
+        All hazards rated HIGH or CRITICAL must have additional controls applied before work proceeds.
+      </div>
+      <p>Hazard identification occurs at two levels:</p>
+      <ul>
+        <li><strong>Generic</strong> — our 13 activity-based SWMS documents (SWMS-001 to SWMS-013) cover hazards common to each arboricultural activity, aligned with ArbAus MIS 01–14 and NZArb best practice</li>
+        <li><strong>Site-specific</strong> — the SSSP, completed before every job, identifies hazards specific to the individual site: overhead utilities, ground conditions, proximity to structures, third-party presence, traffic, and weather</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Section 4: SWMS & SSSP -->
+  <div class="card">
+    <div class="card-header"><span class="num">4</span> Safe Work Method Statements (SWMS) &amp; Site-Specific Safety Plan (SSSP)</div>
+    <div class="card-body">
+      <p>Urban Tree Services Ltd maintains <strong>13 generic activity-based SWMS documents</strong>, each aligned
+      to an ArbAus Method of Instruction Sheet. All SWMS cover: hazard identification, control measures
+      using the hierarchy of control, risk ratings before and after controls, required PPE, and worker sign-off.</p>
+      <div class="swms-list">
+        <div class="swms-row"><span class="swms-num">SWMS-001</span><span class="swms-title">Tree Climbing &amp; Aerial Work</span><span class="ref">MIS 01</span><span class="ref">WorkSafe NZ</span></div>
+        <div class="swms-row"><span class="swms-num">SWMS-002</span><span class="swms-title">Aerial Rescue Procedure</span><span class="ref">MIS 02</span></div>
+        <div class="swms-row"><span class="swms-num">SWMS-003</span><span class="swms-title">Ground Support Operations</span><span class="ref">MIS 03</span></div>
+        <div class="swms-row"><span class="swms-num">SWMS-004</span><span class="swms-title">Chainsaw Operations</span><span class="ref">MIS 04</span></div>
+        <div class="swms-row"><span class="swms-num">SWMS-005</span><span class="swms-title">Wood Chipping Operations</span><span class="ref">MIS 05</span></div>
+        <div class="swms-row"><span class="swms-num">SWMS-006</span><span class="swms-title">Rigging &amp; Lowering Operations</span><span class="ref">MIS 06</span></div>
+        <div class="swms-row"><span class="swms-num">SWMS-007</span><span class="swms-title">Working Near Traffic</span><span class="ref">MIS 07</span><span class="ref">CoPTTM NZ</span></div>
+        <div class="swms-row"><span class="swms-num">SWMS-008</span><span class="swms-title">Chemical Application (Herbicide / Arboricide)</span><span class="ref">MIS 08</span><span class="ref">HSNO Act</span></div>
+        <div class="swms-row"><span class="swms-num">SWMS-009</span><span class="swms-title">Stump Grinding Operations</span><span class="ref">MIS 09</span></div>
+        <div class="swms-row"><span class="swms-num">SWMS-010</span><span class="swms-title">Tree Felling — Controlled</span><span class="ref">MIS 10</span><span class="ref">NZArb</span></div>
+        <div class="swms-row"><span class="swms-num">SWMS-011</span><span class="swms-title">Work Near Power Lines</span><span class="ref">MIS 13</span><span class="ref">ECP 34</span></div>
+        <div class="swms-row"><span class="swms-num">SWMS-012</span><span class="swms-title">Storm &amp; Emergency Damage Work</span><span class="ref">MIS 14</span></div>
+        <div class="swms-row"><span class="swms-num">SWMS-013</span><span class="swms-title">Hand Tools &amp; General Ground Work</span><span class="ref">MIS 12</span></div>
+      </div>
+      <div class="warn" style="margin-top:14px;">
+        <strong>SWMS covers generic hazards only.</strong> Site-specific hazards (power lines, structures, ground conditions,
+        third parties, weather, traffic) must be identified in the <strong>SSSP</strong> completed for each job.
+        Workers must read and sign both documents before commencing work.
+      </div>
+      <p>SWMS are reviewed annually or immediately after any incident, near-miss, or significant change to work scope or standards.</p>
+    </div>
+  </div>
+
+  <!-- Section 5: PPE -->
+  <div class="card">
+    <div class="card-header"><span class="num">5</span> Personal Protective Equipment</div>
+    <div class="card-body">
+      <p>PPE requirements are specified in each SWMS. The following is the Urban Tree Services standard PPE inventory.
+      All PPE must meet the referenced standard or manufacturer specification. PPE is provided to workers at no cost:</p>
+      <div class="ppe-grid">
+        <div class="ppe-item"><div class="ppe-dot"></div><div><div class="ppe-name">Arborist helmet</div><span class="ppe-std">NZS 8600 / AS/NZS 1801</span></div></div>
+        <div class="ppe-item"><div class="ppe-dot"></div><div><div class="ppe-name">Helmet with full face visor</div><span class="ppe-std">AS/NZS 1337.1</span></div></div>
+        <div class="ppe-item"><div class="ppe-dot"></div><div><div class="ppe-name">Hearing protection — Class 5</div><span class="ppe-std">AS/NZS 1269 (≥29dB SNR)</span></div></div>
+        <div class="ppe-item"><div class="ppe-dot"></div><div><div class="ppe-name">Chainsaw chaps — Class 1</div><span class="ppe-std">AS/NZS 4453.3:1997</span></div></div>
+        <div class="ppe-item"><div class="ppe-dot"></div><div><div class="ppe-name">Arborist climbing saddle / harness</div><span class="ppe-std">22kN minimum — manufacturer-rated</span></div></div>
+        <div class="ppe-item"><div class="ppe-dot"></div><div><div class="ppe-name">Cut-resistant gloves</div><span class="ppe-std">AS/NZS 2161.3</span></div></div>
+        <div class="ppe-item"><div class="ppe-dot"></div><div><div class="ppe-name">Steel-capped safety boots</div><span class="ppe-std">AS/NZS 2210.3</span></div></div>
+        <div class="ppe-item"><div class="ppe-dot"></div><div><div class="ppe-name">Hi-vis vest / shirt — Class 2</div><span class="ppe-std">AS/NZS 4602.1 / 1906.4</span></div></div>
+        <div class="ppe-item"><div class="ppe-dot"></div><div><div class="ppe-name">Safety glasses / goggles</div><span class="ppe-std">AS/NZS 1337.1</span></div></div>
+        <div class="ppe-item"><div class="ppe-dot"></div><div><div class="ppe-name">Chemical-resistant gloves</div><span class="ppe-std">AS/NZS 2161.6</span></div></div>
+      </div>
+      <p style="margin-top:12px;">All PPE must be inspected before each use. Any item that is damaged, degraded, or outside its service life
+      is removed from service and replaced immediately. Workers must not modify or use damaged PPE.</p>
+    </div>
+  </div>
+
+  <!-- Section 6: Power Lines -->
+  <div class="card">
+    <div class="card-header"><span class="num">6</span> Working Near Power Lines <span class="ref" style="margin-left:6px;font-size:10px;">ECP 34 · SWMS-011</span></div>
+    <div class="card-body">
+      <p>Contact with live power lines is an extreme-consequence risk. The following minimum exclusion distances are mandatory at all times:</p>
+      <ul>
+        <li><strong>≥ 4 metres</strong> from LV distribution lines (≤110kV)</li>
+        <li><strong>≥ 6 metres</strong> from HV transmission lines (&gt;110kV)</li>
+      </ul>
+      <p>These distances apply to workers, ropes, tools, plant, and any equipment. If the required distance cannot be maintained:</p>
+      <ul>
+        <li>Stop work immediately</li>
+        <li>Contact the line owner (Powerco / Wellington Electricity / Lines Company) and arrange a line shutdown or approved insulation covering before resuming</li>
+        <li>Under no circumstances attempt to work within the exclusion zone without written line-owner approval</li>
+      </ul>
+      <div class="alert"><strong>All power lines are treated as live at all times</strong>, regardless of appearance, de-energisation claims, or advice from third parties. No exceptions.</div>
+    </div>
+  </div>
+
+  <!-- Section 7: Working at Height -->
+  <div class="card">
+    <div class="card-header"><span class="num">7</span> Working at Height <span class="ref" style="margin-left:6px;font-size:10px;">SWMS-001 · SWMS-002 · WorkSafe NZ</span></div>
+    <div class="card-body">
+      <ul>
+        <li><strong>Aerial rescue trained second person mandatory:</strong> All work above 3 metres must have an aerial-rescue trained crew member present on site at all times — WorkSafe NZ requirement</li>
+        <li>Climbers maintain <strong>two independent anchor points (IAP)</strong> in the canopy at all times (SRS / MRS)</li>
+        <li>All climbing systems inspected before each use per AS/NZS 4143.3; retired on any sign of damage</li>
+        <li>Arborist climbing saddle / harness rated to minimum <strong>22kN</strong> (manufacturer spec)</li>
+        <li>Aerial rescue kit on site for all elevated work: ascender, controlled descent device (≥25kN), rescue lanyard</li>
+        <li>Aerial rescue drills practised by all climbing crew at minimum annually</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Section 8: Incident Reporting -->
+  <div class="card">
+    <div class="card-header"><span class="num">8</span> Incident, Injury &amp; Near-Miss Reporting</div>
+    <div class="card-body">
+      <p>All incidents, injuries, and near-misses — regardless of severity — are reported to the Director immediately
+      and documented using the <strong>Urban Tree Services Incident Report form</strong>.</p>
+      <p><strong>Notifiable events</strong> under HSWA 2015 ss28–29 must be reported to WorkSafe NZ immediately:</p>
+      <ul>
+        <li>Death of any person</li>
+        <li>Notifiable injury / illness: hospitalisation, amputation, loss of sight, serious head or spinal injury, serious burn or laceration, loss of a bodily function, serious illness</li>
+        <li>Notifiable incident: unplanned release of energy that could have caused a notifiable injury (e.g. line contact, fall from height, uncontrolled structural failure)</li>
+      </ul>
+      <div class="alert">
+        <strong>WorkSafe NZ 24-hour notifiable events line: 0800 030 040</strong><br>
+        The scene must not be disturbed after a notifiable event (except to assist the injured person or prevent further harm) until WorkSafe advises. Preserve evidence.
+      </div>
+      <p>Near-misses are treated as serious learning opportunities. All near-misses are reviewed at the next toolbox meeting and trigger a review of the applicable SWMS.</p>
+    </div>
+  </div>
+
+  <!-- Section 9: Training & Competency -->
+  <div class="card">
+    <div class="card-header"><span class="num">9</span> Training, Competency &amp; Induction</div>
+    <div class="card-body">
+      <p>Urban Tree Services Ltd maintains a Training &amp; Competency Register for all staff. Minimum requirements:</p>
+      <table class="sw-table">
+        <thead><tr><th>Activity / requirement</th><th>Minimum standard</th><th>Renewal</th></tr></thead>
+        <tbody>
+          <tr><td>Climbing &amp; aerial work</td><td>Certificate III Arboriculture or documented equivalent competency</td><td>CPD / annual review</td></tr>
+          <tr><td>Aerial rescue</td><td>Aerial rescue trained — all crew who may need to rescue a climber</td><td>Annual refresher</td></tr>
+          <tr><td>First aid</td><td>Level 2 First Aid (min. 1 per working crew, on site)</td><td>Per certificate (2–3 years)</td></tr>
+          <tr><td>Chainsaw operation</td><td>Documented chainsaw operator training (chain care, felling, maintenance)</td><td>As required</td></tr>
+          <tr><td>Traffic management</td><td>CoPTTM-approved TMP training for any roadside work</td><td>Per certificate</td></tr>
+          <tr><td>Chemical application</td><td>Growsafe Certificate (or equivalent) for herbicide / arboricide use</td><td>Per certificate</td></tr>
+          <tr><td>New worker induction</td><td>H&amp;S induction before first day on site: policy, SWMS, emergency procedures, PPE</td><td>On engagement</td></tr>
+          <tr><td>Contractor induction</td><td>Urban Tree Services induction + site-specific induction per Downer / UHCC requirements</td><td>Annually (Downer)</td></tr>
+        </tbody>
+      </table>
+      <p style="margin-top:10px;">Training records, qualification certificates, and expiry dates are held in the Staff Records vault in the company management system.</p>
+    </div>
+  </div>
+
+  <!-- Section 10: SiteWise -->
+  <div class="card">
+    <div class="card-header"><span class="num">10</span> SiteWise Grading &amp; Principal Contractor Requirements</div>
+    <div class="card-body">
+      <p>Urban Tree Services Ltd maintains SiteWise grading and complies with principal contractor H&amp;S requirements
+      for Downer NZ, Upper Hutt City Council, and Spencer Henshaw (Kāinga Ora). Key documents required:</p>
+      <table class="sw-table">
+        <thead><tr><th>Requirement</th><th>Document / evidence</th><th>Location</th></tr></thead>
+        <tbody>
+          <tr><td>H&amp;S Policy — signed &amp; current</td><td>HSP-001 (this document)</td><td>Safety &gt; Documents</td></tr>
+          <tr><td>SWMS for all activities</td><td>SWMS-001 to SWMS-013</td><td>Safety &gt; SWMS</td></tr>
+          <tr><td>SSSP process</td><td>SSSP completed per job</td><td>On site / job file</td></tr>
+          <tr><td>Risk assessment</td><td>Daily risk assessment form</td><td>Forms section</td></tr>
+          <tr><td>Incident register</td><td>Incident Report form + register</td><td>Safety &gt; Documents</td></tr>
+          <tr><td>Public liability insurance</td><td>Chubb — $2M public &amp; products liability</td><td>Safety &gt; Documents</td></tr>
+          <tr><td>Staff qualifications &amp; IDs</td><td>Per-staff cert copies, photo ID, MOJ checks</td><td>Safety &gt; Staff Records</td></tr>
+          <tr><td>Toolbox meeting records</td><td>Toolbox Meeting form (signed)</td><td>Forms section</td></tr>
+          <tr><td>Training register</td><td>Training &amp; Competency Register</td><td>Safety &gt; Staff Records</td></tr>
+          <tr><td>Hazardous substances inventory</td><td>Chemical register with SDS sheets</td><td>Safety &gt; Documents</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Section 11: Consultation -->
+  <div class="card">
+    <div class="card-header"><span class="num">11</span> Worker Consultation &amp; Participation <span class="ref" style="margin-left:6px;font-size:10px;">HSWA ss58–63</span></div>
+    <div class="card-body">
+      <p>Urban Tree Services Ltd engages workers in health and safety decisions through:</p>
+      <ul>
+        <li><strong>Pre-job toolbox briefings</strong> — scope of work, site hazards, SSSP completion, PPE check, weather assessment, and verbal reminder of SWMS controls relevant to the day's activities</li>
+        <li><strong>Monthly SWMS review</strong> — all workers review and acknowledge the applicable SWMS at the monthly toolbox meeting; any amendments are discussed and recorded at that meeting</li>
+        <li><strong>Open reporting culture</strong> — hazards, near-misses, and safety concerns are welcomed and acted on without blame</li>
+        <li><strong>SWMS participation</strong> — workers who identify a gap in controls or a near-miss directly participate in reviewing and updating the relevant SWMS</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Section 12: Document Control -->
+  <div class="card">
+    <div class="card-header"><span class="num">12</span> Document Control &amp; Review</div>
+    <div class="card-body">
+      <ul>
+        <li>This policy is reviewed <strong>annually</strong> (June each year) or immediately after a serious incident, legislative change, or significant change in work scope</li>
+        <li>All SWMS are reviewed annually or after any incident or near-miss revealing a gap in controls</li>
+        <li>Current versions of all H&amp;S documents are held in the Safety &amp; Compliance section of the company management system</li>
+        <li>Superseded versions are archived — they are not used on site</li>
+        <li>Workers are notified of significant changes at the next toolbox meeting and re-sign amended SWMS</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Section 13: Drug & Alcohol -->
+  <div class="card">
+    <div class="card-header"><span class="num">13</span> Drug &amp; Alcohol Policy</div>
+    <div class="card-body">
+      <p>Urban Tree Services Ltd operates a strict drug and alcohol-free workplace. The safety-critical nature of arboricultural work — including chainsaw operation, aerial climbing, and traffic management — means impairment of any kind presents an unacceptable risk to life.</p>
+      <h3 style="font-size:13px;font-weight:700;margin:14px 0 8px;color:#2C2416;">Our Rules</h3>
+      <ul>
+        <li>No worker may attend work, operate machinery, or climb while under the influence of alcohol, illegal drugs, or any substance that impairs judgement, coordination, or reaction time</li>
+        <li>The legal blood alcohol limit for driving (50mg/100ml) applies as a minimum — we expect zero alcohol for anyone operating chainsaws, chippers, or working at height</li>
+        <li>Prescription or over-the-counter medications that may cause drowsiness, dizziness, or impaired coordination must be disclosed to the director before work. Workers may be redeployed to non-safety-critical tasks until the course of medication is complete</li>
+        <li>Workers are not to return to work within 8 hours of consuming alcohol</li>
+      </ul>
+      <h3 style="font-size:13px;font-weight:700;margin:14px 0 8px;color:#2C2416;">Testing</h3>
+      <ul>
+        <li>Urban Tree Services reserves the right to require drug and alcohol testing where there are reasonable grounds to suspect impairment, following a workplace incident or near-miss, or as part of a post-incident investigation</li>
+        <li>Testing may be conducted by a third-party provider. A positive result, refusal to test, or failure to comply with this policy is grounds for disciplinary action, up to and including dismissal</li>
+        <li>Workers who believe they may have a problem are encouraged to seek support confidentially through their GP or the Employee Assistance Programme (EAP). The company will support access to treatment without prejudice where the worker comes forward voluntarily before an incident occurs</li>
+      </ul>
+      <h3 style="font-size:13px;font-weight:700;margin:14px 0 8px;color:#2C2416;">Reporting</h3>
+      <ul>
+        <li>Any worker with concerns about a colleague's fitness for work must report this to the director or crew lead immediately — this is a safety obligation, not a disciplinary act</li>
+        <li>Workers sent home for impairment will not be paid for hours not worked</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Section 14: Fatigue Management -->
+  <div class="card">
+    <div class="card-header"><span class="num">14</span> Fatigue Management</div>
+    <div class="card-body">
+      <p>Fatigue impairs judgement and reaction time to a degree comparable to alcohol. Urban Tree Services recognises fatigue as a serious hazard given the physical demands of the work and the use of dangerous machinery.</p>
+      <ul>
+        <li>Workers must arrive at work adequately rested. A minimum of 8 hours off duty (including reasonable sleep) between shifts is expected</li>
+        <li>Maximum working hours are 10 hours on-tool per day. Breaks of at least 30 minutes are required every 4 hours</li>
+        <li>Workers must advise their crew lead if they feel too fatigued to safely operate machinery or carry out climbing work. Redeployment to ground-based or administrative tasks may be arranged</li>
+        <li>Overtime and extended hours must be approved by the director. The health and safety of the worker takes priority over job completion timelines</li>
+        <li>Workers undertaking long-distance driving to/from remote sites should not also operate chainsaws or climb on the same day where this can be avoided</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Section 15: Code of Conduct -->
+  <div class="card">
+    <div class="card-header"><span class="num">15</span> Code of Conduct</div>
+    <div class="card-body">
+      <p>All Urban Tree Services workers are expected to conduct themselves professionally at all times — on site, while driving company vehicles, and when communicating with clients, contractors, and the public.</p>
+      <h3 style="font-size:13px;font-weight:700;margin:14px 0 8px;color:#2C2416;">Expected Standards</h3>
+      <ul>
+        <li><strong>Professionalism:</strong> Treat clients, members of the public, and colleagues with courtesy and respect at all times. Represent the company positively</li>
+        <li><strong>Honesty:</strong> Workers must be truthful in all dealings with the company, clients, and WorkSafe NZ. Falsification of H&amp;S records, timesheets, or incident reports is grounds for immediate dismissal</li>
+        <li><strong>Punctuality:</strong> Arrive on time for agreed start times. Notify the crew lead as early as possible if you will be late or absent</li>
+        <li><strong>Appearance:</strong> Wear clean, appropriate workwear and all required PPE while on site or travelling to/from jobs in company vehicles. Company uniforms (where provided) must be worn</li>
+        <li><strong>Property:</strong> Company tools, vehicles, and equipment are to be used for work purposes only. Any damage must be reported immediately. Workers may be held liable for damage caused by gross negligence or deliberate misuse</li>
+        <li><strong>Confidentiality:</strong> Client information, pricing, and commercially sensitive company information must not be shared with competitors or third parties without director approval</li>
+        <li><strong>Social media:</strong> Workers must not post images of client properties, job sites, or colleagues on social media without written consent from the director and relevant parties</li>
+        <li><strong>Mobile phones:</strong> Personal mobile phone use is not permitted while operating machinery, climbing, or driving. Phones may be used during designated break periods</li>
+      </ul>
+      <h3 style="font-size:13px;font-weight:700;margin:14px 0 8px;color:#2C2416;">Disciplinary Process</h3>
+      <ul>
+        <li>Breaches of this code will be addressed through the company's disciplinary procedure in accordance with the Employment Relations Act 2000</li>
+        <li>Serious misconduct (including dishonesty, harassment, intoxication at work, or endangering others) may result in summary dismissal without prior warnings</li>
+        <li>Workers have the right to have a support person present at any disciplinary meeting</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Section 16: Harassment & Bullying -->
+  <div class="card">
+    <div class="card-header"><span class="num">16</span> Workplace Harassment &amp; Bullying Prevention</div>
+    <div class="card-body">
+      <p>Urban Tree Services Ltd is committed to a workplace free from harassment, bullying, and discrimination. All workers have the right to be treated with dignity and respect.</p>
+      <ul>
+        <li><strong>Harassment</strong> includes unwanted behaviour related to a person's gender, race, ethnicity, age, disability, sexual orientation, religion, or any other protected ground under the Human Rights Act 1993 — whether verbal, physical, or digital</li>
+        <li><strong>Bullying</strong> is repeated, unreasonable behaviour directed at a worker or group of workers that creates a risk to health and safety. This includes intimidation, exclusion, humiliation, and excessive criticism</li>
+        <li><strong>Sexual harassment</strong> — making unwelcome sexual advances, requests for sexual favours, or engaging in behaviour of a sexual nature that is offensive, humiliating, or intimidating — is a serious breach of this policy and may constitute a criminal offence</li>
+        <li>Banter and workplace humour that a reasonable person would find offensive, humiliating, or demeaning is not acceptable, even if intended as a joke</li>
+      </ul>
+      <h3 style="font-size:13px;font-weight:700;margin:14px 0 8px;color:#2C2416;">Reporting</h3>
+      <ul>
+        <li>Workers who experience or witness harassment or bullying should report it to the director (Josh Micallef) as soon as possible</li>
+        <li>All complaints will be taken seriously, investigated promptly, and treated with confidentiality to the extent possible</li>
+        <li>Workers must not victimise or disadvantage anyone who raises a complaint in good faith</li>
+        <li>Substantiated harassment or bullying will result in disciplinary action, up to and including dismissal</li>
+        <li>Workers may also contact WorkSafe NZ (0800 030 040) or the Human Rights Commission (0800 496 877) if they feel their concerns are not being addressed</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Sign-off -->
+  <div class="card">
+    <div class="card-header"><span class="num">✓</span> Director Sign-off</div>
+    <div class="card-body">
+      <p>I confirm that this Health &amp; Safety Policy reflects the genuine commitment of Urban Tree Services Ltd
+      to providing and maintaining safe and healthy working conditions for all workers and persons affected by our operations.</p>
+      <div class="sign-grid">
+        <div class="sign-field"><label>Director name</label><div class="sign-value">Josh Micallef</div></div>
+        <div class="sign-field"><label>Date</label><div class="sign-value">June 2026</div></div>
+        <div class="sign-field"><label>Signature</label><div class="sign-line"></div></div>
+        <div class="sign-field"><label>Next review date</label><div class="sign-value">June 2027</div></div>
+      </div>
+      <p style="margin-top:18px;font-size:11.5px;color:#999;line-height:1.5;">
+        Urban Tree Services Ltd · HSP-001 Health &amp; Safety Policy v1.0 · June 2026<br>
+        Aligned with: HSWA 2015 · WorkSafe NZ · NZArb Code of Practice 2021 · ArbAus MIS 01–14 · ECP 34 · SiteWise grading requirements
+      </p>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
