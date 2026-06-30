@@ -47,7 +47,7 @@ async function openFile(file_url) {
 
 export default function Safety() {
   const { profile, isStaff } = useAuth()
-  const [tab, setTab] = useState(isStaff ? 'overview' : 'forms')
+  const [tab, setTab] = useState('home')
   const [staff, setStaff] = useState([])
   const [company, setCompany] = useState([])
   const [docs, setDocs] = useState([])
@@ -106,52 +106,47 @@ export default function Safety() {
         </div>
       </div>
 
-      <div style={s.tabs}>
-        {[
-          ['forms',        'Forms'],
-          ['checks',       `Scheduled Checks${checksAlert ? ` (${checksAlert})` : ''}`],
-          ...(isStaff ? [
-            ['overview',     `Overview${flagged.length ? ` (${flagged.length})` : ''}`],
-            ['assessments',  'Risk Assessments'],
-            ['swms',         'SWMS'],
-            ['sop',          'SOPs'],
-            ['staff',        'Staff Records'],
-            ['company',      'Company & Insurance'],
-            ['docs',         'Documents'],
-          ] : []),
-        ].map(([k, t]) => (
-          <button key={k} onClick={() => setTab(k)} style={{ ...s.tab, ...(tab === k ? s.tabOn : {}) }}>{t}</button>
-        ))}
-      </div>
+      {tab === 'home' && (
+        <HomeNav isStaff={isStaff} checksAlert={checksAlert} flaggedCount={flagged.length} onSelect={setTab} />
+      )}
 
-      {tab === 'forms'       && <div style={s.body}><FormsPanel onSelect={setActiveForm} /></div>}
-      {tab === 'checks'      && <div style={s.body}><ScheduledChecksPanel overdue={overdue} dueSoon={dueSoon} upcoming={upcoming} onDone={markDone} /></div>}
-      {tab === 'assessments' && <div style={s.body}><RiskAssessments /></div>}
-      {tab === 'swms'        && <div style={s.body}><SWMS /></div>}
-      {tab === 'sop'         && <div style={s.body}><SOP /></div>}
-      {tab === 'docs'        && <div style={s.body}><HSDocuments /></div>}
-
-      {tab !== 'forms' && tab !== 'checks' && tab !== 'assessments' && tab !== 'docs' && tab !== 'swms' && tab !== 'sop' && (
-        loading ? <div style={s.empty}>Loading…</div> : (
-          <div style={s.body}>
-            {tab === 'overview' && (
-              <Overview flagged={flagged} expiring={expiring} staff={staff} company={company} docs={docs}
-                onOpen={x => setTab(x.vault === 'docs' ? 'docs' : x.vault)} />
-            )}
-            {tab === 'staff' && (
-              <Vault title="Staff Records" rows={staff} types={STAFF_TYPES}
-                cols={[['title', 'Document'], ['who', 'Staff'], ['issued_date', 'Issued'], ['expiry_date', 'Expires']]}
-                render={r => ({ who: userName(r.user_id) || r.staff_name || '—' })}
-                onAdd={() => setModal({ vault: 'staff', row: {} })} onEdit={r => setModal({ vault: 'staff', row: r })} />
-            )}
-            {tab === 'company' && (
-              <Vault title="Company & Insurance" rows={company} types={COMPANY_TYPES}
-                cols={[['title', 'Document'], ['issuer', 'Issuer'], ['reference', 'Ref'], ['expiry_date', 'Expires']]}
-                render={() => ({})}
-                onAdd={() => setModal({ vault: 'company', row: {} })} onEdit={r => setModal({ vault: 'company', row: r })} />
-            )}
+      {tab !== 'home' && (
+        <div>
+          <div style={s.secNav}>
+            <button style={s.secNavBack} onClick={() => setTab('home')}>← Safety</button>
+            <span style={s.secNavTitle}>{SECTION_LABELS[tab] ?? tab}</span>
           </div>
-        )
+
+          {tab === 'forms'       && <FormsPanel onSelect={setActiveForm} />}
+          {tab === 'checks'      && <ScheduledChecksPanel overdue={overdue} dueSoon={dueSoon} upcoming={upcoming} onDone={markDone} />}
+          {tab === 'assessments' && <RiskAssessments />}
+          {tab === 'swms'        && <SWMS />}
+          {tab === 'sop'         && <SOP />}
+          {tab === 'docs'        && <HSDocuments />}
+
+          {['overview','staff','company'].includes(tab) && (
+            loading ? <div style={s.empty}>Loading…</div> : (
+              <>
+                {tab === 'overview' && (
+                  <Overview flagged={flagged} expiring={expiring} staff={staff} company={company} docs={docs}
+                    onOpen={x => setTab(x.vault === 'docs' ? 'docs' : x.vault)} />
+                )}
+                {tab === 'staff' && (
+                  <Vault title="Staff Records" rows={staff} types={STAFF_TYPES}
+                    cols={[['title', 'Document'], ['who', 'Staff'], ['issued_date', 'Issued'], ['expiry_date', 'Expires']]}
+                    render={r => ({ who: userName(r.user_id) || r.staff_name || '—' })}
+                    onAdd={() => setModal({ vault: 'staff', row: {} })} onEdit={r => setModal({ vault: 'staff', row: r })} />
+                )}
+                {tab === 'company' && (
+                  <Vault title="Company & Insurance" rows={company} types={COMPANY_TYPES}
+                    cols={[['title', 'Document'], ['issuer', 'Issuer'], ['reference', 'Ref'], ['expiry_date', 'Expires']]}
+                    render={() => ({})}
+                    onAdd={() => setModal({ vault: 'company', row: {} })} onEdit={r => setModal({ vault: 'company', row: r })} />
+                )}
+              </>
+            )
+          )}
+        </div>
       )}
 
       {modal && <RecordModal {...modal} users={users} onClose={() => setModal(null)} onSaved={() => { setModal(null); load() }} createdBy={profile?.id} />}
@@ -306,9 +301,9 @@ const s = {
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
   title: { fontSize: 22, fontWeight: 800, color: 'var(--bark)' },
   sub: { fontSize: 13, color: '#888', marginTop: 2 },
-  tabs: { display: 'flex', gap: 4, borderBottom: '1px solid var(--border)', marginBottom: 18, flexWrap: 'wrap' },
-  tab: { background: 'none', border: 'none', padding: '8px 14px', fontSize: 13, fontWeight: 600, color: '#888', cursor: 'pointer', borderBottom: '2px solid transparent', fontFamily: 'var(--font)' },
-  tabOn: { color: 'var(--bark)', borderBottom: '2px solid var(--moss)' },
+  secNav: { display:'flex', alignItems:'center', gap:12, marginBottom:18, paddingBottom:14, borderBottom:'1px solid var(--border)' },
+  secNavBack: { background:'none', border:'1px solid var(--border)', borderRadius:8, padding:'6px 14px', fontSize:13, fontWeight:600, cursor:'pointer', color:'#4A6741', fontFamily:'var(--font)', flexShrink:0 },
+  secNavTitle: { fontSize:16, fontWeight:800, color:'var(--bark)' },
   body: {},
   statRow: { display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 24 },
   statCard: { flex: 1, minWidth: 120, background: '#fff', border: '1px solid var(--border)', borderRadius: 10, padding: '14px 16px' },
@@ -400,6 +395,58 @@ function ScheduledChecksPanel({ overdue, dueSoon, upcoming, onDone }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{upcoming.map(c => <CheckCard key={c.id} check={c} urgency="upcoming" confirming={confirming} setConfirming={setConfirming} onDone={onDone} />)}</div>
         </div>
       )}
+    </div>
+  )
+}
+
+// ── Section registry ─────────────────────────────────────────────────────────
+
+const SECTION_LABELS = {
+  forms:       'Forms',
+  checks:      'Scheduled Checks',
+  overview:    'Overview',
+  swms:        'SWMS',
+  sop:         'SOPs',
+  assessments: 'Risk Assessments',
+  staff:       'Staff Records',
+  company:     'Company & Insurance',
+  docs:        'H&S Policy & Documents',
+}
+
+const SECTIONS = [
+  { key:'forms',       icon:'📋', label:'Forms',                   desc:'SSSP, Toolbox Meeting, Pre-Start Check, Incident Report' },
+  { key:'checks',      icon:'✅', label:'Scheduled Checks',        desc:'Audits, cert renewals & compliance inspections' },
+  { key:'overview',    icon:'📊', label:'Overview',                desc:'Expiry alerts, document summary & counts', staffOnly:true },
+  { key:'swms',        icon:'🦺', label:'SWMS',                    desc:'Safe Work Method Statements — 13 documents', staffOnly:true },
+  { key:'sop',         icon:'📝', label:'SOPs',                    desc:'Standard Operating Procedures — 17 documents', staffOnly:true },
+  { key:'assessments', icon:'⚠️',  label:'Risk Assessments',       desc:'Site and task risk assessments', staffOnly:true },
+  { key:'staff',       icon:'👷', label:'Staff Records',           desc:'Qualifications, licences, certs & MOJ checks', staffOnly:true },
+  { key:'company',     icon:'🏢', label:'Company & Insurance',     desc:'Insurance certificates, policies & company documents', staffOnly:true },
+  { key:'docs',        icon:'📁', label:'H&S Policy & Documents',  desc:'Health & Safety Policy, safety plans & audit records', staffOnly:true },
+]
+
+function HomeNav({ isStaff, checksAlert, flaggedCount, onSelect }) {
+  const items = SECTIONS.filter(x => !x.staffOnly || isStaff)
+  return (
+    <div style={{ maxWidth: 640, display:'flex', flexDirection:'column', gap:8 }}>
+      {items.map(item => {
+        const alert = item.key === 'checks' ? checksAlert : item.key === 'overview' ? flaggedCount : 0
+        return (
+          <button key={item.key} onClick={() => onSelect(item.key)}
+            style={{ display:'flex', alignItems:'center', gap:16, padding:'14px 18px', background:'#fff', border:'1.5px solid #E0E8D8', borderRadius:12, cursor:'pointer', textAlign:'left', fontFamily:'var(--font)', width:'100%' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor='#4A6741'; e.currentTarget.style.boxShadow='0 2px 12px rgba(74,103,65,0.1)' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor='#E0E8D8'; e.currentTarget.style.boxShadow='none' }}
+          >
+            <span style={{ fontSize:26, flexShrink:0, lineHeight:1 }}>{item.icon}</span>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontSize:15, fontWeight:700, color:'#2C2416' }}>{item.label}</div>
+              <div style={{ fontSize:13, color:'#888', marginTop:2 }}>{item.desc}</div>
+            </div>
+            {alert > 0 && <span style={{ background:'#FFF0EE', color:'#C0392B', fontWeight:700, fontSize:12, borderRadius:20, padding:'2px 9px', flexShrink:0 }}>{alert}</span>}
+            <span style={{ color:'#C0CABB', fontSize:20, flexShrink:0 }}>›</span>
+          </button>
+        )
+      })}
     </div>
   )
 }
