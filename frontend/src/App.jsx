@@ -18,6 +18,7 @@ const Clients      = lazy(() => import('./pages/Clients'))
 const Settings     = lazy(() => import('./pages/Settings'))
 const Dashboard    = lazy(() => import('./pages/Dashboard'))
 const Forms        = lazy(() => import('./pages/Forms'))
+const Safety       = lazy(() => import('./pages/Safety'))
 
 const PageFallback = () => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100dvh', color: 'var(--bark)' }}>Loading…</div>
@@ -86,6 +87,7 @@ export default function App() {
             <Route path="quotes/:id" element={<RequireStaff><QuoteBuilder /></RequireStaff>} />
             <Route path="settings"  element={<RequireFullAccess><Settings /></RequireFullAccess>} />
             <Route path="forms"     element={<Forms />} />
+            <Route path="safety"    element={<RequireStaff><Safety /></RequireStaff>} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

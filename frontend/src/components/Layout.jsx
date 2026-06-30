@@ -10,6 +10,7 @@ const FULL_NAV = [
   { to: '/clients',   label: 'Clients',   icon: ClientsIcon },
   { to: '/quotes',    label: 'Quotes',    icon: QuotesIcon },
   { to: '/forms',     label: 'Forms',     icon: FormsIcon },
+  { to: '/safety',    label: 'Safety',    icon: SafetyIcon },
 ]
 
 const OFFICE_NAV = [
@@ -18,6 +19,7 @@ const OFFICE_NAV = [
   { to: '/clients',   label: 'Clients',   icon: ClientsIcon },
   { to: '/quotes',    label: 'Quotes',    icon: QuotesIcon },
   { to: '/forms',     label: 'Forms',     icon: FormsIcon },
+  { to: '/safety',    label: 'Safety',    icon: SafetyIcon },
 ]
 
 const CREW_NAV = [
@@ -163,6 +165,14 @@ function FormsIcon({ active, size = 22 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round">
       <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+    </svg>
+  )
+}
+function SafetyIcon({ active, size = 22 }) {
+  const c = active ? '#fff' : 'rgba(255,255,255,0.55)'
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/>
     </svg>
   )
 }
