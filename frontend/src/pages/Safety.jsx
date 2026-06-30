@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import RiskAssessments from './RiskAssessment'
 import HSDocuments from './HSDocuments'
 import SWMS from './SWMS'
+import SOP from './SOP'
 
 // ── Vault configs ───────────────────────────────────────────────────────────
 const STAFF_TYPES = [
@@ -126,9 +127,10 @@ export default function Safety() {
       {tab === 'checks'      && <div style={s.body}><ScheduledChecksPanel overdue={overdue} dueSoon={dueSoon} upcoming={upcoming} onDone={markDone} /></div>}
       {tab === 'assessments' && <div style={s.body}><RiskAssessments /></div>}
       {tab === 'swms'        && <div style={s.body}><SWMS /></div>}
+      {tab === 'sop'         && <div style={s.body}><SOP /></div>}
       {tab === 'docs'        && <div style={s.body}><HSDocuments /></div>}
 
-      {tab !== 'forms' && tab !== 'checks' && tab !== 'assessments' && tab !== 'docs' && tab !== 'swms' && (
+      {tab !== 'forms' && tab !== 'checks' && tab !== 'assessments' && tab !== 'docs' && tab !== 'swms' && tab !== 'sop' && (
         loading ? <div style={s.empty}>Loading…</div> : (
           <div style={s.body}>
             {tab === 'overview' && (
