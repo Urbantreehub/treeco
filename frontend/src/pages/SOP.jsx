@@ -533,8 +533,13 @@ function printPDF(doc) {
   <title>${doc.doc_number} — ${doc.title}</title>
   <style>
     @page { size: A4; margin: 12mm 14mm; }
-    @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+    @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } .toolbar { display: none !important; } }
     body { font-family: Arial, Helvetica, sans-serif; font-size: 8.5pt; color: #1a1a1a; margin: 0; }
+    .toolbar { display: flex; align-items: center; gap: 10px; background: #3A5C2E; color: #fff; padding: 10px 16px; position: sticky; top: 0; z-index: 100; }
+    .toolbar button { padding: 6px 14px; border-radius: 6px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .tb-close { background: rgba(255,255,255,0.2); color: #fff; }
+    .tb-print { background: #fff; color: #3A5C2E; }
+    .tb-title { flex: 1; font-size: 13px; font-weight: 600; opacity: 0.9; }
     .header { display: flex; align-items: center; gap: 16px; padding-bottom: 8px; border-bottom: 3px solid #3A5C2E; margin-bottom: 8px; }
     .logo { height: 44px; width: auto; object-fit: contain; }
     .doc-info { flex: 1; }
@@ -564,6 +569,13 @@ function printPDF(doc) {
   </style>
   </head><body>
 
+  <div class="toolbar">
+    <button class="tb-close" onclick="window.close()">← Close</button>
+    <span class="tb-title">${doc.doc_number} — ${doc.title}</span>
+    <button class="tb-print" onclick="window.print()">Print / Save PDF</button>
+  </div>
+
+  <div style="padding: 14px 16px">
   <div class="header">
     <img src="${logoUrl}" class="logo" alt="Urban Tree Services" onerror="this.style.display='none'">
     <div class="doc-info">
@@ -639,8 +651,8 @@ function printPDF(doc) {
     <span>Aligned with: ${doc.ref}</span>
     <span>HSWA 2015 · WorkSafe NZ · NZArb · ArbAus · AS 4373-2007</span>
   </div>
+  </div>
 
-  <script>window.onload = () => window.print()</script>
   </body></html>`
 
   const win = window.open('', '_blank', 'width=900,height=700')
