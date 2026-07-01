@@ -58,28 +58,100 @@ function rucColor(km) {
   return '#4A6741'
 }
 
-// ─── ICS calendar download ───────────────────────────────────────────────────
-function downloadICS({ title, startDate, durationMins = 60, description = '' }) {
-  const start = new Date(startDate)
-  const end   = new Date(start.getTime() + durationMins * 60000)
-  const fmt   = d => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
-  const uid   = `${Date.now()}-${Math.random().toString(36).slice(2)}@treeco`
-  const ics   = [
-    'BEGIN:VCALENDAR', 'VERSION:2.0',
-    'PRODID:-//Urban Tree Services//TreeCo//EN', 'METHOD:PUBLISH',
-    'BEGIN:VEVENT',
-    `UID:${uid}`,
-    `DTSTART:${fmt(start)}`, `DTEND:${fmt(end)}`,
-    `SUMMARY:${title.replace(/[,;\\]/g, s => '\\' + s)}`,
-    description && `DESCRIPTION:${description.replace(/\n/g, '\\n').replace(/[,;\\]/g, s => '\\' + s)}`,
-    'STATUS:CONFIRMED', 'END:VEVENT', 'END:VCALENDAR',
-  ].filter(Boolean).join('\r\n')
-  const a = Object.assign(document.createElement('a'), {
-    href: URL.createObjectURL(new Blob([ics], { type: 'text/calendar;charset=utf-8' })),
-    download: title.replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '_') + '.ics',
+// ─── Add event to app schedule ───────────────────────────────────────────────
+async function addToAppSchedule({ title, description, date, startTime, endTime, resourceId }) {
+  const { data: job, error: jobErr } = await supabase
+    .from('jobs')
+    .insert({ title, job_type: 'safety_event', description, status: 'scheduled' })
+    .select('id').single()
+  if (jobErr) throw jobErr
+  const { error: schedErr } = await supabase.from('schedule').insert({
+    job_id: job.id, date, start_time: startTime || null, end_time: endTime || null,
+    resource_id: resourceId || 'unassigned', status: 'scheduled',
   })
-  document.body.appendChild(a); a.click(); document.body.removeChild(a)
-  URL.revokeObjectURL(a.href)
+  if (schedErr) throw schedErr
+  return job.id
+}
+
+// ─── Schedule modal ───────────────────────────────────────────────────────────
+const SCHED_RESOURCES = [
+  { id:'josh',       label:'Josh Micallef' },
+  { id:'isuzu',      label:'Isuzu (whole crew)' },
+  { id:'nissan',     label:'Nissan crew' },
+  { id:'unassigned', label:'Unassigned' },
+]
+
+function AddToScheduleModal({ item, onClose, onSaved }) {
+  const [date,      setDate]      = useState(item.suggestedDate ?? '')
+  const [startTime, setStartTime] = useState('07:00')
+  const [endTime,   setEndTime]   = useState('08:00')
+  const [resource,  setResource]  = useState('josh')
+  const [saving,    setSaving]    = useState(false)
+
+  async function save() {
+    if (!date) return
+    setSaving(true)
+    try {
+      await addToAppSchedule({ title: item.title, description: item.desc, date, startTime, endTime, resourceId: resource })
+      onSaved()
+    } catch (err) {
+      alert('Could not add to schedule: ' + err.message)
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div style={{ position:'fixed', inset:0, background:'rgba(44,36,22,0.4)', zIndex:900, display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+      <div style={{ background:'#fff', borderRadius:14, width:380, maxWidth:'95vw', boxShadow:'0 20px 60px rgba(0,0,0,0.25)', overflow:'hidden' }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'16px 18px', borderBottom:'1px solid #eee' }}>
+          <span style={{ fontSize:15, fontWeight:800, color:'var(--bark)' }}>Add to Schedule</span>
+          <button onClick={onClose} style={{ background:'none', border:'none', fontSize:18, color:'#bbb', cursor:'pointer' }}>✕</button>
+        </div>
+        <div style={{ padding:'16px 18px', display:'flex', flexDirection:'column', gap:12 }}>
+          <div>
+            <div style={ms.lbl}>Event</div>
+            <div style={{ fontSize:14, fontWeight:600, color:'var(--bark)', padding:'8px 10px', background:'#f8f8f6', borderRadius:7, border:'1px solid #eee' }}>{item.title}</div>
+          </div>
+          <div style={{ display:'flex', gap:10 }}>
+            <div style={{ flex:1 }}>
+              <div style={ms.lbl}>Date</div>
+              <input type="date" style={ms.inp} value={date} onChange={e => setDate(e.target.value)} />
+            </div>
+          </div>
+          <div style={{ display:'flex', gap:10 }}>
+            <div style={{ flex:1 }}>
+              <div style={ms.lbl}>Start time</div>
+              <input type="time" style={ms.inp} value={startTime} onChange={e => setStartTime(e.target.value)} />
+            </div>
+            <div style={{ flex:1 }}>
+              <div style={ms.lbl}>End time</div>
+              <input type="time" style={ms.inp} value={endTime} onChange={e => setEndTime(e.target.value)} />
+            </div>
+          </div>
+          <div>
+            <div style={ms.lbl}>Assign to</div>
+            <select style={ms.inp} value={resource} onChange={e => setResource(e.target.value)}>
+              {SCHED_RESOURCES.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
+            </select>
+          </div>
+        </div>
+        <div style={{ display:'flex', gap:8, padding:'12px 18px', borderTop:'1px solid #eee', justifyContent:'flex-end' }}>
+          <button onClick={onClose} style={ms.cancelBtn}>Cancel</button>
+          <button onClick={save} disabled={!date || saving}
+            style={{ ...ms.saveBtn, opacity: !date || saving ? 0.5 : 1 }}>
+            {saving ? 'Adding…' : 'Add to Schedule'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const ms = {
+  lbl:       { fontSize:11, fontWeight:600, color:'#888', textTransform:'uppercase', letterSpacing:'0.04em', marginBottom:4 },
+  inp:       { width:'100%', padding:'8px 10px', borderRadius:7, border:'1.5px solid #ddd', fontSize:13, color:'var(--bark)', fontFamily:'var(--font)', boxSizing:'border-box', background:'#fff' },
+  saveBtn:   { background:'var(--moss)', color:'#fff', border:'none', borderRadius:7, padding:'9px 18px', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'var(--font)' },
+  cancelBtn: { background:'#fff', border:'1px solid #ddd', borderRadius:7, padding:'9px 16px', fontSize:13, color:'#666', cursor:'pointer', fontFamily:'var(--font)' },
 }
 
 // ─── Safety actions widget ────────────────────────────────────────────────────
@@ -87,7 +159,14 @@ function SafetyActionsWidget({ onNavigate }) {
   const [staffRecs,   setStaffRecs]   = useState([])
   const [companyDocs, setCompanyDocs] = useState([])
   const [safetyLoading, setSafetyLoading] = useState(true)
+  const [schedModal,  setSchedModal]  = useState(null) // { title, desc, suggestedDate, jobType }
+  const [toast,       setToast]       = useState('')
   const { overdue: checksOverdue, dueSoon: checksDue } = useScheduledChecks()
+
+  function showToastMsg(msg) {
+    setToast(msg)
+    setTimeout(() => setToast(''), 3000)
+  }
 
   useEffect(() => {
     const cutoff = new Date(); cutoff.setDate(cutoff.getDate() + 60)
@@ -147,6 +226,11 @@ function SafetyActionsWidget({ onNavigate }) {
       </div>
 
       <div style={{ padding:'12px 16px', display:'flex', flexDirection:'column', gap:7 }}>
+        {toast && (
+          <div style={{ background:'#E8F0E6', color:'#4A6741', fontSize:13, fontWeight:600, padding:'8px 12px', borderRadius:8, border:'1px solid #C8D8C0' }}>
+            ✓ {toast}
+          </div>
+        )}
         {safetyLoading ? (
           <div style={{ color:'#bbb', fontSize:13, padding:'8px 0' }}>Loading safety data…</div>
         ) : items.length === 0 ? (
@@ -155,7 +239,9 @@ function SafetyActionsWidget({ onNavigate }) {
           </div>
         ) : items.map(item => {
           const u = urgCfg[item.urgency]
-          const calDate = new Date(item.dueDate || Date.now()); calDate.setHours(8,0,0,0)
+          const suggestedDate = item.dueDate
+            ? new Date(new Date(item.dueDate).getTime() - 14*86400000).toISOString().split('T')[0]
+            : new Date().toISOString().split('T')[0]
           return (
             <div key={item.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 12px', background:u.bg, borderRadius:8, border:`1px solid ${u.color}30` }}>
               <span style={{ width:8, height:8, borderRadius:'50%', background:u.dot, flexShrink:0 }} />
@@ -164,7 +250,8 @@ function SafetyActionsWidget({ onNavigate }) {
                 <div style={{ fontSize:11, color:'#888', marginTop:1 }}>{item.desc}</div>
               </div>
               <span style={{ fontSize:11, fontWeight:700, color:u.color, flexShrink:0 }}>{dLabel(item.dueDate)}</span>
-              <button onClick={() => downloadICS({ title:item.title, startDate:calDate, description:item.desc })}
+              <button
+                onClick={() => setSchedModal({ title: item.title, desc: item.desc, suggestedDate })}
                 style={{ fontSize:11, background:'#fff', border:'1px solid #ddd', borderRadius:6, padding:'4px 9px', cursor:'pointer', flexShrink:0, fontFamily:'var(--font)', color:'#555', whiteSpace:'nowrap' }}>
                 📅 Add
               </button>
@@ -182,17 +269,28 @@ function SafetyActionsWidget({ onNavigate }) {
               <span style={{ marginLeft:6, color:'#4A6741', fontWeight:600 }}>Suggested: {nextToolbox.toLocaleDateString('en-NZ',{weekday:'short',day:'numeric',month:'short'})}</span>
             </div>
           </div>
-          <button onClick={() => downloadICS({
-              title:'UTS Toolbox Meeting — Monthly H&S Briefing',
-              startDate: nextToolbox,
-              durationMins: 60,
-              description:'Monthly H&S toolbox meeting.\nAgenda: site hazard debrief, SWMS/SOP review, PPE check, near-miss review, crew sign-off.\n\nBring: SWMS register, any incident reports from past month.',
+          <button
+            onClick={() => setSchedModal({
+              title: 'Toolbox Meeting — Monthly H&S Briefing',
+              desc:  'Monthly H&S briefing: site hazard debrief, SWMS/SOP review, PPE check, near-miss review, crew sign-off.',
+              suggestedDate: nextToolbox.toISOString().split('T')[0],
             })}
             style={{ fontSize:11, color:'#4A6741', background:'#fff', border:'1px solid #4A6741', borderRadius:6, padding:'4px 9px', cursor:'pointer', flexShrink:0, fontFamily:'var(--font)', fontWeight:600, whiteSpace:'nowrap' }}>
             📅 Schedule
           </button>
         </div>
       </div>
+
+      {schedModal && (
+        <AddToScheduleModal
+          item={schedModal}
+          onClose={() => setSchedModal(null)}
+          onSaved={() => {
+            setSchedModal(null)
+            showToastMsg('Added to schedule — check your calendar')
+          }}
+        />
+      )}
     </div>
   )
 }
