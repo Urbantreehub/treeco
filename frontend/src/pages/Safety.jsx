@@ -419,7 +419,7 @@ const SECTIONS = [
   { key:'overview',    icon:'📊', label:'Overview',                desc:'Expiry alerts, document summary & counts', staffOnly:true },
   { key:'swms',        icon:'🦺', label:'SWMS',                    desc:'Safe Work Method Statements — 13 documents', staffOnly:true },
   { key:'sop',         icon:'📝', label:'SOPs',                    desc:'Standard Operating Procedures — 17 documents', staffOnly:true },
-  { key:'assessments', icon:'⚠️',  label:'Risk Assessments',       desc:'Site and task risk assessments', staffOnly:true },
+  { key:'assessments', icon:'⚠️',  label:'Risk Assessments',       desc:'Site and task risk assessments' },
   { key:'staff',       icon:'👷', label:'Staff Records',           desc:'Qualifications, licences, certs & MOJ checks', staffOnly:true },
   { key:'company',     icon:'🏢', label:'Company & Insurance',     desc:'Insurance certificates, policies & company documents', staffOnly:true },
   { key:'docs',        icon:'📁', label:'H&S Policy & Documents',  desc:'Health & Safety Policy, safety plans & audit records', staffOnly:true },
@@ -466,12 +466,19 @@ const FORM_GROUPS = [
     group: 'Incident & Hazard Reporting',
     forms: [
       { id: 'incident-report',   title: 'Incident Report',   description: 'Injuries, near-misses, dangerous events & property damage — corrective actions, WorkSafe notification & sign-off', icon: '🚨', url: '/forms/incident-report.html' },
+      { id: 'return-to-work',    title: 'Return to Work Plan', description: 'Injury rehabilitation plan — modified duties, ACC liaison, staged RTW programme & worker/director sign-off',    icon: '🩺', url: '/forms/return-to-work.html' },
     ],
   },
   {
     group: 'Scheduled Audits & Inspections',
     forms: [
       { id: 'site-inspection',   title: 'H&S Site Audit',    description: 'Quarterly site safety inspection — SiteWise compliance checklist, findings, ratings & corrective actions',         icon: '🔍', url: '/forms/site-inspection.html' },
+    ],
+  },
+  {
+    group: 'Subcontractor Management',
+    forms: [
+      { id: 'subcontractor-prequalification', title: 'Subcontractor Pre-Qualification', description: 'H&S pre-qualification before engaging any subcontractor — SiteWise grade, insurance, capability check & approval decision', icon: '🏗', url: '/forms/subcontractor-prequalification.html' },
     ],
   },
   {
