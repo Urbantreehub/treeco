@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useIsMobile } from '../hooks/useIsMobile'
 import ImageMarkup from '../components/ImageMarkup'
 import { searchSor, CHARGE_CODES } from '../data/sorCodes'
@@ -639,6 +639,7 @@ function EmailModal({ quote, onClose, onSend, sending }) {
 export default function QuoteBuilder() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const isMobile = useIsMobile()
   const isNew = id === 'new'
   const preselectedJobId = isNew ? new URLSearchParams(window.location.search).get('job') : null
@@ -667,10 +668,15 @@ export default function QuoteBuilder() {
     setToast({ msg, type }); setTimeout(() => setToast(null), 3000)
   }
 
+  // Open send modal if navigated here from a new-quote save-and-send
+  useEffect(() => {
+    if (location.state?.openSendModal) setShowSendModal(true)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (!isNew) {
       supabase.from('quotes')
-        .select(`*, jobs (id, address, job_type, title, clients (id, name, email, phone))`)
+        .select(`*, jobs (id, address, job_type, title, status, clients (id, name, email, phone))`)
         .eq('id', id).single()
         .then(({ data }) => {
           if (!data) return
@@ -714,7 +720,7 @@ export default function QuoteBuilder() {
     })
   }
 
-  async function save(newStatus) {
+  async function save(newStatus, openSendModal = false) {
     setSaving(true)
     const payload = {
       line_items: items, subtotal: totals.subtotal, gst: totals.gst, total: totals.total,
@@ -746,14 +752,14 @@ export default function QuoteBuilder() {
       const validUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
       const { data, error } = await tryUpsert(payload, true, { job_id: jobId, status: newStatus ?? 'draft', client_view_token: token, valid_until: validUntil })
       if (error) showToast(error.message, 'error')
-      else if (data) { showToast('Quote created'); navigate(`/quotes/${data.id}`, { replace: true }) }
+      else if (data) { showToast('Quote created'); navigate(`/quotes/${data.id}`, { replace: true, state: openSendModal ? { openSendModal: true } : null }) }
       else showToast('Quote created')
     } else {
       const { error } = await tryUpsert(payload, false)
       if (error) { showToast(error.message, 'error'); setSaving(false); return }
       showToast(newStatus === 'sent' ? 'Marked as sent' : 'Saved')
       const { data } = await supabase.from('quotes')
-        .select(`*, jobs (id, address, job_type, title, clients (id, name, email, phone))`)
+        .select(`*, jobs (id, address, job_type, title, status, clients (id, name, email, phone))`)
         .eq('id', id).single()
       if (data) { setQuote(data); setJob(data.jobs) }
     }
@@ -761,23 +767,37 @@ export default function QuoteBuilder() {
   }
 
   async function handlePreviewSend() {
-    await save()
+    await save(undefined, true)
     setShowPreview(false)
     setShowSendModal(true)
   }
 
   async function handleSend() {
-    await save()
+    await save(undefined, true)
     setShowSendModal(true)
   }
 
   async function markAsSent() {
     await save('sent')
     setShowSendModal(false)
+    // Auto-advance job status to quote_sent if still at an early stage
+    if (quote?.job_id) {
+      const { data: currentJob } = await supabase.from('jobs').select('status').eq('id', quote.job_id).single()
+      if (['new_lead', 'quote_scheduled'].includes(currentJob?.status)) {
+        await supabase.from('jobs')
+          .update({ status: 'quote_sent', status_changed_at: new Date().toISOString() })
+          .eq('id', quote.job_id)
+      }
+    }
   }
 
   async function markComplete() {
     await save('complete')
+    if (quote?.job_id) {
+      await supabase.from('jobs')
+        .update({ status: 'complete_to_invoice', status_changed_at: new Date().toISOString() })
+        .eq('id', quote.job_id)
+    }
   }
 
   async function sendToXero() {
@@ -796,7 +816,7 @@ export default function QuoteBuilder() {
       showToast('Invoice created in Xero ✓')
       // Refresh quote data
       const { data } = await supabase.from('quotes')
-        .select(`*, jobs (id, address, job_type, title, clients (id, name, email, phone))`)
+        .select(`*, jobs (id, address, job_type, title, status, clients (id, name, email, phone))`)
         .eq('id', quote.id).single()
       if (data) { setQuote(data); setJob(data.jobs) }
     } catch (err) {
@@ -853,7 +873,7 @@ export default function QuoteBuilder() {
         {/* ── Header ── */}
         <div style={{ ...s.header, flexWrap: isMobile ? 'wrap' : 'nowrap', padding: isMobile ? '10px 14px' : '12px 20px' }}>
           <div style={s.hLeft}>
-            <button style={s.backBtn} onClick={() => navigate('/pipeline')}>← Quotes</button>
+            <button style={s.backBtn} onClick={() => navigate('/pipeline')}>← Jobs</button>
             <div>
               <div style={{ ...s.title, fontSize: isMobile ? '14px' : '16px' }}>{isNew ? 'New Quote' : (job?.clients?.name ?? 'Quote')}</div>
               {!isNew && job && <div style={s.sub}>{job.address}{job.job_type ? ` · ${job.job_type}` : ''}</div>}

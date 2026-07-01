@@ -40,7 +40,7 @@ function extractPriority(job) {
   return null
 }
 
-export default function JobDetailPanel({ job, onClose, onUpdated }) {
+export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }) {
   const { isFullAccess } = useAuth()
   const navigate = useNavigate()
   const [changingStatus, setChangingStatus] = useState(false)
@@ -147,7 +147,8 @@ export default function JobDetailPanel({ job, onClose, onUpdated }) {
       .eq('id', job.id)
     if (error) { alert(`Save failed: ${error.message}`); return; }
     setEditing(false)
-    onUpdated()
+    if (onFieldSaved) onFieldSaved()
+    else onUpdated()
   }
 
   const priority = extractPriority(job)

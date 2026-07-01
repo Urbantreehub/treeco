@@ -16,7 +16,7 @@ export function useJobs() {
     const { data, error } = await supabase
       .from('jobs')
       .select(`
-        id, status, title, address, job_type, description,
+        id, status, title, address, job_type, description, estimated_value,
         created_at, status_changed_at,
         clients (id, name, phone, email),
         quotes (id, status, subtotal, gst, total)

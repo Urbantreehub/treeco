@@ -24,7 +24,8 @@ function bestQuote(job) {
 export default function Pipeline() {
   const { jobs, loading, fetchJobs } = useJobs()
   const { isFullAccess } = useAuth()
-  const [selectedJob, setSelectedJob] = useState(null)
+  const [selectedJobId, setSelectedJobId] = useState(null)
+  const selectedJob = useMemo(() => jobs.find(j => j.id === selectedJobId) ?? null, [jobs, selectedJobId])
   const [showNewJob, setShowNewJob] = useState(false)
   const [textFilter, setTextFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState(new Set())
@@ -155,7 +156,7 @@ export default function Pipeline() {
               const total = quote ? nzd(quote.total) : null
               const date = job.created_at ? new Date(job.created_at) : null
               return (
-                <div key={job.id} style={s.row} onClick={() => setSelectedJob(job)}>
+                <div key={job.id} style={s.row} onClick={() => setSelectedJobId(job.id)}>
                   <div style={s.rowMain}>
                     <div style={s.client}>{job.clients?.name ?? '—'}</div>
                     <div style={s.meta}>
@@ -182,8 +183,9 @@ export default function Pipeline() {
       {selectedJob && (
         <JobDetailPanel
           job={selectedJob}
-          onClose={() => setSelectedJob(null)}
-          onUpdated={() => { fetchJobs(); setSelectedJob(null) }}
+          onClose={() => setSelectedJobId(null)}
+          onUpdated={() => { fetchJobs(); setSelectedJobId(null) }}
+          onFieldSaved={() => fetchJobs()}
         />
       )}
 
