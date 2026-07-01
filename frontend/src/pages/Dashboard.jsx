@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../config/supabase'
 import CartrackMap from '../components/CartrackMap'
+import { useScheduledChecks } from '../hooks/useScheduledChecks'
 
 const CREW_DAY_RATE = 2500   // $ per crew per day
 
@@ -55,6 +56,145 @@ function rucColor(km) {
   if (km < 500)  return '#D4851A'
   if (km < 2000) return '#4A7FA5'
   return '#4A6741'
+}
+
+// ─── ICS calendar download ───────────────────────────────────────────────────
+function downloadICS({ title, startDate, durationMins = 60, description = '' }) {
+  const start = new Date(startDate)
+  const end   = new Date(start.getTime() + durationMins * 60000)
+  const fmt   = d => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
+  const uid   = `${Date.now()}-${Math.random().toString(36).slice(2)}@treeco`
+  const ics   = [
+    'BEGIN:VCALENDAR', 'VERSION:2.0',
+    'PRODID:-//Urban Tree Services//TreeCo//EN', 'METHOD:PUBLISH',
+    'BEGIN:VEVENT',
+    `UID:${uid}`,
+    `DTSTART:${fmt(start)}`, `DTEND:${fmt(end)}`,
+    `SUMMARY:${title.replace(/[,;\\]/g, s => '\\' + s)}`,
+    description && `DESCRIPTION:${description.replace(/\n/g, '\\n').replace(/[,;\\]/g, s => '\\' + s)}`,
+    'STATUS:CONFIRMED', 'END:VEVENT', 'END:VCALENDAR',
+  ].filter(Boolean).join('\r\n')
+  const a = Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(new Blob([ics], { type: 'text/calendar;charset=utf-8' })),
+    download: title.replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '_') + '.ics',
+  })
+  document.body.appendChild(a); a.click(); document.body.removeChild(a)
+  URL.revokeObjectURL(a.href)
+}
+
+// ─── Safety actions widget ────────────────────────────────────────────────────
+function SafetyActionsWidget({ onNavigate }) {
+  const [staffRecs,   setStaffRecs]   = useState([])
+  const [companyDocs, setCompanyDocs] = useState([])
+  const [safetyLoading, setSafetyLoading] = useState(true)
+  const { overdue: checksOverdue, dueSoon: checksDue } = useScheduledChecks()
+
+  useEffect(() => {
+    const cutoff = new Date(); cutoff.setDate(cutoff.getDate() + 60)
+    const cs = cutoff.toISOString().split('T')[0]
+    Promise.all([
+      supabase.from('staff_records').select('id,title,staff_name,expiry_date').lte('expiry_date', cs).not('expiry_date', 'is', null),
+      supabase.from('company_documents').select('id,title,expiry_date').lte('expiry_date', cs).not('expiry_date', 'is', null),
+    ]).then(([sr, cd]) => {
+      setStaffRecs(sr.data ?? [])
+      setCompanyDocs(cd.data ?? [])
+      setSafetyLoading(false)
+    })
+  }, [])
+
+  const urgCfg = {
+    overdue:  { dot:'#C0392B', bg:'#FFF0EE', color:'#C0392B' },
+    soon:     { dot:'#D4851A', bg:'#FDF3E3', color:'#D4851A' },
+    upcoming: { dot:'#4A7FA5', bg:'#EEF4FA', color:'#4A7FA5' },
+  }
+  function urg(dateStr) {
+    const d = daysUntil(dateStr)
+    return d == null ? 'upcoming' : d < 0 ? 'overdue' : d <= 14 ? 'soon' : 'upcoming'
+  }
+  function dLabel(dateStr) {
+    const d = daysUntil(dateStr)
+    if (d == null) return ''
+    if (d < 0) return `${Math.abs(d)}d overdue`
+    if (d === 0) return 'today'
+    return `${d}d`
+  }
+
+  const items = [
+    ...checksOverdue.map(c => ({ id:'c'+c.id, title:c.title, urgency:'overdue',  dueDate:c.next_due, desc:'Scheduled H&S check' })),
+    ...checksDue.map(c    => ({ id:'d'+c.id, title:c.title, urgency:'soon',     dueDate:c.next_due, desc:'Scheduled H&S check' })),
+    ...staffRecs.map(r    => ({ id:'s'+r.id, title:`${r.staff_name||'Staff'} — ${r.title}`, urgency:urg(r.expiry_date), dueDate:r.expiry_date, desc:'Staff qualification / licence' })),
+    ...companyDocs.map(r  => ({ id:'co'+r.id, title:r.title, urgency:urg(r.expiry_date), dueDate:r.expiry_date, desc:'Company document / insurance' })),
+  ].sort((a,b) => { const o={overdue:0,soon:1,upcoming:2}; return o[a.urgency]-o[b.urgency] || new Date(a.dueDate)-new Date(b.dueDate) })
+
+  const overdueCount = items.filter(i => i.urgency === 'overdue').length
+
+  // Next Monday 7am for toolbox suggestion
+  const nextToolbox = (() => {
+    const d = new Date(); const day = d.getDay()
+    d.setDate(d.getDate() + (day === 0 ? 1 : day === 1 ? 7 : 8 - day))
+    d.setHours(7, 0, 0, 0); return d
+  })()
+
+  return (
+    <div style={{ background:'#fff', border:`1.5px solid ${overdueCount > 0 ? '#F0C0B8' : '#D8EBD0'}`, borderRadius:12, overflow:'hidden', marginBottom:28 }}>
+      <div style={{ display:'flex', alignItems:'center', gap:10, padding:'13px 18px', background: overdueCount > 0 ? '#FFF8F6' : '#F6FAF4', borderBottom:'1px solid #E8EDE4' }}>
+        <span style={{ fontSize:18 }}>🦺</span>
+        <span style={{ fontSize:14, fontWeight:700, color:'var(--bark)', flex:1 }}>
+          Safety Actions
+          {items.length > 0 && <span style={{ marginLeft:8, fontSize:11, fontWeight:700, background: overdueCount > 0 ? '#FFF0EE':'#FDF3E3', color: overdueCount > 0 ? '#C0392B':'#D4851A', borderRadius:20, padding:'2px 8px' }}>{items.length} need attention</span>}
+        </span>
+        <button onClick={() => onNavigate('/safety')} style={{ fontSize:12, color:'var(--moss)', background:'none', border:'1px solid var(--moss)', borderRadius:6, padding:'5px 10px', cursor:'pointer', fontWeight:600, fontFamily:'var(--font)' }}>Safety →</button>
+      </div>
+
+      <div style={{ padding:'12px 16px', display:'flex', flexDirection:'column', gap:7 }}>
+        {safetyLoading ? (
+          <div style={{ color:'#bbb', fontSize:13, padding:'8px 0' }}>Loading safety data…</div>
+        ) : items.length === 0 ? (
+          <div style={{ color:'#4A6741', fontSize:13, padding:'8px 0', display:'flex', alignItems:'center', gap:8 }}>
+            <span>✓</span><span>All clear — no outstanding safety actions</span>
+          </div>
+        ) : items.map(item => {
+          const u = urgCfg[item.urgency]
+          const calDate = new Date(item.dueDate || Date.now()); calDate.setHours(8,0,0,0)
+          return (
+            <div key={item.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 12px', background:u.bg, borderRadius:8, border:`1px solid ${u.color}30` }}>
+              <span style={{ width:8, height:8, borderRadius:'50%', background:u.dot, flexShrink:0 }} />
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontSize:13, fontWeight:600, color:'var(--bark)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{item.title}</div>
+                <div style={{ fontSize:11, color:'#888', marginTop:1 }}>{item.desc}</div>
+              </div>
+              <span style={{ fontSize:11, fontWeight:700, color:u.color, flexShrink:0 }}>{dLabel(item.dueDate)}</span>
+              <button onClick={() => downloadICS({ title:item.title, startDate:calDate, description:item.desc })}
+                style={{ fontSize:11, background:'#fff', border:'1px solid #ddd', borderRadius:6, padding:'4px 9px', cursor:'pointer', flexShrink:0, fontFamily:'var(--font)', color:'#555', whiteSpace:'nowrap' }}>
+                📅 Add
+              </button>
+            </div>
+          )
+        })}
+
+        {/* Toolbox meeting row — always shown */}
+        <div style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 12px', background:'#F0F5EE', borderRadius:8, border:'1px solid #C8D8C0', marginTop: items.length > 0 ? 4 : 0 }}>
+          <span style={{ fontSize:16, flexShrink:0 }}>🧰</span>
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ fontSize:13, fontWeight:600, color:'var(--bark)' }}>Schedule Toolbox Meeting</div>
+            <div style={{ fontSize:11, color:'#777', marginTop:1 }}>
+              Monthly H&S briefing — SWMS review, hazard debrief &amp; crew sign-off
+              <span style={{ marginLeft:6, color:'#4A6741', fontWeight:600 }}>Suggested: {nextToolbox.toLocaleDateString('en-NZ',{weekday:'short',day:'numeric',month:'short'})}</span>
+            </div>
+          </div>
+          <button onClick={() => downloadICS({
+              title:'UTS Toolbox Meeting — Monthly H&S Briefing',
+              startDate: nextToolbox,
+              durationMins: 60,
+              description:'Monthly H&S toolbox meeting.\nAgenda: site hazard debrief, SWMS/SOP review, PPE check, near-miss review, crew sign-off.\n\nBring: SWMS register, any incident reports from past month.',
+            })}
+            style={{ fontSize:11, color:'#4A6741', background:'#fff', border:'1px solid #4A6741', borderRadius:6, padding:'4px 9px', cursor:'pointer', flexShrink:0, fontFamily:'var(--font)', fontWeight:600, whiteSpace:'nowrap' }}>
+            📅 Schedule
+          </button>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 // ─── Mini bar chart ──────────────────────────────────────────────────────────
@@ -304,6 +444,12 @@ export default function Dashboard() {
           />
         </div>
 
+      </Section>
+
+      {/* Safety actions */}
+      <SafetyActionsWidget onNavigate={nav} />
+
+      <Section title="Revenue">
         {/* Monthly trend */}
         <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: '10px', padding: '18px 22px' }}>
           <div style={{ fontSize: '12px', color: '#aaa', fontWeight: '600', marginBottom: '12px' }}>
