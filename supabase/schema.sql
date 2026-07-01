@@ -102,6 +102,9 @@ CREATE TABLE quotes (
   gst               NUMERIC(10,2) NOT NULL DEFAULT 0,
   total             NUMERIC(10,2) NOT NULL DEFAULT 0,
   client_view_token TEXT UNIQUE,     -- random hex token for public link
+  notes             TEXT,            -- client-facing payment terms / signature block
+  private_notes     TEXT,            -- internal staff notes (not shown to client)
+  valid_until       DATE,            -- quote expiry date (30 days from creation)
   sent_at           TIMESTAMPTZ,
   viewed_at         TIMESTAMPTZ,
   responded_at      TIMESTAMPTZ,

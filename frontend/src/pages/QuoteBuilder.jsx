@@ -722,15 +722,20 @@ export default function QuoteBuilder() {
       ...(newStatus ? { status: newStatus } : {}),
       ...(newStatus === 'sent' ? { sent_at: new Date().toISOString() } : {}),
     }
-    // Graceful fallback if job_pack column doesn't exist yet (migration 007)
+    // Graceful fallback if optional columns don't exist yet (migrations 007, 009)
+    const OPTIONAL_COLS = ['job_pack', 'private_notes', 'notes', 'valid_until']
     async function tryUpsert(p, isInsert, insertMeta) {
       let res = isInsert
         ? await supabase.from('quotes').insert({ ...insertMeta, ...p }).select().single()
         : await supabase.from('quotes').update(p).eq('id', id)
-      if (res.error?.message?.includes('job_pack')) {
-        const { job_pack: _, ...pFallback } = p
+      const errMsg = res.error?.message ?? ''
+      if (OPTIONAL_COLS.some(c => errMsg.includes(c))) {
+        const { job_pack: _jp, private_notes: _pn, notes: _n, ...pFallback } = p
+        const metaFallback = isInsert
+          ? Object.fromEntries(Object.entries(insertMeta).filter(([k]) => k !== 'valid_until'))
+          : undefined
         res = isInsert
-          ? await supabase.from('quotes').insert({ ...insertMeta, ...pFallback }).select().single()
+          ? await supabase.from('quotes').insert({ ...metaFallback, ...pFallback }).select().single()
           : await supabase.from('quotes').update(pFallback).eq('id', id)
       }
       return res
