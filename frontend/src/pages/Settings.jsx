@@ -467,7 +467,7 @@ function IntegrationsTab({ toast }) {
       response_type: 'code',
       client_id:     XERO_CLIENT_ID,
       redirect_uri:  XERO_REDIRECT_URI,
-      scope:         'openid profile email accounting.contacts accounting.contacts.read offline_access',
+      scope:         'openid profile email accounting.contacts.read offline_access',
       state,
     })
     const url = `https://login.xero.com/identity/connect/authorize?${params}`
@@ -520,18 +520,23 @@ function IntegrationsTab({ toast }) {
               : 'Import clients and contacts from Xero'}
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          {xeroConn ? (
-            <>
-              <button style={t.intBtnSecondary} onClick={disconnectXero}>Disconnect</button>
-              <button style={t.intBtn} onClick={syncXero} disabled={syncing}>
-                {syncing ? 'Syncing…' : 'Sync contacts'}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {xeroConn ? (
+              <>
+                <button style={t.intBtnSecondary} onClick={disconnectXero}>Disconnect</button>
+                <button style={t.intBtn} onClick={syncXero} disabled={syncing}>
+                  {syncing ? 'Syncing…' : 'Sync contacts'}
+                </button>
+              </>
+            ) : (
+              <button type="button" style={{ ...t.intBtn, opacity: connecting ? 0.7 : 1 }} onClick={connectXero} disabled={connecting}>
+                {connecting ? 'Opening Xero…' : 'Connect Xero'}
               </button>
-            </>
-          ) : (
-            <button type="button" style={{ ...t.intBtn, opacity: connecting ? 0.7 : 1 }} onClick={connectXero} disabled={connecting}>
-              {connecting ? 'Opening Xero…' : 'Connect Xero'}
-            </button>
+            )}
+          </div>
+          {!xeroConn && !connecting && (
+            <div style={{ fontSize: '11px', color: '#999' }}>You'll be taken to Xero to log in</div>
           )}
         </div>
       </div>
