@@ -71,7 +71,7 @@ Deno.serve(async (req: Request) => {
 
   // Fetch contacts from Xero (active, with email or phone, paginated)
   const xeroRes = await fetch(
-    `https://api.xero.com/api.xro/2.0/Contacts?where=IsCustomer%3D%3Dtrue%26%26IsArchived%3D%3Dfalse&order=Name ASC&pageSize=200`,
+    `https://api.xero.com/api.xro/2.0/Contacts?where=IsCustomer%3D%3Dtrue%26%26IsArchived%3D%3Dfalse&order=Name%20ASC&pageSize=200`,
     {
       headers: {
         Authorization: `Bearer ${accessToken}`,

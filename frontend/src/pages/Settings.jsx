@@ -239,39 +239,43 @@ function TeamTab({ toast }) {
       ) : (
         <div style={t.userList}>
           {users.map(u => (
-            <div key={u.id} style={t.userRow}>
+            <div key={u.id} className="settings-user-row" style={t.userRow}>
               <div style={{ ...t.userAvatar, background: avatarColor(u.name) }}>{u.name?.[0]?.toUpperCase()}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={t.userName}>{u.name}</div>
                 <div style={t.userEmail}>{u.email}</div>
               </div>
-              <select
-                style={{ ...t.select, width: '130px' }}
-                value={u.access_level ?? 'restricted'}
-                onChange={e => updateUser(u.id, { access_level: e.target.value })}
-              >
-                <option value="full">Full access</option>
-                <option value="office">Office</option>
-                <option value="restricted">Crew</option>
-              </select>
-              <select
-                style={{ ...t.select, width: '150px' }}
-                value={u.resource_id ?? ''}
-                onChange={e => updateUser(u.id, { resource_id: e.target.value || null })}
-              >
-                {RESOURCES.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
-              </select>
-              <button
-                onClick={() => resetPassword(u)}
-                title="Copy password reset link"
-                disabled={resetting === u.id}
-                style={{ background: 'none', border: '1px solid #D0D9C8', borderRadius: '6px', color: '#4A6741', fontSize: '12px', padding: '6px 10px', cursor: 'pointer', flexShrink: 0, fontFamily: 'var(--font)', fontWeight: 600 }}
-              >{resetting === u.id ? '…' : '🔑'}</button>
-              <button
-                onClick={() => deleteUser(u)}
-                title="Remove user"
-                style={{ background: 'none', border: '1px solid #fca5a5', borderRadius: '6px', color: '#ef4444', fontSize: '13px', padding: '6px 10px', cursor: 'pointer', flexShrink: 0 }}
-              >✕</button>
+              <div className="settings-user-controls" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                <select
+                  className="settings-user-select"
+                  style={{ ...t.select, width: '130px' }}
+                  value={u.access_level ?? 'restricted'}
+                  onChange={e => updateUser(u.id, { access_level: e.target.value })}
+                >
+                  <option value="full">Full access</option>
+                  <option value="office">Office</option>
+                  <option value="restricted">Crew</option>
+                </select>
+                <select
+                  className="settings-user-select"
+                  style={{ ...t.select, width: '150px' }}
+                  value={u.resource_id ?? ''}
+                  onChange={e => updateUser(u.id, { resource_id: e.target.value || null })}
+                >
+                  {RESOURCES.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
+                </select>
+                <button
+                  onClick={() => resetPassword(u)}
+                  title="Copy password reset link"
+                  disabled={resetting === u.id}
+                  style={{ background: 'none', border: '1px solid #D0D9C8', borderRadius: '6px', color: '#4A6741', fontSize: '12px', padding: '6px 10px', cursor: 'pointer', flexShrink: 0, fontFamily: 'var(--font)', fontWeight: 600 }}
+                >{resetting === u.id ? '…' : '🔑'}</button>
+                <button
+                  onClick={() => deleteUser(u)}
+                  title="Remove user"
+                  style={{ background: 'none', border: '1px solid #fca5a5', borderRadius: '6px', color: '#ef4444', fontSize: '13px', padding: '6px 10px', cursor: 'pointer', flexShrink: 0 }}
+                >✕</button>
+              </div>
             </div>
           ))}
         </div>
@@ -476,15 +480,25 @@ function IntegrationsTab({ toast }) {
 
   async function syncXero() {
     setSyncing(true)
-    const { data: { session } } = await supabase.auth.getSession()
-    const token = session?.access_token ?? ''
-    const res = await fetch(`${SUPABASE_FN}/xero-sync`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    setSyncing(false)
-    if (!res.ok) { toast('Sync failed — check Edge Function logs', true); return }
-    const { contacts } = await res.json()
-    setImportModal(contacts)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token ?? ''
+      const res = await fetch(`${SUPABASE_FN}/xero-sync`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        const msg = body.error === 'not_connected' ? 'Xero not connected — reconnect in Integrations' : 'Sync failed — check Edge Function logs'
+        toast(msg, true)
+        return
+      }
+      const { contacts } = await res.json()
+      setImportModal(contacts)
+    } catch (err) {
+      toast('Sync error: ' + err.message, true)
+    } finally {
+      setSyncing(false)
+    }
   }
 
   async function disconnectXero() {
@@ -654,6 +668,13 @@ export default function Settings() {
 
   return (
     <div style={s.shell}>
+      <style>{`
+        @media (max-width: 600px) {
+          .settings-user-row { flex-wrap: wrap; }
+          .settings-user-controls { width: 100%; flex-shrink: 0 !important; flex-wrap: wrap; }
+          .settings-user-select { flex: 1; min-width: 120px; width: auto !important; }
+        }
+      `}</style>
       <div style={s.header}>
         <h1 style={s.title}>Settings</h1>
       </div>
