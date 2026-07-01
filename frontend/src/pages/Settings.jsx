@@ -439,9 +439,10 @@ function DbsCard({ toast }) {
 
 // ── Integrations tab ───────────────────────────────────────────────────────
 function IntegrationsTab({ toast }) {
-  const [xeroConn,     setXeroConn]     = useState(null)
-  const [syncing,      setSyncing]      = useState(false)
-  const [importModal,  setImportModal]  = useState(null) // null | contacts[]
+  const [xeroConn,      setXeroConn]     = useState(null)
+  const [syncing,       setSyncing]      = useState(false)
+  const [connecting,    setConnecting]   = useState(false)
+  const [importModal,   setImportModal]  = useState(null) // null | contacts[]
 
   async function checkXero() {
     const { data } = await supabase
@@ -456,19 +457,21 @@ function IntegrationsTab({ toast }) {
 
   function connectXero() {
     if (!XERO_CLIENT_ID || !XERO_REDIRECT_URI) {
-      toast('Set VITE_XERO_CLIENT_ID and VITE_XERO_REDIRECT_URI in frontend/.env', true)
+      toast('Xero credentials missing — check environment variables', true)
       return
     }
+    setConnecting(true)
     const state = Math.random().toString(36).slice(2)
     sessionStorage.setItem('xero_state', state)
     const params = new URLSearchParams({
       response_type: 'code',
       client_id:     XERO_CLIENT_ID,
       redirect_uri:  XERO_REDIRECT_URI,
-      scope:         'openid profile email accounting.contacts.read offline_access',
+      scope:         'openid profile email accounting.contacts accounting.contacts.read offline_access',
       state,
     })
-    window.location.href = `https://login.xero.com/identity/connect/authorize?${params}`
+    const url = `https://login.xero.com/identity/connect/authorize?${params}`
+    window.location.href = url
   }
 
   async function syncXero() {
@@ -526,7 +529,9 @@ function IntegrationsTab({ toast }) {
               </button>
             </>
           ) : (
-            <button style={t.intBtn} onClick={connectXero}>Connect Xero</button>
+            <button type="button" style={{ ...t.intBtn, opacity: connecting ? 0.7 : 1 }} onClick={connectXero} disabled={connecting}>
+              {connecting ? 'Opening Xero…' : 'Connect Xero'}
+            </button>
           )}
         </div>
       </div>
@@ -622,7 +627,7 @@ export default function Settings() {
 
   function showToast(msg, err) {
     setToast({ msg, err })
-    setTimeout(() => setToast(null), 4000)
+    setTimeout(() => setToast(null), err ? 8000 : 4000)
   }
 
   // Handle redirect callbacks (Xero OAuth + password reset link)
