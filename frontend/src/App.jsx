@@ -82,7 +82,6 @@ export default function App() {
             <Route path="calendar"  element={<Calendar />} />
             <Route path="clients"   element={<RequireStaff><Clients /></RequireStaff>} />
             <Route path="quotes"    element={<Navigate to="/pipeline" replace />} />
-            <Route path="quotes/new" element={<RequireStaff><QuoteBuilder /></RequireStaff>} />
             <Route path="quotes/:id" element={<RequireStaff><QuoteBuilder /></RequireStaff>} />
             <Route path="settings"  element={<RequireFullAccess><Settings /></RequireFullAccess>} />
             <Route path="safety"          element={<Safety />} />
