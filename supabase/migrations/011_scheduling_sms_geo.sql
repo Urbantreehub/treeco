@@ -62,7 +62,7 @@ CREATE INDEX IF NOT EXISTS idx_sms_job   ON sms_messages(job_id);
 CREATE TABLE IF NOT EXISTS quote_runs (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   run_date    DATE NOT NULL,
-  window      TEXT,                              -- 'morning' | 'afternoon' | null
+  "window"    TEXT,                              -- 'morning' | 'afternoon' | null (quoted: reserved word)
   job_ids     UUID[] NOT NULL DEFAULT '{}',      -- ordered stops on the run
   assigned_to UUID[] NOT NULL DEFAULT '{}',
   notes       TEXT,
