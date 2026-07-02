@@ -21,6 +21,8 @@ const StaffHub     = lazy(() => import('./pages/StaffHub'))
 const WorkOrder    = lazy(() => import('./pages/WorkOrder'))
 const Planner      = lazy(() => import('./pages/Planner'))
 const SentQuotes   = lazy(() => import('./pages/SentQuotes'))
+const Chat         = lazy(() => import('./pages/Chat'))
+const ToolRequests = lazy(() => import('./pages/ToolRequests'))
 
 const PageFallback = () => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100dvh', color: 'var(--bark)' }}>Loading…</div>
@@ -90,6 +92,8 @@ export default function App() {
             <Route path="quotes/:id" element={<RequireStaff><QuoteBuilder /></RequireStaff>} />
             <Route path="settings"  element={<RequireFullAccess><Settings /></RequireFullAccess>} />
             <Route path="safety"          element={<Safety />} />
+            <Route path="chat"            element={<Chat />} />
+            <Route path="requests"        element={<ToolRequests />} />
             <Route path="staff"           element={<RequireStaff><StaffHub /></RequireStaff>} />
             <Route path="workorder/:jobId" element={<WorkOrder />} />
           </Route>
