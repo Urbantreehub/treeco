@@ -3,7 +3,7 @@ import { useState, useCallback } from 'react'
 // ── Storage ───────────────────────────────────────────────────────────────────
 
 const LS_KEY     = 'treeco_swms_v2'
-const SEED_KEY   = 'treeco_swms_seeded_v3'
+const SEED_KEY   = 'treeco_swms_seeded_v4'
 
 function loadDocs() {
   try {
@@ -84,7 +84,7 @@ const DEFAULT_STAFF = [
   { id:'s3', name:'Stuart Fraser Wilson',      role:'Climber',            start_date:'2026-01-20' },
   { id:'s4', name:'Joshua Jack Curran Mongan', role:'Groundsman',         start_date:'2025-02-03' },
   { id:'s5', name:'Sen Aupouri',               role:'Arborist',           start_date:'2026-06-15' },
-  { id:'s6', name:'Ashley Rapana',             role:'Arborist',           start_date:'2026-06-08' },
+  { id:'s6', name:'Ashley Rapana',             role:'Admin Officer',      start_date:'2026-06-08' },
 ]
 
 // ── Task library (NZArb / ArbAus MIS) ────────────────────────────────────────

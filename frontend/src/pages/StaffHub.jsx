@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 
 const STORAGE_KEY = 'treeco_staff_hub_v1'
+const SEEDED_KEY  = 'treeco_staff_hub_seeded_v1'
 
 const DEFAULT_STAFF = [
   { id: 's1', name: 'Josh Micallef',             role: 'Director / Climber', startDate: null },
@@ -8,7 +9,7 @@ const DEFAULT_STAFF = [
   { id: 's3', name: 'Stuart Fraser Wilson',       role: 'Climber',            startDate: '2026-01-20' },
   { id: 's4', name: 'Joshua Jack Curran Mongan',  role: 'Groundsman',         startDate: '2025-02-03' },
   { id: 's5', name: 'Sen Aupouri',                role: 'Arborist',           startDate: '2026-06-15' },
-  { id: 's6', name: 'Ashley Rapana',              role: 'Arborist',           startDate: '2026-06-08' },
+  { id: 's6', name: 'Ashley Rapana',              role: 'Admin Officer',      startDate: '2026-06-08' },
 ]
 
 const CATEGORIES = [
@@ -43,10 +44,77 @@ function uid() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2)
 }
 
+// ─── Seed records ─────────────────────────────────────────────────────────
+// Real records pulled from Gmail + Google Drive (July 2026 audit).
+// Categories: employment | certifications | health_safety | notes
+const SEED_CREATED = '2026-07-02T00:00:00.000Z'
+
+const SEED_RECORDS = {
+  s1: [
+    { id: 'seed-s1-1', category: 'certifications', name: 'Cert III & Diploma of Arboriculture (AQF 3 & 5)', type: 'Certificate', date: '', expiry: '', status: 'Pending', notes: 'Self-stated in Josh\'s email signature. No certificate copy on file — needs to be uploaded.', created_at: SEED_CREATED },
+    { id: 'seed-s1-2', category: 'employment', name: 'Passport copy (Australian, PA8292256)', type: 'Other', date: '2018-08-16', expiry: '2028-08-16', status: 'On File', notes: 'JOSHMPASSPORT.jpeg — https://drive.google.com/file/d/128IiS2-x4shhjyF4DLGQnQff2-3EdFs4/view?usp=drivesdk', created_at: SEED_CREATED },
+    { id: 'seed-s1-3', category: 'employment', name: 'Statutory declaration — criminal record (Downer interim)', type: 'Other', date: '2026-03-10', expiry: '', status: 'On File', notes: 'Interim while MOJ check outstanding. https://drive.google.com/file/d/1lp9ptz7kop2jpB2g1AcOUKt1R6g7A1ay/view?usp=drivesdk', created_at: SEED_CREATED },
+    { id: 'seed-s1-4', category: 'employment', name: 'Ministry of Justice check (Downer/Kainga Ora requirement)', type: 'Other', date: '', expiry: '', status: 'Missing', notes: 'Still outstanding per Downer email 22 May 2026 (F.SioneTLeasi@downergroup.com). Statutory declaration provided as interim.', created_at: SEED_CREATED },
+    { id: 'seed-s1-5', category: 'employment', name: 'Downer/Wellington Subcontractor ID Request FY2026-27', type: 'Other', date: '2026-03-10', expiry: '', status: 'On File', notes: 'JOSH M FORM.pdf — https://drive.google.com/file/d/1s6H89BqngkZoVVnLlLE1naTUqQGke5Dl/view?usp=drivesdk', created_at: SEED_CREATED },
+    { id: 'seed-s1-6', category: 'health_safety', name: 'Spencers WorkEd online courses — enrolled', type: 'Note', date: '2025-11-19', expiry: '', status: 'Pending', notes: 'Enrolments (WorkEd@spencersnz.co.nz, username 27803): Incident Reporting (19 Nov 2025), Stay Safe Take 5! (14 Jan 2026), Squatter Safety + Site Safety: The Hazard Board (16 Feb 2026). No completion confirmations on file.', created_at: SEED_CREATED },
+  ],
+  s2: [
+    { id: 'seed-s2-1', category: 'certifications', name: 'NZ Certificate in Horticulture (Arboriculture) Level 3 (NZ2678)', type: 'Certificate', date: '2024-11-27', expiry: '', status: 'On File', notes: 'Otago Polytechnic / Te Pukenga. https://drive.google.com/file/d/16axPlHfOaPqX9DJC3LL89M7VtSie3zMZ/view?usp=drivesdk', created_at: SEED_CREATED },
+    { id: 'seed-s2-2', category: 'certifications', name: 'NZ Certificate in Horticulture Services (Arboriculture) Level 4 (NZ2674)', type: 'Certificate', date: '2024-11-27', expiry: '', status: 'On File', notes: 'Otago Polytechnic / Te Pukenga. https://drive.google.com/file/d/1wihzy3lJ0zPQgg0vJ2omF0gXp0KXBO2b/view?usp=drivesdk', created_at: SEED_CREATED },
+    { id: 'seed-s2-3', category: 'certifications', name: 'Spencers Risk Contractor Training Part One — completed', type: 'Certificate', date: '2025-01-16', expiry: '', status: 'On File', notes: 'Provider: Spencers WorkEd (WorkEd@spencersnz.co.nz, username 27860). Completion record printable via WorkEd login.', created_at: SEED_CREATED },
+    { id: 'seed-s2-4', category: 'employment', name: 'Passport copy (NZ, RA590930)', type: 'Other', date: '2023-03-22', expiry: '2033-03-22', status: 'On File', notes: 'https://drive.google.com/file/d/1WqH_DBsg9gIWHwdiN_IaAkt8cgD1Neks/view?usp=drivesdk (duplicate copy: https://drive.google.com/file/d/1lcTmF-IYdq_yPxf7ik007FlKdlGuKrs1/view?usp=drivesdk)', created_at: SEED_CREATED },
+    { id: 'seed-s2-5', category: 'employment', name: 'MOJ criminal conviction check — no convictions', type: 'Other', date: '2026-04-16', expiry: '', status: 'On File', notes: 'lea-moj.pdf — https://drive.google.com/file/d/1sDfsiIGH91ylF0UHHGlZU-ayBCKcfy4T/view?usp=drivesdk', created_at: SEED_CREATED },
+    { id: 'seed-s2-6', category: 'employment', name: 'Downer/Wellington Subcontractor ID Request FY2026-27', type: 'Other', date: '2026-03-10', expiry: '', status: 'On File', notes: 'LEA-SUBCONTRACTORID.pdf — https://drive.google.com/file/d/19oTzGw30ezfP8kG3Kk3HUtoONOX1LiUY/view?usp=drivesdk', created_at: SEED_CREATED },
+    { id: 'seed-s2-7', category: 'employment', name: 'Employment agreement', type: 'Contract', date: '', expiry: '', status: 'Missing', notes: 'Flagged outstanding by Downer (21-22 May 2026). Not found in Drive or email. Re-hired 17 Feb 2026 after resignation effective 23 Dec 2025.', created_at: SEED_CREATED },
+    { id: 'seed-s2-8', category: 'health_safety', name: 'Incident investigation form — 24 Nov 2025', type: 'Note', date: '2025-11-24', expiry: '', status: 'On File', notes: '"Incident investigation form Lea 24112025" shared via Microsoft 365 with leamolloy@gmail.com.', created_at: SEED_CREATED },
+    { id: 'seed-s2-9', category: 'health_safety', name: 'Spencers WorkEd online courses — enrolled', type: 'Note', date: '2025-11-19', expiry: '', status: 'Pending', notes: 'Enrolments: Incident Reporting (19 Nov 2025), Stay Safe Take 5! (14 Jan 2026), Risk Contractor Training Part Two (2 Feb 2026), Squatter Safety + Site Safety: The Hazard Board (16 Feb 2026). Only Part One completion confirmed.', created_at: SEED_CREATED },
+  ],
+  s3: [
+    { id: 'seed-s3-1', category: 'employment', name: 'Employment agreement — Crew Leader / Climber / Truck Driver ($50/hr)', type: 'Contract', date: '2026-06-29', expiry: '', status: 'On File', notes: 'Start date on agreement 29/06/2026. https://drive.google.com/file/d/1XkhyveRtN-K4QTbnU3Oyphel6qhaQwE9/view?usp=drivesdk', created_at: SEED_CREATED },
+    { id: 'seed-s3-2', category: 'employment', name: 'Letter of offer', type: 'Contract', date: '2026-06-29', expiry: '', status: 'On File', notes: 'https://drive.google.com/file/d/1bq_wGXAOEZzMBLdlJGRWqFCDcKkFgcXV/view?usp=drivesdk', created_at: SEED_CREATED },
+    { id: 'seed-s3-3', category: 'employment', name: 'Position description — Crew Leader / Climber / Truck Driver', type: 'Other', date: '2026-06-29', expiry: '', status: 'On File', notes: 'https://drive.google.com/file/d/1ViRcjIQQQAqFW5Ff3DKKMQg-SOfFF98w/view?usp=drivesdk', created_at: SEED_CREATED },
+    { id: 'seed-s3-4', category: 'employment', name: 'Payroll details — IRD 070 748 525, ASB bank, address', type: 'Other', date: '2026-01-13', expiry: '', status: 'On File', notes: 'Emailed by Stuart (stuarborist@gmail.com), "Stu wilson details." 21 Omega St, Newlands.', created_at: SEED_CREATED },
+    { id: 'seed-s3-5', category: 'employment', name: 'MOJ criminal conviction check — no convictions', type: 'Other', date: '2026-01-22', expiry: '', status: 'On File', notes: 'STU MOJ.pdf — https://drive.google.com/file/d/1ca6_j6KT-WMyZMlKKnXaP_rwd9-q9DbY/view?usp=drivesdk', created_at: SEED_CREATED },
+    { id: 'seed-s3-6', category: 'employment', name: 'Passport copy (NZ, RA018264)', type: 'Other', date: '2021-12-14', expiry: '2031-12-14', status: 'On File', notes: 'STU-ID2.jpg — https://drive.google.com/file/d/1DhML16QVFIbKgbSC7CXVnCEAdY1EtO-V/view?usp=drivesdk', created_at: SEED_CREATED },
+    { id: 'seed-s3-7', category: 'employment', name: 'Downer/Wellington Subcontractor ID Request FY2026-27', type: 'Other', date: '2026-03-10', expiry: '', status: 'On File', notes: 'STU WILSON DOWNER ID FORM.pdf — https://drive.google.com/file/d/10Eh1-ifQ6SyKwe5pDgA0h7bqC8NDykjf/view?usp=drivesdk. Spencers site ID held for Stu (only Urban Tree ID Spencers had as at 29 Jun 2026).', created_at: SEED_CREATED },
+    { id: 'seed-s3-8', category: 'employment', name: 'KiwiSaver savings suspension approved (myIR)', type: 'Other', date: '2026-03-04', expiry: '', status: 'On File', notes: 'myIR letter forwarded by Stuart 4 Mar 2026.', created_at: SEED_CREATED },
+    { id: 'seed-s3-9', category: 'certifications', name: 'Australian Cert III in Arboriculture (15 yrs experience)', type: 'Certificate', date: '', expiry: '', status: 'Pending', notes: 'Referenced in email to Primary ITO (14 Apr 2026) proposing Stuart as Workplace Assessor/foreman. No certificate copy on file — needs to be uploaded.', created_at: SEED_CREATED },
+    { id: 'seed-s3-10', category: 'health_safety', name: 'Spencers WorkEd — Squatter Safety enrolment', type: 'Note', date: '2026-02-16', expiry: '', status: 'Pending', notes: 'Enrolled as "Stu Wilson", WorkEd username 28457. No completion confirmation on file.', created_at: SEED_CREATED },
+    { id: 'seed-s3-11', category: 'notes', name: 'Pay-rate dispute — Resolve Legal engaged', type: 'Note', date: '2026-06-29', expiry: '', status: 'On File', notes: 'Dispute email 25 Jun 2026; Josh confirmed $50/hr stands. Resolve Legal (luke@resolvelegal.co.nz) engaged — signed Letter of Engagement, three docs prepared for Stuart.', created_at: SEED_CREATED },
+  ],
+  s4: [
+    { id: 'seed-s4-1', category: 'certifications', name: 'CPR First Aid (includes unit standard) — Meditrain', type: 'Certificate', date: '2025-11-19', expiry: '2027-11-19', status: 'On File', notes: 'Provider: Meditrain (Peter Monk). Cert emailed 23 Nov 2025 by rochelle@meditrain.co.nz — "Josh Curran - CPR First Aid (includes unit standard).pdf".', created_at: SEED_CREATED },
+    { id: 'seed-s4-2', category: 'certifications', name: 'NZ Certificate in Arboriculture Level 3 — in progress (Primary ITO)', type: 'Certificate', date: '2025-09-09', expiry: '', status: 'Pending', notes: 'Training Plans TIM:0922004373 (9 Sep 2025) and TIM:0922004894 (26 Mar 2026). As at 14 Apr 2026: 7 units remaining, target Sept 2026. Needs new plan/assessor after Joel Ewan left (meeting 17 Jun 2026).', created_at: SEED_CREATED },
+    { id: 'seed-s4-3', category: 'certifications', name: 'NZ Driver Licence — RESTRICTED (ED714033, v225)', type: 'Licence', date: '', expiry: '', status: 'On File', notes: 'JOSHCM-ID.jpeg — https://drive.google.com/file/d/1aw5jL73E9icJdVDBr0PwaBRwZPXMIJtj/view?usp=drivesdk. Expiry not visible on copy — check card.', created_at: SEED_CREATED },
+    { id: 'seed-s4-4', category: 'employment', name: 'MOJ Conviction History — no convictions (ref W0H976K30)', type: 'Other', date: '2026-05-09', expiry: '', status: 'On File', notes: 'JOSH-CM MOJ.pdf — https://drive.google.com/file/d/1WeFBuzuKJKRsW2-bAVMTa_RuHAuhN2yv/view?usp=drivesdk', created_at: SEED_CREATED },
+    { id: 'seed-s4-5', category: 'employment', name: 'Employment agreement (builders.business.govt.nz)', type: 'Contract', date: '2025-02-13', expiry: '', status: 'On File', notes: 'Employment Agreement Builder completed 13 Feb 2025, 10 days after start — likely Josh CM\'s. Copy not found in Drive.', created_at: SEED_CREATED },
+    { id: 'seed-s4-6', category: 'employment', name: 'Downer/Wellington Subcontractor ID Request FY2026-27', type: 'Other', date: '2026-03-10', expiry: '', status: 'On File', notes: 'JOSHCM-FORM.pdf (as "Joshua Jack Curran-Mongan") — https://drive.google.com/file/d/144EYlGf5lTyGvwYL9nxo5EjM-Zu-GwLE/view?usp=drivesdk. Photo supplied to Downer 22 May 2026.', created_at: SEED_CREATED },
+    { id: 'seed-s4-7', category: 'employment', name: 'Passport or birth certificate (Downer requirement)', type: 'Other', date: '', expiry: '', status: 'Missing', notes: 'Still outstanding per Downer as at 24 May 2026.', created_at: SEED_CREATED },
+    { id: 'seed-s4-8', category: 'health_safety', name: 'Spencers WorkEd online courses — enrolled', type: 'Note', date: '2025-11-19', expiry: '', status: 'Pending', notes: 'Enrolments (username 27939): Incident Reporting (19 Nov 2025), Stay Safe Take 5! (14 Jan 2026), Squatter Safety + Site Safety: The Hazard Board (16 Feb 2026). No completion confirmations on file.', created_at: SEED_CREATED },
+  ],
+  s5: [
+    { id: 'seed-s5-1', category: 'employment', name: 'Employment agreement + letter of offer (builders.business.govt.nz)', type: 'Contract', date: '2026-06-29', expiry: '', status: 'On File', notes: 'Agreement Builder completed 29 Jun 2026 with "Employment agreement.docx" + "Basic letter of offer.docx" — no name in email, timing fits Sen (started 15 Jun 2026). Verify and file copy.', created_at: SEED_CREATED },
+    { id: 'seed-s5-2', category: 'health_safety', name: 'Spencers induction / site ID', type: 'Note', date: '2026-06-29', expiry: '', status: 'Pending', notes: 'Induction/portal setup requested via "New Employee - Sen for inductions" (Tyron.Rountree@spencersnz.co.nz); Spencers IDs ready for collection 29 Jun 2026.', created_at: SEED_CREATED },
+    { id: 'seed-s5-3', category: 'notes', name: 'Onboarding note — "Sen onboarding"', type: 'Note', date: '2026-06-16', expiry: '', status: 'On File', notes: 'Email josh → urbantreeinvoices@gmail.com, 16 Jun 2026.', created_at: SEED_CREATED },
+  ],
+  s6: [
+    { id: 'seed-s6-1', category: 'employment', name: 'Signed employment agreement (IEA)', type: 'Contract', date: '2026-06-02', expiry: '', status: 'On File', notes: 'IEA_Urban_Tree_Services_Ashley_Rapana.pdf returned signed by ashleyrapana@outlook.com, 2 Jun 2026.', created_at: SEED_CREATED },
+    { id: 'seed-s6-2', category: 'employment', name: 'Job offer — Administration Officer', type: 'Other', date: '2026-06-01', expiry: '', status: 'On File', notes: 'Offer sent 1 Jun 2026, accepted same day (ashleyrapana@outlook.com).', created_at: SEED_CREATED },
+    { id: 'seed-s6-3', category: 'health_safety', name: 'Spencers site ID', type: 'Note', date: '2026-06-29', expiry: '', status: 'Pending', notes: 'Being checked/chased by Leanne.England@spencersnz.co.nz ("Have you checked the IDs for Ashley at Urban?"), 29 Jun 2026.', created_at: SEED_CREATED },
+  ],
+}
+
 function loadData() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : {}
+    const existing = raw ? JSON.parse(raw) : null
+    const hasDocs = existing && Object.values(existing).some(docs => Array.isArray(docs) && docs.length > 0)
+    if (!localStorage.getItem(SEEDED_KEY) && !hasDocs) {
+      localStorage.setItem(SEEDED_KEY, '1')
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(SEED_RECORDS))
+      return SEED_RECORDS
+    }
+    return existing || {}
   } catch {
     return {}
   }

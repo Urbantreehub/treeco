@@ -7,7 +7,7 @@ const STAFF = [
   { id: 'stuart',  name: 'Stuart Fraser Wilson',       role: 'Climber',            start: '2026-01-20' },
   { id: 'joshua',  name: 'Joshua Jack Curran Mongan',  role: 'Groundsman',         start: '2025-02-03' },
   { id: 'sen',     name: 'Sen Aupouri',                role: 'Arborist',           start: '2026-06-15' },
-  { id: 'ashley',  name: 'Ashley Rapana',              role: 'Arborist',           start: '2026-06-08' },
+  { id: 'ashley',  name: 'Ashley Rapana',              role: 'Admin Officer',      start: '2026-06-08' },
 ]
 
 // ── Qualifications ────────────────────────────────────────────────────────────
@@ -24,13 +24,86 @@ const QUALS = [
 ]
 
 const LS_KEY = 'treeco_training_v1'
+const SEED_FLAG_KEY = 'treeco_training_seeded_v1'
 const DUE_SOON_DAYS = 90
+
+// ── Seed data ─────────────────────────────────────────────────────────────────
+// Built from verified records found in Gmail + Google Drive (Jul 2026 audit).
+// Only records actually sighted are seeded — no invented dates or certs.
+// Key format matches cellKey(): `${staffId}__${qualKey}`
+const SEED_RECORDS = {
+  // Joshua Jack Curran Mongan — Meditrain CPR First Aid (incl. unit standard),
+  // completed 19 Nov 2025 with Peter Monk, expires 19 Nov 2027. Cert PDF emailed
+  // by rochelle@meditrain.co.nz on 23 Nov 2025 and saved to the drive.
+  joshua__first_aid: {
+    date: '2025-11-19',
+    expiry: '2027-11-19',
+    provider: 'Meditrain (Peter Monk)',
+    notes: 'CPR First Aid incl. unit standard — cert PDF on Drive ("Josh Curran - CPR First Aid (includes unit standard).pdf")',
+  },
+
+  // Lea Molloy — NZ Certificate in Horticulture (Arboriculture) L3 (NZ2678) +
+  // NZ Certificate in Horticulture Services (Arboriculture) L4 (NZ2674),
+  // both awarded 27 Nov 2024, Otago Polytechnic / Te Pukenga. Certs on Drive.
+  lea__nzarb_l3: {
+    date: '2024-11-27',
+    expiry: '',
+    provider: 'Otago Polytechnic / Te Pukenga (via SIT)',
+    notes: 'L3 (NZ2678) + L4 (NZ2674) certificates on Drive (Lea staff folder / qualifications)',
+  },
+
+  // Josh Micallef — Cert III & Diploma of Arboriculture (AQF 3 & 5), self-stated
+  // in email signature. No certificate or award date on file — note only.
+  josh__nzarb_l3: {
+    date: '',
+    expiry: '',
+    provider: '',
+    notes: 'Cert III & Diploma of Arboriculture (AQF 3 & 5) per email signature — no certificate/date on file, chase copy',
+  },
+
+  // Stuart Fraser Wilson — Australian Cert III in Arboriculture (15 yrs experience),
+  // referenced in Primary ITO workplace-assessor email 14 Apr 2026. No cert on file.
+  stuart__nzarb_l3: {
+    date: '',
+    expiry: '',
+    provider: '',
+    notes: 'Australian Cert III in Arboriculture referenced (Primary ITO email, Apr 2026) — no certificate on file, chase copy',
+  },
+
+  // Joshua Jack Curran Mongan — NZ Cert in Arboriculture L3 IN PROGRESS via
+  // Primary ITO (Training Plan TIM:0922004894). Not yet completed — note only.
+  joshua__nzarb_l3: {
+    date: '',
+    expiry: '',
+    provider: '',
+    notes: 'IN PROGRESS — NZ Cert Arboriculture L3, Primary ITO (TIM:0922004894); 7 units remaining Apr 2026, target Sept 2026; needs new assessor',
+  },
+
+  // Joshua Jack Curran Mongan — NZ Driver Licence (RESTRICTED), ED714033 v225.
+  // Copy on Drive (JOSHCM-ID.jpeg); expiry not visible on the copy.
+  joshua__driver_lic: {
+    date: '',
+    expiry: '',
+    provider: 'NZTA',
+    notes: 'RESTRICTED licence ED714033 v225 — copy on Drive (JOSHCM-ID.jpeg); expiry not recorded, verify from card',
+  },
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function loadFromLS() {
   try {
     const raw = localStorage.getItem(LS_KEY)
-    return raw ? JSON.parse(raw) : {}
+    const data = raw ? JSON.parse(raw) : {}
+    const isEmpty = !data || Object.keys(data).length === 0
+
+    // One-time seed: only when register is empty and never seeded before
+    if (isEmpty && !localStorage.getItem(SEED_FLAG_KEY)) {
+      localStorage.setItem(LS_KEY, JSON.stringify(SEED_RECORDS))
+      localStorage.setItem(SEED_FLAG_KEY, '1')
+      return { ...SEED_RECORDS }
+    }
+
+    return data || {}
   } catch {
     return {}
   }
