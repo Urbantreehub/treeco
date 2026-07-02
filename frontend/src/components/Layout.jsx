@@ -8,6 +8,8 @@ const FULL_NAV = [
   { to: '/dashboard', label: 'Dashboard', icon: DashboardIcon },
   { to: '/pipeline',  label: 'Jobs',      icon: PipelineIcon },
   { to: '/calendar',  label: 'Calendar',  icon: CalendarIcon },
+  { to: '/planner',   label: 'Planner',   icon: PlannerIcon },
+  { to: '/sent-quotes', label: 'Quotes',  icon: QuotesIcon },
   { to: '/clients',   label: 'Clients',   icon: ClientsIcon },
   { to: '/safety',    label: 'Safety',    icon: SafetyIcon },
   { to: '/staff',     label: 'Staff Hub', icon: StaffHubIcon },
@@ -16,6 +18,8 @@ const FULL_NAV = [
 const OFFICE_NAV = [
   { to: '/pipeline',  label: 'Jobs',      icon: PipelineIcon },
   { to: '/calendar',  label: 'Calendar',  icon: CalendarIcon },
+  { to: '/planner',   label: 'Planner',   icon: PlannerIcon },
+  { to: '/sent-quotes', label: 'Quotes',  icon: QuotesIcon },
   { to: '/clients',   label: 'Clients',   icon: ClientsIcon },
   { to: '/safety',    label: 'Safety',    icon: SafetyIcon },
   { to: '/staff',     label: 'Staff Hub', icon: StaffHubIcon },
@@ -158,6 +162,14 @@ function ClientsIcon({ active, size = 22 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round">
       <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+    </svg>
+  )
+}
+function PlannerIcon({ active, size = 22 }) {
+  const c = active ? '#fff' : 'rgba(255,255,255,0.55)'
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="1 6 8 3 16 6 23 3 23 18 16 21 8 18 1 21 1 6"/><line x1="8" y1="3" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="21"/>
     </svg>
   )
 }

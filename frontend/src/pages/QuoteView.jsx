@@ -4,18 +4,9 @@ import { supabase } from '../config/supabase'
 import { downloadPdf } from '../utils/downloadPdf'
 import { GLOSSARY, TERMS, TERMS_DATE } from '../data/arboriculture'
 import { annotateSegments } from '../utils/annotateText'
+import { COMPANY, REVIEWS, QUALIFICATIONS, WHY_US } from '../config/company'
 
 const GST_RATE = 0.15
-
-const COMPANY = {
-  name: 'Urban Tree Services Limited',
-  phone: '027 203 1446',
-  phoneRaw: '0272031446',
-  website: 'www.urbantreeservices.net',
-  email: 'office@urbantreeservices.net',
-  gstNumber: '132-299-374',
-  preparedBy: 'Josh Micallef',
-}
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 
@@ -101,10 +92,10 @@ export default function QuoteView() {
           setResponded(true)
           setResponse(data.status)
         }
-        if (!isPreview && data.status === 'sent') {
-          supabase.from('quotes')
-            .update({ status: 'viewed', viewed_at: new Date().toISOString() })
-            .eq('id', data.id)
+        if (!isPreview) {
+          // Atomically record this open: increments opened_count, sets
+          // last_opened_at, sets viewed_at if null, and flips sent→viewed.
+          supabase.rpc('register_quote_open', { p_token: token }).catch(() => {})
         }
         setLoading(false)
       })
@@ -283,6 +274,63 @@ export default function QuoteView() {
               </p>
             </div>
           )}
+
+          {/* ── Why choose us (credibility) ── */}
+          <div style={p.whyBox}>
+            <div style={p.whyHeader}>Why choose {COMPANY.shortName}</div>
+
+            {/* Reviews strip */}
+            <div style={p.reviewRow}>
+              <div style={p.reviewRating}>
+                <span style={p.stars} aria-hidden="true">
+                  {[0, 1, 2, 3, 4].map(i => {
+                    const fill = Math.max(0, Math.min(1, REVIEWS.rating - i))
+                    return (
+                      <span key={i} style={p.starWrap}>
+                        <span style={p.starEmpty}>★</span>
+                        <span style={{ ...p.starFill, width: `${fill * 100}%` }}>★</span>
+                      </span>
+                    )
+                  })}
+                </span>
+                <span style={p.reviewNum}>{REVIEWS.rating.toFixed(1)}</span>
+                <a href={REVIEWS.url} target="_blank" rel="noopener noreferrer" style={p.reviewLink}>
+                  {REVIEWS.count}+ Google reviews
+                </a>
+              </div>
+              <div style={p.reviewQuotes}>
+                {REVIEWS.quotes.slice(0, 2).map((q, i) => (
+                  <blockquote key={i} style={p.reviewQuote}>
+                    <span style={p.reviewQuoteText}>“{q.text}”</span>
+                    <span style={p.reviewQuoteAuthor}>— {q.author}</span>
+                  </blockquote>
+                ))}
+              </div>
+            </div>
+
+            {/* Qualification badges */}
+            <div style={p.qualGrid}>
+              {QUALIFICATIONS.map((q, i) => (
+                <div key={i} style={p.qualBadge}>
+                  <span style={p.qualGlyph} aria-hidden="true">🛡</span>
+                  <div>
+                    <div style={p.qualLabel}>{q.label}</div>
+                    <div style={p.qualDetail}>{q.detail}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Why-us checklist */}
+            <ul style={p.whyList}>
+              {WHY_US.map((w, i) => (
+                <li key={i} style={p.whyItem}>
+                  <span style={p.whyCheck} aria-hidden="true">✓</span>
+                  <span>{w}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
 
           {/* ── Line items ── */}
           <div style={p.itemsSection}>
@@ -614,6 +662,56 @@ const p = {
   // Greeting
   greeting: { marginBottom: '24px' },
   greetingText: { fontSize: '15px', color: '#555', lineHeight: 1.7, margin: 0 },
+
+  // Why choose us (credibility)
+  whyBox: {
+    background: 'linear-gradient(180deg, #F8FAF7 0%, #FAF8F4 100%)',
+    border: '1px solid #D4E4D0', borderRadius: '12px',
+    padding: '22px 22px 20px', marginBottom: '24px',
+    boxShadow: '0 1px 4px rgba(44,36,22,0.06)',
+  },
+  whyHeader: {
+    fontSize: '11px', fontWeight: '800', color: 'var(--moss)',
+    textTransform: 'uppercase', letterSpacing: '0.09em', marginBottom: '16px',
+  },
+  reviewRow: {
+    display: 'flex', flexWrap: 'wrap', gap: '18px', alignItems: 'flex-start',
+    justifyContent: 'space-between', marginBottom: '18px',
+    paddingBottom: '18px', borderBottom: '1px solid #E2DDD6',
+  },
+  reviewRating: { display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 },
+  stars: { display: 'inline-flex', gap: '2px', lineHeight: 1 },
+  starWrap: { position: 'relative', display: 'inline-block', fontSize: '18px', width: '18px', height: '18px' },
+  starEmpty: { color: '#D8D2C8' },
+  starFill: {
+    position: 'absolute', top: 0, left: 0, overflow: 'hidden',
+    color: '#E8A33D', whiteSpace: 'nowrap',
+  },
+  reviewNum: { fontSize: '18px', fontWeight: '800', color: 'var(--bark)' },
+  reviewLink: { fontSize: '13px', fontWeight: '600', color: '#4A7FA5', textDecoration: 'none' },
+  reviewQuotes: { display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minWidth: '220px' },
+  reviewQuote: { margin: 0, display: 'flex', flexDirection: 'column', gap: '2px' },
+  reviewQuoteText: { fontSize: '13px', fontStyle: 'italic', color: '#555', lineHeight: 1.55 },
+  reviewQuoteAuthor: { fontSize: '11px', color: '#999', fontWeight: '600' },
+  qualGrid: {
+    display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+    gap: '10px', marginBottom: '18px',
+  },
+  qualBadge: {
+    display: 'flex', alignItems: 'flex-start', gap: '10px',
+    background: '#fff', border: '1px solid var(--border)', borderRadius: '9px',
+    padding: '11px 13px',
+  },
+  qualGlyph: { fontSize: '16px', lineHeight: 1.2, flexShrink: 0, color: 'var(--moss)' },
+  qualLabel: { fontSize: '13px', fontWeight: '700', color: 'var(--bark)', marginBottom: '2px' },
+  qualDetail: { fontSize: '11px', color: '#777', lineHeight: 1.45 },
+  whyList: { listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexWrap: 'wrap', gap: '8px 20px' },
+  whyItem: { display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '13px', color: '#4A4A42', lineHeight: 1.5, flex: '1 1 240px' },
+  whyCheck: {
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+    width: '17px', height: '17px', borderRadius: '50%', flexShrink: 0,
+    background: 'var(--moss)', color: '#fff', fontSize: '10px', fontWeight: '800', marginTop: '1px',
+  },
 
   // Items
   itemsSection: { display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' },

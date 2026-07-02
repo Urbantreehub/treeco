@@ -663,6 +663,7 @@ export default function QuoteBuilder() {
   const [markupItem, setMarkupItem] = useState(null)
   const [xeroLoading, setXeroLoading] = useState(false)
   const [emailLoading, setEmailLoading] = useState(false)
+  const [smsLoading, setSmsLoading] = useState(false)
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
@@ -853,6 +854,30 @@ export default function QuoteBuilder() {
     }
   }
 
+  async function sendSms() {
+    if (!quote) return
+    setSmsLoading(true)
+    try {
+      const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
+      const ANON = import.meta.env.VITE_SUPABASE_ANON_KEY
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/send-sms`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: ANON, Authorization: `Bearer ${ANON}` },
+        body: JSON.stringify({ quote_id: quote.id, kind: 'quote_link' }),
+      })
+      const body = await res.json()
+      if (!res.ok) {
+        throw new Error(body.notConfigured ? 'SMS not set up yet — add Twilio keys in Settings' : (body.error ?? 'Text failed'))
+      }
+      showToast(`Quote link texted to ${body.to} ✓`)
+      if (quote.status === 'draft') await save('sent')
+    } catch (err) {
+      showToast(err.message, 'error')
+    } finally {
+      setSmsLoading(false)
+    }
+  }
+
   const activeItem = activeId ? items.find(i => i.id === activeId) : null
 
   const ST = {
@@ -866,7 +891,9 @@ export default function QuoteBuilder() {
   }
   const st = quote?.status ? ST[quote.status] : null
   const clientEmail = quote?.jobs?.clients?.email
+  const clientPhone = quote?.jobs?.clients?.phone
   const canEmail    = !!clientEmail && quote?.client_view_token && quote?.status !== 'draft'
+  const canSms      = !!clientPhone && quote?.client_view_token && quote?.status !== 'draft'
   const canComplete = quote?.status === 'accepted'
   const canXero     = quote?.status === 'complete'
 
@@ -905,6 +932,11 @@ export default function QuoteBuilder() {
             {canEmail && (
               <button style={s.emailBtn} onClick={() => setShowEmailModal(true)} disabled={emailLoading}>
                 ✉ Email
+              </button>
+            )}
+            {canSms && (
+              <button style={s.emailBtn} onClick={sendSms} disabled={smsLoading} title="Text the quote link to the client">
+                {smsLoading ? 'Texting…' : '💬 Text'}
               </button>
             )}
             {canComplete && (

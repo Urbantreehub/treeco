@@ -19,6 +19,8 @@ const Dashboard    = lazy(() => import('./pages/Dashboard'))
 const Safety       = lazy(() => import('./pages/Safety'))
 const StaffHub     = lazy(() => import('./pages/StaffHub'))
 const WorkOrder    = lazy(() => import('./pages/WorkOrder'))
+const Planner      = lazy(() => import('./pages/Planner'))
+const SentQuotes   = lazy(() => import('./pages/SentQuotes'))
 
 const PageFallback = () => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100dvh', color: 'var(--bark)' }}>Loading…</div>
@@ -81,6 +83,8 @@ export default function App() {
             <Route path="dashboard" element={<RequireFullAccess><Dashboard /></RequireFullAccess>} />
             <Route path="pipeline"  element={<RequireStaff><Pipeline /></RequireStaff>} />
             <Route path="calendar"  element={<Calendar />} />
+            <Route path="planner"   element={<RequireStaff><Planner /></RequireStaff>} />
+            <Route path="sent-quotes" element={<RequireStaff><SentQuotes /></RequireStaff>} />
             <Route path="clients"   element={<RequireStaff><Clients /></RequireStaff>} />
             <Route path="quotes"    element={<Navigate to="/pipeline" replace />} />
             <Route path="quotes/:id" element={<RequireStaff><QuoteBuilder /></RequireStaff>} />
