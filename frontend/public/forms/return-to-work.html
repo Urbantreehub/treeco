@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Return to Work Plan — Urban Tree Services</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{--green:#2e7d32;--green-light:#4caf50;--green-pale:#e8f5e9;--border:#c8e6c9;--text:#1a1a1a;--muted:#555;--bg:#f4f6f4;--card:#fff;--radius:12px;--shadow:0 2px 8px rgba(0,0,0,0.08);--amber:#e65100;--amber-pale:#fff3e0;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:16px;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:120px;}
+.header{background:#fff;padding:16px 20px 12px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,0.10);border-bottom:2px solid #e8ecdb;}
+.header-inner{max-width:720px;margin:0 auto;display:flex;align-items:center;gap:14px;}
+.header-text h1{font-size:18px;font-weight:700;color:#333;}
+.header-text p{font-size:12px;color:#8B9B40;margin-top:2px;letter-spacing:1px;text-transform:uppercase;font-weight:600;}
+.save-ind{margin-left:auto;font-size:12px;background:#f4f6ec;border:1px solid #d4dba0;padding:6px 12px;border-radius:20px;display:flex;align-items:center;gap:6px;white-space:nowrap;color:#555;}
+.save-dot{width:8px;height:8px;border-radius:50%;background:#a5d6a7;transition:background 0.3s;}
+.save-dot.saved{background:#69f0ae;}
+.main{max-width:720px;margin:0 auto;padding:20px 16px;}
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:18px;overflow:hidden;}
+.card-header{background:var(--green);color:#fff;padding:13px 20px;font-size:14px;font-weight:600;display:flex;align-items:center;gap:10px;}
+.card-header.amber{background:var(--amber);}
+.card-header .snum{background:rgba(255,255,255,0.25);border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;}
+.card-body{padding:18px 20px;}
+.field{margin-bottom:16px;}
+.field:last-child{margin-bottom:0;}
+label.fl{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;}
+input[type=text],input[type=date],input[type=tel],textarea,select{width:100%;padding:12px 14px;border:2px solid var(--border);border-radius:8px;font-size:16px;color:var(--text);background:#fff;-webkit-appearance:none;transition:border-color 0.2s;min-height:48px;font-family:inherit;}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--green-light);box-shadow:0 0 0 3px rgba(46,125,50,0.12);}
+textarea{min-height:80px;resize:vertical;}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media(max-width:500px){.field-row{grid-template-columns:1fr;}}
+.yn-row{display:flex;gap:10px;}
+.yn-label{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;border:2px solid var(--border);border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:all 0.15s;}
+.yn-label input{position:absolute;opacity:0;}
+.yn-label.yes:has(input:checked){background:#e8f5e9;border-color:#4caf50;color:#2e7d32;}
+.yn-label.no:has(input:checked){background:#fce4ec;border-color:#f44336;color:#c62828;}
+.yn-label.na:has(input:checked){background:#f5f5f5;border-color:#888;color:#555;}
+.duties-table{width:100%;border-collapse:collapse;font-size:14px;}
+.duties-table th{background:var(--green);color:#fff;padding:8px 10px;font-size:12px;font-weight:600;text-align:left;}
+.duties-table td{padding:4px 3px;border-bottom:1px solid #eee;vertical-align:top;}
+.duties-table input,.duties-table select,.duties-table textarea{border:1px solid var(--border);border-radius:6px;padding:7px 8px;font-size:14px;width:100%;min-height:36px;}
+.btn-add-row{font-size:13px;color:var(--green);background:none;border:none;cursor:pointer;padding:8px 0;font-weight:600;}
+.req{color:#c62828;}
+.info-note{background:var(--amber-pale);border:1px solid #ffcc80;border-radius:8px;padding:10px 14px;font-size:13px;color:#bf360c;margin-bottom:14px;line-height:1.5;}
+.sig-wrapper{border:2px solid var(--border);border-radius:10px;background:#fafafa;overflow:hidden;position:relative;}
+.sig-wrapper canvas{display:block;width:100%;height:140px;touch-action:none;cursor:crosshair;}
+.sig-ph{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#bbb;font-size:13px;pointer-events:none;}
+.btn-clear{padding:9px 16px;background:#fff;border:2px solid var(--border);border-radius:8px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;margin-top:8px;min-height:40px;}
+.action-bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e0e8d8;padding:12px 16px;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));display:flex;gap:10px;z-index:200;}
+.btn-primary{flex:1;padding:14px;background:var(--green);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;min-height:52px;}
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#323232;color:#fff;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:600;z-index:999;opacity:0;pointer-events:none;transition:opacity 0.3s;white-space:nowrap;}
+.toast.show{opacity:1;}
+.toast.ok{background:#2e7d32;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div class="header-text">
+      <h1>🩺 Return to Work Plan</h1>
+      <p>Urban Tree Services</p>
+    </div>
+    <div class="save-ind"><div class="save-dot" id="saveDot"></div><span id="saveLabel">Auto-saved</span></div>
+  </div>
+</div>
+
+<div class="main">
+
+<!-- 1. Worker & Injury Details -->
+<div class="card">
+  <div class="card-header"><span class="snum">1</span> Worker &amp; Injury Details</div>
+  <div class="card-body">
+    <div class="info-note">⚕ Complete this plan as soon as possible after a lost-time injury. The goal is to support the worker's recovery and return to safe, meaningful work. HSWA 2015 — worker rehabilitation obligation.</div>
+    <div class="field-row">
+      <div class="field">
+        <label class="fl">Worker name <span class="req">*</span></label>
+        <select id="workerName">
+          <option value="">— Select —</option>
+          <option>Josh Micallef</option>
+          <option>Lea Molloy</option>
+          <option>Stuart Fraser Wilson</option>
+          <option>Joel Ewan</option>
+          <option>Josh Curran Mongan</option>
+          <option>Kaleb</option>
+          <option>Other (type below)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="fl">If "Other", enter name</label>
+        <input type="text" id="workerNameOther" placeholder="Full name">
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label class="fl">Worker role</label>
+        <select id="workerRole">
+          <option value="">Select…</option>
+          <option>Director / Climber</option>
+          <option>Climber</option>
+          <option>Groundsman</option>
+          <option>Office</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="fl">Date of injury <span class="req">*</span></label>
+        <input type="date" id="injuryDate">
+      </div>
+    </div>
+    <div class="field">
+      <label class="fl">Nature of injury / illness</label>
+      <input type="text" id="injuryNature" placeholder="e.g. Laceration to right forearm, back strain, fractured wrist">
+    </div>
+    <div class="field">
+      <label class="fl">Incident report reference (if raised)</label>
+      <input type="text" id="incidentRef" placeholder="e.g. date of report or file reference">
+    </div>
+    <div class="field">
+      <label class="fl">ACC claim number (if lodged)</label>
+      <input type="text" id="accClaimNo" placeholder="ACC-XXXX-XXXX">
+    </div>
+  </div>
+</div>
+
+<!-- 2. Medical Assessment -->
+<div class="card">
+  <div class="card-header"><span class="snum">2</span> Medical Assessment</div>
+  <div class="card-body">
+    <div class="field-row">
+      <div class="field">
+        <label class="fl">GP / treating practitioner</label>
+        <input type="text" id="gpName" placeholder="Name of GP or specialist">
+      </div>
+      <div class="field">
+        <label class="fl">First medical appointment date</label>
+        <input type="date" id="firstApptDate">
+      </div>
+    </div>
+    <div class="field">
+      <label class="fl">Medical restrictions / limitations stated by practitioner</label>
+      <textarea id="medRestrictions" placeholder="e.g. No overhead work, no lifting over 5kg, sedentary duties only for 2 weeks, no chainsaws for 4 weeks…"></textarea>
+    </div>
+    <div class="field">
+      <label class="fl">Expected return to full duties</label>
+      <input type="text" id="expectedFullReturn" placeholder="e.g. 2 weeks, TBC pending review, GP clearance required">
+    </div>
+    <div class="field">
+      <label class="fl">Next medical review date</label>
+      <input type="date" id="nextMedReview">
+    </div>
+    <div class="field">
+      <label class="fl">Has the worker given consent to share medical information with their employer for RTW purposes?</label>
+      <div class="yn-row">
+        <label class="yn-label yes"><input type="radio" name="medConsent" value="yes"> Yes</label>
+        <label class="yn-label no"><input type="radio" name="medConsent" value="no"> No</label>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 3. Modified / Alternative Duties -->
+<div class="card">
+  <div class="card-header"><span class="snum">3</span> Modified / Alternative Duties</div>
+  <div class="card-body">
+    <div class="field">
+      <label class="fl">Can modified duties be offered? <span class="req">*</span></label>
+      <div class="yn-row">
+        <label class="yn-label yes"><input type="radio" name="modDuties" value="yes"> Yes</label>
+        <label class="yn-label no"><input type="radio" name="modDuties" value="no"> No — see reason below</label>
+      </div>
+    </div>
+    <div class="field">
+      <label class="fl">Reason if no modified duties available</label>
+      <textarea id="noModReason" placeholder="If no modified duties can be offered, explain why…" style="min-height:60px;"></textarea>
+    </div>
+    <div class="field">
+      <label class="fl">Proposed modified duties and work programme</label>
+      <table class="duties-table">
+        <thead><tr><th style="width:40%">Duty / task</th><th style="width:25%">Hours/days per week</th><th style="width:20%">Start date</th><th style="width:15%">Review date</th></tr></thead>
+        <tbody id="dutiesBody"></tbody>
+      </table>
+      <button class="btn-add-row" onclick="addDutyRow()">+ Add duty</button>
+    </div>
+    <div class="field">
+      <label class="fl">Duties that are specifically excluded (due to restriction)</label>
+      <textarea id="excludedDuties" placeholder="List tasks the worker must NOT perform during rehabilitation e.g. climbing, chainsaw, heavy lifting…"></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- 4. Return to Work Programme -->
+<div class="card">
+  <div class="card-header"><span class="snum">4</span> Return to Work Programme</div>
+  <div class="card-body">
+    <div class="field-row">
+      <div class="field">
+        <label class="fl">Planned return to work date <span class="req">*</span></label>
+        <input type="date" id="rtwDate">
+      </div>
+      <div class="field">
+        <label class="fl">Initial hours / days per week</label>
+        <input type="text" id="initialHours" placeholder="e.g. 4 hours/day, 3 days/week">
+      </div>
+    </div>
+    <div class="field">
+      <label class="fl">RTW programme stages</label>
+      <textarea id="rtwStages" placeholder="Describe the staged return, e.g. Week 1: 3 days light duties, Week 2: 4 days, Week 3: full hours if cleared by GP…"></textarea>
+    </div>
+    <div class="field">
+      <label class="fl">Workplace adjustments required</label>
+      <textarea id="workplaceAdjustments" placeholder="e.g. Provide chair/seating on site, adjust task allocation, additional supervision, avoid certain machinery…"></textarea>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label class="fl">RTW coordinator / manager</label>
+        <select id="rtwCoordinator">
+          <option value="">— Select —</option>
+          <option>Josh Micallef</option>
+          <option>Lea Molloy</option>
+          <option>Stuart Fraser Wilson</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="fl">Check-in frequency</label>
+        <select id="checkInFreq">
+          <option value="">Select…</option>
+          <option>Daily</option>
+          <option>Twice weekly</option>
+          <option>Weekly</option>
+          <option>Fortnightly</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 5. ACC & External Support -->
+<div class="card">
+  <div class="card-header"><span class="snum">5</span> ACC &amp; External Support</div>
+  <div class="card-body">
+    <div class="field">
+      <label class="fl">Is an ACC vocational rehabilitation plan in place?</label>
+      <div class="yn-row">
+        <label class="yn-label yes"><input type="radio" name="accVocPlan" value="yes"> Yes</label>
+        <label class="yn-label no"><input type="radio" name="accVocPlan" value="no"> No</label>
+        <label class="yn-label na"><input type="radio" name="accVocPlan" value="na"> N/A</label>
+      </div>
+    </div>
+    <div class="field">
+      <label class="fl">ACC case manager name / contact</label>
+      <input type="text" id="accManager" placeholder="Name and contact number">
+    </div>
+    <div class="field">
+      <label class="fl">Other support services involved</label>
+      <textarea id="otherSupport" placeholder="e.g. Physiotherapist, occupational therapist, EAP counselling, specialist…" style="min-height:60px;"></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- 6. Review & Closure -->
+<div class="card">
+  <div class="card-header"><span class="snum">6</span> Review &amp; Closure</div>
+  <div class="card-body">
+    <div class="field">
+      <label class="fl">Review dates</label>
+      <textarea id="reviewDates" placeholder="List planned review dates, e.g. 14/07/2026, 28/07/2026…" style="min-height:60px;"></textarea>
+    </div>
+    <div class="field">
+      <label class="fl">RTW plan closed out (date worker returned to full duties)</label>
+      <input type="date" id="closureDate">
+    </div>
+    <div class="field">
+      <label class="fl">Outcome / notes at closure</label>
+      <textarea id="closureNotes" placeholder="Confirm full duties resumed, any ongoing restrictions, or other outcome…" style="min-height:60px;"></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- 7. Signatures -->
+<div class="card">
+  <div class="card-header amber"><span class="snum">7</span> Agreement &amp; Signatures</div>
+  <div class="card-body">
+    <p style="font-size:14px;color:#555;margin-bottom:16px;line-height:1.5;">Both the worker and the employer agree to the modified duties and return to work programme outlined in this plan. Either party may request a review at any time.</p>
+    <div class="field-row">
+      <div class="field">
+        <label class="fl">Worker signature</label>
+        <div class="sig-wrapper"><canvas id="sigWorker"></canvas><span class="sig-ph" id="sigWorkerPh">Worker signs here</span></div>
+        <button class="btn-clear" onclick="clearSig('sigWorker','sigWorkerPh')">Clear</button>
+      </div>
+      <div class="field">
+        <label class="fl">Director / manager signature</label>
+        <div class="sig-wrapper"><canvas id="sigDirector"></canvas><span class="sig-ph" id="sigDirectorPh">Director signs here</span></div>
+        <button class="btn-clear" onclick="clearSig('sigDirector','sigDirectorPh')">Clear</button>
+      </div>
+    </div>
+    <div class="field-row" style="margin-top:4px;">
+      <div class="field">
+        <label class="fl">Date signed (worker)</label>
+        <input type="date" id="signDateWorker">
+      </div>
+      <div class="field">
+        <label class="fl">Date signed (director)</label>
+        <input type="date" id="signDateDirector">
+      </div>
+    </div>
+    <div class="field">
+      <label class="fl">Director / manager name</label>
+      <input type="text" id="directorName" value="Josh Micallef">
+    </div>
+  </div>
+</div>
+
+</div>
+
+<div class="action-bar">
+  <button class="btn-primary" onclick="doExport()">📄 Save &amp; Export PDF</button>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const STORE_KEY = 'uts_rtw_v1';
+const GREEN = [46, 125, 50];
+const AMBER = [230, 81, 0];
+
+// ── Duties table ───────────────────────────────────────────────────────────
+let dutyCount = 0;
+function addDutyRow(duty='', hours='', start='', review='') {
+  const i = dutyCount++;
+  const tr = document.createElement('tr');
+  tr.id = 'duty_' + i;
+  tr.innerHTML = `
+    <td><input type="text" id="duty_d_${i}" value="${duty}" placeholder="Describe duty…" oninput="saveData()"></td>
+    <td><input type="text" id="duty_h_${i}" value="${hours}" placeholder="e.g. 4h/day" oninput="saveData()"></td>
+    <td><input type="date" id="duty_s_${i}" value="${start}" onchange="saveData()"></td>
+    <td><input type="date" id="duty_r_${i}" value="${review}" onchange="saveData()"></td>
+  `;
+  document.getElementById('dutiesBody').appendChild(tr);
+}
+
+// ── Signatures ─────────────────────────────────────────────────────────────
+const sigs = {};
+function initSig(id, phId) {
+  const c = document.getElementById(id);
+  const ctx = c.getContext('2d');
+  const resize = () => {
+    const d = sigs[id]?.hasContent ? c.toDataURL() : null;
+    c.width = c.offsetWidth * devicePixelRatio; c.height = c.offsetHeight * devicePixelRatio;
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+    ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    if (d) { const img = new Image(); img.onload = () => ctx.drawImage(img, 0, 0, c.offsetWidth, c.offsetHeight); img.src = d; }
+  };
+  sigs[id] = { ctx, hasContent: false };
+  resize(); window.addEventListener('resize', resize);
+  const pos = e => { const r = c.getBoundingClientRect(); const t = e.touches ? e.touches[0] : e; return { x: t.clientX - r.left, y: t.clientY - r.top }; };
+  let drawing = false;
+  c.addEventListener('mousedown', e => { e.preventDefault(); drawing = true; sigs[id].hasContent = true; document.getElementById(phId).style.display = 'none'; const p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); });
+  c.addEventListener('mousemove', e => { if (!drawing) return; e.preventDefault(); const p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); });
+  c.addEventListener('mouseup', () => { drawing = false; saveData(); });
+  c.addEventListener('touchstart', e => { e.preventDefault(); drawing = true; sigs[id].hasContent = true; document.getElementById(phId).style.display = 'none'; const p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); }, { passive: false });
+  c.addEventListener('touchmove', e => { if (!drawing) return; e.preventDefault(); const p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); }, { passive: false });
+  c.addEventListener('touchend', () => { drawing = false; saveData(); }, { passive: false });
+}
+function clearSig(id, phId) {
+  const c = document.getElementById(id);
+  sigs[id].ctx.clearRect(0, 0, c.width, c.height);
+  sigs[id].hasContent = false;
+  document.getElementById(phId).style.display = '';
+  saveData();
+}
+function getSig(id) { return sigs[id]?.hasContent ? document.getElementById(id).toDataURL() : null; }
+initSig('sigWorker', 'sigWorkerPh');
+initSig('sigDirector', 'sigDirectorPh');
+
+// ── Save / restore ─────────────────────────────────────────────────────────
+const vv = id => document.getElementById(id)?.value || '';
+const rr = name => document.querySelector(`input[name="${name}"]:checked`)?.value || '';
+
+function gather() {
+  const duties = [];
+  for (let i = 0; i < dutyCount; i++) {
+    const d = document.getElementById(`duty_d_${i}`)?.value?.trim();
+    if (d) duties.push({ d, h: vv(`duty_h_${i}`), s: vv(`duty_s_${i}`), r: vv(`duty_r_${i}`) });
+  }
+  return {
+    workerName: vv('workerName'), workerNameOther: vv('workerNameOther'), workerRole: vv('workerRole'), injuryDate: vv('injuryDate'),
+    injuryNature: vv('injuryNature'), incidentRef: vv('incidentRef'), accClaimNo: vv('accClaimNo'),
+    gpName: vv('gpName'), firstApptDate: vv('firstApptDate'), medRestrictions: vv('medRestrictions'),
+    expectedFullReturn: vv('expectedFullReturn'), nextMedReview: vv('nextMedReview'), medConsent: rr('medConsent'),
+    modDuties: rr('modDuties'), noModReason: vv('noModReason'), duties, excludedDuties: vv('excludedDuties'),
+    rtwDate: vv('rtwDate'), initialHours: vv('initialHours'), rtwStages: vv('rtwStages'),
+    workplaceAdjustments: vv('workplaceAdjustments'), rtwCoordinator: vv('rtwCoordinator'), checkInFreq: vv('checkInFreq'),
+    accVocPlan: rr('accVocPlan'), accManager: vv('accManager'), otherSupport: vv('otherSupport'),
+    reviewDates: vv('reviewDates'), closureDate: vv('closureDate'), closureNotes: vv('closureNotes'),
+    signDateWorker: vv('signDateWorker'), signDateDirector: vv('signDateDirector'), directorName: vv('directorName'),
+    sigWorker: getSig('sigWorker'), sigDirector: getSig('sigDirector'),
+  };
+}
+
+function restore(d) {
+  const s = (id, val) => { const el = document.getElementById(id); if (el && val != null) el.value = val; };
+  s('workerName', d.workerName); s('workerNameOther', d.workerNameOther); s('workerRole', d.workerRole); s('injuryDate', d.injuryDate);
+  s('injuryNature', d.injuryNature); s('incidentRef', d.incidentRef); s('accClaimNo', d.accClaimNo);
+  s('gpName', d.gpName); s('firstApptDate', d.firstApptDate); s('medRestrictions', d.medRestrictions);
+  s('expectedFullReturn', d.expectedFullReturn); s('nextMedReview', d.nextMedReview);
+  s('noModReason', d.noModReason); s('excludedDuties', d.excludedDuties);
+  s('rtwDate', d.rtwDate); s('initialHours', d.initialHours); s('rtwStages', d.rtwStages);
+  s('workplaceAdjustments', d.workplaceAdjustments); s('rtwCoordinator', d.rtwCoordinator); s('checkInFreq', d.checkInFreq);
+  s('accManager', d.accManager); s('otherSupport', d.otherSupport);
+  s('reviewDates', d.reviewDates); s('closureDate', d.closureDate); s('closureNotes', d.closureNotes);
+  s('signDateWorker', d.signDateWorker); s('signDateDirector', d.signDateDirector); s('directorName', d.directorName);
+  ['medConsent','modDuties','accVocPlan'].forEach(name => { if (d[name]) { const el = document.querySelector(`input[name="${name}"][value="${d[name]}"]`); if (el) el.checked = true; }});
+  if (d.duties) d.duties.forEach(r => addDutyRow(r.d, r.h, r.s, r.r));
+  setTimeout(() => {
+    if (d.sigWorker) { const img = new Image(); img.onload = () => { const c = document.getElementById('sigWorker'); sigs['sigWorker'].ctx.drawImage(img,0,0,c.offsetWidth,c.offsetHeight); sigs['sigWorker'].hasContent=true; document.getElementById('sigWorkerPh').style.display='none'; }; img.src = d.sigWorker; }
+    if (d.sigDirector) { const img = new Image(); img.onload = () => { const c = document.getElementById('sigDirector'); sigs['sigDirector'].ctx.drawImage(img,0,0,c.offsetWidth,c.offsetHeight); sigs['sigDirector'].hasContent=true; document.getElementById('sigDirectorPh').style.display='none'; }; img.src = d.sigDirector; }
+  }, 200);
+}
+
+let saveTimer;
+function saveData() {
+  clearTimeout(saveTimer);
+  document.getElementById('saveDot').className = 'save-dot';
+  saveTimer = setTimeout(() => {
+    localStorage.setItem(STORE_KEY, JSON.stringify(gather()));
+    document.getElementById('saveDot').className = 'save-dot saved';
+    document.getElementById('saveLabel').textContent = 'Saved';
+  }, 600);
+}
+document.querySelectorAll('input:not([type=radio]),textarea,select').forEach(el => el.addEventListener('input', saveData));
+document.querySelectorAll('input[type=radio]').forEach(el => el.addEventListener('change', saveData));
+
+// ── PDF ────────────────────────────────────────────────────────────────────
+function doExport() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const W = 210, M = 14, CW = W - M * 2;
+  let y = 14;
+  const d = gather();
+
+  const checkBreak = (need = 18) => { if (y + need > 280) { doc.addPage(); y = 15; } };
+  const sectionBand = (title, amber = false) => {
+    checkBreak(14);
+    doc.setFillColor(...(amber ? AMBER : GREEN));
+    doc.rect(M, y, CW, 8, 'F');
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(255, 255, 255);
+    doc.text(title.toUpperCase(), M + 4, y + 5.5); doc.setTextColor(30, 30, 30); y += 12;
+  };
+  const row = (label, value) => {
+    if (!value) return;
+    checkBreak(10);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(100, 100, 100);
+    doc.text(label.toUpperCase(), M, y);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(30, 30, 30);
+    const lines = doc.splitTextToSize(value, CW);
+    lines.forEach((ln, i) => { checkBreak(7); doc.text(ln, M, y + 5 + i * 5.5); });
+    y += 5 + lines.length * 5.5 + 4;
+    doc.setDrawColor(200); doc.setLineWidth(0.2); doc.line(M, y, W - M, y); y += 3;
+  };
+
+  // Header
+  doc.setFillColor(...AMBER); doc.rect(M, y, CW, 20, 'F');
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.setTextColor(255, 255, 255);
+  doc.text('URBAN TREE SERVICES', W / 2, y + 7, { align: 'center' });
+  doc.setFontSize(10); doc.setFont('helvetica', 'normal');
+  doc.text('RETURN TO WORK PLAN — INJURY REHABILITATION', W / 2, y + 14, { align: 'center' });
+  y += 26; doc.setTextColor(30, 30, 30);
+
+  sectionBand('1  Worker & Injury Details');
+  const wname = d.workerName === 'Other (type below)' ? d.workerNameOther : d.workerName;
+  row('Worker', wname);
+  row('Role', d.workerRole);
+  row('Date of injury', d.injuryDate);
+  row('Nature of injury', d.injuryNature);
+  row('Incident report reference', d.incidentRef);
+  row('ACC claim number', d.accClaimNo);
+
+  sectionBand('2  Medical Assessment');
+  row('GP / treating practitioner', d.gpName);
+  row('First appointment date', d.firstApptDate);
+  row('Medical restrictions', d.medRestrictions);
+  row('Expected return to full duties', d.expectedFullReturn);
+  row('Next medical review', d.nextMedReview);
+  row('Consent to share medical info', d.medConsent === 'yes' ? 'Yes' : d.medConsent === 'no' ? 'No' : '—');
+
+  sectionBand('3  Modified Duties');
+  row('Modified duties available', d.modDuties === 'yes' ? 'Yes' : d.modDuties === 'no' ? 'No' : '—');
+  row('Reason if none available', d.noModReason);
+  if (d.duties && d.duties.length) {
+    checkBreak(20);
+    const cols = [75, 40, 30, 30];
+    const heads = ['Duty / Task', 'Hours/Days', 'Start Date', 'Review Date'];
+    let x = M;
+    heads.forEach((h, i) => { doc.setFillColor(...GREEN); doc.rect(x, y, cols[i], 7, 'F'); doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(255); doc.text(h, x + 2, y + 5); x += cols[i]; });
+    y += 9; doc.setFont('helvetica', 'normal'); doc.setTextColor(30, 30, 30);
+    d.duties.forEach(r => {
+      checkBreak(12); x = M;
+      [r.d, r.h, r.s, r.r].forEach((val, i) => { doc.setDrawColor(180); doc.rect(x, y, cols[i], 10); doc.setFontSize(9); doc.text(doc.splitTextToSize(val||'', cols[i]-4)[0]||'', x+2, y+6); x+=cols[i]; });
+      y += 11;
+    });
+    y += 3;
+  }
+  row('Excluded duties', d.excludedDuties);
+
+  sectionBand('4  Return to Work Programme');
+  row('Planned RTW date', d.rtwDate);
+  row('Initial hours/days', d.initialHours);
+  row('RTW stages', d.rtwStages);
+  row('Workplace adjustments', d.workplaceAdjustments);
+  row('RTW coordinator', d.rtwCoordinator);
+  row('Check-in frequency', d.checkInFreq);
+
+  sectionBand('5  ACC & External Support');
+  row('ACC vocational plan', d.accVocPlan === 'yes' ? 'Yes' : d.accVocPlan === 'no' ? 'No' : d.accVocPlan === 'na' ? 'N/A' : '—');
+  row('ACC case manager', d.accManager);
+  row('Other support', d.otherSupport);
+
+  sectionBand('6  Review & Closure');
+  row('Review dates', d.reviewDates);
+  row('RTW closure date', d.closureDate);
+  row('Closure notes', d.closureNotes);
+
+  sectionBand('7  Signatures', true);
+  if (y > 200) { doc.addPage(); y = 15; }
+  const boxH = 32;
+  doc.setFillColor(250, 250, 250); doc.setDrawColor(180); doc.setLineWidth(0.4);
+  doc.roundedRect(M, y, CW / 2 - 4, boxH, 1.5, 1.5, 'FD');
+  doc.roundedRect(M + CW / 2 + 4, y, CW / 2 - 4, boxH, 1.5, 1.5, 'FD');
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(120);
+  doc.text('WORKER SIGNATURE', M + 3, y + 4);
+  doc.text('DIRECTOR SIGNATURE', M + CW / 2 + 7, y + 4);
+  if (d.sigWorker) { try { doc.addImage(d.sigWorker, 'PNG', M + 2, y + 6, CW / 2 - 8, boxH - 14); } catch(e) {} }
+  if (d.sigDirector) { try { doc.addImage(d.sigDirector, 'PNG', M + CW / 2 + 6, y + 6, CW / 2 - 8, boxH - 14); } catch(e) {} }
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(80);
+  if (d.signDateWorker) doc.text(`Signed: ${d.signDateWorker}`, M + 3, y + boxH - 4);
+  if (d.signDateDirector) doc.text(`Signed: ${d.signDateDirector}`, M + CW / 2 + 7, y + boxH - 4);
+  y += boxH + 8;
+  if (d.directorName) row('Director / manager', d.directorName);
+
+  doc.setFillColor(...GREEN); doc.rect(0, 287, W, 10, 'F');
+  doc.setTextColor(255, 255, 255); doc.setFontSize(7); doc.setFont('helvetica', 'normal');
+  doc.text(`Urban Tree Services · Return to Work Plan · ${new Date().toLocaleDateString('en-NZ')}`, W / 2, 293, { align: 'center' });
+
+  const fname = `RTW_Plan_${wname.replace(/\s+/g, '_') || 'worker'}_${d.injuryDate || 'draft'}.pdf`;
+  doc.save(fname);
+  showToast('PDF saved ✓', 'ok');
+}
+
+function showToast(msg, type = '') { const t = document.getElementById('toast'); t.textContent = msg; t.className = 'toast show' + (type ? ' ' + type : ''); setTimeout(() => t.className = 'toast', 3000); }
+
+// Init
+const saved = localStorage.getItem(STORE_KEY);
+if (saved) { try { restore(JSON.parse(saved)); } catch(e) {} }
+else {
+  document.getElementById('injuryDate').value = new Date().toISOString().slice(0, 10);
+  addDutyRow();
+}
+</script>
+</body>
+</html>

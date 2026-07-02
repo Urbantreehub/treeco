@@ -367,7 +367,8 @@ function LineItem({ item, onChange, onDelete, onMarkup }) {
 // ── Preview — live iframe of the actual client view ───────────────────────
 function QuotePreview({ quote, onClose, onSend, saving }) {
   const token = quote?.client_view_token
-  const src = token ? `${window.location.origin}/q/${token}` : null
+  // preview=1 stops the client view from marking the quote as viewed or allowing accept/decline
+  const src = token ? `${window.location.origin}/q/${token}?preview=1` : null
   const isMobile = useIsMobile()
 
   return (
@@ -773,6 +774,7 @@ export default function QuoteBuilder() {
   }
 
   async function handleSend() {
+    if (items.length === 0) { showToast('Add at least one line item before sending', 'error'); return }
     await save(undefined, true)
     setShowSendModal(true)
   }
@@ -891,7 +893,7 @@ export default function QuoteBuilder() {
                 style={s.pdfBtn}
                 onClick={async () => {
                   await save()
-                  window.open(`${window.location.origin}/q/${quote.client_view_token}?download=1`, '_blank')
+                  window.open(`${window.location.origin}/q/${quote.client_view_token}?download=1&preview=1`, '_blank')
                 }}
                 disabled={saving}
                 title="Save and open PDF download page"
@@ -1147,7 +1149,7 @@ export default function QuoteBuilder() {
                 <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
                   <button style={{ ...s.previewBtn, flex: 1 }} onClick={async () => { await save(); setShowPreview(true) }} disabled={saving}>Preview</button>
                   {quote?.client_view_token && (
-                    <button style={{ ...s.pdfBtn, flex: 1 }} onClick={async () => { await save(); window.open(`${window.location.origin}/q/${quote.client_view_token}?download=1`, '_blank') }} disabled={saving}>⬇ PDF</button>
+                    <button style={{ ...s.pdfBtn, flex: 1 }} onClick={async () => { await save(); window.open(`${window.location.origin}/q/${quote.client_view_token}?download=1&preview=1`, '_blank') }} disabled={saving}>⬇ PDF</button>
                   )}
                 </div>
               )}

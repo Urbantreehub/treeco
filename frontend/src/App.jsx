@@ -17,6 +17,7 @@ const Clients      = lazy(() => import('./pages/Clients'))
 const Settings     = lazy(() => import('./pages/Settings'))
 const Dashboard    = lazy(() => import('./pages/Dashboard'))
 const Safety       = lazy(() => import('./pages/Safety'))
+const StaffHub     = lazy(() => import('./pages/StaffHub'))
 const WorkOrder    = lazy(() => import('./pages/WorkOrder'))
 
 const PageFallback = () => (
@@ -85,6 +86,7 @@ export default function App() {
             <Route path="quotes/:id" element={<RequireStaff><QuoteBuilder /></RequireStaff>} />
             <Route path="settings"  element={<RequireFullAccess><Settings /></RequireFullAccess>} />
             <Route path="safety"          element={<Safety />} />
+            <Route path="staff"           element={<RequireStaff><StaffHub /></RequireStaff>} />
             <Route path="workorder/:jobId" element={<WorkOrder />} />
           </Route>
 

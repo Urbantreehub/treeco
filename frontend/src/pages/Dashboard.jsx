@@ -419,9 +419,10 @@ export default function Dashboard() {
   const successRate = sent.length ? Math.round((accepted.length / sent.length) * 100) : null
 
   // ── Pipeline snapshot ────────────────────────────────────────────────────
-  const newJobs     = jobs.filter(j => j.status === 'new_lead').length
-  const toSchedule  = jobs.filter(j => j.status === 'accepted_to_schedule').length
-  const totalActive = jobs.filter(j => !['completed', 'cancelled', 'declined'].includes(j.status)).length
+  const pipelineJobs = jobs.filter(j => j.job_type !== 'safety_event')
+  const newJobs     = pipelineJobs.filter(j => j.status === 'new_lead').length
+  const toSchedule  = pipelineJobs.filter(j => j.status === 'accepted_to_schedule').length
+  const totalActive = pipelineJobs.filter(j => !['invoiced', 'declined'].includes(j.status)).length
 
   // ── Advertising suggestion ────────────────────────────────────────────────
   const advice = (() => {

@@ -66,8 +66,10 @@ function addDays(date, n) {
   return d
 }
 
+// Local-timezone YYYY-MM-DD — never use toISOString() here: it converts to UTC,
+// which is yesterday's date for the entire NZ morning.
 function toYMD(date) {
-  return date.toISOString().slice(0, 10)
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 }
 
 // ── Filter panel ──────────────────────────────────────────────────────────

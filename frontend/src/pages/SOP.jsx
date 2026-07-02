@@ -3,7 +3,7 @@ import { useState, useCallback } from 'react'
 // ── Storage ───────────────────────────────────────────────────────────────────
 
 const LS_KEY   = 'treeco_sop_v1'
-const SEED_KEY = 'treeco_sop_seeded_v1'
+const SEED_KEY = 'treeco_sop_seeded_v2'
 
 function loadDocs() {
   try {
@@ -51,12 +51,12 @@ const PPE_MAP = Object.fromEntries(PPE.map(p => [p.id, p]))
 // ── Default staff ─────────────────────────────────────────────────────────────
 
 const DEFAULT_STAFF = [
-  { id:'s1', name:'Josh Micallef',        role:'Director / Climber' },
-  { id:'s2', name:'Lea Molloy',           role:'Climber' },
-  { id:'s3', name:'Stuart Fraser Wilson', role:'Climber' },
-  { id:'s4', name:'Joel Ewan',            role:'Groundsman' },
-  { id:'s5', name:'Josh Curran Mongan',   role:'Groundsman' },
-  { id:'s6', name:'Kaleb',               role:'Groundsman' },
+  { id:'s1', name:'Josh Micallef',             role:'Director / Climber', start_date:'' },
+  { id:'s2', name:'Lea Molloy',                role:'Climber',            start_date:'2026-02-17' },
+  { id:'s3', name:'Stuart Fraser Wilson',      role:'Climber',            start_date:'2026-01-20' },
+  { id:'s4', name:'Joshua Jack Curran Mongan', role:'Groundsman',         start_date:'2025-02-03' },
+  { id:'s5', name:'Sen Aupouri',               role:'Arborist',           start_date:'2026-06-15' },
+  { id:'s6', name:'Ashley Rapana',             role:'Arborist',           start_date:'2026-06-08' },
 ]
 
 // ── SOP Library ───────────────────────────────────────────────────────────────

@@ -67,10 +67,11 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
   }, [job.id])
 
   function buildFormUrl(f) {
+    const d = new Date() // local date — toISOString() would give yesterday during the NZ morning
     const p = new URLSearchParams({
       job_id: job.id,
       job_address: job.address ?? '',
-      job_date: new Date().toISOString().slice(0, 10),
+      job_date: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`,
       job_type: job.job_type ?? '',
       form_id: f.id,
     })

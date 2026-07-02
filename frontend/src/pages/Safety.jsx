@@ -6,6 +6,7 @@ import RiskAssessments from './RiskAssessment'
 import HSDocuments from './HSDocuments'
 import SWMS from './SWMS'
 import SOP from './SOP'
+import StaffTrainingRegister from './StaffTrainingRegister'
 
 // ── Vault configs ───────────────────────────────────────────────────────────
 const STAFF_TYPES = [
@@ -123,6 +124,7 @@ export default function Safety() {
           {tab === 'swms'        && <SWMS />}
           {tab === 'sop'         && <SOP />}
           {tab === 'docs'        && <HSDocuments />}
+          {tab === 'training'    && <StaffTrainingRegister />}
 
           {['overview','staff','company'].includes(tab) && (
             loading ? <div style={s.empty}>Loading…</div> : (
@@ -408,6 +410,7 @@ const SECTION_LABELS = {
   swms:        'SWMS',
   sop:         'SOPs',
   assessments: 'Risk Assessments',
+  training:    'Training Register',
   staff:       'Staff Records',
   company:     'Company & Insurance',
   docs:        'H&S Policy & Documents',
@@ -420,6 +423,7 @@ const SECTIONS = [
   { key:'swms',        icon:'🦺', label:'SWMS',                    desc:'Safe Work Method Statements — 13 documents', staffOnly:true },
   { key:'sop',         icon:'📝', label:'SOPs',                    desc:'Standard Operating Procedures — 17 documents', staffOnly:true },
   { key:'assessments', icon:'⚠️',  label:'Risk Assessments',       desc:'Site and task risk assessments' },
+  { key:'training',    icon:'📋', label:'Training Register',       desc:'Staff qualifications and certification status', staffOnly:true },
   { key:'staff',       icon:'👷', label:'Staff Records',           desc:'Qualifications, licences, certs & MOJ checks', staffOnly:true },
   { key:'company',     icon:'🏢', label:'Company & Insurance',     desc:'Insurance certificates, policies & company documents', staffOnly:true },
   { key:'docs',        icon:'📁', label:'H&S Policy & Documents',  desc:'Health & Safety Policy, safety plans & audit records', staffOnly:true },

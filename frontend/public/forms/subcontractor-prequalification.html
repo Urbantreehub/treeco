@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Subcontractor Pre-Qualification — Urban Tree Services</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{--green:#2e7d32;--green-light:#4caf50;--green-pale:#e8f5e9;--border:#c8e6c9;--text:#1a1a1a;--muted:#555;--bg:#f4f6f4;--card:#fff;--radius:12px;--shadow:0 2px 8px rgba(0,0,0,0.08);}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:16px;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:120px;}
+.header{background:#fff;padding:16px 20px 12px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,0.10);border-bottom:2px solid #e8ecdb;}
+.header-inner{max-width:720px;margin:0 auto;display:flex;align-items:center;gap:14px;}
+.header-text h1{font-size:18px;font-weight:700;color:#333;}
+.header-text p{font-size:12px;color:#8B9B40;margin-top:2px;letter-spacing:1px;text-transform:uppercase;font-weight:600;}
+.save-ind{margin-left:auto;font-size:12px;background:#f4f6ec;border:1px solid #d4dba0;padding:6px 12px;border-radius:20px;display:flex;align-items:center;gap:6px;white-space:nowrap;color:#555;}
+.save-dot{width:8px;height:8px;border-radius:50%;background:#a5d6a7;transition:background 0.3s;}
+.save-dot.saved{background:#69f0ae;}
+.main{max-width:720px;margin:0 auto;padding:20px 16px;}
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:18px;overflow:hidden;}
+.card-header{background:var(--green);color:#fff;padding:13px 20px;font-size:14px;font-weight:600;display:flex;align-items:center;gap:10px;}
+.card-header .snum{background:rgba(255,255,255,0.25);border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;}
+.card-body{padding:18px 20px;}
+.field{margin-bottom:16px;}
+.field:last-child{margin-bottom:0;}
+label.fl{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;}
+input[type=text],input[type=date],input[type=tel],input[type=email],textarea,select{width:100%;padding:12px 14px;border:2px solid var(--border);border-radius:8px;font-size:16px;color:var(--text);background:#fff;-webkit-appearance:none;transition:border-color 0.2s;min-height:48px;font-family:inherit;}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--green-light);box-shadow:0 0 0 3px rgba(46,125,50,0.12);}
+textarea{min-height:80px;resize:vertical;}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media(max-width:500px){.field-row{grid-template-columns:1fr;}}
+.yn-row{display:flex;gap:10px;}
+.yn-label{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;border:2px solid var(--border);border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:all 0.15s;}
+.yn-label input{position:absolute;opacity:0;}
+.yn-label.yes:has(input:checked){background:#e8f5e9;border-color:#4caf50;color:#2e7d32;}
+.yn-label.no:has(input:checked){background:#fce4ec;border-color:#f44336;color:#c62828;}
+.yn-label.na:has(input:checked){background:#f5f5f5;border-color:#888;color:#555;}
+.check-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1.5px solid #eee;border-radius:8px;cursor:pointer;margin-bottom:8px;transition:background 0.12s;}
+.check-item:hover{background:#f9fdf9;}
+.check-item input[type=checkbox]{width:18px;height:18px;accent-color:var(--green);flex-shrink:0;margin-top:2px;cursor:pointer;}
+.check-item .check-text{font-size:14px;line-height:1.4;}
+.req{color:#c62828;}
+.info-note{background:#e8f5e9;border:1px solid #c8e6c9;border-radius:8px;padding:10px 14px;font-size:13px;color:#2e7d32;margin-bottom:14px;}
+.status-badge{display:inline-block;padding:5px 12px;border-radius:20px;font-size:13px;font-weight:700;margin-top:4px;}
+.status-approved{background:#e8f5e9;color:#2e7d32;border:1.5px solid #4caf50;}
+.status-conditional{background:#fff3e0;color:#e65100;border:1.5px solid #fb8c00;}
+.status-declined{background:#fce4ec;color:#c62828;border:1.5px solid #f44336;}
+.sig-wrapper{border:2px solid var(--border);border-radius:10px;background:#fafafa;overflow:hidden;position:relative;}
+.sig-wrapper canvas{display:block;width:100%;height:140px;touch-action:none;cursor:crosshair;}
+.sig-ph{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#bbb;font-size:13px;pointer-events:none;}
+.btn-clear{padding:9px 16px;background:#fff;border:2px solid var(--border);border-radius:8px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;margin-top:8px;min-height:40px;}
+.action-bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e0e8d8;padding:12px 16px;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));display:flex;gap:10px;z-index:200;}
+.btn-primary{flex:1;padding:14px;background:var(--green);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;min-height:52px;}
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#323232;color:#fff;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:600;z-index:999;opacity:0;pointer-events:none;transition:opacity 0.3s;white-space:nowrap;}
+.toast.show{opacity:1;}
+.toast.ok{background:#2e7d32;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div class="header-text">
+      <h1>🏗 Subcontractor Pre-Qualification</h1>
+      <p>Urban Tree Services</p>
+    </div>
+    <div class="save-ind"><div class="save-dot" id="saveDot"></div><span id="saveLabel">Auto-saved</span></div>
+  </div>
+</div>
+
+<div class="main">
+
+<!-- 1. Engagement Details -->
+<div class="card">
+  <div class="card-header"><span class="snum">1</span> Engagement Details</div>
+  <div class="card-body">
+    <div class="info-note">Complete before engaging any subcontractor. Retain on file. SiteWise Category 8 — Subcontractor Management.</div>
+    <div class="field-row">
+      <div class="field">
+        <label class="fl">Date assessed <span class="req">*</span></label>
+        <input type="date" id="assessDate">
+      </div>
+      <div class="field">
+        <label class="fl">Assessed by</label>
+        <select id="assessedBy">
+          <option value="">— Select —</option>
+          <option>Josh Micallef</option>
+          <option>Lea Molloy</option>
+          <option>Stuart Fraser Wilson</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label class="fl">Contract / Job description</label>
+      <input type="text" id="contractDesc" placeholder="Brief description of work being subcontracted">
+    </div>
+  </div>
+</div>
+
+<!-- 2. Subcontractor Details -->
+<div class="card">
+  <div class="card-header"><span class="snum">2</span> Subcontractor Details</div>
+  <div class="card-body">
+    <div class="field">
+      <label class="fl">Company / Individual name <span class="req">*</span></label>
+      <input type="text" id="subName" placeholder="Legal trading name">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label class="fl">Contact person</label>
+        <input type="text" id="contactName" placeholder="Full name">
+      </div>
+      <div class="field">
+        <label class="fl">Phone</label>
+        <input type="tel" id="contactPhone" placeholder="021 …">
+      </div>
+    </div>
+    <div class="field">
+      <label class="fl">Email</label>
+      <input type="email" id="contactEmail" placeholder="email@example.com">
+    </div>
+  </div>
+</div>
+
+<!-- 3. SiteWise / Pre-Qualification -->
+<div class="card">
+  <div class="card-header"><span class="snum">3</span> SiteWise Pre-Qualification</div>
+  <div class="card-body">
+    <div class="field">
+      <label class="fl">SiteWise NZ grade (if registered)</label>
+      <select id="sitewiseGrade">
+        <option value="">Not registered / unknown</option>
+        <option value="1">Grade 1 — Basic</option>
+        <option value="2">Grade 2 — Developing</option>
+        <option value="3">Grade 3 — Established</option>
+        <option value="4">Grade 4 — Advanced</option>
+        <option value="5">Grade 5 — Excellent</option>
+      </select>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label class="fl">SiteWise registration number</label>
+        <input type="text" id="sitewiseReg" placeholder="SW-XXXXX">
+      </div>
+      <div class="field">
+        <label class="fl">SiteWise expiry date</label>
+        <input type="date" id="sitewiseExpiry">
+      </div>
+    </div>
+    <div class="field">
+      <label class="fl">Does subcontractor have an equivalent H&amp;S pre-qualification?</label>
+      <input type="text" id="altPrequal" placeholder="e.g. impac, FIRST, ISNetworld, or describe">
+    </div>
+  </div>
+</div>
+
+<!-- 4. Insurance -->
+<div class="card">
+  <div class="card-header"><span class="snum">4</span> Insurance</div>
+  <div class="card-body">
+    <div class="field">
+      <label class="fl">Public Liability insurance?</label>
+      <div class="yn-row">
+        <label class="yn-label yes"><input type="radio" name="hasPL" value="yes"> Yes</label>
+        <label class="yn-label no"><input type="radio" name="hasPL" value="no"> No</label>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label class="fl">Public Liability — cover amount</label>
+        <input type="text" id="plAmount" placeholder="e.g. $2,000,000">
+      </div>
+      <div class="field">
+        <label class="fl">Public Liability — expiry date</label>
+        <input type="date" id="plExpiry">
+      </div>
+    </div>
+    <div class="field">
+      <label class="fl">Employer's Liability / ACC WorkPlace Cover?</label>
+      <div class="yn-row">
+        <label class="yn-label yes"><input type="radio" name="hasEL" value="yes"> Yes</label>
+        <label class="yn-label no"><input type="radio" name="hasEL" value="no"> No</label>
+        <label class="yn-label na"><input type="radio" name="hasEL" value="na"> N/A (sole trader ACC)</label>
+      </div>
+    </div>
+    <div class="field">
+      <label class="fl">Insurance notes / certificate number</label>
+      <input type="text" id="insuranceNotes" placeholder="Policy number or certificate reference">
+    </div>
+  </div>
+</div>
+
+<!-- 5. H&S Capability -->
+<div class="card">
+  <div class="card-header"><span class="snum">5</span> H&amp;S Capability Check</div>
+  <div class="card-body">
+    <p style="font-size:13px;color:#888;margin-bottom:12px;">Tick each item confirmed — document how it was verified (verbal, document sighted, SiteWise grading).</p>
+    <label class="check-item" id="ci_hsp">
+      <input type="checkbox" id="hsp_confirmed" onchange="ciToggle(this)">
+      <div class="check-text"><strong>H&amp;S Policy exists</strong> — subcontractor has a documented H&amp;S policy appropriate for their work scope</div>
+    </label>
+    <label class="check-item" id="ci_swms">
+      <input type="checkbox" id="swms_confirmed" onchange="ciToggle(this)">
+      <div class="check-text"><strong>SWMS available</strong> — subcontractor has site-specific safe work method statements for work being performed</div>
+    </label>
+    <label class="check-item" id="ci_incident">
+      <input type="checkbox" id="incident_confirmed" onchange="ciToggle(this)">
+      <div class="check-text"><strong>Incident reporting process</strong> — subcontractor has a process to report and record incidents and near-misses</div>
+    </label>
+    <label class="check-item" id="ci_certs">
+      <input type="checkbox" id="certs_confirmed" onchange="ciToggle(this)">
+      <div class="check-text"><strong>Worker competency verified</strong> — workers hold required licences, certifications, and training for the work (e.g. chainsaw, first aid, working at height)</div>
+    </label>
+    <label class="check-item" id="ci_ppe">
+      <input type="checkbox" id="ppe_confirmed" onchange="ciToggle(this)">
+      <div class="check-text"><strong>PPE available</strong> — subcontractor provides adequate PPE for all workers on site</div>
+    </label>
+    <label class="check-item" id="ci_emergency">
+      <input type="checkbox" id="emergency_confirmed" onchange="ciToggle(this)">
+      <div class="check-text"><strong>Emergency procedures</strong> — subcontractor understands site emergency procedures including aerial rescue requirements</div>
+    </label>
+    <div class="field" style="margin-top:12px;">
+      <label class="fl">Verification method / notes</label>
+      <textarea id="verificationNotes" placeholder="Describe how each item was verified — e.g. 'SiteWise Grade 3 sighted 01/07/2026', 'SWMS reviewed on site', 'Chainsaw cert sighted'…"></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- 6. Risk Assessment -->
+<div class="card">
+  <div class="card-header"><span class="snum">6</span> Risk Assessment</div>
+  <div class="card-body">
+    <div class="field">
+      <label class="fl">Are there any known H&amp;S concerns with this subcontractor?</label>
+      <div class="yn-row">
+        <label class="yn-label yes"><input type="radio" name="hsConcerns" value="yes"> Yes — describe below</label>
+        <label class="yn-label no"><input type="radio" name="hsConcerns" value="no"> No</label>
+      </div>
+    </div>
+    <div class="field">
+      <label class="fl">H&amp;S concerns or conditions of engagement</label>
+      <textarea id="hsConcernsDetail" placeholder="Describe any concerns or conditions placed on the subcontractor's engagement…"></textarea>
+    </div>
+    <div class="field">
+      <label class="fl">Work type being subcontracted</label>
+      <select id="workType">
+        <option value="">— Select —</option>
+        <option>Arborist / tree work</option>
+        <option>Traffic management / traffic control</option>
+        <option>Electrical / power line work</option>
+        <option>Ground preparation / civil</option>
+        <option>Landscaping / planting</option>
+        <option>Chemical application</option>
+        <option>Equipment operation</option>
+        <option>Other</option>
+      </select>
+    </div>
+    <div class="field">
+      <label class="fl">Level of supervision required on site</label>
+      <select id="supervisionLevel">
+        <option value="">— Select —</option>
+        <option>None — experienced, fully independent</option>
+        <option>Periodic check-in (daily)</option>
+        <option>On-site supervision required</option>
+        <option>Direct supervision at all times</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<!-- 7. Decision -->
+<div class="card">
+  <div class="card-header"><span class="snum">7</span> Pre-Qualification Decision</div>
+  <div class="card-body">
+    <div class="field">
+      <label class="fl">Decision <span class="req">*</span></label>
+      <select id="decision" onchange="showDecisionStyle()">
+        <option value="">— Select outcome —</option>
+        <option value="approved">Approved — subcontractor may proceed</option>
+        <option value="conditional">Conditional — may proceed subject to conditions below</option>
+        <option value="declined">Declined — do not engage until conditions are met</option>
+      </select>
+      <div id="decisionBadge" style="margin-top:8px;"></div>
+    </div>
+    <div class="field">
+      <label class="fl">Conditions / reasons (required for Conditional or Declined)</label>
+      <textarea id="decisionNotes" placeholder="List any conditions that must be met before or during engagement…"></textarea>
+    </div>
+    <div class="field">
+      <label class="fl">Review date (next pre-qualification check)</label>
+      <input type="date" id="reviewDate">
+    </div>
+  </div>
+</div>
+
+<!-- 8. Sign-off -->
+<div class="card">
+  <div class="card-header"><span class="snum">8</span> Authorisation</div>
+  <div class="card-body">
+    <div class="field">
+      <label class="fl">Director / H&amp;S Manager</label>
+      <input type="text" id="authoriser" value="Josh Micallef">
+    </div>
+    <div class="field">
+      <label class="fl">Signature</label>
+      <div class="sig-wrapper"><canvas id="sigCanvas"></canvas><span class="sig-ph" id="sigPh">Sign here</span></div>
+      <button class="btn-clear" onclick="clearSig()">Clear</button>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<div class="action-bar">
+  <button class="btn-primary" onclick="doExport()">📄 Save &amp; Export PDF</button>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const STORE_KEY = 'uts_subpreq_v1';
+const GREEN = [46,125,50];
+
+function ciToggle(cb) {
+  const item = cb.closest('label.check-item');
+  if (cb.checked) item.style.background = '#f0fbf0';
+  else item.style.background = '';
+  saveData();
+}
+
+function showDecisionStyle() {
+  const val = document.getElementById('decision').value;
+  const badge = document.getElementById('decisionBadge');
+  if (val === 'approved') badge.innerHTML = '<span class="status-badge status-approved">✓ Approved</span>';
+  else if (val === 'conditional') badge.innerHTML = '<span class="status-badge status-conditional">⚠ Conditional</span>';
+  else if (val === 'declined') badge.innerHTML = '<span class="status-badge status-declined">✗ Declined</span>';
+  else badge.innerHTML = '';
+  saveData();
+}
+
+// ── Signature ──────────────────────────────────────────────────────────────
+let sigCtx, sigEmpty = true, signing = false;
+function initSig() {
+  const c = document.getElementById('sigCanvas'); sigCtx = c.getContext('2d');
+  const resize = () => {
+    const d = sigEmpty ? null : c.toDataURL();
+    c.width = c.offsetWidth * devicePixelRatio; c.height = c.offsetHeight * devicePixelRatio;
+    sigCtx.scale(devicePixelRatio, devicePixelRatio);
+    sigCtx.strokeStyle = '#1a1a1a'; sigCtx.lineWidth = 2; sigCtx.lineCap = 'round'; sigCtx.lineJoin = 'round';
+    if (d) { const img = new Image(); img.onload = () => sigCtx.drawImage(img, 0, 0, c.offsetWidth, c.offsetHeight); img.src = d; }
+  };
+  resize(); window.addEventListener('resize', resize);
+  const pos = e => { const r = c.getBoundingClientRect(); const t = e.touches ? e.touches[0] : e; return { x: t.clientX - r.left, y: t.clientY - r.top }; };
+  c.addEventListener('mousedown', e => { e.preventDefault(); signing = true; sigEmpty = false; document.getElementById('sigPh').style.display = 'none'; const p = pos(e); sigCtx.beginPath(); sigCtx.moveTo(p.x, p.y); });
+  c.addEventListener('mousemove', e => { if (!signing) return; e.preventDefault(); const p = pos(e); sigCtx.lineTo(p.x, p.y); sigCtx.stroke(); });
+  c.addEventListener('mouseup', () => { signing = false; saveData(); });
+  c.addEventListener('touchstart', e => { e.preventDefault(); signing = true; sigEmpty = false; document.getElementById('sigPh').style.display = 'none'; const p = pos(e); sigCtx.beginPath(); sigCtx.moveTo(p.x, p.y); }, { passive: false });
+  c.addEventListener('touchmove', e => { if (!signing) return; e.preventDefault(); const p = pos(e); sigCtx.lineTo(p.x, p.y); sigCtx.stroke(); }, { passive: false });
+  c.addEventListener('touchend', () => { signing = false; saveData(); }, { passive: false });
+}
+function clearSig() { const c = document.getElementById('sigCanvas'); sigCtx.clearRect(0, 0, c.width, c.height); sigEmpty = true; document.getElementById('sigPh').style.display = ''; saveData(); }
+function getSig() { return sigEmpty ? null : document.getElementById('sigCanvas').toDataURL(); }
+initSig();
+
+// ── Save / restore ─────────────────────────────────────────────────────────
+const v = id => document.getElementById(id)?.value || '';
+const r = name => document.querySelector(`input[name="${name}"]:checked`)?.value || '';
+const ck = id => document.getElementById(id)?.checked || false;
+
+function gather() {
+  return {
+    assessDate: v('assessDate'), assessedBy: v('assessedBy'), contractDesc: v('contractDesc'),
+    subName: v('subName'), contactName: v('contactName'), contactPhone: v('contactPhone'), contactEmail: v('contactEmail'),
+    sitewiseGrade: v('sitewiseGrade'), sitewiseReg: v('sitewiseReg'), sitewiseExpiry: v('sitewiseExpiry'), altPrequal: v('altPrequal'),
+    hasPL: r('hasPL'), plAmount: v('plAmount'), plExpiry: v('plExpiry'), hasEL: r('hasEL'), insuranceNotes: v('insuranceNotes'),
+    hsp_confirmed: ck('hsp_confirmed'), swms_confirmed: ck('swms_confirmed'), incident_confirmed: ck('incident_confirmed'),
+    certs_confirmed: ck('certs_confirmed'), ppe_confirmed: ck('ppe_confirmed'), emergency_confirmed: ck('emergency_confirmed'),
+    verificationNotes: v('verificationNotes'),
+    hsConcerns: r('hsConcerns'), hsConcernsDetail: v('hsConcernsDetail'), workType: v('workType'), supervisionLevel: v('supervisionLevel'),
+    decision: v('decision'), decisionNotes: v('decisionNotes'), reviewDate: v('reviewDate'),
+    authoriser: v('authoriser'), sigData: getSig(),
+  };
+}
+
+function restore(d) {
+  const s = (id, val) => { const el = document.getElementById(id); if (el && val != null) el.value = val; };
+  s('assessDate', d.assessDate); s('assessedBy', d.assessedBy); s('contractDesc', d.contractDesc);
+  s('subName', d.subName); s('contactName', d.contactName); s('contactPhone', d.contactPhone); s('contactEmail', d.contactEmail);
+  s('sitewiseGrade', d.sitewiseGrade); s('sitewiseReg', d.sitewiseReg); s('sitewiseExpiry', d.sitewiseExpiry); s('altPrequal', d.altPrequal);
+  s('plAmount', d.plAmount); s('plExpiry', d.plExpiry); s('insuranceNotes', d.insuranceNotes);
+  s('verificationNotes', d.verificationNotes); s('hsConcernsDetail', d.hsConcernsDetail);
+  s('workType', d.workType); s('supervisionLevel', d.supervisionLevel);
+  s('decision', d.decision); s('decisionNotes', d.decisionNotes); s('reviewDate', d.reviewDate);
+  s('authoriser', d.authoriser);
+  ['hasPL','hasEL','hsConcerns'].forEach(name => { if (d[name]) { const el = document.querySelector(`input[name="${name}"][value="${d[name]}"]`); if (el) el.checked = true; }});
+  ['hsp_confirmed','swms_confirmed','incident_confirmed','certs_confirmed','ppe_confirmed','emergency_confirmed'].forEach(id => {
+    if (d[id]) { const el = document.getElementById(id); if (el) { el.checked = true; ciToggle(el); }}
+  });
+  if (d.decision) showDecisionStyle();
+  if (d.sigData) { const img = new Image(); img.onload = () => { const c = document.getElementById('sigCanvas'); sigCtx.drawImage(img, 0, 0, c.offsetWidth, c.offsetHeight); sigEmpty = false; document.getElementById('sigPh').style.display = 'none'; }; img.src = d.sigData; }
+}
+
+let saveTimer;
+function saveData() {
+  clearTimeout(saveTimer);
+  document.getElementById('saveDot').className = 'save-dot';
+  saveTimer = setTimeout(() => {
+    localStorage.setItem(STORE_KEY, JSON.stringify(gather()));
+    document.getElementById('saveDot').className = 'save-dot saved';
+    document.getElementById('saveLabel').textContent = 'Saved';
+  }, 600);
+}
+document.querySelectorAll('input:not([type=radio]):not([type=checkbox]),textarea,select').forEach(el => el.addEventListener('input', saveData));
+document.querySelectorAll('input[type=radio]').forEach(el => el.addEventListener('change', saveData));
+
+// ── PDF ────────────────────────────────────────────────────────────────────
+function doExport() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const W = 210, M = 14, CW = W - M * 2;
+  let y = 14;
+  const d = gather();
+
+  const checkBreak = (need = 18) => { if (y + need > 280) { doc.addPage(); y = 15; } };
+  const sectionBand = title => {
+    checkBreak(14); doc.setFillColor(...GREEN); doc.rect(M, y, CW, 8, 'F');
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(255, 255, 255);
+    doc.text(title.toUpperCase(), M + 4, y + 5.5); doc.setTextColor(30, 30, 30); y += 12;
+  };
+  const row = (label, value) => {
+    if (!value) return;
+    checkBreak(10);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(100, 100, 100);
+    doc.text(label.toUpperCase(), M, y);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(30, 30, 30);
+    const lines = doc.splitTextToSize(value, CW);
+    lines.forEach((ln, i) => { checkBreak(7); doc.text(ln, M, y + 5 + i * 5.5); });
+    y += 5 + lines.length * 5.5 + 4;
+    doc.setDrawColor(200); doc.setLineWidth(0.2); doc.line(M, y, W - M, y); y += 3;
+  };
+
+  // Header
+  doc.setFillColor(...GREEN); doc.rect(M, y, CW, 20, 'F');
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.setTextColor(255, 255, 255);
+  doc.text('URBAN TREE SERVICES', W / 2, y + 7, { align: 'center' });
+  doc.setFontSize(10); doc.setFont('helvetica', 'normal');
+  doc.text('SUBCONTRACTOR H&S PRE-QUALIFICATION', W / 2, y + 14, { align: 'center' });
+  y += 26; doc.setTextColor(30, 30, 30);
+
+  sectionBand('1  Engagement Details');
+  row('Date assessed', d.assessDate);
+  row('Assessed by', d.assessedBy);
+  row('Contract / work description', d.contractDesc);
+
+  sectionBand('2  Subcontractor Details');
+  row('Company / name', d.subName);
+  row('Contact person', d.contactName);
+  row('Phone', d.contactPhone);
+  row('Email', d.contactEmail);
+
+  sectionBand('3  SiteWise Pre-Qualification');
+  row('SiteWise grade', d.sitewiseGrade ? `Grade ${d.sitewiseGrade}` : 'Not registered');
+  row('SiteWise registration', d.sitewiseReg);
+  row('SiteWise expiry', d.sitewiseExpiry);
+  row('Alternative pre-qualification', d.altPrequal);
+
+  sectionBand('4  Insurance');
+  row('Public liability', d.hasPL === 'yes' ? `Yes — ${d.plAmount || 'amount not stated'}` : d.hasPL === 'no' ? 'No' : '—');
+  row('Public liability expiry', d.plExpiry);
+  row("Employer's liability / ACC", d.hasEL === 'yes' ? 'Yes' : d.hasEL === 'no' ? 'No' : d.hasEL === 'na' ? 'N/A (sole trader)' : '—');
+  row('Insurance notes', d.insuranceNotes);
+
+  sectionBand('5  H&S Capability');
+  const checks = [
+    { key: 'hsp_confirmed', label: 'H&S Policy exists' },
+    { key: 'swms_confirmed', label: 'SWMS available' },
+    { key: 'incident_confirmed', label: 'Incident reporting process' },
+    { key: 'certs_confirmed', label: 'Worker competency verified' },
+    { key: 'ppe_confirmed', label: 'PPE available' },
+    { key: 'emergency_confirmed', label: 'Emergency procedures understood' },
+  ];
+  checks.forEach(item => {
+    checkBreak(8);
+    const confirmed = d[item.key];
+    doc.setFillColor(confirmed ? 46 : 200, confirmed ? 125 : 200, confirmed ? 50 : 200);
+    doc.rect(M, y - 3, 3, 4, 'F');
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(30, 30, 30);
+    doc.text((confirmed ? '✓ ' : '○ ') + item.label, M + 6, y); y += 7;
+  });
+  if (d.verificationNotes) { y += 2; row('Verification notes', d.verificationNotes); }
+
+  sectionBand('6  Risk Assessment');
+  row('H&S concerns', d.hsConcerns === 'yes' ? 'Yes — see notes below' : d.hsConcerns === 'no' ? 'None identified' : '—');
+  row('Concern details / conditions', d.hsConcernsDetail);
+  row('Work type', d.workType);
+  row('Supervision required', d.supervisionLevel);
+
+  sectionBand('7  Decision');
+  const decisionText = d.decision === 'approved' ? 'APPROVED — proceed' : d.decision === 'conditional' ? 'CONDITIONAL — subject to conditions' : d.decision === 'declined' ? 'DECLINED — do not engage' : '—';
+  const decisionColor = d.decision === 'approved' ? [46, 125, 50] : d.decision === 'conditional' ? [230, 81, 0] : d.decision === 'declined' ? [198, 40, 40] : [100, 100, 100];
+  checkBreak(16);
+  doc.setFillColor(...decisionColor); doc.roundedRect(M, y, CW, 10, 1.5, 1.5, 'F');
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(255, 255, 255);
+  doc.text(decisionText, W / 2, y + 7, { align: 'center' }); y += 15;
+  doc.setTextColor(30, 30, 30);
+  row('Conditions / reasons', d.decisionNotes);
+  row('Next review date', d.reviewDate);
+
+  sectionBand('8  Authorisation');
+  row('Authorised by', d.authoriser);
+  if (d.sigData) {
+    checkBreak(36);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(100, 100, 100);
+    doc.text('SIGNATURE:', M, y); y += 4;
+    try { doc.addImage(d.sigData, 'PNG', M, y, 70, 24); } catch(e) {}
+    y += 30;
+  }
+
+  doc.setFillColor(...GREEN); doc.rect(0, 287, W, 10, 'F');
+  doc.setTextColor(255, 255, 255); doc.setFontSize(7); doc.setFont('helvetica', 'normal');
+  doc.text(`Urban Tree Services · Subcontractor Pre-Qualification · ${new Date().toLocaleDateString('en-NZ')}`, W / 2, 293, { align: 'center' });
+
+  const fname = `Subcontractor_PreQual_${(d.subName || 'unknown').replace(/\s+/g, '_')}_${d.assessDate || 'draft'}.pdf`;
+  doc.save(fname);
+  showToast('PDF saved ✓', 'ok');
+}
+
+function showToast(msg, type = '') { const t = document.getElementById('toast'); t.textContent = msg; t.className = 'toast show' + (type ? ' ' + type : ''); setTimeout(() => t.className = 'toast', 3000); }
+
+// Init
+const saved = localStorage.getItem(STORE_KEY);
+if (saved) { try { restore(JSON.parse(saved)); } catch(e) {} }
+else { document.getElementById('assessDate').value = new Date().toISOString().slice(0, 10); document.getElementById('assessedBy').value = 'Josh Micallef'; }
+</script>
+</body>
+</html>

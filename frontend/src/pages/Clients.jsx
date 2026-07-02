@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../config/supabase'
+import { getStatusColor, getStatusLabel } from '../config/statuses'
 import { DEMO_CLIENTS, DEMO_JOBS } from '../demo/mockData'
 
 const IS_DEMO = import.meta.env.VITE_DEMO === 'true'
@@ -219,10 +220,10 @@ function ClientPanel({ client, jobs, onEdit, onDelete, onClose }) {
             ? <div style={p.empty}>No jobs yet</div>
             : jobs.map(j => (
               <div key={j.id} style={p.jobRow}>
-                <div style={{ ...p.statusDot, background: JOB_STATUS_COLOR[j.status] ?? '#ccc' }} />
+                <div style={{ ...p.statusDot, background: getStatusColor(j.status) }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={p.jobTitle}>{j.title}</div>
-                  <div style={p.jobMeta}>{j.status?.replace(/_/g, ' ')} · {j.address?.split(',')[0] ?? '—'}</div>
+                  <div style={p.jobMeta}>{getStatusLabel(j.status)} · {j.address?.split(',')[0] ?? '—'}</div>
                 </div>
               </div>
             ))
@@ -233,7 +234,9 @@ function ClientPanel({ client, jobs, onEdit, onDelete, onClose }) {
       <div style={p.footer}>
         {confirmDelete ? (
           <>
-            <span style={{ fontSize: '12px', color: '#C0392B', flex: 1 }}>Delete this client?</span>
+            <span style={{ fontSize: '12px', color: '#C0392B', flex: 1 }}>
+              {jobs.length > 0 ? `Delete? ${jobs.length} job${jobs.length !== 1 ? 's' : ''} will lose this client.` : 'Delete this client?'}
+            </span>
             <button style={p.cancelSmall} onClick={() => setConfirmDelete(false)}>Cancel</button>
             <button style={p.deleteConfirm} onClick={onDelete}>Yes, delete</button>
           </>
@@ -260,11 +263,6 @@ function InfoRow({ icon, label, value }) {
   )
 }
 
-const JOB_STATUS_COLOR = {
-  new_lead: '#F5C842', quote_scheduled: '#D4851A', quote_sent: '#4A7FA5',
-  accepted_to_schedule: '#6B5EA8', scheduled: '#4A6741', in_progress: '#2E7D52',
-  complete_to_invoice: '#8B4513', invoiced: '#aaa', on_hold: '#C0392B',
-}
 
 // ── Main page ──────────────────────────────────────────────────────────────
 export default function Clients() {

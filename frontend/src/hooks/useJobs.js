@@ -21,6 +21,8 @@ export function useJobs() {
         clients (id, name, phone, email),
         quotes (id, status, subtotal, gst, total)
       `)
+      // Safety events (toolbox meetings etc.) live on the calendar, not the job pipeline
+      .neq('job_type', 'safety_event')
       .order('created_at', { ascending: false })
 
     if (error) {

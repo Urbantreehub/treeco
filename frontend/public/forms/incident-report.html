@@ -537,6 +537,31 @@
           <label class="yn-label na"><input type="radio" name="swms_update" value="unsure"> Unsure</label>
         </div>
       </div>
+      <div style="background:#e8f5e9;border:1.5px solid #c8e6c9;border-radius:10px;padding:14px 16px;margin-top:8px;">
+        <p style="font-size:13px;font-weight:700;color:#2e7d32;margin-bottom:12px;text-transform:uppercase;letter-spacing:0.5px;">Close-Out Verification</p>
+        <div class="row2">
+          <div class="field">
+            <label class="fl">All corrective actions completed by</label>
+            <input type="date" id="closeout_date">
+          </div>
+          <div class="field">
+            <label class="fl">Verified by</label>
+            <select id="closeout_by">
+              <option value="">Select…</option>
+              <option>Josh Micallef</option>
+              <option>Lea Molloy</option>
+              <option>Stuart Fraser Wilson</option>
+              <option>Joel Ewan</option>
+              <option>Josh Curran Mongan</option>
+              <option>Kaleb</option>
+            </select>
+          </div>
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label class="fl">Close-out notes</label>
+          <textarea id="closeout_notes" placeholder="Confirm actions were completed and effective…" style="min-height:70px;"></textarea>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -646,6 +671,7 @@ function restoreData() {
     set('factors_notes', d.factors_notes)
     set('corrective_immediate', d.corrective_immediate)
     set('corrective_short', d.corrective_short); set('corrective_long', d.corrective_long)
+    set('closeout_date', d.closeout_date); set('closeout_by', d.closeout_by); set('closeout_notes', d.closeout_notes)
     set('completed_by', d.completed_by); set('reviewer', d.reviewer)
     // Radios
     if (d.swms_briefed) { const r = document.querySelector(`input[name=swms_briefed][value="${d.swms_briefed}"]`); if(r) r.checked = true }
@@ -703,7 +729,9 @@ function collectData() {
     witness2_name: val('witness2_name'), witness2_phone: val('witness2_phone'),
     factors_notes: val('factors_notes'),
     corrective_immediate: val('corrective_immediate'), corrective_short: val('corrective_short'), corrective_long: val('corrective_long'),
-    swms_update: radio('swms_update'), completed_by: val('completed_by'), reviewer: val('reviewer'),
+    swms_update: radio('swms_update'),
+    closeout_date: val('closeout_date'), closeout_by: val('closeout_by'), closeout_notes: val('closeout_notes'),
+    completed_by: val('completed_by'), reviewer: val('reviewer'),
     type_injury: checked('type_injury'), type_nearmiss: checked('type_nearmiss'),
     type_dangerous: checked('type_dangerous'), type_property: checked('type_property'),
     type_vehicle: checked('type_vehicle'), type_environmental: checked('type_environmental'),
@@ -896,6 +924,11 @@ async function generatePDF() {
   row('Short-term (48 hours)', d.corrective_short)
   row('Long-term / systemic', d.corrective_long)
   row('SWMS update required', d.swms_update)
+  if (d.closeout_date || d.closeout_by) {
+    row('Actions close-out date', d.closeout_date ? new Date(d.closeout_date + 'T12:00').toLocaleDateString('en-NZ', { day:'numeric', month:'long', year:'numeric' }) : '')
+    row('Close-out verified by', d.closeout_by)
+    row('Close-out notes', d.closeout_notes)
+  }
 
   sectionTitle('10  Sign-off')
   row('Completed by', d.completed_by)

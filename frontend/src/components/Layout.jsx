@@ -10,6 +10,7 @@ const FULL_NAV = [
   { to: '/calendar',  label: 'Calendar',  icon: CalendarIcon },
   { to: '/clients',   label: 'Clients',   icon: ClientsIcon },
   { to: '/safety',    label: 'Safety',    icon: SafetyIcon },
+  { to: '/staff',     label: 'Staff Hub', icon: StaffHubIcon },
 ]
 
 const OFFICE_NAV = [
@@ -17,6 +18,7 @@ const OFFICE_NAV = [
   { to: '/calendar',  label: 'Calendar',  icon: CalendarIcon },
   { to: '/clients',   label: 'Clients',   icon: ClientsIcon },
   { to: '/safety',    label: 'Safety',    icon: SafetyIcon },
+  { to: '/staff',     label: 'Staff Hub', icon: StaffHubIcon },
 ]
 
 const CREW_NAV = [
@@ -180,6 +182,14 @@ function SafetyIcon({ active, size = 22 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/>
+    </svg>
+  )
+}
+function StaffHubIcon({ active, size = 22 }) {
+  const c = active ? '#fff' : 'rgba(255,255,255,0.55)'
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="23" y1="11" x2="17" y2="11"/><line x1="20" y1="8" x2="20" y2="14"/>
     </svg>
   )
 }

@@ -156,6 +156,16 @@ textarea{min-height:72px;resize:vertical;}
       <label class="fl" id="odomLabel">Hours / Odometer</label>
       <input type="text" id="odometer" placeholder="Engine hours or km reading">
     </div>
+    <div class="field-row">
+      <div class="field">
+        <label class="fl">Next Service Due</label>
+        <input type="text" id="nextService" placeholder="e.g. 500 hrs or 31/12/2026">
+      </div>
+      <div class="field">
+        <label class="fl">Operator Licence / Competency</label>
+        <input type="text" id="operatorLicence" placeholder="e.g. Class 2, Chainsaw cert, WTL">
+      </div>
+    </div>
   </div>
 </div>
 
@@ -449,6 +459,7 @@ function gather() {
     eq: currentEq, checkDate: v('checkDate'), checkTime: v('checkTime'),
     operator: v('operator'), location: v('location'),
     rego: v('rego'), rucOrWof: v('rucOrWof'), odometer: v('odometer'),
+    nextService: v('nextService'), operatorLicence: v('operatorLicence'),
     checks: {...checks},
     tyreNotes: v('tyreNotes'),
     hasDefects: document.querySelector('input[name=hasDefects]:checked')?.value||'',
@@ -462,6 +473,7 @@ function restore(d) {
   const s=(id,v)=>{const el=document.getElementById(id);if(el&&v!==undefined)el.value=v;};
   s('checkDate',d.checkDate);s('checkTime',d.checkTime);s('operator',d.operator);s('location',d.location);
   s('rego',d.rego);s('rucOrWof',d.rucOrWof);s('odometer',d.odometer);
+  s('nextService',d.nextService);s('operatorLicence',d.operatorLicence);
   s('tyreNotes',d.tyreNotes);s('defects',d.defects);s('sigName',d.sigName);
   if(d.hasDefects){const r=document.querySelector(`input[name=hasDefects][value="${d.hasDefects}"]`);if(r){r.checked=true;toggleDefects(d.hasDefects==='yes');}}
   if(d.checks){Object.assign(checks,d.checks);restoreCheckState();}
@@ -503,6 +515,8 @@ function generatePDF() {
   row('Rego / ID',d.rego);
   row(d.eq==='truck'?'WOF / RUC Expiry':'RUC Expiry',d.rucOrWof);
   row(d.eq==='truck'?'Odometer (km)':'Engine Hours',d.odometer);
+  if(d.nextService)row('Next Service Due',d.nextService);
+  if(d.operatorLicence)row('Operator Licence / Competency',d.operatorLicence);
 
   section('Pre-Start Checks');
   (CHECKS[d.eq]||[]).forEach(item=>{

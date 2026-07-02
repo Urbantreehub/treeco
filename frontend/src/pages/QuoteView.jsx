@@ -101,7 +101,7 @@ export default function QuoteView() {
           setResponded(true)
           setResponse(data.status)
         }
-        if (data.status === 'sent') {
+        if (!isPreview && data.status === 'sent') {
           supabase.from('quotes')
             .update({ status: 'viewed', viewed_at: new Date().toISOString() })
             .eq('id', data.id)
@@ -125,12 +125,20 @@ export default function QuoteView() {
   const totals = calcTotals(items)
 
   async function respond(action, reason = '') {
+    if (isPreview) return
     setResponding(true)
     const now = new Date().toISOString()
     const newStatus = action === 'accept' ? 'accepted' : 'declined'
+    // Persist the client's optional-item selections and the resulting totals,
+    // so the office sees exactly what was accepted
+    const finalTotals = calcTotals(items)
     await supabase.from('quotes').update({
       status: newStatus,
       responded_at: now,
+      line_items: items,
+      subtotal: finalTotals.subtotal,
+      gst: finalTotals.gst,
+      total: finalTotals.total,
       ...(reason ? { decline_reason: reason } : {}),
     }).eq('client_view_token', token)
     if (action === 'accept') {
