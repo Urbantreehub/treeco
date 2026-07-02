@@ -47,6 +47,10 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
   const [changingStatus, setChangingStatus] = useState(false)
   const [editing, setEditing] = useState(false)
   const [xeroStatus, setXeroStatus] = useState(null) // null | 'pushing' | 'ok' | 'err' | 'not_connected'
+  const [smsOpen, setSmsOpen] = useState(false)
+  const [smsText, setSmsText] = useState('')
+  const [smsSending, setSmsSending] = useState(false)
+  const [smsNote, setSmsNote] = useState(null)
   const [formStatus, setFormStatus] = useState(() => {
     try { return JSON.parse(localStorage.getItem(`treeco_job_forms_${job.id}`) ?? '{}') } catch { return {} }
   })
@@ -77,6 +81,26 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
       form_id: f.id,
     })
     return `${f.url}?${p}`
+  }
+
+  async function sendText() {
+    const phone = job.clients?.phone
+    if (!phone || !smsText.trim()) return
+    setSmsSending(true); setSmsNote(null)
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/send-sms`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` },
+        body: JSON.stringify({ to: phone, message: smsText.trim(), job_id: job.id, kind: 'manual' }),
+      })
+      const b = await res.json()
+      if (!res.ok) { setSmsNote({ err: true, msg: b.notConfigured ? 'SMS not live yet — Twilio account upgrade pending' : (b.error || 'Send failed') }); return }
+      setSmsNote({ err: false, msg: `Sent to ${b.to} ✓` }); setSmsText(''); setSmsOpen(false)
+    } catch (e) {
+      setSmsNote({ err: true, msg: 'Send failed' })
+    } finally {
+      setSmsSending(false)
+    }
   }
 
   async function pushToXero(quoteId) {
@@ -374,6 +398,49 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
               <span style={{ fontSize: '18px', color: '#8B6238' }}>📄</span>
             </button>
           </div>
+
+          {/* Text the client */}
+          {job.clients?.phone && (
+            <div style={styles.section}>
+              {!smsOpen ? (
+                <button
+                  onClick={() => { setSmsOpen(true); setSmsNote(null) }}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    width: '100%', padding: '12px 16px', borderRadius: '10px',
+                    background: '#EEF6EC', border: '1.5px solid #CFE6C9',
+                    cursor: 'pointer', fontFamily: 'var(--font)',
+                  }}
+                >
+                  <div style={{ textAlign: 'left' }}>
+                    <div style={{ fontSize: '14px', fontWeight: '700', color: '#3A5C2E' }}>💬 Text {job.clients?.name?.split(' ')[0] || 'client'}</div>
+                    <div style={{ fontSize: '12px', color: '#6A8C61', marginTop: '2px' }}>{job.clients.phone}</div>
+                  </div>
+                  <span style={{ fontSize: '16px', color: '#4A6741' }}>→</span>
+                </button>
+              ) : (
+                <div style={{ border: '1.5px solid #CFE6C9', borderRadius: '10px', padding: '12px', background: '#F7FBF6' }}>
+                  <textarea
+                    autoFocus
+                    value={smsText}
+                    onChange={e => setSmsText(e.target.value)}
+                    placeholder={`Message to ${job.clients?.name?.split(' ')[0] || 'client'}…`}
+                    rows={3}
+                    maxLength={480}
+                    style={{ width: '100%', border: '1px solid var(--border)', borderRadius: '8px', padding: '10px', fontSize: '14px', fontFamily: 'var(--font)', color: 'var(--bark)', outline: 'none', boxSizing: 'border-box', resize: 'vertical' }}
+                  />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
+                    <span style={{ fontSize: '11px', color: '#aaa' }}>{smsText.length}/480</span>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button onClick={() => { setSmsOpen(false); setSmsText('') }} style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid var(--border)', background: '#fff', color: '#888', fontSize: '13px', cursor: 'pointer', fontFamily: 'var(--font)' }}>Cancel</button>
+                      <button onClick={sendText} disabled={!smsText.trim() || smsSending} style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: 'var(--moss)', color: '#fff', fontSize: '13px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)', opacity: !smsText.trim() || smsSending ? 0.5 : 1 }}>{smsSending ? 'Sending…' : 'Send text'}</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {smsNote && <div style={{ fontSize: '12px', marginTop: '6px', color: smsNote.err ? 'var(--danger)' : 'var(--moss)' }}>{smsNote.msg}</div>}
+            </div>
+          )}
 
           {/* Job Forms */}
           <div style={styles.section}>

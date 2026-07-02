@@ -468,6 +468,8 @@ function FullCalendar_() {
   const [loading,           setLoading]           = useState(true)
   const [popover,           setPopover]           = useState(null)
   const [toast,             setToast]             = useState(null)
+  const [dayAlert,          setDayAlert]          = useState(null)   // { ymd, recipients[] } | null
+  const [alerting,          setAlerting]          = useState(false)
   const [trayWidth,         setTrayWidth]         = useState(220)
   const [traySearch,        setTraySearch]        = useState('')
   const [showTracker,       setShowTracker]       = useState(false)
@@ -501,6 +503,47 @@ function FullCalendar_() {
   function showToast(msg, err) {
     setToast({ msg, err })
     setTimeout(() => setToast(null), 3000)
+  }
+
+  // ── Manually text every client scheduled on the shown day ────────────────
+  function openDayAlert() {
+    const d = api()?.getDate?.() ?? new Date()
+    const ymd = toYMD(d)
+    const seen = new Set()
+    const recipients = []
+    events.filter(e => e.extendedProps?.date === ymd).forEach(e => {
+      const c = e.extendedProps?.job?.clients
+      if (c?.phone && !seen.has(c.phone)) {
+        seen.add(c.phone)
+        recipients.push({ name: c.name, phone: c.phone, job_id: e.extendedProps?.job?.id })
+      }
+    })
+    if (recipients.length === 0) { showToast('No clients with a mobile scheduled that day', true); return }
+    setDayAlert({ ymd, recipients })
+  }
+
+  async function sendDayAlerts() {
+    setAlerting(true)
+    const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
+    const ANON = import.meta.env.VITE_SUPABASE_ANON_KEY
+    const dateLabel = new Date(dayAlert.ymd + 'T00:00:00').toLocaleDateString('en-NZ', { weekday: 'long', day: 'numeric', month: 'long' })
+    let ok = 0, fail = 0, notConfigured = false
+    for (const r of dayAlert.recipients) {
+      const first = (r.name || 'there').split(' ')[0]
+      const message = `Hi ${first}, Urban Tree Services here - our crew is scheduled for your tree work on ${dateLabel}. We'll be in touch with timing. Any questions call 027 203 1446.`
+      try {
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/send-sms`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', apikey: ANON, Authorization: `Bearer ${ANON}` },
+          body: JSON.stringify({ to: r.phone, message, job_id: r.job_id, kind: 'job_reminder' }),
+        })
+        const b = await res.json()
+        if (res.ok) ok++; else { fail++; if (b.notConfigured) notConfigured = true }
+      } catch { fail++ }
+    }
+    setAlerting(false); setDayAlert(null)
+    if (notConfigured) showToast('SMS not live yet — Twilio needs your account upgrade', true)
+    else showToast(`Texted ${ok} client${ok === 1 ? '' : 's'}${fail ? `, ${fail} failed` : ''} ✓`)
   }
 
   // Week title derived from weekStart
@@ -786,6 +829,13 @@ function FullCalendar_() {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <button
+              style={{ ...s.filterBtn, background: '#FDF3E3', borderColor: '#E9CF9E', color: '#B26B0E' }}
+              onClick={openDayAlert}
+              title="Text every client scheduled on the shown day"
+            >
+              📣 {!isMobile && 'Text day'}
+            </button>
+            <button
               style={{ ...s.filterBtn, ...(showFilter ? s.filterBtnOn : {}) }}
               onClick={() => setShowFilter(v => !v)}
             >
@@ -810,6 +860,29 @@ function FullCalendar_() {
 
         {/* FC CSS overrides */}
         <style>{FC_CSS}</style>
+
+        {/* Confirm: text the whole day's clients */}
+        {dayAlert && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }} onClick={() => !alerting && setDayAlert(null)}>
+            <div style={{ background: '#fff', borderRadius: '14px', width: '100%', maxWidth: '420px', padding: '20px', boxShadow: '0 8px 30px rgba(0,0,0,0.25)' }} onClick={e => e.stopPropagation()}>
+              <div style={{ fontSize: '17px', fontWeight: '700', color: 'var(--bark)', marginBottom: '6px' }}>Text the day's clients?</div>
+              <div style={{ fontSize: '13px', color: '#777', marginBottom: '12px', lineHeight: 1.5 }}>
+                This texts <strong>{dayAlert.recipients.length}</strong> client{dayAlert.recipients.length === 1 ? '' : 's'} scheduled for {new Date(dayAlert.ymd + 'T00:00:00').toLocaleDateString('en-NZ', { weekday: 'long', day: 'numeric', month: 'long' })}.
+              </div>
+              <ul style={{ margin: '0 0 14px', paddingLeft: '18px', maxHeight: '160px', overflowY: 'auto' }}>
+                {dayAlert.recipients.map((r, i) => (
+                  <li key={i} style={{ fontSize: '13px', color: 'var(--bark)', lineHeight: 1.6 }}>{r.name || 'Client'} · {r.phone}</li>
+                ))}
+              </ul>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button style={{ flex: 1, padding: '11px', borderRadius: '9px', border: 'none', background: 'var(--moss)', color: '#fff', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)', opacity: alerting ? 0.6 : 1 }} onClick={sendDayAlerts} disabled={alerting}>
+                  {alerting ? 'Sending…' : `Send ${dayAlert.recipients.length} text${dayAlert.recipients.length === 1 ? '' : 's'}`}
+                </button>
+                <button style={{ padding: '11px 18px', borderRadius: '9px', border: '1px solid var(--border)', background: '#fff', color: '#888', fontSize: '14px', cursor: 'pointer', fontFamily: 'var(--font)' }} onClick={() => setDayAlert(null)} disabled={alerting}>Cancel</button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ── Today's crews — live truck progress toward each site ── */}
         {todaysCrews.length > 0 && (
