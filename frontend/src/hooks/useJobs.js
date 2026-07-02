@@ -21,8 +21,9 @@ export function useJobs() {
         clients (id, name, phone, email),
         quotes (id, status, subtotal, gst, total)
       `)
-      // Safety events (toolbox meetings etc.) live on the calendar, not the job pipeline
-      .neq('job_type', 'safety_event')
+      // Exclude safety_event jobs (toolbox meetings etc.) — they live on the calendar.
+      // Must use .or() because PostgREST .neq() excludes NULL rows in SQL semantics.
+      .or('job_type.is.null,job_type.neq.safety_event')
       .order('created_at', { ascending: false })
 
     if (error) {
