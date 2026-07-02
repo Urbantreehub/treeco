@@ -358,6 +358,21 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
               </div>
               <span style={{ fontSize: '18px', color: '#4A6741' }}>→</span>
             </button>
+            <button
+              onClick={() => { onClose(); navigate(`/jobpack/${job.id}`) }}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                width: '100%', padding: '12px 16px', borderRadius: '10px', marginTop: '8px',
+                background: '#FAF6EF', border: '1.5px solid #E6D9C4',
+                cursor: 'pointer', fontFamily: 'var(--font)',
+              }}
+            >
+              <div style={{ textAlign: 'left' }}>
+                <div style={{ fontSize: '14px', fontWeight: '700', color: '#8B6238' }}>Job Pack PDF</div>
+                <div style={{ fontSize: '12px', color: '#A98B63', marginTop: '2px' }}>Printable crew sheet — scope, plan, tools</div>
+              </div>
+              <span style={{ fontSize: '18px', color: '#8B6238' }}>📄</span>
+            </button>
           </div>
 
           {/* Job Forms */}

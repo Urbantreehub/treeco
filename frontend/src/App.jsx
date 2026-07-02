@@ -24,6 +24,7 @@ const SentQuotes   = lazy(() => import('./pages/SentQuotes'))
 const Chat         = lazy(() => import('./pages/Chat'))
 const ToolRequests = lazy(() => import('./pages/ToolRequests'))
 const MulchDump    = lazy(() => import('./pages/MulchDump'))
+const JobPack      = lazy(() => import('./pages/JobPack'))
 
 const PageFallback = () => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100dvh', color: 'var(--bark)' }}>Loading…</div>
@@ -98,6 +99,7 @@ export default function App() {
             <Route path="mulch"           element={<MulchDump />} />
             <Route path="staff"           element={<RequireStaff><StaffHub /></RequireStaff>} />
             <Route path="workorder/:jobId" element={<WorkOrder />} />
+            <Route path="jobpack/:jobId"   element={<JobPack />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />
