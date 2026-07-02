@@ -441,6 +441,75 @@ function DbsCard({ toast }) {
   )
 }
 
+// ── SMS (Twilio) card ───────────────────────────────────────────────────────
+function SmsCard({ toast }) {
+  const [testNumber, setTestNumber] = useState('')
+  const [sending, setSending] = useState(false)
+  const [recent, setRecent] = useState(null) // count of logged messages
+
+  useEffect(() => {
+    supabase.from('sms_messages').select('id', { count: 'exact', head: true })
+      .then(({ count }) => setRecent(count ?? 0))
+      .catch(() => setRecent(null))
+  }, [])
+
+  async function sendTest() {
+    if (!testNumber.trim()) { toast('Enter a mobile number to test', true); return }
+    setSending(true)
+    try {
+      const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
+      const ANON = import.meta.env.VITE_SUPABASE_ANON_KEY
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/send-sms`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: ANON, Authorization: `Bearer ${ANON}` },
+        body: JSON.stringify({ to: testNumber, message: 'Test message from Urban Tree Services TreeCo — SMS is working ✓', kind: 'manual' }),
+      })
+      const body = await res.json()
+      if (!res.ok) throw new Error(body.notConfigured ? 'Twilio not set up yet — add the secrets below' : (body.error ?? 'Send failed'))
+      toast(`Test SMS sent to ${body.to} ✓`)
+    } catch (err) {
+      toast(err.message, true)
+    } finally {
+      setSending(false)
+    }
+  }
+
+  return (
+    <div style={t.integrationCard}>
+      <div style={t.intLogo}>
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+          <rect width="32" height="32" rx="6" fill="#4A6741"/>
+          <path d="M8 11a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-8l-4 3v-3h-0a2 2 0 0 1-2-2z" fill="#fff"/>
+        </svg>
+      </div>
+      <div style={{ flex: 1 }}>
+        <div style={t.intName}>SMS (Twilio)</div>
+        <div style={t.intDesc}>
+          Texts quote links, day-before job reminders & quote follow-ups.
+          {recent != null && ` ${recent} message${recent === 1 ? '' : 's'} logged.`}
+        </div>
+        <div style={{ display: 'flex', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
+          <input
+            style={{ ...t.input, maxWidth: '200px', margin: 0 }}
+            placeholder="Test number e.g. 021 234 567"
+            value={testNumber}
+            onChange={e => setTestNumber(e.target.value)}
+          />
+          <button style={sending ? t.intBtnSecondary : t.intBtn} onClick={sendTest} disabled={sending}>
+            {sending ? 'Sending…' : 'Send test SMS'}
+          </button>
+        </div>
+        <div style={{ fontSize: '11px', color: '#aaa', marginTop: '8px' }}>
+          Requires Twilio secrets in Supabase → Edge Functions → Secrets:{' '}
+          <code style={{ background: '#f0ede8', padding: '1px 4px', borderRadius: '3px' }}>TWILIO_ACCOUNT_SID</code>,{' '}
+          <code style={{ background: '#f0ede8', padding: '1px 4px', borderRadius: '3px' }}>TWILIO_AUTH_TOKEN</code>,{' '}
+          <code style={{ background: '#f0ede8', padding: '1px 4px', borderRadius: '3px' }}>TWILIO_FROM</code>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Integrations tab ───────────────────────────────────────────────────────
 function IntegrationsTab({ toast }) {
   const [xeroConn,      setXeroConn]     = useState(null)
@@ -557,6 +626,9 @@ function IntegrationsTab({ toast }) {
 
       {/* DBS Portal */}
       <DbsCard toast={toast} />
+
+      {/* SMS (Twilio) */}
+      <SmsCard toast={toast} />
 
       {/* Edge Functions deployment note */}
       <div style={t.deployNote}>

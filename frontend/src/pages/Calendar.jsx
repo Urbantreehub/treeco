@@ -16,6 +16,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { supabase } from '../config/supabase'
 import CartrackMap from '../components/CartrackMap'
+import TruckProgress from '../components/TruckProgress'
 
 // ── Resources ──────────────────────────────────────────────────────────────
 const RESOURCES = [
@@ -267,18 +268,45 @@ function TrayCard({ job }) {
   )
 }
 
+// Truck-link dropdown inside the popover — keeps its own value so the selection
+// reflects instantly (FullCalendar's event snapshot won't re-render live).
+function PopoverTruckLink({ scheduleId, initialReg, vehicles, onLinkVehicle }) {
+  const [reg, setReg] = useState(initialReg)
+  return (
+    <div style={po.truckRow}>
+      <span style={po.icon}>🚚</span>
+      <select
+        value={reg}
+        onChange={e => { setReg(e.target.value); onLinkVehicle(scheduleId, e.target.value) }}
+        style={po.select}
+      >
+        <option value="">No truck linked</option>
+        {(vehicles ?? []).map(v => (
+          <option key={v.registration} value={v.registration}>
+            {v.registration}{v.name ? ` · ${v.name}` : ''}
+          </option>
+        ))}
+      </select>
+    </div>
+  )
+}
+
 // ── Event popover ──────────────────────────────────────────────────────────
-function Popover({ info, weekEvent, onClose, onUnschedule }) {
-  let job, rect
+function Popover({ info, weekEvent, vehicles, onClose, onUnschedule, onLinkVehicle }) {
+  let job, rect, ext
   if (info) {
-    job = info.event.extendedProps?.job
+    ext = info.event.extendedProps
+    job = ext?.job
     const r = info.el.getBoundingClientRect()
-    rect = { top: Math.min(r.bottom + 6, window.innerHeight - 240), left: Math.min(r.left, window.innerWidth - 260) }
+    rect = { top: Math.min(r.bottom + 6, window.innerHeight - 300), left: Math.min(r.left, window.innerWidth - 260) }
   } else if (weekEvent) {
-    job = weekEvent.extendedProps?.job
-    rect = { top: window.innerHeight / 2 - 110, left: window.innerWidth / 2 - 125 }
+    ext = weekEvent.extendedProps
+    job = ext?.job
+    rect = { top: window.innerHeight / 2 - 140, left: window.innerWidth / 2 - 125 }
   }
   if (!job) return null
+
+  const scheduleId = ext?.scheduleId
 
   return (
     <div style={po.scrim} onClick={onClose}>
@@ -288,6 +316,15 @@ function Popover({ info, weekEvent, onClose, onUnschedule }) {
         {job.job_type  && <div style={po.row}><span style={po.icon}>🌲</span>{job.job_type}</div>}
         {job.address   && <div style={po.row}><span style={po.icon}>📍</span>{job.address}</div>}
         {job.clients?.phone && <div style={po.row}><span style={po.icon}>📞</span>{job.clients.phone}</div>}
+
+        {scheduleId && (
+          <PopoverTruckLink
+            scheduleId={scheduleId}
+            initialReg={ext?.vehicleReg ?? ''}
+            vehicles={vehicles}
+            onLinkVehicle={onLinkVehicle}
+          />
+        )}
         <div style={po.btns}>
           <button style={po.backBtn} onClick={() => onUnschedule(job)}>↩ Back to tray</button>
           <button style={po.closeBtn} onClick={onClose}>Done</button>
@@ -442,6 +479,7 @@ function FullCalendar_() {
   const [showFilter,        setShowFilter]        = useState(false)
   const [orderedResources,  setOrderedResources]  = useState(RESOURCES)
   const [visibleIds,        setVisibleIds]        = useState(new Set(RESOURCES.map(r => r.id)))
+  const [vehicles,          setVehicles]          = useState([])
 
   const activeResources = orderedResources.filter(r => visibleIds.has(r.id))
 
@@ -482,7 +520,7 @@ function FullCalendar_() {
         .order('created_at', { ascending: false }),
       supabase
         .from('schedule')
-        .select('*, jobs(id, title, status, job_type, address, clients(name, phone))')
+        .select('*, jobs(id, title, status, job_type, address, lat, lng, clients(name, phone))')
         .order('date'),
     ])
 
@@ -501,7 +539,7 @@ function FullCalendar_() {
         allDay: !row.start_time,
         color: jobColor(job),
         resourceId: rid,
-        extendedProps: { job, scheduleId: row.id, resourceId: rid },
+        extendedProps: { job, scheduleId: row.id, resourceId: rid, vehicleReg: row.vehicle_reg ?? null, date: row.date },
       }
     }))
 
@@ -509,6 +547,54 @@ function FullCalendar_() {
   }
 
   useEffect(() => { load() }, [])
+
+  // Live vehicle positions — poll cartrack-positions every 45s. Fail silently.
+  useEffect(() => {
+    let cancelled = false
+    const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
+    const ANON = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+    async function fetchVehicles() {
+      if (!SUPABASE_URL) return
+      try {
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/cartrack-positions`, {
+          headers: { apikey: ANON, Authorization: `Bearer ${ANON}` },
+        })
+        const data = await res.json()
+        if (cancelled) return
+        if (data?.error || !Array.isArray(data?.vehicles)) { setVehicles([]); return }
+        setVehicles(data.vehicles)
+      } catch {
+        if (!cancelled) setVehicles([])
+      }
+    }
+
+    fetchVehicles()
+    const interval = setInterval(fetchVehicles, 45_000)
+    return () => { cancelled = true; clearInterval(interval) }
+  }, [])
+
+  const vehicleByReg = (reg) => vehicles.find(v => v.registration === reg) ?? null
+
+  async function linkVehicle(scheduleId, reg) {
+    setEvents(prev => prev.map(e =>
+      e.extendedProps?.scheduleId === scheduleId
+        ? { ...e, extendedProps: { ...e.extendedProps, vehicleReg: reg || null } }
+        : e
+    ))
+    const { error } = await supabase.from('schedule')
+      .update({ vehicle_reg: reg || null })
+      .eq('id', scheduleId)
+    if (error) showToast(error.message, true)
+    else showToast(reg ? 'Truck linked' : 'Truck unlinked')
+  }
+
+  // Scheduled-today jobs that have a linked, geocoded truck — for the crew strip.
+  const todayYMD = toYMD(new Date())
+  const todaysCrews = events.filter(ev => {
+    const p = ev.extendedProps
+    return p?.date === todayYMD && p?.vehicleReg && p?.job?.lat != null && p?.job?.lng != null
+  })
 
   const handleDatesSet = (arg) => setViewTitle(arg.view.title)
 
@@ -725,6 +811,33 @@ function FullCalendar_() {
         {/* FC CSS overrides */}
         <style>{FC_CSS}</style>
 
+        {/* ── Today's crews — live truck progress toward each site ── */}
+        {todaysCrews.length > 0 && (
+          <div style={s.crewStrip}>
+            <div style={s.crewStripLabel}>🚚 Today's crews</div>
+            <div style={s.crewStripRows}>
+              {todaysCrews.map(ev => {
+                const job = ev.extendedProps.job
+                const veh = vehicleByReg(ev.extendedProps.vehicleReg)
+                if (!veh) return null
+                return (
+                  <div key={ev.id} style={s.crewRow} onClick={() => setPopover({ weekEvent: ev })}>
+                    <div style={s.crewName} title={ev.title}>{ev.title}</div>
+                    <div style={s.crewProgress}>
+                      <TruckProgress
+                        vehicle={veh}
+                        jobLat={job.lat}
+                        jobLng={job.lng}
+                        statusColor={jobColor(job)}
+                      />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Week custom grid */}
         {activeView === 'week' ? (
           <div style={s.calWrapWeek}>
@@ -810,8 +923,10 @@ function FullCalendar_() {
         <Popover
           info={popover.info}
           weekEvent={popover.weekEvent}
+          vehicles={vehicles}
           onClose={() => setPopover(null)}
           onUnschedule={unscheduleJob}
+          onLinkVehicle={linkVehicle}
         />
       )}
 
@@ -1003,6 +1118,26 @@ const s = {
     background: '#D4851A', color: '#fff', fontSize: '10px', fontWeight: '700',
     borderRadius: '20px', padding: '1px 6px', lineHeight: 1.6,
   },
+  crewStrip: {
+    flexShrink: 0, borderBottom: '1px solid #E2DDD6', background: '#FAFAF8',
+    padding: '8px 16px', display: 'flex', alignItems: 'flex-start', gap: '14px',
+    maxHeight: '120px', overflowY: 'auto',
+  },
+  crewStripLabel: {
+    fontSize: '10px', fontWeight: '700', color: '#aaa',
+    textTransform: 'uppercase', letterSpacing: '0.05em',
+    whiteSpace: 'nowrap', paddingTop: '4px', flexShrink: 0,
+  },
+  crewStripRows: { flex: 1, display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0 },
+  crewRow: {
+    display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer',
+    padding: '2px 4px', borderRadius: '6px',
+  },
+  crewName: {
+    fontSize: '11px', fontWeight: '600', color: '#2C2416',
+    width: '120px', flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+  },
+  crewProgress: { flex: 1, minWidth: 0 },
   calWrap: { flex: 1, overflow: 'hidden', minHeight: 0 },
   calWrapWeek: { flex: 1, overflowX: 'auto', overflowY: 'auto', minHeight: 0 },
   toast: {
@@ -1035,6 +1170,12 @@ const po = {
   title:    { fontSize: '14px', fontWeight: '700', color: '#2C2416', padding: '12px 14px 6px' },
   row:      { display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '12px', color: '#555', lineHeight: 1.6, padding: '1px 14px' },
   icon:     { fontSize: '11px', marginTop: '2px', flexShrink: 0 },
+  truckRow: { display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px 2px' },
+  select:   {
+    flex: 1, fontSize: '12px', padding: '5px 6px', borderRadius: '6px',
+    border: '1px solid #E2DDD6', background: '#FAF8F4', color: '#2C2416',
+    fontFamily: 'var(--font)', cursor: 'pointer', outline: 'none',
+  },
   btns:     { display: 'flex', gap: '8px', padding: '12px 14px', borderTop: '1px solid #E2DDD6', marginTop: '8px' },
   backBtn:  { flex: 1, background: '#FDF3E3', border: '1px solid #FADFAA', borderRadius: '6px', padding: '7px', fontSize: '11px', fontWeight: '600', color: '#B8860B', cursor: 'pointer', fontFamily: 'var(--font)' },
   closeBtn: { background: '#2C2416', border: 'none', borderRadius: '6px', padding: '7px 14px', fontSize: '11px', fontWeight: '600', color: '#fff', cursor: 'pointer', fontFamily: 'var(--font)' },

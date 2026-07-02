@@ -3,12 +3,17 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { useScheduledChecks } from '../hooks/useScheduledChecks'
+import { usePendingRequests } from '../hooks/usePendingRequests'
 
 const FULL_NAV = [
   { to: '/dashboard', label: 'Dashboard', icon: DashboardIcon },
   { to: '/pipeline',  label: 'Jobs',      icon: PipelineIcon },
   { to: '/calendar',  label: 'Calendar',  icon: CalendarIcon },
+  { to: '/planner',   label: 'Planner',   icon: PlannerIcon },
+  { to: '/sent-quotes', label: 'Quotes',  icon: QuotesIcon },
   { to: '/clients',   label: 'Clients',   icon: ClientsIcon },
+  { to: '/chat',      label: 'Chat',      icon: ChatIcon },
+  { to: '/requests',  label: 'Tools',     icon: ToolIcon },
   { to: '/safety',    label: 'Safety',    icon: SafetyIcon },
   { to: '/staff',     label: 'Staff Hub', icon: StaffHubIcon },
 ]
@@ -16,13 +21,19 @@ const FULL_NAV = [
 const OFFICE_NAV = [
   { to: '/pipeline',  label: 'Jobs',      icon: PipelineIcon },
   { to: '/calendar',  label: 'Calendar',  icon: CalendarIcon },
+  { to: '/planner',   label: 'Planner',   icon: PlannerIcon },
+  { to: '/sent-quotes', label: 'Quotes',  icon: QuotesIcon },
   { to: '/clients',   label: 'Clients',   icon: ClientsIcon },
+  { to: '/chat',      label: 'Chat',      icon: ChatIcon },
+  { to: '/requests',  label: 'Tools',     icon: ToolIcon },
   { to: '/safety',    label: 'Safety',    icon: SafetyIcon },
   { to: '/staff',     label: 'Staff Hub', icon: StaffHubIcon },
 ]
 
 const CREW_NAV = [
   { to: '/calendar', label: 'Calendar', icon: CalendarIcon },
+  { to: '/chat',     label: 'Chat',     icon: ChatIcon },
+  { to: '/requests', label: 'Tools',    icon: ToolIcon },
   { to: '/safety',   label: 'Safety',   icon: SafetyIcon },
 ]
 
@@ -32,6 +43,7 @@ export default function Layout() {
   const isMobile   = useIsMobile()
   const { overdue, dueSoon } = useScheduledChecks()
   const alertCount = overdue.length + dueSoon.length
+  const pendingRequests = usePendingRequests(isStaff)
 
   async function handleSignOut() {
     await signOut()
@@ -57,6 +69,9 @@ export default function Layout() {
                     <Icon active={isActive} />
                     {to === '/safety' && alertCount > 0 && (
                       <span style={{ position: 'absolute', top: -4, right: -6, background: '#e53935', color: '#fff', borderRadius: '50%', width: 16, height: 16, fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>{alertCount > 9 ? '9+' : alertCount}</span>
+                    )}
+                    {to === '/requests' && pendingRequests > 0 && (
+                      <span style={{ position: 'absolute', top: -4, right: -6, background: '#D4851A', color: '#fff', borderRadius: '50%', width: 16, height: 16, fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>{pendingRequests > 9 ? '9+' : pendingRequests}</span>
                     )}
                   </div>
                   <span style={m.tabLabel}>{label}</span>
@@ -96,6 +111,9 @@ export default function Layout() {
                   {label}
                   {to === '/safety' && alertCount > 0 && (
                     <span style={{ marginLeft: 'auto', background: '#e53935', color: '#fff', borderRadius: 10, padding: '1px 6px', fontSize: 10, fontWeight: 700 }}>{alertCount > 9 ? '9+' : alertCount}</span>
+                  )}
+                  {to === '/requests' && pendingRequests > 0 && (
+                    <span style={{ marginLeft: 'auto', background: '#D4851A', color: '#fff', borderRadius: 10, padding: '1px 6px', fontSize: 10, fontWeight: 700 }}>{pendingRequests > 9 ? '9+' : pendingRequests}</span>
                   )}
                 </NavLink>
               </li>
@@ -158,6 +176,30 @@ function ClientsIcon({ active, size = 22 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round">
       <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+    </svg>
+  )
+}
+function ChatIcon({ active, size = 22 }) {
+  const c = active ? '#fff' : 'rgba(255,255,255,0.55)'
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+    </svg>
+  )
+}
+function ToolIcon({ active, size = 22 }) {
+  const c = active ? '#fff' : 'rgba(255,255,255,0.55)'
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+    </svg>
+  )
+}
+function PlannerIcon({ active, size = 22 }) {
+  const c = active ? '#fff' : 'rgba(255,255,255,0.55)'
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="1 6 8 3 16 6 23 3 23 18 16 21 8 18 1 21 1 6"/><line x1="8" y1="3" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="21"/>
     </svg>
   )
 }
