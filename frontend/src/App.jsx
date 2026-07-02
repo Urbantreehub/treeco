@@ -25,6 +25,7 @@ const Chat         = lazy(() => import('./pages/Chat'))
 const ToolRequests = lazy(() => import('./pages/ToolRequests'))
 const MulchDump    = lazy(() => import('./pages/MulchDump'))
 const JobPack      = lazy(() => import('./pages/JobPack'))
+const BookQuote    = lazy(() => import('./pages/BookQuote'))
 
 const PageFallback = () => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100dvh', color: 'var(--bark)' }}>Loading…</div>
@@ -74,6 +75,9 @@ export default function App() {
 
           {/* Public client-facing quote view — no auth */}
           <Route path="/q/:token" element={<QuoteView />} />
+
+          {/* Public quote-request / self-booking form — no auth */}
+          <Route path="/book" element={<BookQuote />} />
 
           <Route
             path="/"
