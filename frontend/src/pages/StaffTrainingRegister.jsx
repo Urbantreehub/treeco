@@ -34,12 +34,14 @@ const DUE_SOON_DAYS = 90
 const SEED_RECORDS = {
   // Joshua Jack Curran Mongan — Meditrain CPR First Aid (incl. unit standard),
   // completed 19 Nov 2025 with Peter Monk, expires 19 Nov 2027. Cert PDF emailed
-  // by rochelle@meditrain.co.nz on 23 Nov 2025 and saved to the drive.
+  // by rochelle@meditrain.co.nz on 23 Nov 2025 and saved to the drive. Also
+  // lodged on SiteWise as Q6 Training evidence ("Josh Curran - CPR First Aid.pdf",
+  // assessment 85123, assessed 09/02/2026).
   joshua__first_aid: {
     date: '2025-11-19',
     expiry: '2027-11-19',
     provider: 'Meditrain (Peter Monk)',
-    notes: 'CPR First Aid incl. unit standard — cert PDF on Drive ("Josh Curran - CPR First Aid (includes unit standard).pdf")',
+    notes: 'CPR First Aid incl. unit standard — cert PDF on Drive ("Josh Curran - CPR First Aid (includes unit standard).pdf"); also lodged as SiteWise Q6 Training evidence ("Josh Curran - CPR First Aid.pdf") (source: SiteWise)',
   },
 
   // Lea Molloy — NZ Certificate in Horticulture (Arboriculture) L3 (NZ2678) +

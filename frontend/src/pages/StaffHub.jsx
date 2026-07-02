@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 
 const STORAGE_KEY = 'treeco_staff_hub_v1'
-const SEEDED_KEY  = 'treeco_staff_hub_seeded_v1'
+const SEEDED_KEY  = 'treeco_staff_hub_seeded_v2'
 
 const DEFAULT_STAFF = [
   { id: 's1', name: 'Josh Micallef',             role: 'Director / Climber', startDate: null },
@@ -45,7 +45,7 @@ function uid() {
 }
 
 // ─── Seed records ─────────────────────────────────────────────────────────
-// Real records pulled from Gmail + Google Drive (July 2026 audit).
+// Real records pulled from Gmail + Google Drive + SiteWise (July 2026 audit).
 // Categories: employment | certifications | health_safety | notes
 const SEED_CREATED = '2026-07-02T00:00:00.000Z'
 
@@ -57,6 +57,7 @@ const SEED_RECORDS = {
     { id: 'seed-s1-4', category: 'employment', name: 'Ministry of Justice check (Downer/Kainga Ora requirement)', type: 'Other', date: '', expiry: '', status: 'Missing', notes: 'Still outstanding per Downer email 22 May 2026 (F.SioneTLeasi@downergroup.com). Statutory declaration provided as interim.', created_at: SEED_CREATED },
     { id: 'seed-s1-5', category: 'employment', name: 'Downer/Wellington Subcontractor ID Request FY2026-27', type: 'Other', date: '2026-03-10', expiry: '', status: 'On File', notes: 'JOSH M FORM.pdf — https://drive.google.com/file/d/1s6H89BqngkZoVVnLlLE1naTUqQGke5Dl/view?usp=drivesdk', created_at: SEED_CREATED },
     { id: 'seed-s1-6', category: 'health_safety', name: 'Spencers WorkEd online courses — enrolled', type: 'Note', date: '2025-11-19', expiry: '', status: 'Pending', notes: 'Enrolments (WorkEd@spencersnz.co.nz, username 27803): Incident Reporting (19 Nov 2025), Stay Safe Take 5! (14 Jan 2026), Squatter Safety + Site Safety: The Hazard Board (16 Feb 2026). No completion confirmations on file.', created_at: SEED_CREATED },
+    { id: 'seed-s1-7', category: 'employment', name: 'SiteWise user account', type: 'Other', date: '', expiry: '', status: 'On File', notes: 'Sole SiteWise user account for Urban Tree Services (Company ID 31361, SiteWise GREEN, Level 3 division). Email josh@urbantreeservices.net, mobile 0210771520. Last login 02/07/2026. (source: SiteWise)', created_at: SEED_CREATED },
   ],
   s2: [
     { id: 'seed-s2-1', category: 'certifications', name: 'NZ Certificate in Horticulture (Arboriculture) Level 3 (NZ2678)', type: 'Certificate', date: '2024-11-27', expiry: '', status: 'On File', notes: 'Otago Polytechnic / Te Pukenga. https://drive.google.com/file/d/16axPlHfOaPqX9DJC3LL89M7VtSie3zMZ/view?usp=drivesdk', created_at: SEED_CREATED },
@@ -66,7 +67,7 @@ const SEED_RECORDS = {
     { id: 'seed-s2-5', category: 'employment', name: 'MOJ criminal conviction check — no convictions', type: 'Other', date: '2026-04-16', expiry: '', status: 'On File', notes: 'lea-moj.pdf — https://drive.google.com/file/d/1sDfsiIGH91ylF0UHHGlZU-ayBCKcfy4T/view?usp=drivesdk', created_at: SEED_CREATED },
     { id: 'seed-s2-6', category: 'employment', name: 'Downer/Wellington Subcontractor ID Request FY2026-27', type: 'Other', date: '2026-03-10', expiry: '', status: 'On File', notes: 'LEA-SUBCONTRACTORID.pdf — https://drive.google.com/file/d/19oTzGw30ezfP8kG3Kk3HUtoONOX1LiUY/view?usp=drivesdk', created_at: SEED_CREATED },
     { id: 'seed-s2-7', category: 'employment', name: 'Employment agreement', type: 'Contract', date: '', expiry: '', status: 'Missing', notes: 'Flagged outstanding by Downer (21-22 May 2026). Not found in Drive or email. Re-hired 17 Feb 2026 after resignation effective 23 Dec 2025.', created_at: SEED_CREATED },
-    { id: 'seed-s2-8', category: 'health_safety', name: 'Incident investigation form — 24 Nov 2025', type: 'Note', date: '2025-11-24', expiry: '', status: 'On File', notes: '"Incident investigation form Lea 24112025" shared via Microsoft 365 with leamolloy@gmail.com.', created_at: SEED_CREATED },
+    { id: 'seed-s2-8', category: 'health_safety', name: 'Incident investigation form — 24 Nov 2025', type: 'Note', date: '2025-11-24', expiry: '', status: 'On File', notes: '"Incident investigation form Lea 24112025" shared via Microsoft 365 with leamolloy@gmail.com. Also on SiteWise as "Incident investigation form Lea 24112025.pdf" — Q4 Incidents evidence, assessment 85123 (scored 81, assessed 09/02/2026). (source: SiteWise)', created_at: SEED_CREATED },
     { id: 'seed-s2-9', category: 'health_safety', name: 'Spencers WorkEd online courses — enrolled', type: 'Note', date: '2025-11-19', expiry: '', status: 'Pending', notes: 'Enrolments: Incident Reporting (19 Nov 2025), Stay Safe Take 5! (14 Jan 2026), Risk Contractor Training Part Two (2 Feb 2026), Squatter Safety + Site Safety: The Hazard Board (16 Feb 2026). Only Part One completion confirmed.', created_at: SEED_CREATED },
   ],
   s3: [
@@ -83,7 +84,7 @@ const SEED_RECORDS = {
     { id: 'seed-s3-11', category: 'notes', name: 'Pay-rate dispute — Resolve Legal engaged', type: 'Note', date: '2026-06-29', expiry: '', status: 'On File', notes: 'Dispute email 25 Jun 2026; Josh confirmed $50/hr stands. Resolve Legal (luke@resolvelegal.co.nz) engaged — signed Letter of Engagement, three docs prepared for Stuart.', created_at: SEED_CREATED },
   ],
   s4: [
-    { id: 'seed-s4-1', category: 'certifications', name: 'CPR First Aid (includes unit standard) — Meditrain', type: 'Certificate', date: '2025-11-19', expiry: '2027-11-19', status: 'On File', notes: 'Provider: Meditrain (Peter Monk). Cert emailed 23 Nov 2025 by rochelle@meditrain.co.nz — "Josh Curran - CPR First Aid (includes unit standard).pdf".', created_at: SEED_CREATED },
+    { id: 'seed-s4-1', category: 'certifications', name: 'CPR First Aid (includes unit standard) — Meditrain', type: 'Certificate', date: '2025-11-19', expiry: '2027-11-19', status: 'On File', notes: 'Provider: Meditrain (Peter Monk). Cert emailed 23 Nov 2025 by rochelle@meditrain.co.nz — "Josh Curran - CPR First Aid (includes unit standard).pdf". Also on SiteWise as "Josh Curran - CPR First Aid.pdf" — Q6 Training evidence, assessment 85123 (scored 81, assessed 09/02/2026). (source: SiteWise)', created_at: SEED_CREATED },
     { id: 'seed-s4-2', category: 'certifications', name: 'NZ Certificate in Arboriculture Level 3 — in progress (Primary ITO)', type: 'Certificate', date: '2025-09-09', expiry: '', status: 'Pending', notes: 'Training Plans TIM:0922004373 (9 Sep 2025) and TIM:0922004894 (26 Mar 2026). As at 14 Apr 2026: 7 units remaining, target Sept 2026. Needs new plan/assessor after Joel Ewan left (meeting 17 Jun 2026).', created_at: SEED_CREATED },
     { id: 'seed-s4-3', category: 'certifications', name: 'NZ Driver Licence — RESTRICTED (ED714033, v225)', type: 'Licence', date: '', expiry: '', status: 'On File', notes: 'JOSHCM-ID.jpeg — https://drive.google.com/file/d/1aw5jL73E9icJdVDBr0PwaBRwZPXMIJtj/view?usp=drivesdk. Expiry not visible on copy — check card.', created_at: SEED_CREATED },
     { id: 'seed-s4-4', category: 'employment', name: 'MOJ Conviction History — no convictions (ref W0H976K30)', type: 'Other', date: '2026-05-09', expiry: '', status: 'On File', notes: 'JOSH-CM MOJ.pdf — https://drive.google.com/file/d/1WeFBuzuKJKRsW2-bAVMTa_RuHAuhN2yv/view?usp=drivesdk', created_at: SEED_CREATED },
@@ -108,11 +109,18 @@ function loadData() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     const existing = raw ? JSON.parse(raw) : null
-    const hasDocs = existing && Object.values(existing).some(docs => Array.isArray(docs) && docs.length > 0)
-    if (!localStorage.getItem(SEEDED_KEY) && !hasDocs) {
+    if (!localStorage.getItem(SEEDED_KEY)) {
+      // Merge seed records into existing data (never wipe user-added docs).
+      // Skips any seed record whose id is already present.
+      const merged = { ...(existing || {}) }
+      for (const [staffId, seeds] of Object.entries(SEED_RECORDS)) {
+        const current = Array.isArray(merged[staffId]) ? merged[staffId] : []
+        const existingIds = new Set(current.map(d => d.id))
+        merged[staffId] = [...current, ...seeds.filter(d => !existingIds.has(d.id))]
+      }
       localStorage.setItem(SEEDED_KEY, '1')
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(SEED_RECORDS))
-      return SEED_RECORDS
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(merged))
+      return merged
     }
     return existing || {}
   } catch {
