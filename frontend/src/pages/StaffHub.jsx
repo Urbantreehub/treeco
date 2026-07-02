@@ -234,7 +234,7 @@ function DocRow({ doc, onDelete }) {
 
 // ─── Category accordion section ───────────────────────────────────────────
 function CategorySection({ category, docs, onAdd, onDelete }) {
-  const [open,    setOpen]    = useState(true)
+  const [open,    setOpen]    = useState(false)
   const [adding,  setAdding]  = useState(false)
 
   function handleSave(formData) {
