@@ -3,6 +3,33 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../config/supabase'
 import CartrackMap from '../components/CartrackMap'
 import { useScheduledChecks } from '../hooks/useScheduledChecks'
+import { LEAD_INTAKE_EMAIL, BOOKING_URL } from '../config/company'
+
+// Reference card: where new leads come in from (email intake + web form).
+function LeadIntakeCard() {
+  const [copied, setCopied] = useState('')
+  const copy = (text, which) => { navigator.clipboard?.writeText(text); setCopied(which); setTimeout(() => setCopied(''), 1500) }
+  const Row = ({ icon, label, value, which }) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 0' }}>
+      <span style={{ fontSize: '16px' }}>{icon}</span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: '11px', color: '#aaa', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</div>
+        <div style={{ fontSize: '14px', color: 'var(--bark)', fontWeight: 600, wordBreak: 'break-all' }}>{value}</div>
+      </div>
+      <button onClick={() => copy(value, which)} style={{ fontSize: '12px', border: '1px solid var(--border)', background: '#fff', color: '#666', borderRadius: '7px', padding: '5px 10px', cursor: 'pointer', fontFamily: 'var(--font)', flexShrink: 0 }}>
+        {copied === which ? 'Copied ✓' : 'Copy'}
+      </button>
+    </div>
+  )
+  return (
+    <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: '12px', padding: '14px 18px', marginBottom: '24px' }}>
+      <div style={{ fontSize: '12px', fontWeight: '700', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>Where new leads come in</div>
+      <Row icon="📧" label="Email — forward/CC enquiries here to auto-create a job" value={LEAD_INTAKE_EMAIL} which="email" />
+      <div style={{ height: '1px', background: '#F0EDE8' }} />
+      <Row icon="🌐" label="Website quote form" value={BOOKING_URL} which="url" />
+    </div>
+  )
+}
 
 const CREW_DAY_RATE = 2500   // $ per crew per day
 
@@ -523,6 +550,9 @@ export default function Dashboard() {
           <span>{advice.text}</span>
         </div>
       )}
+
+      {/* Lead intake reference */}
+      <LeadIntakeCard />
 
       {/* ── KPI row ── */}
       <Section title={`Revenue snapshot${usingXero ? ' — from Xero' : ' — from accepted quotes'}`}>

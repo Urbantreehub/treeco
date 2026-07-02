@@ -18,6 +18,14 @@ export const COMPANY = {
   region: 'Wellington',
 }
 
+// Email address that auto-creates pipeline leads: enquiry emails forwarded/CC'd
+// here are turned into new_lead jobs (Postmark inbound → inbound-lead function).
+// ⚠️ Set this to your actual Postmark inbound address before relying on it.
+export const LEAD_INTAKE_EMAIL = 'leads@urbantreeservices.net'
+
+// Public quote-request form (also embeddable via /embed.js).
+export const BOOKING_URL = 'https://app.urbantreeservices.net/book'
+
 // Google Business rating — shown as social proof. Confirm against your live
 // Google Business Profile and update as reviews accumulate.
 export const REVIEWS = {

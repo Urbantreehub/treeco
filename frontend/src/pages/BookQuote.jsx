@@ -1,4 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+
+const IS_EMBED = new URLSearchParams(window.location.search).get('embed') === '1'
 
 // Public, no-login quote-request / self-booking page (route /book). Submits to
 // the book-quote edge function, which lands it in the pipeline as a new lead.
@@ -32,6 +34,16 @@ export default function BookQuote() {
   const set = (k, v) => setF(prev => ({ ...prev, [k]: v }))
   const quoteDays = upcomingQuoteDays()
 
+  // When embedded via embed.js, report our height so the host iframe auto-sizes.
+  useEffect(() => {
+    if (!IS_EMBED) return
+    const post = () => window.parent?.postMessage({ type: 'uts-book-height', height: document.documentElement.scrollHeight }, '*')
+    post()
+    const ro = new ResizeObserver(post)
+    ro.observe(document.documentElement)
+    return () => ro.disconnect()
+  })
+
   function onPhoto(e) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -63,7 +75,7 @@ export default function BookQuote() {
   }
 
   if (done) return (
-    <div style={s.page}>
+    <div style={{ ...s.page, ...(IS_EMBED ? { background: 'transparent', padding: '0', minHeight: 0 } : {}) }}>
       <div style={s.card}>
         <img src="/logo.png" alt="Urban Tree Services" style={s.logo} />
         <div style={{ fontSize: '40px', margin: '8px 0' }}>✓</div>
@@ -75,7 +87,7 @@ export default function BookQuote() {
   )
 
   return (
-    <div style={s.page}>
+    <div style={{ ...s.page, ...(IS_EMBED ? { background: 'transparent', padding: '0', minHeight: 0 } : {}) }}>
       <form style={s.card} onSubmit={submit}>
         <img src="/logo.png" alt="Urban Tree Services" style={s.logo} />
         <h1 style={s.title}>Request a free quote</h1>
