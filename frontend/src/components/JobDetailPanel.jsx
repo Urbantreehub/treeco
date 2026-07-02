@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../config/supabase'
 import { useAuth } from '../context/AuthContext'
 import StatusBadge from './StatusBadge'
+import QuoteReference from './QuoteReference'
 import { JOB_STATUSES, STATUS_ORDER } from '../config/statuses'
 
 const SUPABASE_URL  = import.meta.env.VITE_SUPABASE_URL
@@ -257,6 +258,9 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
                   <div style={styles.description}>{job.description}</div>
                 </div>
               )}
+              <div style={{ marginTop: '16px' }}>
+                <QuoteReference jobId={job.id} />
+              </div>
               {isFullAccess && (
                 <button onClick={() => setEditing(true)} style={{ ...styles.ghostBtn, marginTop: '12px' }}>
                   Edit details

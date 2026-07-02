@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useIsMobile } from '../hooks/useIsMobile'
 import ImageMarkup from '../components/ImageMarkup'
+import QuoteReference from '../components/QuoteReference'
 import { searchSor, CHARGE_CODES } from '../data/sorCodes'
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragOverlay,
@@ -943,6 +944,9 @@ export default function QuoteBuilder() {
                 </select>
               </div>
             )}
+
+            {/* Quote reference — lead/site material for the operator (never on the client quote) */}
+            {jobId && <QuoteReference jobId={jobId} readOnly />}
 
             {/* Line items */}
             <div style={s.card}>
