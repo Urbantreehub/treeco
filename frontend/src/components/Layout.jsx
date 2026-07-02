@@ -12,6 +12,7 @@ const FULL_NAV = [
   { to: '/planner',   label: 'Planner',   icon: PlannerIcon },
   { to: '/sent-quotes', label: 'Quotes',  icon: QuotesIcon },
   { to: '/clients',   label: 'Clients',   icon: ClientsIcon },
+  { to: '/mulch',     label: 'Mulch',     icon: MulchIcon },
   { to: '/chat',      label: 'Chat',      icon: ChatIcon },
   { to: '/requests',  label: 'Tools',     icon: ToolIcon },
   { to: '/safety',    label: 'Safety',    icon: SafetyIcon },
@@ -24,6 +25,7 @@ const OFFICE_NAV = [
   { to: '/planner',   label: 'Planner',   icon: PlannerIcon },
   { to: '/sent-quotes', label: 'Quotes',  icon: QuotesIcon },
   { to: '/clients',   label: 'Clients',   icon: ClientsIcon },
+  { to: '/mulch',     label: 'Mulch',     icon: MulchIcon },
   { to: '/chat',      label: 'Chat',      icon: ChatIcon },
   { to: '/requests',  label: 'Tools',     icon: ToolIcon },
   { to: '/safety',    label: 'Safety',    icon: SafetyIcon },
@@ -32,6 +34,7 @@ const OFFICE_NAV = [
 
 const CREW_NAV = [
   { to: '/calendar', label: 'Calendar', icon: CalendarIcon },
+  { to: '/mulch',    label: 'Mulch',    icon: MulchIcon },
   { to: '/chat',     label: 'Chat',     icon: ChatIcon },
   { to: '/requests', label: 'Tools',    icon: ToolIcon },
   { to: '/safety',   label: 'Safety',   icon: SafetyIcon },
@@ -214,6 +217,14 @@ function ClientsIcon({ active, size = 22 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round">
       <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+    </svg>
+  )
+}
+function MulchIcon({ active, size = 22 }) {
+  const c = active ? '#fff' : 'rgba(255,255,255,0.55)'
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 18h13v-5l4 2v3h1" /><circle cx="7" cy="18" r="2" /><circle cx="17" cy="18" r="2" /><path d="M3 18V8h9l4 5" />
     </svg>
   )
 }
