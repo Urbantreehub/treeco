@@ -346,6 +346,35 @@ function Section({ title, children }) {
   )
 }
 
+// Rough tax set-aside guide from the Xero P&L. NOT tax advice — a conservative
+// pot so cash is there at filing time. Rates are adjustable (GST 15%,
+// income/provisional tax default 28% company rate).
+function TaxReserve({ revenue, expenses, netProfit }) {
+  const [taxRate, setTaxRate] = useState(28)
+  const gstPot = Math.max(0, 0.15 * (revenue - expenses))          // net GST estimate
+  const incomeTaxPot = Math.max(0, (taxRate / 100) * netProfit)
+  const totalPot = gstPot + incomeTaxPot
+  const safeToDraw = Math.max(0, netProfit - incomeTaxPot)
+  return (
+    <Section title="Tax set-aside — estimate">
+      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '10px' }}>
+        <StatCard label="Set aside for GST" value={nzd(gstPot)} sub="≈15% of net sales (rough)" color="#D4851A" />
+        <StatCard label="Set aside for income tax" value={nzd(incomeTaxPot)} sub={`${taxRate}% of net profit`} color="#D4851A" />
+        <StatCard label="Total tax pot" value={nzd(totalPot)} sub="Keep this aside" color="#C0392B" />
+        <StatCard label="Est. safe to draw" value={nzd(safeToDraw)} sub="Profit after income tax" color="var(--moss)" />
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+        <label style={{ fontSize: '12px', color: '#888' }}>Income tax rate</label>
+        <input type="range" min="10" max="39" value={taxRate} onChange={e => setTaxRate(Number(e.target.value))} style={{ accentColor: 'var(--moss)' }} />
+        <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--bark)' }}>{taxRate}%</span>
+      </div>
+      <div style={{ fontSize: '11px', color: '#bbb', lineHeight: 1.5 }}>
+        ⚠ Rough guide from your Xero P&amp;L — <strong>not tax advice</strong>. Actual GST is lower once you claim input credits on purchases. Confirm figures with your accountant.
+      </div>
+    </Section>
+  )
+}
+
 export default function Dashboard() {
   const nav = useNavigate()
   const [quotes,   setQuotes]   = useState([])
@@ -544,6 +573,8 @@ export default function Dashboard() {
         </div>
 
       </Section>
+
+      {usingXero && <TaxReserve revenue={xeroPnl.revenue} expenses={xeroPnl.expenses} netProfit={xeroPnl.netProfit} />}
 
       {/* Safety actions */}
       <SafetyActionsWidget onNavigate={nav} />
