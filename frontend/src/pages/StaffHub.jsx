@@ -44,6 +44,20 @@ function uid() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2)
 }
 
+// Viewport hook — inline styles can't use CSS media queries, so we switch
+// layout in JS. Below this width the sidebar becomes a horizontal strip.
+function useIsMobile(breakpoint = 720) {
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== 'undefined' ? window.innerWidth <= breakpoint : false
+  )
+  useEffect(() => {
+    function onResize() { setIsMobile(window.innerWidth <= breakpoint) }
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [breakpoint])
+  return isMobile
+}
+
 // ─── Seed records ─────────────────────────────────────────────────────────
 // Real records pulled from Gmail + Google Drive + SiteWise (July 2026 audit).
 // Categories: employment | certifications | health_safety | notes
@@ -323,6 +337,7 @@ function StaffFileArea({ staff, allData, onChange }) {
 export default function StaffHub() {
   const [selected, setSelected] = useState(DEFAULT_STAFF[0].id)
   const [data,     setData]     = useState(() => loadData())
+  const isMobile = useIsMobile()
 
   useEffect(() => {
     saveData(data)
@@ -333,17 +348,17 @@ export default function StaffHub() {
   return (
     <div style={s.page}>
       {/* Page header */}
-      <div style={s.pageHeader}>
+      <div style={{ ...s.pageHeader, ...(isMobile ? s.pageHeaderMobile : {}) }}>
         <div>
           <h1 style={s.pageTitle}>Staff Hub</h1>
           <div style={s.pageSubtitle}>Urban Tree Services</div>
         </div>
       </div>
 
-      <div style={s.layout}>
-        {/* Left sidebar — staff tabs */}
-        <div style={s.sidebar}>
-          <div style={s.sidebarInner}>
+      <div style={{ ...s.layout, ...(isMobile ? s.layoutMobile : {}) }}>
+        {/* Staff selector — vertical sidebar on desktop, horizontal strip on mobile */}
+        <div style={{ ...s.sidebar, ...(isMobile ? s.sidebarMobile : {}) }}>
+          <div style={{ ...s.sidebarInner, ...(isMobile ? s.sidebarInnerMobile : {}) }}>
             {DEFAULT_STAFF.map(staff => {
               const isActive = staff.id === selected
               const docCount = (data[staff.id] || []).length
@@ -353,20 +368,21 @@ export default function StaffHub() {
                   onClick={() => setSelected(staff.id)}
                   style={{
                     ...s.staffTab,
-                    ...(isActive ? s.staffTabActive : {}),
+                    ...(isMobile ? s.staffTabMobile : {}),
+                    ...(isActive ? (isMobile ? s.staffTabActiveMobile : s.staffTabActive) : {}),
                   }}
                 >
                   <div style={{ ...s.tabAvatar, ...(isActive ? s.tabAvatarActive : {}) }}>
                     {initials(staff.name)}
                   </div>
-                  <div style={s.tabInfo}>
-                    <div style={{ ...s.tabName, ...(isActive ? s.tabNameActive : {}) }}>
-                      {staff.name}
+                  <div style={{ ...s.tabInfo, ...(isMobile ? s.tabInfoMobile : {}) }}>
+                    <div style={{ ...s.tabName, ...(isMobile ? s.tabNameMobile : {}), ...(isActive ? s.tabNameActive : {}) }}>
+                      {isMobile ? staff.name.split(' ')[0] : staff.name}
                     </div>
-                    <div style={s.tabRole}>{staff.role}</div>
+                    {!isMobile && <div style={s.tabRole}>{staff.role}</div>}
                   </div>
                   {docCount > 0 && (
-                    <span style={{ ...s.tabCount, ...(isActive ? s.tabCountActive : {}) }}>
+                    <span style={{ ...s.tabCount, ...(isMobile ? s.tabCountMobile : {}), ...(isActive ? s.tabCountActive : {}) }}>
                       {docCount}
                     </span>
                   )}
@@ -376,8 +392,8 @@ export default function StaffHub() {
           </div>
         </div>
 
-        {/* Right — file area */}
-        <div style={s.content}>
+        {/* File area */}
+        <div style={{ ...s.content, ...(isMobile ? s.contentMobile : {}) }}>
           {activeStaff && (
             <StaffFileArea
               key={activeStaff.id}
@@ -418,6 +434,9 @@ const s = {
     color: '#6b7280',
     marginTop: 3,
   },
+  pageHeaderMobile: {
+    padding: '16px 14px 0',
+  },
 
   layout: {
     display: 'flex',
@@ -426,6 +445,12 @@ const s = {
     padding: '20px 24px 24px',
     overflow: 'hidden',
     minHeight: 0,
+  },
+  layoutMobile: {
+    flexDirection: 'column',
+    gap: 12,
+    padding: '12px 14px 20px',
+    overflow: 'visible',
   },
 
   // ── Sidebar ──────────────────────────────────────────────────────────
@@ -437,12 +462,27 @@ const s = {
     display: 'flex',
     flexDirection: 'column',
   },
+  sidebarMobile: {
+    width: '100%',
+    minWidth: 0,
+    paddingRight: 0,
+    paddingBottom: 8,
+    overflowX: 'auto',
+    overflowY: 'hidden',
+    WebkitOverflowScrolling: 'touch',
+    borderBottom: '1px solid #e5e7eb',
+  },
   sidebarInner: {
     display: 'flex',
     flexDirection: 'column',
     gap: 4,
   },
+  sidebarInnerMobile: {
+    flexDirection: 'row',
+    gap: 8,
+  },
   staffTab: {
+    position: 'relative',
     display: 'flex',
     alignItems: 'center',
     gap: 10,
@@ -458,6 +498,19 @@ const s = {
   staffTabActive: {
     background: '#f0fdf4',
     boxShadow: 'inset 3px 0 0 #16a34a',
+  },
+  staffTabMobile: {
+    flexDirection: 'column',
+    gap: 5,
+    minWidth: 70,
+    width: 'auto',
+    padding: '8px 8px',
+    textAlign: 'center',
+    flexShrink: 0,
+  },
+  staffTabActiveMobile: {
+    background: '#f0fdf4',
+    boxShadow: 'inset 0 -3px 0 #16a34a',
   },
   tabAvatar: {
     width: 34,
@@ -480,6 +533,10 @@ const s = {
     flex: 1,
     minWidth: 0,
   },
+  tabInfoMobile: {
+    flex: 'none',
+    width: '100%',
+  },
   tabName: {
     fontSize: 13,
     fontWeight: 600,
@@ -487,6 +544,11 @@ const s = {
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
+  },
+  tabNameMobile: {
+    fontSize: 12,
+    textAlign: 'center',
+    whiteSpace: 'nowrap',
   },
   tabNameActive: {
     color: '#16a34a',
@@ -505,6 +567,13 @@ const s = {
     fontWeight: 700,
     flexShrink: 0,
   },
+  tabCountMobile: {
+    position: 'absolute',
+    top: 4,
+    right: 6,
+    padding: '0 5px',
+    fontSize: 10,
+  },
   tabCountActive: {
     background: '#bbf7d0',
     color: '#15803d',
@@ -515,6 +584,11 @@ const s = {
     flex: 1,
     minWidth: 0,
     overflowY: 'auto',
+  },
+  contentMobile: {
+    width: '100%',
+    minWidth: 0,
+    overflowY: 'visible',
   },
   fileArea: {
     display: 'flex',
