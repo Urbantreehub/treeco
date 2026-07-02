@@ -681,6 +681,16 @@
         <label class="field-label">Job Description</label>
         <textarea id="jobDescription" placeholder="Describe the scope of works, site conditions, and relevant notes…"></textarea>
       </div>
+      <div class="field-row">
+        <div class="field">
+          <label class="field-label">Principal Contractor (if applicable)</label>
+          <input type="text" id="principalContractor" placeholder="e.g. Downer NZ, Spencer, UHCC">
+        </div>
+        <div class="field">
+          <label class="field-label">Contract / PO Number</label>
+          <input type="text" id="contractNumber" placeholder="e.g. DNR-2026-4421">
+        </div>
+      </div>
 
       <div class="field">
         <label class="field-label">Does this job involve climbing above 3m?</label>
@@ -1066,9 +1076,11 @@ const CONTROL_HIERARCHY = [
 // Administrative controls->admin, Engineering controls->eng
 const CHIP_LABEL_TO_ID = {
   'elimination': 'elim',
-  'ppe': 'ppe',
+  'substitution': 'subs',
+  'isolation': 'isol',
+  'engineering controls': 'eng',
   'administrative controls': 'admin',
-  'engineering controls': 'eng'
+  'ppe': 'ppe'
 };
 function normaliseChipId(val) {
   return CHIP_LABEL_TO_ID[val.toLowerCase()] || val;
@@ -1335,7 +1347,7 @@ function addHazardRow(data) {
   card.dataset.hid = id;
 
   // Build HTML
-  const optionsHTML = HAZARD_OPTIONS.map(o =>
+  const optionsHTML = `<option value="">— Select hazard type —</option>` + HAZARD_OPTIONS.map(o =>
     `<option value="${o}"${data && data.taskName === o ? ' selected' : ''}>${o}</option>`
   ).join('');
 
@@ -1800,6 +1812,8 @@ function gatherFormData() {
     })(),
     jobType: document.getElementById('jobType').value,
     jobDescription: document.getElementById('jobDescription').value,
+    principalContractor: document.getElementById('principalContractor').value,
+    contractNumber: document.getElementById('contractNumber').value,
     permNeighbour: document.getElementById('permNeighbour').checked,
     permCouncil: document.getElementById('permCouncil').checked,
     permOther: document.getElementById('permOther').checked,
@@ -1856,6 +1870,8 @@ function restoreFormData(data) {
   })();
   set('jobType', data.jobType);
   set('jobDescription', data.jobDescription);
+  set('principalContractor', data.principalContractor);
+  set('contractNumber', data.contractNumber);
   check('permNeighbour', data.permNeighbour);
   check('permCouncil', data.permCouncil);
   check('permOther', data.permOther);
@@ -2114,6 +2130,9 @@ function generatePDF() {
   ]);
   const desc = document.getElementById('jobDescription').value;
   if (desc) labelValue('Job Description', desc);
+  const pc = document.getElementById('principalContractor').value;
+  const cn = document.getElementById('contractNumber').value;
+  if (pc || cn) infoTable([['Principal Contractor', pc || '—'], ['Contract / PO Number', cn || '—']]);
   y += 2;
 
   // AERIAL RESCUE (conditional — climbing above 3m)
@@ -2490,7 +2509,7 @@ document.getElementById('saveExportBtn').addEventListener('click', async functio
           const jobsId = await findOrCreateFolder(token, 'Jobs', rootId);
           folderId = await findOrCreateFolder(token, `${_jAddr} (${_jDate})`, jobsId);
         } else {
-          folder, 'SSSPs', rootId', rootId);
+          folderId = await findOrCreateFolder(token, 'SSSPs', rootId);
         }
         const result = await uploadToDrive(pdfBytes, filename, token, folderId);
         if (result.id) {
