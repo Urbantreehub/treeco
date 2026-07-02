@@ -1,4 +1,4 @@
-import { Suspense } from 'react'
+import { Suspense, useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useIsMobile } from '../hooks/useIsMobile'
@@ -44,6 +44,7 @@ export default function Layout() {
   const { overdue, dueSoon } = useScheduledChecks()
   const alertCount = overdue.length + dueSoon.length
   const pendingRequests = usePendingRequests(isStaff)
+  const [showMore, setShowMore] = useState(false)
 
   async function handleSignOut() {
     await signOut()
@@ -53,6 +54,27 @@ export default function Layout() {
   const navItems = isFullAccess ? FULL_NAV : isStaff ? OFFICE_NAV : CREW_NAV
 
   if (isMobile) {
+    // Combine nav + settings, then cap the bottom bar at 5 slots — anything
+    // beyond the first 4 collapses into a "More" sheet so the bar never crams.
+    const mobileItems = [...navItems, ...(isFullAccess ? [{ to: '/settings', label: 'Settings', icon: SettingsIcon }] : [])]
+    const MAX = 5
+    const useMore = mobileItems.length > MAX
+    const primary  = useMore ? mobileItems.slice(0, MAX - 1) : mobileItems
+    const overflow = useMore ? mobileItems.slice(MAX - 1) : []
+
+    const badgeCount = (to) => (to === '/safety' ? alertCount : to === '/requests' ? pendingRequests : 0)
+    const badgeColor = (to) => (to === '/safety' ? '#e53935' : '#D4851A')
+    const overflowBadge = overflow.reduce((n, it) => n + badgeCount(it.to), 0)
+
+    const iconWithBadge = (to, Icon, active) => (
+      <div style={{ position: 'relative', display: 'inline-flex' }}>
+        <Icon active={active} />
+        {badgeCount(to) > 0 && (
+          <span style={{ ...m.badge, background: badgeColor(to) }}>{badgeCount(to) > 9 ? '9+' : badgeCount(to)}</span>
+        )}
+      </div>
+    )
+
     return (
       <div style={m.shell}>
         <main style={m.main}>
@@ -60,34 +82,50 @@ export default function Layout() {
             <Outlet />
           </Suspense>
         </main>
+
+        {showMore && (
+          <>
+            <div style={m.moreBackdrop} onClick={() => setShowMore(false)} />
+            <div style={m.moreSheet}>
+              <div style={m.moreHandle} />
+              <div style={m.moreGrid}>
+                {overflow.map(({ to, label, icon: Icon }) => (
+                  <NavLink key={to} to={to} onClick={() => setShowMore(false)}
+                    style={({ isActive }) => ({ ...m.moreItem, ...(isActive ? m.moreItemActive : {}) })}>
+                    {({ isActive }) => (
+                      <>
+                        {iconWithBadge(to, Icon, isActive)}
+                        <span style={m.moreLabel}>{label}</span>
+                      </>
+                    )}
+                  </NavLink>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+
         <nav style={m.bottomNav}>
-          {navItems.map(({ to, label, icon: Icon }) => (
-            <NavLink key={to} to={to} style={({ isActive }) => ({ ...m.tabItem, ...(isActive ? m.tabActive : {}) })}>
+          {primary.map(({ to, label, icon: Icon }) => (
+            <NavLink key={to} to={to} onClick={() => setShowMore(false)} style={({ isActive }) => ({ ...m.tabItem, ...(isActive ? m.tabActive : {}) })}>
               {({ isActive }) => (
                 <>
-                  <div style={{ position: 'relative', display: 'inline-flex' }}>
-                    <Icon active={isActive} />
-                    {to === '/safety' && alertCount > 0 && (
-                      <span style={{ position: 'absolute', top: -4, right: -6, background: '#e53935', color: '#fff', borderRadius: '50%', width: 16, height: 16, fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>{alertCount > 9 ? '9+' : alertCount}</span>
-                    )}
-                    {to === '/requests' && pendingRequests > 0 && (
-                      <span style={{ position: 'absolute', top: -4, right: -6, background: '#D4851A', color: '#fff', borderRadius: '50%', width: 16, height: 16, fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>{pendingRequests > 9 ? '9+' : pendingRequests}</span>
-                    )}
-                  </div>
+                  {iconWithBadge(to, Icon, isActive)}
                   <span style={m.tabLabel}>{label}</span>
                 </>
               )}
             </NavLink>
           ))}
-          {isFullAccess && (
-            <NavLink to="/settings" style={({ isActive }) => ({ ...m.tabItem, ...(isActive ? m.tabActive : {}) })}>
-              {({ isActive }) => (
-                <>
-                  <SettingsIcon active={isActive} />
-                  <span style={m.tabLabel}>Settings</span>
-                </>
-              )}
-            </NavLink>
+          {useMore && (
+            <button onClick={() => setShowMore(v => !v)} style={{ ...m.tabItem, ...(showMore ? m.tabActive : {}), background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font)' }}>
+              <div style={{ position: 'relative', display: 'inline-flex' }}>
+                <MoreIcon active={showMore} />
+                {overflowBadge > 0 && !showMore && (
+                  <span style={{ ...m.badge, background: '#D4851A' }}>{overflowBadge > 9 ? '9+' : overflowBadge}</span>
+                )}
+              </div>
+              <span style={m.tabLabel}>More</span>
+            </button>
           )}
         </nav>
       </div>
@@ -176,6 +214,14 @@ function ClientsIcon({ active, size = 22 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round">
       <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+    </svg>
+  )
+}
+function MoreIcon({ active, size = 22 }) {
+  const c = active ? '#fff' : 'rgba(255,255,255,0.55)'
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={c}>
+      <circle cx="5" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="19" cy="12" r="2" />
     </svg>
   )
 }
@@ -297,6 +343,35 @@ const m = {
     fontWeight: '600',
     letterSpacing: '0.02em',
   },
+  badge: {
+    position: 'absolute', top: -4, right: -6, color: '#fff', borderRadius: '8px',
+    minWidth: 16, height: 16, padding: '0 3px', fontSize: 10, fontWeight: 700,
+    display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, boxSizing: 'border-box',
+  },
+  moreBackdrop: {
+    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 199,
+  },
+  moreSheet: {
+    position: 'fixed', left: 0, right: 0,
+    bottom: 'calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px))',
+    background: 'var(--bark)', borderTop: '1px solid var(--bark-mid)',
+    borderRadius: '16px 16px 0 0', padding: '8px 12px 16px', zIndex: 201,
+    boxShadow: '0 -6px 24px rgba(0,0,0,0.35)', maxHeight: '55vh', overflowY: 'auto',
+  },
+  moreHandle: {
+    width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.25)',
+    margin: '6px auto 14px',
+  },
+  moreGrid: {
+    display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px 4px',
+  },
+  moreItem: {
+    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
+    padding: '12px 4px', textDecoration: 'none', color: 'rgba(255,255,255,0.75)',
+    borderRadius: '12px',
+  },
+  moreItemActive: { background: 'var(--bark-mid)', color: '#fff' },
+  moreLabel: { fontSize: '11px', fontWeight: '600', textAlign: 'center' },
 }
 
 // ── Desktop styles ────────────────────────────────────────────────────────
