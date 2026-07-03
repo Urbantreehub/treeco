@@ -7,3 +7,7 @@ scripts/.env
 .vercel
 .claude/
 scripts/.env*
+
+# Quotient import data (contains client PII)
+scripts/quotient_quotes.json
+scripts/*_dryrun.json
