@@ -275,63 +275,6 @@ export default function QuoteView() {
             </div>
           )}
 
-          {/* ── Why choose us (credibility) ── */}
-          <div style={p.whyBox}>
-            <div style={p.whyHeader}>Why choose {COMPANY.shortName}</div>
-
-            {/* Reviews strip */}
-            <div style={p.reviewRow}>
-              <div style={p.reviewRating}>
-                <span style={p.stars} aria-hidden="true">
-                  {[0, 1, 2, 3, 4].map(i => {
-                    const fill = Math.max(0, Math.min(1, REVIEWS.rating - i))
-                    return (
-                      <span key={i} style={p.starWrap}>
-                        <span style={p.starEmpty}>★</span>
-                        <span style={{ ...p.starFill, width: `${fill * 100}%` }}>★</span>
-                      </span>
-                    )
-                  })}
-                </span>
-                <span style={p.reviewNum}>{REVIEWS.rating.toFixed(1)}</span>
-                <a href={REVIEWS.url} target="_blank" rel="noopener noreferrer" style={p.reviewLink}>
-                  {REVIEWS.count}+ Google reviews
-                </a>
-              </div>
-              <div style={p.reviewQuotes}>
-                {REVIEWS.quotes.slice(0, 2).map((q, i) => (
-                  <blockquote key={i} style={p.reviewQuote}>
-                    <span style={p.reviewQuoteText}>“{q.text}”</span>
-                    <span style={p.reviewQuoteAuthor}>— {q.author}</span>
-                  </blockquote>
-                ))}
-              </div>
-            </div>
-
-            {/* Qualification badges */}
-            <div style={p.qualGrid}>
-              {QUALIFICATIONS.map((q, i) => (
-                <div key={i} style={p.qualBadge}>
-                  <span style={p.qualGlyph} aria-hidden="true">🛡</span>
-                  <div>
-                    <div style={p.qualLabel}>{q.label}</div>
-                    <div style={p.qualDetail}>{q.detail}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Why-us checklist */}
-            <ul style={p.whyList}>
-              {WHY_US.map((w, i) => (
-                <li key={i} style={p.whyItem}>
-                  <span style={p.whyCheck} aria-hidden="true">✓</span>
-                  <span>{w}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
           {/* ── Line items ── */}
           <div style={p.itemsSection}>
             {items.map((item) => {
@@ -574,6 +517,63 @@ export default function QuoteView() {
               </div>
             </div>
           )}
+
+          {/* ── Why choose us (credibility) ── */}
+          <div style={p.whyBox}>
+            <div style={p.whyHeader}>Why choose {COMPANY.shortName}</div>
+
+            {/* Reviews strip */}
+            <div style={p.reviewRow}>
+              <div style={p.reviewRating}>
+                <span style={p.stars} aria-hidden="true">
+                  {[0, 1, 2, 3, 4].map(i => {
+                    const fill = Math.max(0, Math.min(1, REVIEWS.rating - i))
+                    return (
+                      <span key={i} style={p.starWrap}>
+                        <span style={p.starEmpty}>★</span>
+                        <span style={{ ...p.starFill, width: `${fill * 100}%` }}>★</span>
+                      </span>
+                    )
+                  })}
+                </span>
+                <span style={p.reviewNum}>{REVIEWS.rating.toFixed(1)}</span>
+                <a href={REVIEWS.url} target="_blank" rel="noopener noreferrer" style={p.reviewLink}>
+                  {REVIEWS.count}+ Google reviews
+                </a>
+              </div>
+              <div style={p.reviewQuotes}>
+                {REVIEWS.quotes.slice(0, 2).map((q, i) => (
+                  <blockquote key={i} style={p.reviewQuote}>
+                    <span style={p.reviewQuoteText}>“{q.text}”</span>
+                    <span style={p.reviewQuoteAuthor}>— {q.author}</span>
+                  </blockquote>
+                ))}
+              </div>
+            </div>
+
+            {/* Qualification badges */}
+            <div style={p.qualGrid}>
+              {QUALIFICATIONS.map((q, i) => (
+                <div key={i} style={p.qualBadge}>
+                  <span style={p.qualGlyph} aria-hidden="true">🛡</span>
+                  <div>
+                    <div style={p.qualLabel}>{q.label}</div>
+                    <div style={p.qualDetail}>{q.detail}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Why-us checklist */}
+            <ul style={p.whyList}>
+              {WHY_US.map((w, i) => (
+                <li key={i} style={p.whyItem}>
+                  <span style={p.whyCheck} aria-hidden="true">✓</span>
+                  <span>{w}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
 
           {/* ── Contact bar ── */}
           <div style={p.contactBar}>
