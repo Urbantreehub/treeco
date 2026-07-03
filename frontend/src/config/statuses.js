@@ -65,14 +65,14 @@ export const JOB_STATUSES = {
   },
 }
 
-// Ordered list for pipeline column rendering
+// Ordered list for pipeline column rendering.
+// quote_scheduled, accepted_to_schedule, stump_grinding removed — these were
+// transitional micro-states that added columns without adding clarity.
+// Jobs still in those statuses in the DB remain visible via their detail panel.
 export const STATUS_ORDER = [
   'new_lead',
-  'quote_scheduled',
   'quote_sent',
-  'accepted_to_schedule',
   'scheduled',
-  'stump_grinding',
   'complete_to_invoice',
   'invoiced',
   'on_hold',

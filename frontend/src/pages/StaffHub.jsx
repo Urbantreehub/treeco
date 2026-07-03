@@ -350,7 +350,7 @@ export default function StaffHub() {
       {/* Page header */}
       <div style={{ ...s.pageHeader, ...(isMobile ? s.pageHeaderMobile : {}) }}>
         <div>
-          <h1 style={s.pageTitle}>Staff Hub</h1>
+          <h1 style={s.pageTitle}>Team</h1>
           <div style={s.pageSubtitle}>Urban Tree Services</div>
         </div>
       </div>

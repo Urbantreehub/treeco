@@ -6,8 +6,36 @@ import StatusBadge from './StatusBadge'
 import QuoteReference from './QuoteReference'
 import { JOB_STATUSES, STATUS_ORDER } from '../config/statuses'
 
+// Contextual forward-only transitions per status.
+// Legacy statuses (quote_scheduled, accepted_to_schedule, stump_grinding) are
+// handled so jobs already in those states can still be moved forward.
+const FORWARD_ACTIONS = {
+  new_lead:            [{ status: 'quote_sent',          label: 'Quote Sent',       variant: 'primary' }, { status: 'on_hold', label: 'On Hold', variant: 'ghost' }, { status: 'declined', label: 'Decline', variant: 'danger' }],
+  quote_scheduled:     [{ status: 'quote_sent',          label: 'Quote Sent',       variant: 'primary' }, { status: 'on_hold', label: 'On Hold', variant: 'ghost' }, { status: 'declined', label: 'Decline', variant: 'danger' }],
+  quote_sent:          [{ status: 'scheduled',           label: 'Accept & Schedule', variant: 'primary' }, { status: 'on_hold', label: 'On Hold', variant: 'ghost' }, { status: 'declined', label: 'Decline', variant: 'danger' }],
+  accepted_to_schedule:[{ status: 'scheduled',           label: 'Schedule',         variant: 'primary' }, { status: 'on_hold', label: 'On Hold', variant: 'ghost' }],
+  scheduled:           [{ status: 'complete_to_invoice', label: 'Mark Complete',    variant: 'primary' }, { status: 'on_hold', label: 'On Hold', variant: 'ghost' }],
+  stump_grinding:      [{ status: 'complete_to_invoice', label: 'Mark Complete',    variant: 'primary' }, { status: 'on_hold', label: 'On Hold', variant: 'ghost' }],
+  complete_to_invoice: [],
+  invoiced:            [],
+  on_hold:             [{ status: 'scheduled',           label: 'Reschedule',       variant: 'primary' }, { status: 'new_lead', label: 'Reopen as Lead', variant: 'ghost' }],
+  declined:            [{ status: 'new_lead',            label: 'Reopen',           variant: 'ghost' }],
+}
+
 const SUPABASE_URL  = import.meta.env.VITE_SUPABASE_URL
 const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+function timeAgo(dateStr) {
+  if (!dateStr) return null
+  const diff = Date.now() - new Date(dateStr).getTime()
+  if (diff < 0) return 'just now'
+  const min = Math.floor(diff / 60000), hr = Math.floor(min / 60), day = Math.floor(hr / 24)
+  if (min < 1) return 'just now'
+  if (min < 60) return `${min}m ago`
+  if (hr < 24) return `${hr}h ago`
+  if (day < 30) return `${day}d ago`
+  return new Date(dateStr).toLocaleDateString('en-NZ', { day: 'numeric', month: 'short' })
+}
 
 const QUOTE_STATUS_BG = { draft: '#F5F5F5', sent: '#FDF3E3', viewed: '#EBF3FA', accepted: '#E8F0E6', declined: '#FFF0EE' }
 const QUOTE_STATUS_COLOR = { draft: '#888', sent: '#D4851A', viewed: '#4A7FA5', accepted: '#4A6741', declined: '#C0392B' }
@@ -47,6 +75,8 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
   const [changingStatus, setChangingStatus] = useState(false)
   const [editing, setEditing] = useState(false)
   const [xeroStatus, setXeroStatus] = useState(null) // null | 'pushing' | 'ok' | 'err' | 'not_connected'
+  const [quoteFollowUp, setQuoteFollowUp] = useState(null) // { opened_count, last_opened_at, followup_count, last_followup_at, sent_at, id }
+  const [followingUp, setFollowingUp] = useState(false)
   const [smsOpen, setSmsOpen] = useState(false)
   const [smsText, setSmsText] = useState('')
   const [smsSending, setSmsSending] = useState(false)
@@ -70,6 +100,38 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
     window.addEventListener('message', handleMsg)
     return () => window.removeEventListener('message', handleMsg)
   }, [job.id])
+
+  // Fetch quote follow-up data when job is in quote_sent state
+  useEffect(() => {
+    if (job.status !== 'quote_sent') { setQuoteFollowUp(null); return }
+    supabase
+      .from('quotes')
+      .select('id, sent_at, opened_count, last_opened_at, followup_count, last_followup_at')
+      .eq('job_id', job.id)
+      .not('sent_at', 'is', null)
+      .order('sent_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => { if (data) setQuoteFollowUp(data) })
+  }, [job.id, job.status])
+
+  async function sendFollowUp(channel) {
+    if (!quoteFollowUp?.id) return
+    setFollowingUp(true)
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/quote-followup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` },
+        body: JSON.stringify({ quote_id: quoteFollowUp.id, channel }),
+      })
+      const body = await res.json().catch(() => ({}))
+      if (res.ok && body.ok) {
+        setQuoteFollowUp(prev => ({ ...prev, followup_count: (prev.followup_count ?? 0) + 1, last_followup_at: new Date().toISOString() }))
+      }
+    } finally {
+      setFollowingUp(false)
+    }
+  }
 
   function buildFormUrl(f) {
     const d = new Date() // local date — toISOString() would give yesterday during the NZ morning
@@ -241,26 +303,79 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
             <button onClick={onClose} style={styles.closeBtn}>✕</button>
           </div>
 
-          {/* Status badge + change */}
-          <div style={{ ...styles.section, display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-            <StatusBadge status={job.status} size="lg" />
-            <select
-              value=""
-              disabled={changingStatus}
-              onChange={e => { if (e.target.value) handleStatusChange(e.target.value) }}
-              style={styles.statusSelect}
-              aria-label="Change status"
-            >
-              <option value="">{changingStatus ? 'Updating…' : 'Change status…'}</option>
-              {STATUS_ORDER
-                .filter(k => k !== job.status)
-                // Invoicing only becomes available once the job is Complete — To Be Invoiced
-                .filter(k => k !== 'invoiced' || job.status === 'complete_to_invoice')
-                .map(key => (
-                  <option key={key} value={key}>{JOB_STATUSES[key].label}</option>
+          {/* Status + contextual forward actions */}
+          <div style={styles.section}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: FORWARD_ACTIONS[job.status]?.length ? '12px' : '0', flexWrap: 'wrap' }}>
+              <StatusBadge status={job.status} size="lg" />
+              {changingStatus && <span style={{ fontSize: '12px', color: '#aaa' }}>Updating…</span>}
+            </div>
+            {FORWARD_ACTIONS[job.status]?.length > 0 && (
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '10px' }}>
+                {FORWARD_ACTIONS[job.status].map(({ status, label, variant }) => (
+                  <button
+                    key={status}
+                    onClick={() => handleStatusChange(status)}
+                    disabled={changingStatus}
+                    style={{
+                      ...styles.actionBtn,
+                      ...(variant === 'primary' ? styles.actionBtnPrimary : {}),
+                      ...(variant === 'danger'  ? styles.actionBtnDanger  : {}),
+                    }}
+                  >
+                    {label}
+                  </button>
                 ))}
-            </select>
+              </div>
+            )}
+            {/* Escape hatch — unusual or backwards moves */}
+            <details>
+              <summary style={{ fontSize: '11px', color: '#bbb', cursor: 'pointer', userSelect: 'none', listStyle: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <span>▸</span> Move to different status…
+              </summary>
+              <select
+                value=""
+                disabled={changingStatus}
+                onChange={e => { if (e.target.value) handleStatusChange(e.target.value) }}
+                style={{ ...styles.statusSelect, marginTop: '8px', width: '100%' }}
+                aria-label="Change status"
+              >
+                <option value="">Select status…</option>
+                {Object.keys(JOB_STATUSES)
+                  .filter(k => k !== job.status)
+                  .filter(k => k !== 'invoiced' || job.status === 'complete_to_invoice')
+                  .map(key => (
+                    <option key={key} value={key}>{JOB_STATUSES[key].label}</option>
+                  ))}
+              </select>
+            </details>
           </div>
+
+          {/* Quote follow-up — shown when awaiting client response */}
+          {job.status === 'quote_sent' && quoteFollowUp && (
+            <div style={{ ...styles.section }}>
+              <div style={styles.sectionTitle}>Quote follow-up</div>
+              <div style={{ fontSize: '13px', color: '#666', marginBottom: '10px' }}>
+                {(quoteFollowUp.opened_count ?? 0) > 0
+                  ? `Opened ${quoteFollowUp.opened_count}× · last ${timeAgo(quoteFollowUp.last_opened_at)}`
+                  : 'Not opened yet'
+                }
+                {quoteFollowUp.sent_at && <span style={{ color: '#aaa', marginLeft: '8px' }}>· sent {timeAgo(quoteFollowUp.sent_at)}</span>}
+              </div>
+              {(quoteFollowUp.followup_count ?? 0) > 0 && (
+                <div style={{ fontSize: '12px', color: '#4A7FA5', marginBottom: '10px' }}>
+                  Followed up {quoteFollowUp.followup_count}× · last {timeAgo(quoteFollowUp.last_followup_at)}
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <button disabled={followingUp} onClick={() => sendFollowUp('email')} style={styles.ghostBtn}>
+                  {followingUp ? 'Sending…' : 'Follow up by email'}
+                </button>
+                <button disabled={followingUp} onClick={() => sendFollowUp('sms')} style={styles.ghostBtn}>
+                  SMS follow-up
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Job details */}
           {editing && isFullAccess ? (
@@ -557,12 +672,16 @@ const styles = {
     background: '#fff', color: 'var(--bark)', fontSize: '13px', fontWeight: '600',
     fontFamily: 'var(--font)', cursor: 'pointer', outline: 'none',
   },
-  statusGrid: { display: 'flex', flexDirection: 'column', gap: '6px' },
-  statusBtn: {
-    border: '1px solid', borderRadius: '8px', padding: '8px 12px',
-    fontSize: '13px', fontWeight: '500', textAlign: 'left',
-    cursor: 'pointer', transition: 'opacity 0.1s',
-    fontFamily: 'var(--font)',
+  actionBtn: {
+    padding: '8px 14px', borderRadius: '8px', border: '1px solid var(--border)',
+    background: '#fff', color: 'var(--bark)', fontSize: '13px', fontWeight: '600',
+    cursor: 'pointer', fontFamily: 'var(--font)', transition: 'opacity 0.1s',
+  },
+  actionBtnPrimary: {
+    background: 'var(--moss)', color: '#fff', borderColor: 'var(--moss)',
+  },
+  actionBtnDanger: {
+    borderColor: '#E0B0AA', color: 'var(--danger)',
   },
   input: {
     width: '100%', padding: '9px 12px', borderRadius: '8px',

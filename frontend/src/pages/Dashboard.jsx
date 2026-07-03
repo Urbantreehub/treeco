@@ -1,54 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../config/supabase'
-import CartrackMap from '../components/CartrackMap'
 import { useScheduledChecks } from '../hooks/useScheduledChecks'
-import { LEAD_INTAKE_EMAIL, BOOKING_URL } from '../config/company'
-
-// Reference card: where new leads come in from (email intake + web form).
-function LeadIntakeCard() {
-  const [copied, setCopied] = useState('')
-  const copy = (text, which) => { navigator.clipboard?.writeText(text); setCopied(which); setTimeout(() => setCopied(''), 1500) }
-  const Row = ({ icon, label, value, which }) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 0' }}>
-      <span style={{ fontSize: '16px' }}>{icon}</span>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: '11px', color: '#aaa', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</div>
-        <div style={{ fontSize: '14px', color: 'var(--bark)', fontWeight: 600, wordBreak: 'break-all' }}>{value}</div>
-      </div>
-      <button onClick={() => copy(value, which)} style={{ fontSize: '12px', border: '1px solid var(--border)', background: '#fff', color: '#666', borderRadius: '7px', padding: '5px 10px', cursor: 'pointer', fontFamily: 'var(--font)', flexShrink: 0 }}>
-        {copied === which ? 'Copied ✓' : 'Copy'}
-      </button>
-    </div>
-  )
-  return (
-    <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: '12px', padding: '14px 18px', marginBottom: '24px' }}>
-      <div style={{ fontSize: '12px', fontWeight: '700', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>Where new leads come in</div>
-      <Row icon="📧" label="Email — forward/CC enquiries here to auto-create a job" value={LEAD_INTAKE_EMAIL} which="email" />
-      <div style={{ height: '1px', background: '#F0EDE8' }} />
-      <Row icon="🌐" label="Website quote form" value={BOOKING_URL} which="url" />
-    </div>
-  )
-}
 
 const CREW_DAY_RATE = 2500   // $ per crew per day
 
-const CARTRACK_VEHICLES = [
-  {
-    name: 'Isuzu Elf',
-    plate: 'GWL756',
-    type: 'Truck',
-    icon: '🚛',
-    shareUrl: 'https://fleetweb-nz.cartrack.com/share?vehicle=459011881&account=97050&token=Bzjoj8NRntLrqllho0SfyyRc90R3lHA1xaEgZQMKlNrRcyfqsdW',
-  },
-  {
-    name: 'Nissan Diesel',
-    plate: 'WA2244',
-    type: 'Truck',
-    icon: '🚚',
-    shareUrl: 'https://fleetweb-nz.cartrack.com/share?vehicle=459011884&account=97050&token=CtdiymYxmNZmgINXD5UDrl3r0hcZDuipTkqbPk87F8gCampj6VG',
-  },
-]
 const STUMP_TYPES   = ['stump', 'stump grinding', 'stump grind']
 
 function isStumpJob(type) {
@@ -373,34 +329,6 @@ function Section({ title, children }) {
   )
 }
 
-// Rough tax set-aside guide from the Xero P&L. NOT tax advice — a conservative
-// pot so cash is there at filing time. Rates are adjustable (GST 15%,
-// income/provisional tax default 28% company rate).
-function TaxReserve({ revenue, expenses, netProfit }) {
-  const [taxRate, setTaxRate] = useState(28)
-  const gstPot = Math.max(0, 0.15 * (revenue - expenses))          // net GST estimate
-  const incomeTaxPot = Math.max(0, (taxRate / 100) * netProfit)
-  const totalPot = gstPot + incomeTaxPot
-  const safeToDraw = Math.max(0, netProfit - incomeTaxPot)
-  return (
-    <Section title="Tax set-aside — estimate">
-      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '10px' }}>
-        <StatCard label="Set aside for GST" value={nzd(gstPot)} sub="≈15% of net sales (rough)" color="#D4851A" />
-        <StatCard label="Set aside for income tax" value={nzd(incomeTaxPot)} sub={`${taxRate}% of net profit`} color="#D4851A" />
-        <StatCard label="Total tax pot" value={nzd(totalPot)} sub="Keep this aside" color="#C0392B" />
-        <StatCard label="Est. safe to draw" value={nzd(safeToDraw)} sub="Profit after income tax" color="var(--moss)" />
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-        <label style={{ fontSize: '12px', color: '#888' }}>Income tax rate</label>
-        <input type="range" min="10" max="39" value={taxRate} onChange={e => setTaxRate(Number(e.target.value))} style={{ accentColor: 'var(--moss)' }} />
-        <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--bark)' }}>{taxRate}%</span>
-      </div>
-      <div style={{ fontSize: '11px', color: '#bbb', lineHeight: 1.5 }}>
-        ⚠ Rough guide from your Xero P&amp;L — <strong>not tax advice</strong>. Actual GST is lower once you claim input credits on purchases. Confirm figures with your accountant.
-      </div>
-    </Section>
-  )
-}
 
 export default function Dashboard() {
   const nav = useNavigate()
@@ -475,10 +403,10 @@ export default function Dashboard() {
   const successRate = sent.length ? Math.round((accepted.length / sent.length) * 100) : null
 
   // ── Pipeline snapshot ────────────────────────────────────────────────────
-  const pipelineJobs = jobs.filter(j => j.job_type !== 'safety_event')
-  const newJobs     = pipelineJobs.filter(j => j.status === 'new_lead').length
-  const toSchedule  = pipelineJobs.filter(j => j.status === 'accepted_to_schedule').length
-  const totalActive = pipelineJobs.filter(j => !['invoiced', 'declined'].includes(j.status)).length
+  const pipelineJobs  = jobs.filter(j => j.job_type !== 'safety_event')
+  const newJobs       = pipelineJobs.filter(j => j.status === 'new_lead').length
+  const scheduledCount = pipelineJobs.filter(j => j.status === 'scheduled').length
+  const totalActive   = pipelineJobs.filter(j => !['invoiced', 'declined'].includes(j.status)).length
 
   // ── Advertising suggestion ────────────────────────────────────────────────
   const advice = (() => {
@@ -551,9 +479,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Lead intake reference */}
-      <LeadIntakeCard />
-
       {/* ── KPI row ── */}
       <Section title={`Revenue snapshot${usingXero ? ' — from Xero' : ' — from accepted quotes'}`}>
         {usingXero && (
@@ -597,14 +522,12 @@ export default function Dashboard() {
           <StatCard
             label="Active jobs"
             value={totalActive}
-            sub={`${newJobs} new leads · ${toSchedule} to schedule`}
+            sub={`${newJobs} new leads · ${scheduledCount} scheduled`}
             onClick={() => nav('/pipeline')}
           />
         </div>
 
       </Section>
-
-      {usingXero && <TaxReserve revenue={xeroPnl.revenue} expenses={xeroPnl.expenses} netProfit={xeroPnl.netProfit} />}
 
       {/* Safety actions */}
       <SafetyActionsWidget onNavigate={nav} />
@@ -622,30 +545,6 @@ export default function Dashboard() {
               <span>Connect Xero in <button onClick={() => nav('/settings')} style={{ background: 'none', border: 'none', color: '#4A7FA5', fontSize: '11px', cursor: 'pointer', padding: 0, textDecoration: 'underline', fontFamily: 'var(--font)' }}>Settings → Integrations</button> to pull live P&L data instead.</span>
             </div>
           )}
-        </div>
-      </Section>
-
-      {/* ── Coming soon integrations ── */}
-      <Section title="Integrations">
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-          {[
-            { name: 'Xero', desc: 'Invoices, P&L, cash position', icon: '💼', color: '#0082C3' },
-            { name: 'Google Analytics', desc: 'Website traffic & lead sources', icon: '📈', color: '#E37400' },
-          ].map(it => (
-            <div key={it.name} style={{
-              flex: 1, minWidth: '200px', background: '#fff',
-              border: '1px solid var(--border)', borderRadius: '10px',
-              padding: '16px 20px', display: 'flex', gap: '12px', alignItems: 'center',
-              opacity: 0.6,
-            }}>
-              <span style={{ fontSize: '24px' }}>{it.icon}</span>
-              <div>
-                <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--bark)' }}>{it.name}</div>
-                <div style={{ fontSize: '11px', color: '#aaa', marginTop: '2px' }}>{it.desc}</div>
-                <div style={{ fontSize: '10px', color: it.color, fontWeight: '600', marginTop: '4px' }}>Coming soon</div>
-              </div>
-            </div>
-          ))}
         </div>
       </Section>
 
@@ -742,19 +641,6 @@ export default function Dashboard() {
         </div>
       </Section>
 
-      {/* ── Cartrack GPS ── */}
-      <Section title="Fleet tracking — live GPS">
-        <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
-            <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--bark)' }}>GWL756 · WA2244 — refreshes every 30s</span>
-            <a href="https://fleetweb-nz.cartrack.com/map/fleet" target="_blank" rel="noreferrer"
-              style={{ fontSize: '12px', color: 'var(--moss)', fontWeight: '600', textDecoration: 'none', border: '1px solid var(--moss)', borderRadius: '5px', padding: '4px 10px' }}>
-              Open Cartrack ↗
-            </a>
-          </div>
-          <CartrackMap />
-        </div>
-      </Section>
 
     </div>
   )

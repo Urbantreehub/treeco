@@ -9,35 +9,28 @@ const FULL_NAV = [
   { to: '/dashboard', label: 'Dashboard', icon: DashboardIcon },
   { to: '/pipeline',  label: 'Jobs',      icon: PipelineIcon },
   { to: '/calendar',  label: 'Calendar',  icon: CalendarIcon },
-  { to: '/planner',   label: 'Planner',   icon: PlannerIcon },
-  { to: '/sent-quotes', label: 'Quotes',  icon: QuotesIcon },
   { to: '/clients',   label: 'Clients',   icon: ClientsIcon },
   { to: '/mulch',     label: 'Mulch',     icon: MulchIcon },
-  { to: '/chat',      label: 'Chat',      icon: ChatIcon },
   { to: '/requests',  label: 'Tools',     icon: ToolIcon },
   { to: '/safety',    label: 'Safety',    icon: SafetyIcon },
-  { to: '/staff',     label: 'Staff Hub', icon: StaffHubIcon },
+  { to: '/staff',     label: 'Team',      icon: StaffHubIcon },
 ]
 
 const OFFICE_NAV = [
   { to: '/pipeline',  label: 'Jobs',      icon: PipelineIcon },
   { to: '/calendar',  label: 'Calendar',  icon: CalendarIcon },
-  { to: '/planner',   label: 'Planner',   icon: PlannerIcon },
-  { to: '/sent-quotes', label: 'Quotes',  icon: QuotesIcon },
   { to: '/clients',   label: 'Clients',   icon: ClientsIcon },
   { to: '/mulch',     label: 'Mulch',     icon: MulchIcon },
-  { to: '/chat',      label: 'Chat',      icon: ChatIcon },
   { to: '/requests',  label: 'Tools',     icon: ToolIcon },
   { to: '/safety',    label: 'Safety',    icon: SafetyIcon },
-  { to: '/staff',     label: 'Staff Hub', icon: StaffHubIcon },
+  { to: '/staff',     label: 'Team',      icon: StaffHubIcon },
 ]
 
 const CREW_NAV = [
   { to: '/calendar', label: 'Calendar', icon: CalendarIcon },
-  { to: '/mulch',    label: 'Mulch',    icon: MulchIcon },
-  { to: '/chat',     label: 'Chat',     icon: ChatIcon },
-  { to: '/requests', label: 'Tools',    icon: ToolIcon },
   { to: '/safety',   label: 'Safety',   icon: SafetyIcon },
+  { to: '/mulch',    label: 'Mulch',    icon: MulchIcon },
+  { to: '/requests', label: 'Tools',    icon: ToolIcon },
 ]
 
 export default function Layout() {
