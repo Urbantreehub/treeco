@@ -204,15 +204,17 @@ function SiteDetail({ site, dumps, isStaff, onLog, onRetry, onEdit, showToast })
       )}
 
       <div style={mstyle.infoGrid}>
-        <div style={mstyle.infoBox}>
-          <div style={mstyle.cardLabel}>Agreed price</div>
-          <div style={mstyle.price}>{nzd(site.price_per_load)}<span style={mstyle.perLoad}> / load</span></div>
-        </div>
-        <div style={mstyle.infoBox}>
+        {isStaff && (
+          <div style={mstyle.infoBox}>
+            <div style={mstyle.cardLabel}>Agreed price</div>
+            <div style={mstyle.price}>{nzd(site.price_per_load)}<span style={mstyle.perLoad}> / load</span></div>
+          </div>
+        )}
+        <div style={{ ...mstyle.infoBox, flex: isStaff ? 1 : 'unset', minWidth: isStaff ? '160px' : 'unset' }}>
           <div style={mstyle.cardLabel}>Contact</div>
           <div style={mstyle.cardText}>{site.contact_name || '—'}</div>
           {site.contact_phone && <a href={`tel:${site.contact_phone.replace(/\s/g, '')}`} style={mstyle.contactLink}>📞 {site.contact_phone}</a>}
-          {site.contact_email && <a href={`mailto:${site.contact_email}`} style={mstyle.contactLink}>✉ {site.contact_email}</a>}
+          {isStaff && site.contact_email && <a href={`mailto:${site.contact_email}`} style={mstyle.contactLink}>✉ {site.contact_email}</a>}
         </div>
       </div>
       {site.address && <div style={mstyle.addr}>🗺 {site.address}</div>}
@@ -223,7 +225,7 @@ function SiteDetail({ site, dumps, isStaff, onLog, onRetry, onEdit, showToast })
       ) : (
         <div style={mstyle.logCard}>
           <div style={mstyle.cardLabel}>Log a dumped load</div>
-          <div style={mstyle.logHint}>This creates a Xero draft invoice for {nzd(site.price_per_load)} to {site.contact_name || site.name}.</div>
+          {isStaff && <div style={mstyle.logHint}>This creates a Xero draft invoice for {nzd(site.price_per_load)} to {site.contact_name || site.name}.</div>}
           <textarea style={mstyle.textarea} placeholder="Note (optional) — e.g. full truck load, left by the gate" value={note} onChange={e => setNote(e.target.value)} rows={2} />
           <input ref={fileRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={e => setPhoto(e.target.files?.[0] || null)} />
           <button style={mstyle.photoBtn} onClick={() => fileRef.current?.click()}>{photo ? `📷 ${photo.name.slice(0, 20)}` : '📷 Add photo (optional)'}</button>
@@ -241,9 +243,11 @@ function SiteDetail({ site, dumps, isStaff, onLog, onRetry, onEdit, showToast })
           {dumps.slice(0, 20).map(d => (
             <div key={d.id} style={mstyle.dumpRow}>
               <div style={{ flex: 1 }}>
-                <div style={mstyle.dumpTop}>{nzd(d.price)} · {timeAgo(d.dumped_at)} · {d.users?.name || 'Crew'}</div>
+                <div style={mstyle.dumpTop}>
+                  {isStaff && <>{nzd(d.price)} · </>}{timeAgo(d.dumped_at)} · {d.users?.name || 'Crew'}
+                </div>
                 {d.load_note && <div style={mstyle.dumpNote}>{d.load_note}</div>}
-                <InvoicePill dump={d} isStaff={isStaff} onRetry={onRetry} />
+                {isStaff && <InvoicePill dump={d} isStaff={isStaff} onRetry={onRetry} />}
               </div>
               {d.photo_url && <img src={d.photo_url} alt="" style={mstyle.dumpThumb} onClick={() => setLightbox(d.photo_url)} />}
             </div>

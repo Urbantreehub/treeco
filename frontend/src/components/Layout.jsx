@@ -172,7 +172,7 @@ export default function Layout() {
             <div style={d.avatar}>{profile?.name?.[0]?.toUpperCase() ?? '?'}</div>
             <div>
               <div style={d.userName}>{profile?.name ?? '—'}</div>
-              <div style={d.accessBadge}>{isFullAccess ? 'Full access' : 'Crew'}</div>
+              <div style={d.accessBadge}>{isFullAccess ? 'Full access' : isStaff ? 'Office' : 'Crew'}</div>
             </div>
           </div>
           <button onClick={handleSignOut} style={d.signOutBtn}>Sign out</button>

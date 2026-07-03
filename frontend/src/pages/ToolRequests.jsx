@@ -54,13 +54,16 @@ export default function ToolRequests() {
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 2800) }
 
   const load = useCallback(async () => {
-    const { data } = await supabase
+    let q = supabase
       .from('tool_requests')
       .select('*, users:requested_by ( name )')
       .order('created_at', { ascending: false })
+    // Crew only see their own requests; office/full see all.
+    if (!isStaff && meId) q = q.eq('requested_by', meId)
+    const { data } = await q
     setRequests(data ?? [])
     setLoading(false)
-  }, [])
+  }, [isStaff, meId])
 
   useEffect(() => {
     load()

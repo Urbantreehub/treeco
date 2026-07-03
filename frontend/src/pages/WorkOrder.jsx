@@ -528,8 +528,8 @@ export default function WorkOrder() {
 
         {/* ── Crew private notes ── */}
         <div style={s.section}>
-          <div style={s.sectionLabel}>Private Notes</div>
-          <div style={{ fontSize: 12, color: '#bbb', marginBottom: 10, marginTop: 4 }}>Your notes — visible to crew only, stays on this device.</div>
+          <div style={s.sectionLabel}>My Notes</div>
+          <div style={{ fontSize: 12, color: '#bbb', marginBottom: 10, marginTop: 4 }}>Saved on this device only — not shared with anyone.</div>
           <textarea
             value={crewNotes}
             onChange={e => { setCrewNotes(e.target.value); localStorage.setItem(`treeco_wo_crew_notes_${jobId}`, e.target.value) }}
