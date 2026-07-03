@@ -540,8 +540,6 @@ def create_quote_from_charge_lines(job_id, client_id, charge_lines):
         total_val = float(total_raw) if total_raw else 0.0
         qty_val   = float(qty_raw)   if qty_raw   else 1.0
 
-        # Rate = total / qty; fallback to 0. NOTE: we mirror the portal price
-        # exactly — no 0.87 transform is applied to any amount.
         rate_val = round(total_val / qty_val, 2) if qty_val else 0.0
 
         # Classify SOR vs non-SOR "quotable". Guide: codebook codes with a rate
@@ -550,6 +548,18 @@ def create_quote_from_charge_lines(job_id, client_id, charge_lines):
         portal_rate_raw = re.sub(r"[^\d.]", "", cl.get("rate", "") or "")
         portal_rate = float(portal_rate_raw) if portal_rate_raw else rate_val
         quotable = abs(portal_rate - 0.87) < 0.02
+
+        # Quotable codes: the contractor types the GST-INCLUSIVE price into the
+        # DBS quantity box (rate 0.87 is just Spencers' GST factor). So mirror
+        # that exact price — the qty box IS the incl price; ex-GST = price/1.15.
+        # SOR codes: fixed schedule rate, portal total is ex-GST as-is.
+        price_incl = None
+        if quotable:
+            price_incl = round(qty_val, 2)
+            ex_gst     = round(price_incl / 1.15, 2)
+            disp_qty, disp_rate, line_sub = 1, ex_gst, ex_gst
+        else:
+            disp_qty, disp_rate, line_sub = qty_val, rate_val, total_val
 
         code = (cl.get("code") or "").strip()
         desc = f"{code} — {cl['desc']}"
@@ -562,19 +572,21 @@ def create_quote_from_charge_lines(job_id, client_id, charge_lines):
             "code":        code,       # SOR job code, surfaced as a badge in-app
             "description": desc,
             "detail":      detail,
-            "qty":         qty_val,
-            "rate":        rate_val,
+            "qty":         disp_qty,
+            "rate":        disp_rate,
             "quotable":    quotable,   # non-SOR quotable (rate≈0.87 guide) → invoice + pre-approval
             "sor":         not quotable,
             "optional":    False,
             "selected":    True,
         }
+        if price_incl is not None:
+            item["price_incl"] = price_incl   # exact GST-inclusive price you quoted
         images = cl.get("images", [])
         if images:
             item["image_url"] = images[0]       # primary image on line item
             item["images"]    = images           # all images for gallery
         line_items.append(item)
-        subtotal += total_val
+        subtotal += line_sub
 
     gst     = round(subtotal * 0.15, 2)
     total   = round(subtotal + gst, 2)
