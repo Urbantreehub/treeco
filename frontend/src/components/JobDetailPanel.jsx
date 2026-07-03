@@ -4,7 +4,8 @@ import { supabase } from '../config/supabase'
 import { useAuth } from '../context/AuthContext'
 import StatusBadge from './StatusBadge'
 import QuoteReference from './QuoteReference'
-import { JOB_STATUSES, STATUS_ORDER } from '../config/statuses'
+import SpencersInvoice from './SpencersInvoice'
+import { JOB_STATUSES, STATUS_ORDER, isSpencersJob } from '../config/statuses'
 
 // Contextual forward-only transitions per status.
 // Legacy statuses (quote_scheduled, accepted_to_schedule, stump_grinding) are
@@ -192,7 +193,8 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
     estimated_value: job.estimated_value ?? '',
   })
 
-  const isSD = /spencer|downer/i.test(job.clients?.name ?? '') || /spencer|downer/i.test(job.title ?? '')
+  // Spencers/DBS jobs are now titled by address, so detect via ko_reference too.
+  const isSD = !!job.ko_reference || /spencer|downer/i.test(job.clients?.name ?? '') || /spencer|downer/i.test(job.title ?? '')
   const sdPhotosReady = !isSD || (() => {
     try {
       const during = JSON.parse(localStorage.getItem(`treeco_wo_during_${job.id}`) ?? '[]')
@@ -529,6 +531,9 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
               <span style={{ fontSize: '18px', color: '#8B6238' }}>📄</span>
             </button>
           </div>
+
+          {/* Spencers invoice — non-SOR quotable items + pre-approval + upload */}
+          {isSpencersJob(job) && <SpencersInvoice job={job} />}
 
           {/* Text the client */}
           {job.clients?.phone && (
