@@ -911,6 +911,24 @@ export default function QuoteBuilder() {
           </div>
           <div style={{ ...s.hRight, flexWrap: 'wrap' }}>
             {st && <span style={{ ...s.badge, background: st.bg, color: st.color }}>{st.label}</span>}
+            {quote && (
+              <select
+                value=""
+                onChange={e => { if (e.target.value) save(e.target.value) }}
+                disabled={saving}
+                aria-label="Change quote status"
+                style={{
+                  padding: '6px 10px', borderRadius: '7px', border: '1.5px solid var(--border)',
+                  background: '#fff', color: 'var(--bark)', fontSize: '12px', fontWeight: '600',
+                  fontFamily: 'var(--font)', cursor: 'pointer', outline: 'none',
+                }}
+              >
+                <option value="">{saving ? 'Saving…' : 'Change status…'}</option>
+                {['draft', 'sent', 'viewed', 'accepted', 'declined']
+                  .filter(k => k !== quote.status)
+                  .map(k => <option key={k} value={k}>{ST[k].label}</option>)}
+              </select>
+            )}
             {!isMobile && (
               <button style={s.previewBtn} onClick={async () => { await save(); setShowPreview(true) }} disabled={saving}>
                 {saving ? 'Saving…' : 'Preview'}

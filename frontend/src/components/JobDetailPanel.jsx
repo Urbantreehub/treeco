@@ -242,8 +242,24 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
           </div>
 
           {/* Status badge + change */}
-          <div style={styles.section}>
+          <div style={{ ...styles.section, display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
             <StatusBadge status={job.status} size="lg" />
+            <select
+              value=""
+              disabled={changingStatus}
+              onChange={e => { if (e.target.value) handleStatusChange(e.target.value) }}
+              style={styles.statusSelect}
+              aria-label="Change status"
+            >
+              <option value="">{changingStatus ? 'Updating…' : 'Change status…'}</option>
+              {STATUS_ORDER
+                .filter(k => k !== job.status)
+                // Invoicing only becomes available once the job is Complete — To Be Invoiced
+                .filter(k => k !== 'invoiced' || job.status === 'complete_to_invoice')
+                .map(key => (
+                  <option key={key} value={key}>{JOB_STATUSES[key].label}</option>
+                ))}
+            </select>
           </div>
 
           {/* Job details */}
@@ -331,8 +347,8 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
                   >
                     + New quote
                   </button>
-                  {/* Xero invoice push — show for accepted/invoiced quotes */}
-                  {job.quotes.some(q => ['accepted','invoiced'].includes(q.status)) && (
+                  {/* Xero invoice push — only once the job is Complete — To Be Invoiced */}
+                  {job.status === 'complete_to_invoice' && job.quotes.some(q => ['accepted','invoiced'].includes(q.status)) && (
                     <div style={{ marginTop: '6px' }}>
                       <button
                         style={{
@@ -474,30 +490,6 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
             </div>
           </div>
 
-          {/* Status change */}
-          <div style={styles.section}>
-            <div style={styles.sectionTitle}>Move to</div>
-            <div style={styles.statusGrid}>
-              {STATUS_ORDER.filter(k => k !== job.status).map(key => {
-                const s = JOB_STATUSES[key]
-                return (
-                  <button
-                    key={key}
-                    disabled={changingStatus}
-                    onClick={() => handleStatusChange(key)}
-                    style={{
-                      ...styles.statusBtn,
-                      borderColor: s.color + '66',
-                      color: s.color,
-                      background: s.color + '11',
-                    }}
-                  >
-                    {s.label}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
         </div>
       </div>
     </>
@@ -560,6 +552,11 @@ const styles = {
   rowLabel: { fontSize: '11px', color: '#aaa', fontWeight: '500', marginBottom: '1px' },
   rowValue: { fontSize: '14px', color: 'var(--bark)' },
   description: { fontSize: '14px', color: 'var(--bark)', lineHeight: 1.5, whiteSpace: 'pre-wrap' },
+  statusSelect: {
+    padding: '8px 12px', borderRadius: '8px', border: '1.5px solid var(--border)',
+    background: '#fff', color: 'var(--bark)', fontSize: '13px', fontWeight: '600',
+    fontFamily: 'var(--font)', cursor: 'pointer', outline: 'none',
+  },
   statusGrid: { display: 'flex', flexDirection: 'column', gap: '6px' },
   statusBtn: {
     border: '1px solid', borderRadius: '8px', padding: '8px 12px',

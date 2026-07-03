@@ -292,7 +292,7 @@ function PopoverTruckLink({ scheduleId, initialReg, vehicles, onLinkVehicle }) {
 }
 
 // ── Event popover ──────────────────────────────────────────────────────────
-function Popover({ info, weekEvent, vehicles, onClose, onUnschedule, onLinkVehicle }) {
+function Popover({ info, weekEvent, vehicles, onClose, onUnschedule, onLinkVehicle, onOpenJob }) {
   let job, rect, ext
   if (info) {
     ext = info.event.extendedProps
@@ -325,6 +325,7 @@ function Popover({ info, weekEvent, vehicles, onClose, onUnschedule, onLinkVehic
             onLinkVehicle={onLinkVehicle}
           />
         )}
+        <button style={po.openBtn} onClick={() => onOpenJob(job)}>Open job →</button>
         <div style={po.btns}>
           <button style={po.backBtn} onClick={() => onUnschedule(job)}>↩ Back to tray</button>
           <button style={po.closeBtn} onClick={onClose}>Done</button>
@@ -462,6 +463,7 @@ export default function Calendar() {
 
 function FullCalendar_() {
   const isMobile = useIsMobile()
+  const navigate = useNavigate()
   const calRef   = useRef()
   const [unscheduled,       setUnscheduled]       = useState([])
   const [events,            setEvents]            = useState([])
@@ -692,6 +694,11 @@ function FullCalendar_() {
     info.jsEvent.preventDefault()
     setPopover({ info })
   }, [])
+
+  function openJob(job) {
+    setPopover(null)
+    navigate(`/pipeline?job=${job.id}`)
+  }
 
   async function unscheduleJob(job) {
     setPopover(null)
@@ -1000,6 +1007,7 @@ function FullCalendar_() {
           onClose={() => setPopover(null)}
           onUnschedule={unscheduleJob}
           onLinkVehicle={linkVehicle}
+          onOpenJob={openJob}
         />
       )}
 
@@ -1249,6 +1257,7 @@ const po = {
     border: '1px solid #E2DDD6', background: '#FAF8F4', color: '#2C2416',
     fontFamily: 'var(--font)', cursor: 'pointer', outline: 'none',
   },
+  openBtn:  { display: 'block', width: 'calc(100% - 28px)', margin: '10px 14px 0', background: '#4A6741', border: 'none', borderRadius: '6px', padding: '9px', fontSize: '12px', fontWeight: '700', color: '#fff', cursor: 'pointer', fontFamily: 'var(--font)' },
   btns:     { display: 'flex', gap: '8px', padding: '12px 14px', borderTop: '1px solid #E2DDD6', marginTop: '8px' },
   backBtn:  { flex: 1, background: '#FDF3E3', border: '1px solid #FADFAA', borderRadius: '6px', padding: '7px', fontSize: '11px', fontWeight: '600', color: '#B8860B', cursor: 'pointer', fontFamily: 'var(--font)' },
   closeBtn: { background: '#2C2416', border: 'none', borderRadius: '6px', padding: '7px 14px', fontSize: '11px', fontWeight: '600', color: '#fff', cursor: 'pointer', fontFamily: 'var(--font)' },

@@ -24,7 +24,8 @@ function bestQuote(job) {
 export default function Pipeline() {
   const { jobs, loading, fetchJobs } = useJobs()
   const { isFullAccess } = useAuth()
-  const [selectedJobId, setSelectedJobId] = useState(null)
+  // Deep-link support: /pipeline?job=<id> (e.g. opened from the calendar) auto-opens that job.
+  const [selectedJobId, setSelectedJobId] = useState(() => new URLSearchParams(window.location.search).get('job'))
   const selectedJob = useMemo(() => jobs.find(j => j.id === selectedJobId) ?? null, [jobs, selectedJobId])
   const [showNewJob, setShowNewJob] = useState(false)
   const [textFilter, setTextFilter] = useState('')
@@ -63,6 +64,14 @@ export default function Pipeline() {
   }
 
   const filterActive = statusFilter.size > 0
+
+  function closePanel() {
+    setSelectedJobId(null)
+    // Strip the ?job= deep-link param so a refresh doesn't reopen the panel.
+    if (new URLSearchParams(window.location.search).has('job')) {
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }
 
   return (
     <div style={s.page}>
@@ -183,8 +192,8 @@ export default function Pipeline() {
       {selectedJob && (
         <JobDetailPanel
           job={selectedJob}
-          onClose={() => setSelectedJobId(null)}
-          onUpdated={() => { fetchJobs(); setSelectedJobId(null) }}
+          onClose={closePanel}
+          onUpdated={() => { fetchJobs(); closePanel() }}
           onFieldSaved={() => fetchJobs()}
         />
       )}
