@@ -15,6 +15,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { supabase } from '../config/supabase'
+import { SPENCERS_COLOR, isSpencersJob } from '../config/statuses'
 import CartrackMap from '../components/CartrackMap'
 import TruckProgress from '../components/TruckProgress'
 
@@ -44,6 +45,7 @@ const JOB_TYPE_COLOR = {
 }
 
 function jobColor(job) {
+  if (isSpencersJob(job)) return SPENCERS_COLOR
   const t = (job?.job_type ?? '').toLowerCase()
   for (const [key, color] of Object.entries(JOB_TYPE_COLOR)) {
     if (t.includes(key)) return color

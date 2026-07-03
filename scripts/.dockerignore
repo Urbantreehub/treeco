@@ -1,0 +1,9 @@
+.env
+.env*
+__pycache__/
+*.pyc
+quotient_quotes.json
+quotient_to_treeco.py
+dbs_sync_server.py
+run_dbs_sync.sh
+*.md

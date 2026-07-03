@@ -1,0 +1,16 @@
+# Fly.io config for the always-on DBS sync worker.
+# This is a background worker (no inbound HTTP), so there is no [http_service].
+app = "treeco-dbs-sync"
+primary_region = "syd"   # Sydney — closest Fly region to NZ / the DBS portal
+
+[build]
+  dockerfile = "Dockerfile"
+
+[processes]
+  worker = "python -u dbs_to_treeco.py"
+
+# Chromium needs headroom; 1GB is comfortable for a single-tab scrape.
+[[vm]]
+  size   = "shared-cpu-1x"
+  memory = "1gb"
+  processes = ["worker"]

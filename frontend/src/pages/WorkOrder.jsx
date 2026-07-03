@@ -159,7 +159,9 @@ export default function WorkOrder() {
   // ── Derived flags ─────────────────────────────────────────────────────────
   const clientName = job?.clients?.name ?? ''
   const jobTitle   = job?.title ?? ''
-  const isSD       = /spencer|downer/i.test(clientName) || /spencer|downer/i.test(jobTitle)
+  // Spencers jobs carry a ko_reference (their titles are now the site address,
+  // so we can't rely on an "SP —" prefix or the word "spencer" any more).
+  const isSD       = !!job?.ko_reference || /spencer|downer/i.test(clientName) || /spencer|downer/i.test(jobTitle)
   const isDowner   = /downer/i.test(clientName) || /downer/i.test(jobTitle)
 
   const formsComplete     = JOB_FORMS.filter(f => f.required).every(f => formStatus[f.id]?.completed)
@@ -366,7 +368,19 @@ export default function WorkOrder() {
                   <div key={item.id ?? idx} style={s.taskRow}>
                     <div style={s.taskBullet} />
                     <div style={{ flex: 1 }}>
-                      <div style={s.taskTitle}>{item.description}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        {item.code && (
+                          <span style={{ fontFamily: 'monospace', fontSize: 11, fontWeight: 700, color: '#6D4AA8', background: '#6D4AA818', padding: '2px 7px', borderRadius: 5, whiteSpace: 'nowrap' }}>
+                            {item.code}
+                          </span>
+                        )}
+                        {item.quotable && (
+                          <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', color: '#B7791F', background: '#F8EFDD', padding: '2px 7px', borderRadius: 5 }}>
+                            Quotable
+                          </span>
+                        )}
+                        <div style={s.taskTitle}>{item.code ? (item.description || '').replace(`${item.code} — `, '') : item.description}</div>
+                      </div>
                       {item.detail && <div style={s.taskDetail}>{item.detail}</div>}
                     </div>
                   </div>

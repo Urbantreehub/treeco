@@ -40,6 +40,18 @@ SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
 HEADLESS     = os.environ.get("DBS_HEADLESS", "").strip() in ("1", "true", "yes")
 TEST_ONE     = os.environ.get("DBS_TEST_ONE", "").strip() in ("1", "true", "yes")
 
+# ── Notifications + always-on loop ──────────────────────────────────────────
+# New-job emails go out via Resend (same account the edge functions use). Set
+# RESEND_API_KEY to enable; leave it unset to skip email silently.
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
+APP_BASE_URL   = os.environ.get("APP_BASE_URL", "https://app.urbantreeservices.net").rstrip("/")
+OFFICE_EMAIL   = os.environ.get("OFFICE_EMAIL", "office@urbantreeservices.net")
+EMAIL_FROM     = os.environ.get("EMAIL_FROM", "Urban Tree Services <noreply@urbantreeservices.net>")
+NOTIFY_NEW     = os.environ.get("DBS_NOTIFY", "1").strip() not in ("0", "false", "no", "")
+# When > 0, run forever polling every N seconds (the always-on worker). When 0
+# (default), run a single pass — preserves the manual "Sync now" trigger.
+POLL_SECONDS   = int(os.environ.get("DBS_POLL_SECONDS", "0") or "0")
+
 JOBS_PATH      = "/shared_apps/job_tracking/orders/index.cfm?fuseaction=view_jobs&menu_id=483&cfroot=/shl/"
 DOC_PATH       = "/shared_apps//documents/index.cfm?fuseaction=documents&cfroot=/shl/&DBSDocumentsKey_document_access_key="
 STORAGE_BUCKET = "job-images"
@@ -113,6 +125,77 @@ def upload_image(image_bytes, filename, mime="image/jpeg"):
         return f"{SUPABASE_URL}/storage/v1/object/public/{STORAGE_BUCKET}/{path}"
     log(f"    ⚠  Image upload failed ({r.status_code}): {r.text[:200]}")
     return None
+
+
+# PostgREST reports an unknown column as: "Could not find the 'X' column …".
+# We strip any column it complains about and retry, so the scraper keeps working
+# even before migration 015 is applied (it just skips the new columns).
+_UNKNOWN_COL_RE = re.compile(r"'([a-z_]+)' column")
+
+def parse_due_date(raw):
+    """Portal dates look like '25/07/2026' (DD/MM/YYYY). Return ISO or None."""
+    raw = (raw or "").strip()
+    if not raw:
+        return None
+    for fmt in ("%d/%m/%Y", "%d/%m/%y", "%Y-%m-%d", "%d-%m-%Y"):
+        try:
+            return datetime.strptime(raw, fmt).date().isoformat()
+        except ValueError:
+            continue
+    return None
+
+def sb_write_resilient(method, path, payload, params=None):
+    """POST/PATCH that drops columns the schema doesn't have yet, then retries."""
+    p = dict(payload)
+    for _ in range(8):
+        r = requests.request(
+            method, f"{SUPABASE_URL}/rest/v1/{path}",
+            headers={**sb_headers(), "Prefer": "return=representation"},
+            params=params, json=p,
+        )
+        if r.status_code == 400:
+            m = _UNKNOWN_COL_RE.search(r.text)
+            if m and m.group(1) in p:
+                col = m.group(1)
+                log(f"    ⚠  '{path}' has no '{col}' column — omitting it")
+                p.pop(col, None)
+                continue
+        r.raise_for_status()
+        try:
+            return r.json()
+        except Exception:
+            return None
+    return None
+
+def upsert_portal_sync(job_id, dbs, prev, sla_due, notified_at=None):
+    """Mirror the portal job's last-seen state so future polls can diff it.
+    Degrades to a no-op (with a warning) if the portal_sync table isn't there."""
+    row = {
+        "source":                  "dbs",
+        "shl_job_id":              dbs["shl_job_id"],
+        "ko_reference":            dbs["ko_reference"].strip() or None,
+        "job_id":                  job_id,
+        "portal_status":           dbs["portal_status"].strip() or None,
+        "last_seen_portal_status": (prev.get("portal_status") if prev else dbs["portal_status"].strip()) or None,
+        "priority":                dbs["priority"].strip() or None,
+        "sla_due_at":              sla_due,
+        "raw_snapshot":            {k: v for k, v in dbs.items() if k != "charge_lines"},
+        "last_polled_at":          datetime.utcnow().isoformat() + "Z",
+        "updated_at":              datetime.utcnow().isoformat() + "Z",
+    }
+    if notified_at:
+        row["notified_new_at"] = notified_at
+    try:
+        return sb_write_resilient(
+            "POST", "portal_sync", row,
+            # upsert on the (source, shl_job_id) unique index
+        ) if not prev else sb_write_resilient(
+            "PATCH", "portal_sync", row,
+            params={"source": "eq.dbs", "shl_job_id": f"eq.{dbs['shl_job_id']}"},
+        )
+    except requests.HTTPError as e:
+        log(f"    ⚠  portal_sync write skipped ({e}) — apply migration 015 for diffing")
+        return None
 
 
 # ── DBS login ─────────────────────────────────────────────────────────────────
@@ -376,9 +459,10 @@ def map_to_treeco(dbs, client_id):
     pri  = dbs["priority"].strip()
     desc = dbs["description"].strip()
 
-    # Title: SP — Tenant Name (KO priority + ref in description, not title)
+    # Title: the site address (Spencers jobs are identified by address). Fall
+    # back to tenant / KO ref / SHL id only when there's no address.
     tenant = dbs.get("tenant_name", "").strip()
-    title = f"SP — {tenant}" if tenant else f"SP — {ko}" if ko else f"SP — Job {dbs['shl_job_id']}"
+    title = addr or (f"SP — {tenant}" if tenant else f"SP — {ko}" if ko else f"SP — Job {dbs['shl_job_id']}")
 
     # Value
     value_raw = re.sub(r"[^\d.]", "", dbs.get("value", "") or "")
@@ -427,29 +511,18 @@ def map_to_treeco(dbs, client_id):
         "status":          status,
         "estimated_value": value,
         "client_id":       client_id,
+        # First-class portal fields (migration 015). Stripped automatically if
+        # the columns aren't there yet, so this is safe pre-migration.
+        "ko_reference":    ko or None,
+        "priority":        pri or None,
+        "sla_due_at":      parse_due_date(dbs.get("due_date")),
     }
 
 
 # ── Supabase upsert ───────────────────────────────────────────────────────────
 
 def _try_post(payload):
-    r = requests.post(
-        f"{SUPABASE_URL}/rest/v1/jobs",
-        headers={**sb_headers(), "Prefer": "return=representation"},
-        json=payload,
-    )
-    if r.status_code == 400 and "private_notes" in r.text:
-        payload.pop("private_notes", None)
-        r = requests.post(
-            f"{SUPABASE_URL}/rest/v1/jobs",
-            headers={**sb_headers(), "Prefer": "return=representation"},
-            json=payload,
-        )
-    r.raise_for_status()
-    try:
-        return r.json()
-    except Exception:
-        return None
+    return sb_write_resilient("POST", "jobs", payload)
 
 
 def create_quote_from_charge_lines(job_id, client_id, charge_lines):
@@ -467,20 +540,32 @@ def create_quote_from_charge_lines(job_id, client_id, charge_lines):
         total_val = float(total_raw) if total_raw else 0.0
         qty_val   = float(qty_raw)   if qty_raw   else 1.0
 
-        # Rate = total / qty; fallback to 0
+        # Rate = total / qty; fallback to 0. NOTE: we mirror the portal price
+        # exactly — no 0.87 transform is applied to any amount.
         rate_val = round(total_val / qty_val, 2) if qty_val else 0.0
 
-        desc = f"{cl['code']} — {cl['desc']}"
+        # Classify SOR vs non-SOR "quotable". Guide: codebook codes with a rate
+        # of 0.87 (Spencers' GST factor) are the quotable, pre-approval codes
+        # that belong on the invoice. This is a hint — the app allows override.
+        portal_rate_raw = re.sub(r"[^\d.]", "", cl.get("rate", "") or "")
+        portal_rate = float(portal_rate_raw) if portal_rate_raw else rate_val
+        quotable = abs(portal_rate - 0.87) < 0.02
+
+        code = (cl.get("code") or "").strip()
+        desc = f"{code} — {cl['desc']}"
         detail = cl.get("line_note", "") or ""
         if cl.get("location"):
             detail = f"{cl['location']} {detail}".strip()
 
         item = {
             "id":          str(i + 1),
+            "code":        code,       # SOR job code, surfaced as a badge in-app
             "description": desc,
             "detail":      detail,
             "qty":         qty_val,
             "rate":        rate_val,
+            "quotable":    quotable,   # non-SOR quotable (rate≈0.87 guide) → invoice + pre-approval
+            "sor":         not quotable,
             "optional":    False,
             "selected":    True,
         }
@@ -518,23 +603,92 @@ def create_quote_from_charge_lines(job_id, client_id, charge_lines):
         log(f"      ✓ Quote created — {len(line_items)} line items  (${total:.2f} incl GST)")
 
 def _try_patch(job_id, payload):
-    r = requests.patch(
-        f"{SUPABASE_URL}/rest/v1/jobs",
-        headers={**sb_headers(), "Prefer": "return=representation"},
-        params={"id": f"eq.{job_id}"},
-        json=payload,
+    return sb_write_resilient("PATCH", "jobs", payload, params={"id": f"eq.{job_id}"})
+
+# ── New-job email (Resend) ──────────────────────────────────────────────────
+
+def _charge_lines_html(charge_lines):
+    if not charge_lines:
+        return ""
+    rows = ""
+    for cl in charge_lines:
+        bits = f"<strong>{cl.get('code','')}</strong> {cl.get('desc','')}"
+        meta = []
+        if cl.get("qty"):   meta.append(f"×{cl['qty']}")
+        if cl.get("total"): meta.append(f"${cl['total']}")
+        if cl.get("images"): meta.append(f"📷{len(cl['images'])}")
+        rows += (f"<tr><td style='padding:4px 10px 4px 0;color:#2b3a2b'>{bits}</td>"
+                 f"<td style='padding:4px 0;color:#6b7a6b;white-space:nowrap'>{'  '.join(meta)}</td></tr>")
+    return (f"<p style='margin:18px 0 6px;font-weight:700;color:#2b3a2b'>Charge lines</p>"
+            f"<table style='border-collapse:collapse;font-size:14px'>{rows}</table>")
+
+def send_new_job_email(dbs, job_id):
+    """Email the office that a new DBS job has landed. Returns True on send."""
+    if not RESEND_API_KEY:
+        log("    ⚠  RESEND_API_KEY not set — new-job email skipped")
+        return False
+
+    ko    = dbs["ko_reference"].strip()
+    addr  = dbs["address"].strip()
+    pri   = dbs["priority"].strip()
+    due   = dbs.get("due_date", "").strip()
+    tenant = dbs.get("tenant_name", "").strip()
+    is_emerg = any(w in pri.lower() for w in ("emerg", "p1", "urgent"))
+    flag  = "🔴 EMERGENCY — " if is_emerg else ""
+    subject = f"{flag}New DBS job: {addr or ko}" + (f" · due {due}" if due else "")
+    link  = f"{APP_BASE_URL}/workorder/{job_id}"
+
+    meta_rows = "".join(
+        f"<tr><td style='padding:2px 14px 2px 0;color:#6b7a6b'>{k}</td>"
+        f"<td style='padding:2px 0;color:#2b3a2b;font-weight:600'>{v}</td></tr>"
+        for k, v in [("Address", addr), ("Tenant", tenant), ("KO Ref", ko),
+                     ("Priority", pri), ("Due", due)] if v
     )
-    if r.status_code == 400 and "private_notes" in r.text:
-        payload.pop("private_notes", None)
-        r = requests.patch(
-            f"{SUPABASE_URL}/rest/v1/jobs",
-            headers={**sb_headers(), "Prefer": "return=representation"},
-            params={"id": f"eq.{job_id}"},
-            json=payload,
+    html = f"""
+    <div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:560px;margin:0 auto;color:#2b3a2b">
+      <p style="font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#4A6741;font-weight:700;margin:0 0 4px">New job from Spencers</p>
+      <h1 style="font-size:22px;margin:0 0 14px;color:#1f2e1f">{flag}{addr or ko or 'New DBS job'}</h1>
+      <table style="border-collapse:collapse;font-size:14px;margin-bottom:8px">{meta_rows}</table>
+      {_charge_lines_html(dbs.get('charge_lines', []))}
+      <p style="margin:22px 0">
+        <a href="{link}" style="background:#4A6741;color:#fff;text-decoration:none;padding:12px 26px;border-radius:8px;font-weight:700;display:inline-block">Open in TreeCo →</a>
+      </p>
+      <p style="font-size:12px;color:#8a978a;margin-top:18px">Pulled automatically from the DBS portal. Accept &amp; schedule it in TreeCo — the portal will be updated for you.</p>
+    </div>"""
+
+    try:
+        r = requests.post(
+            "https://api.resend.com/emails",
+            headers={"Authorization": f"Bearer {RESEND_API_KEY}", "Content-Type": "application/json"},
+            json={"from": EMAIL_FROM, "reply_to": OFFICE_EMAIL, "to": OFFICE_EMAIL,
+                  "subject": subject, "html": html},
+            timeout=20,
         )
-    r.raise_for_status()
+        if r.status_code in (200, 201):
+            log(f"    ✉  New-job email sent: {subject[:60]}")
+            return True
+        log(f"    ⚠  Email failed ({r.status_code}): {r.text[:160]}")
+    except Exception as e:
+        log(f"    ⚠  Email error: {e}")
+    return False
+
+
+def notify_new_jobs(new_jobs):
+    """Send emails for newly-seen jobs; stamp portal_sync so we never re-send."""
+    for item in new_jobs:
+        if send_new_job_email(item["dbs"], item["job_id"]):
+            try:
+                sb_write_resilient(
+                    "PATCH", "portal_sync",
+                    {"notified_new_at": datetime.utcnow().isoformat() + "Z"},
+                    params={"source": "eq.dbs", "shl_job_id": f"eq.{item['dbs']['shl_job_id']}"},
+                )
+            except requests.HTTPError:
+                pass
+
 
 def sync_jobs_to_supabase(dbs_jobs):
+    # Existing TreeCo jobs, matched by the KO Ref tag in their description.
     existing = sb_get("jobs", {
         "select": "id,description,status",
         "description": "like.*KO Ref:*",
@@ -545,7 +699,21 @@ def sync_jobs_to_supabase(dbs_jobs):
         if m:
             ko_to_id[m.group(1)] = row["id"]
 
+    # Last-seen portal state, keyed by the portal's own job id. If the
+    # portal_sync table isn't there yet, we fall back to "created == new".
+    portal_by_shl = {}
+    try:
+        for r in sb_get("portal_sync", {
+            "select": "shl_job_id,portal_status,notified_new_at,job_id",
+            "source": "eq.dbs",
+        }):
+            portal_by_shl[r["shl_job_id"]] = r
+    except requests.HTTPError:
+        log("    ⚠  portal_sync not readable yet — diffing off (apply migration 015)")
+
     created = updated = skipped = 0
+    changed = 0
+    new_jobs = []   # [{dbs, job_id}] — jobs to email about this run
 
     for dbs in dbs_jobs:
         ko = dbs["ko_reference"].strip()
@@ -553,31 +721,116 @@ def sync_jobs_to_supabase(dbs_jobs):
             skipped += 1
             continue
 
+        prev            = portal_by_shl.get(dbs["shl_job_id"])
+        cur_status      = dbs["portal_status"].strip()
+        is_changed      = bool(prev and (prev.get("portal_status") or "") != cur_status)
+        already_notified = bool(prev and prev.get("notified_new_at"))
+
         client_id = find_or_create_client(dbs["tenant_name"], dbs["tenant_phone"])
         row = map_to_treeco(dbs, client_id)
 
         if ko in ko_to_id:
-            _try_patch(ko_to_id[ko], {
+            job_id = ko_to_id[ko]
+            _try_patch(job_id, {
                 "title":           row["title"],
                 "status":          row["status"],
                 "estimated_value": row["estimated_value"],
                 "description":     row["description"],
                 "private_notes":   row.get("private_notes"),
+                "ko_reference":    row.get("ko_reference"),
+                "priority":        row.get("priority"),
+                "sla_due_at":      row.get("sla_due_at"),
                 "updated_at":      datetime.utcnow().isoformat() + "Z",
             })
             updated += 1
+            was_created = False
         else:
             result = _try_post(row)
             created += 1
             log(f"    ✚ Created: {row['title'][:60]}")
-            # Auto-create a quote from charge lines
-            if result and isinstance(result, list) and result:
-                new_job_id = result[0]["id"]
+            job_id = result[0]["id"] if (result and isinstance(result, list) and result) else None
+            if job_id:
                 charge_lines = dbs.get("charge_lines", [])
                 if charge_lines:
-                    create_quote_from_charge_lines(new_job_id, row.get("client_id"), charge_lines)
+                    create_quote_from_charge_lines(job_id, row.get("client_id"), charge_lines)
+            was_created = True
 
-    return {"created": created, "updated": updated, "skipped": skipped}
+        if is_changed:
+            changed += 1
+            log(f"    ↻ Portal status: {prev.get('portal_status')!r} → {cur_status!r}")
+
+        # A job is "new" (email-worthy) the first time we see it in the portal.
+        should_notify = NOTIFY_NEW and job_id and not already_notified and (prev is None or was_created)
+
+        # Mirror the portal state for next time's diff. notified_new_at is
+        # stamped separately, only after the email actually sends.
+        upsert_portal_sync(job_id, dbs, prev, row.get("sla_due_at"))
+
+        if should_notify:
+            new_jobs.append({"dbs": dbs, "job_id": job_id})
+
+    return {"created": created, "updated": updated, "skipped": skipped,
+            "changed": changed, "new_jobs": new_jobs}
+
+
+# ── One sync pass ───────────────────────────────────────────────────────────
+
+async def run_once():
+    """Scrape the portal once and sync into TreeCo. Returns a summary dict."""
+    log("══════════════════════════════════════════════════")
+    log("  DBS Portal → TreeCo sync (with detail scrape)")
+    log(f"  {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    if TEST_ONE:
+        log("  ⚠  TEST MODE — first job only")
+    log("══════════════════════════════════════════════════")
+
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=HEADLESS)
+        context = await browser.new_context()
+        page    = await context.new_page()
+        try:
+            log("  → Navigating to DBS portal…")
+            await page.goto(f"{DBS_URL}/index.cfm", timeout=30_000)
+            await page.wait_for_load_state("domcontentloaded")
+            await dbs_login(page)
+
+            log("  → Loading job list…")
+            await page.goto(f"{DBS_URL}{JOBS_PATH}", timeout=20_000)
+            await page.wait_for_load_state("networkidle", timeout=15_000)
+            await page.wait_for_timeout(2000)
+
+            dbs_jobs = await extract_all_jobs(page)
+            if not dbs_jobs:
+                log("  → No jobs in portal list this pass.")
+                return {"created": 0, "updated": 0, "skipped": 0, "changed": 0, "new": 0}
+
+            jobs_to_process = dbs_jobs[:1] if TEST_ONE else dbs_jobs
+            log(f"\n  → Scraping detail pages for {len(jobs_to_process)} job(s)…")
+
+            for i, job in enumerate(jobs_to_process):
+                log(f"\n  [{i+1}/{len(jobs_to_process)}] {job['shl_job_id']} — {job['ko_reference']}")
+                jobs_to_process[i] = await extract_job_detail(page, job)
+                if i < len(jobs_to_process) - 1:
+                    await page.goto(f"{DBS_URL}{JOBS_PATH}", timeout=15_000)
+                    await page.wait_for_load_state("networkidle", timeout=10_000)
+                    await page.wait_for_timeout(1500)
+        finally:
+            await browser.close()
+
+    log(f"\n  → Syncing {len(jobs_to_process)} job(s) to Supabase…")
+    counts = sync_jobs_to_supabase(jobs_to_process)
+
+    # Fire the new-job emails after the DB writes have landed.
+    notify_new_jobs(counts.get("new_jobs", []))
+
+    summary = {"created": counts["created"], "updated": counts["updated"],
+               "skipped": counts["skipped"], "changed": counts["changed"],
+               "new": len(counts.get("new_jobs", []))}
+    log("\n══════════════════════════════════════════════════")
+    log(f"  ✓ Done — created: {summary['created']}  updated: {summary['updated']}  "
+        f"changed: {summary['changed']}  new-emailed: {summary['new']}  skipped: {summary['skipped']}")
+    log("══════════════════════════════════════════════════")
+    return summary
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
@@ -590,69 +843,19 @@ async def main():
         print("✗  SUPABASE_SERVICE_KEY is not set.", file=sys.stderr)
         sys.exit(1)
 
-    log("══════════════════════════════════════════════════")
-    log("  DBS Portal → TreeCo sync (with detail scrape)")
-    log(f"  {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    if TEST_ONE:
-        log("  ⚠  TEST MODE — first job only")
-    log("══════════════════════════════════════════════════")
+    # Always-on mode: loop forever, poll every POLL_SECONDS, survive errors.
+    if POLL_SECONDS > 0:
+        log(f"  ⟳  Always-on worker — polling every {POLL_SECONDS}s")
+        while True:
+            try:
+                await run_once()
+            except Exception as e:
+                log(f"  ✗  Poll failed: {e}")
+            await asyncio.sleep(POLL_SECONDS)
 
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=HEADLESS)
-        context = await browser.new_context()
-        page    = await context.new_page()
-
-        log("  → Navigating to DBS portal…")
-        await page.goto(f"{DBS_URL}/index.cfm", timeout=30_000)
-        await page.wait_for_load_state("domcontentloaded")
-        await dbs_login(page)
-
-        log("  → Loading job list…")
-        await page.goto(f"{DBS_URL}{JOBS_PATH}", timeout=20_000)
-        await page.wait_for_load_state("networkidle", timeout=15_000)
-        await page.wait_for_timeout(2000)
-
-        dbs_jobs = await extract_all_jobs(page)
-        if not dbs_jobs:
-            log("✗  No jobs found.")
-            await browser.close()
-            sys.exit(1)
-
-        jobs_to_process = dbs_jobs[:1] if TEST_ONE else dbs_jobs
-        log(f"\n  → Scraping detail pages for {len(jobs_to_process)} job(s)…")
-
-        for i, job in enumerate(jobs_to_process):
-            log(f"\n  [{i+1}/{len(jobs_to_process)}] {job['shl_job_id']} — {job['ko_reference']}")
-            jobs_to_process[i] = await extract_job_detail(page, job)
-
-            # Return to job list for the next iteration
-            if i < len(jobs_to_process) - 1:
-                await page.goto(f"{DBS_URL}{JOBS_PATH}", timeout=15_000)
-                await page.wait_for_load_state("networkidle", timeout=10_000)
-                await page.wait_for_timeout(1500)
-
-        await browser.close()
-
-    if TEST_ONE:
-        log("\n══ TEST MODE — scraped data ══")
-        for job in jobs_to_process:
-            log(json.dumps({
-                "shl_job_id":   job["shl_job_id"],
-                "ko_reference": job["ko_reference"],
-                "priority":     job["priority"],
-                "notes":        job["notes"],
-                "charge_lines": [{k: v for k, v in cl.items() if k != "images"} for cl in job["charge_lines"]],
-                "image_count":  sum(len(cl.get("images", [])) for cl in job["charge_lines"]),
-            }, indent=2))
-
-    log(f"\n  → Syncing {len(jobs_to_process)} job(s) to Supabase…")
-    counts = sync_jobs_to_supabase(jobs_to_process)
-
-    log("\n══════════════════════════════════════════════════")
-    log(f"  ✓ Done — created: {counts['created']}  updated: {counts['updated']}  skipped: {counts['skipped']}")
-    log("══════════════════════════════════════════════════")
-
-    print(json.dumps(counts))
+    # Single pass (manual "Sync now" trigger): emit summary JSON on stdout.
+    summary = await run_once()
+    print(json.dumps(summary))
 
 
 if __name__ == "__main__":

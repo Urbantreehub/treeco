@@ -65,6 +65,20 @@ export const JOB_STATUSES = {
   },
 }
 
+// Spencer Henshaw (DBS / Kāinga Ora) jobs get their own accent colour so they
+// stand out from regular work at a glance — a deep violet, distinct from every
+// status and job-type colour. Detection: DBS jobs carry a ko_reference, an
+// "SP —" title prefix, or "spencer" in the title/client name.
+export const SPENCERS_COLOR = '#6D4AA8'
+
+export function isSpencersJob(job) {
+  if (!job) return false
+  if (job.ko_reference) return true
+  const title = job.title ?? ''
+  const client = job.clients?.name ?? ''
+  return title.startsWith('SP —') || /spencer/i.test(title) || /spencer/i.test(client)
+}
+
 // Ordered list for pipeline column rendering.
 // quote_scheduled, accepted_to_schedule, stump_grinding removed — these were
 // transitional micro-states that added columns without adding clarity.

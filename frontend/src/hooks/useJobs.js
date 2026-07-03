@@ -17,7 +17,7 @@ export function useJobs() {
       .from('jobs')
       .select(`
         id, status, title, address, job_type, description, estimated_value,
-        created_at, status_changed_at,
+        created_at, status_changed_at, ko_reference, priority, sla_due_at,
         clients (id, name, phone, email),
         quotes (id, status, subtotal, gst, total)
       `)

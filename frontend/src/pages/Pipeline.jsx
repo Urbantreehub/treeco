@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
-import { JOB_STATUSES, STATUS_ORDER } from '../config/statuses'
+import { JOB_STATUSES, STATUS_ORDER, SPENCERS_COLOR, isSpencersJob } from '../config/statuses'
 import { useJobs } from '../hooks/useJobs'
 import { useAuth } from '../context/AuthContext'
 import JobDetailPanel from '../components/JobDetailPanel'
@@ -164,11 +164,21 @@ export default function Pipeline() {
               const quote = bestQuote(job)
               const total = quote ? nzd(quote.total) : null
               const date = job.created_at ? new Date(job.created_at) : null
+              const sp = isSpencersJob(job)
               return (
-                <div key={job.id} style={s.row} onClick={() => setSelectedJobId(job.id)}>
+                <div
+                  key={job.id}
+                  style={sp ? { ...s.row, borderLeft: `4px solid ${SPENCERS_COLOR}`, paddingLeft: 12 } : s.row}
+                  onClick={() => setSelectedJobId(job.id)}
+                >
                   <div style={s.rowMain}>
                     <div style={s.client}>{job.clients?.name ?? '—'}</div>
                     <div style={s.meta}>
+                      {sp && (
+                        <span style={{ fontSize: 11, fontWeight: 700, color: SPENCERS_COLOR, background: SPENCERS_COLOR + '18', padding: '1px 7px', borderRadius: 5, letterSpacing: '.02em' }}>
+                          Spencers
+                        </span>
+                      )}
                       {job.job_type && <span style={s.jobType}>{job.job_type}</span>}
                       {job.address && <span style={s.address}>{job.address}</span>}
                     </div>
