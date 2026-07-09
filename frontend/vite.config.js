@@ -21,4 +21,11 @@ export default defineConfig({
       },
     },
   },
+  test: {
+    // Pure-logic unit tests run in Node (no DOM needed yet).
+    environment: 'node',
+    include: ['src/**/*.{test,spec}.{js,jsx}'],
+    // Lets modules that read Supabase env vars import cleanly under test.
+    env: { VITE_DEMO: 'true' },
+  },
 })

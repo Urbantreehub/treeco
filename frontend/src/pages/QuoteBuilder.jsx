@@ -13,8 +13,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { supabase } from '../config/supabase'
 import { v4 as uuid } from 'uuid'
-
-const GST = 0.15
+import { GST, calcTotals } from '../utils/pricing'
 
 const COMPANY = {
   name: 'Urban Tree Services Limited',
@@ -53,16 +52,7 @@ function nzd(v, dp = 2) {
   return '$' + Number(v || 0).toLocaleString('en-NZ', { minimumFractionDigits: dp, maximumFractionDigits: dp })
 }
 
-// ex → incl GST
-function inclGst(v) { return Number(v || 0) * (1 + GST) }
-
-function calcTotals(items) {
-  const subtotal = items
-    .filter(i => !i.optional || i.selected)
-    .reduce((s, i) => s + (Number(i.qty) || 0) * (Number(i.rate) || 0), 0)
-  const gst = subtotal * GST
-  return { subtotal, gst, total: subtotal + gst }
-}
+// GST maths + quote totals now live in ../utils/pricing (imported above).
 
 // ── Image gallery (multiple images per line item) ──────────────────────────
 function ImageGallery({ images, onAdd, onRemove, onMarkup }) {

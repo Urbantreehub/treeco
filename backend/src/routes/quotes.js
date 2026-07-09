@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { requireAuth, requireFullAccess } from '../middleware/auth.js'
 import { supabaseAdmin } from '../db.js'
+import { calcQuoteTotals } from '../lib/pricing.js'
 import { randomBytes } from 'crypto'
 
 const router = Router()
@@ -21,11 +22,7 @@ router.post('/', requireAuth, requireFullAccess, async (req, res) => {
   if (!job_id || !client_id) return res.status(400).json({ error: 'job_id and client_id required' })
 
   const items = line_items ?? []
-  const subtotal = items
-    .filter(i => i.selected !== false)
-    .reduce((sum, i) => sum + (i.qty ?? 1) * (i.rate ?? 0), 0)
-  const gst = +(subtotal * 0.15).toFixed(2)
-  const total = +(subtotal + gst).toFixed(2)
+  const { subtotal, gst, total } = calcQuoteTotals(items)
 
   const { data, error } = await supabaseAdmin
     .from('quotes')
@@ -40,11 +37,7 @@ router.post('/', requireAuth, requireFullAccess, async (req, res) => {
 router.put('/:id', requireAuth, requireFullAccess, async (req, res) => {
   const { line_items } = req.body
   const items = line_items ?? []
-  const subtotal = items
-    .filter(i => i.selected !== false)
-    .reduce((sum, i) => sum + (i.qty ?? 1) * (i.rate ?? 0), 0)
-  const gst = +(subtotal * 0.15).toFixed(2)
-  const total = +(subtotal + gst).toFixed(2)
+  const { subtotal, gst, total } = calcQuoteTotals(items)
 
   const { data, error } = await supabaseAdmin
     .from('quotes')
