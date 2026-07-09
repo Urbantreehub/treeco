@@ -33,11 +33,10 @@ describe('calcQuoteTotals', () => {
     expect(r.subtotal).toBe(50)
   })
 
-  // NOTE: current backend behaviour — a missing qty defaults to 1.
-  // The frontend (see frontend/src/utils/pricing.test.js) treats a missing qty
-  // as 0. This test pins the difference so a future change is deliberate.
-  it('missing qty defaults to 1 (backend rule)', () => {
+  // A blank, zero, or invalid quantity is charged as 1 unit (matches the frontend).
+  it('missing or zero qty is charged as 1 unit', () => {
     expect(calcQuoteTotals([{ rate: 100 }]).subtotal).toBe(100)
+    expect(calcQuoteTotals([{ qty: 0, rate: 100 }]).subtotal).toBe(100)
   })
 
   it('missing rate defaults to 0', () => {

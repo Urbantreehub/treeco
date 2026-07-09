@@ -39,16 +39,17 @@ describe('calcTotals', () => {
     expect(calcTotals([{ optional: true, selected: true, qty: 1, rate: 100 }]).subtotal).toBe(100)
   })
 
-  // NOTE: current frontend behaviour — a missing qty is treated as 0 here.
-  // The backend (see backend/src/lib/pricing.test.js) treats a missing qty as 1.
-  // This test pins the difference so a future change is a deliberate decision.
-  it('missing qty is treated as 0 (frontend rule)', () => {
-    expect(calcTotals([{ rate: 100 }]).subtotal).toBe(0)
+  // A blank, zero, or invalid quantity is charged as 1 unit (matches the backend).
+  it('missing, zero, or blank qty is charged as 1 unit', () => {
+    expect(calcTotals([{ rate: 100 }]).subtotal).toBe(100)
+    expect(calcTotals([{ qty: 0, rate: 100 }]).subtotal).toBe(100)
+    expect(calcTotals([{ qty: '', rate: 100 }]).subtotal).toBe(100)
   })
 
   it('blank/NaN qty or rate never produces NaN', () => {
+    // qty 'x' → 1 unit at 100; second line has no rate → 0.
     const r = calcTotals([{ qty: 'x', rate: 100 }, { qty: 2, rate: null }])
-    expect(r.subtotal).toBe(0)
+    expect(r.subtotal).toBe(100)
     expect(Number.isNaN(r.total)).toBe(false)
   })
 })

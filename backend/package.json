@@ -17,6 +17,7 @@
     "ws": "^8.21.0"
   },
   "devDependencies": {
+    "supertest": "^7.0.0",
     "vitest": "^2.1.9"
   }
 }
