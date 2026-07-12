@@ -9,6 +9,7 @@ const FULL_NAV = [
   { to: '/dashboard', label: 'Dashboard', icon: DashboardIcon },
   { to: '/pipeline',  label: 'Jobs',      icon: PipelineIcon },
   { to: '/calendar',  label: 'Calendar',  icon: CalendarIcon },
+  { to: '/planner',   label: 'Planner',   icon: PlannerIcon },
   { to: '/clients',   label: 'Clients',   icon: ClientsIcon },
   { to: '/mulch',     label: 'Mulch',     icon: MulchIcon },
   { to: '/requests',  label: 'Tools',     icon: ToolIcon },
@@ -19,6 +20,7 @@ const FULL_NAV = [
 const OFFICE_NAV = [
   { to: '/pipeline',  label: 'Jobs',      icon: PipelineIcon },
   { to: '/calendar',  label: 'Calendar',  icon: CalendarIcon },
+  { to: '/planner',   label: 'Planner',   icon: PlannerIcon },
   { to: '/clients',   label: 'Clients',   icon: ClientsIcon },
   { to: '/mulch',     label: 'Mulch',     icon: MulchIcon },
   { to: '/requests',  label: 'Tools',     icon: ToolIcon },
