@@ -458,8 +458,11 @@ const cw = {
 
 // ── Main export — switches between full and crew views ─────────────────────
 export default function Calendar() {
-  const { isFullAccess } = useAuth()
-  if (!isFullAccess) return <CrewCalendar />
+  // Office staff (e.g. Admin Officer) manage scheduling, so they get the full
+  // calendar — same as full-access. Only crew (climbers/groundsmen), who have a
+  // resource_id and just need their own day's jobs, get the restricted view.
+  const { isStaff } = useAuth()
+  if (!isStaff) return <CrewCalendar />
   return <FullCalendar_ />
 }
 
