@@ -71,7 +71,7 @@ function extractPriority(job) {
 }
 
 export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }) {
-  const { isFullAccess } = useAuth()
+  const { isStaff } = useAuth()
   const navigate = useNavigate()
   const [changingStatus, setChangingStatus] = useState(false)
   const [editing, setEditing] = useState(false)
@@ -380,7 +380,7 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
           )}
 
           {/* Job details */}
-          {editing && isFullAccess ? (
+          {editing && isStaff ? (
             <div style={styles.section}>
               <Label>Title</Label>
               <Input value={form.title} onChange={v => setForm(p => ({ ...p, title: v }))} />
@@ -418,7 +418,7 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
               <div style={{ marginTop: '16px' }}>
                 <QuoteReference jobId={job.id} />
               </div>
-              {isFullAccess && (
+              {isStaff && (
                 <button onClick={() => setEditing(true)} style={{ ...styles.ghostBtn, marginTop: '12px' }}>
                   Edit details
                 </button>
@@ -427,7 +427,7 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
           )}
 
           {/* Quote action */}
-          {isFullAccess && (
+          {isStaff && (
             <div style={styles.section}>
               <div style={styles.sectionTitle}>Quote</div>
               {job.quotes && job.quotes.length > 0 ? (

@@ -23,7 +23,7 @@ function bestQuote(job) {
 
 export default function Pipeline() {
   const { jobs, loading, fetchJobs } = useJobs()
-  const { isFullAccess } = useAuth()
+  const { isStaff } = useAuth()
   // Deep-link support: /pipeline?job=<id> (e.g. opened from the calendar) auto-opens that job.
   const [selectedJobId, setSelectedJobId] = useState(() => new URLSearchParams(window.location.search).get('job'))
   const selectedJob = useMemo(() => jobs.find(j => j.id === selectedJobId) ?? null, [jobs, selectedJobId])
@@ -81,7 +81,7 @@ export default function Pipeline() {
         <div style={s.titleRow}>
           <h1 style={s.title}>Jobs</h1>
           <span style={s.countBadge}>{filtered.length}</span>
-          {isFullAccess && (
+          {isStaff && (
             <button onClick={() => setShowNewJob(true)} style={s.newBtn}>+ New job</button>
           )}
         </div>
