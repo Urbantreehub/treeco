@@ -90,6 +90,16 @@ def sb_get(path, params=None):
     r.raise_for_status()
     return r.json()
 
+def sync_enabled():
+    """Read the app_settings 'dbs_sync_enabled' flag. Paused (False) unless the
+    row exists AND is explicitly true — so a missing table/row keeps sync off."""
+    try:
+        rows = sb_get("app_settings", {"key": "eq.dbs_sync_enabled", "select": "value"})
+        return bool(rows and rows[0].get("value") is True)
+    except Exception as e:
+        log(f"  ⚠  Could not read sync flag ({e}) — treating as paused")
+        return False
+
 def sb_upsert(table, rows):
     r = requests.post(
         f"{SUPABASE_URL}/rest/v1/{table}",
@@ -789,6 +799,11 @@ def sync_jobs_to_supabase(dbs_jobs):
 
 async def run_once():
     """Scrape the portal once and sync into TreeCo. Returns a summary dict."""
+    # Respect the Settings toggle — skip entirely while sync is paused.
+    if not sync_enabled():
+        log("  ⏸  Portal sync is paused (Settings toggle off) — skipping.")
+        return {"created": 0, "updated": 0, "skipped": 0, "changed": 0, "new": 0, "paused": True}
+
     log("══════════════════════════════════════════════════")
     log("  DBS Portal → TreeCo sync (with detail scrape)")
     log(f"  {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")

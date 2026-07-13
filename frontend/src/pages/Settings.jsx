@@ -390,8 +390,29 @@ function DbsCard({ toast }) {
   const [syncing,  setSyncing]  = useState(false)
   const [lastSync, setLastSync] = useState(() => localStorage.getItem('dbs_last_sync'))
   const [result,   setResult]   = useState(null) // { created, updated, skipped }
+  const [enabled,  setEnabled]  = useState(false) // sync paused by default
+  const [savingToggle, setSavingToggle] = useState(false)
+
+  // Read the shared sync flag; default to paused (false) if the table/row isn't
+  // there yet, so the sync stays off until it's deliberately turned on.
+  useEffect(() => {
+    supabase.from('app_settings').select('value').eq('key', 'dbs_sync_enabled').maybeSingle()
+      .then(({ data }) => setEnabled(data?.value === true))
+      .catch(() => setEnabled(false))
+  }, [])
+
+  async function toggleSync(next) {
+    setSavingToggle(true)
+    const { error } = await supabase.from('app_settings')
+      .upsert({ key: 'dbs_sync_enabled', value: next, updated_at: new Date().toISOString() }, { onConflict: 'key' })
+    setSavingToggle(false)
+    if (error) { toast(`Couldn't update sync setting: ${error.message}`, true); return }
+    setEnabled(next)
+    toast(next ? 'Portal sync enabled' : 'Portal sync paused — jobs entered manually')
+  }
 
   async function runSync() {
+    if (!enabled) { toast('Portal sync is paused — turn it on above to sync', true); return }
     setSyncing(true)
     setResult(null)
     try {
@@ -420,23 +441,42 @@ function DbsCard({ toast }) {
         </svg>
       </div>
       <div style={{ flex: 1 }}>
-        <div style={t.intName}>DBS Portal (Spencer Henshaw)</div>
+        <div style={t.intName}>
+          DBS Portal (Spencer Henshaw)
+          <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20,
+            background: enabled ? '#E8F0E6' : '#FDECEA', color: enabled ? '#3A5C2E' : '#C0392B' }}>
+            {enabled ? 'Sync active' : 'Sync paused'}
+          </span>
+        </div>
         <div style={t.intDesc}>
-          {result
+          {!enabled
+            ? 'Sync paused — Spencers/Downer jobs are entered manually while we test. Turn on to resume automatic portal sync.'
+            : result
             ? `Last sync: ${lastSync} — ${result.created} created, ${result.updated} updated`
             : lastSync
             ? `Last synced: ${lastSync}`
             : 'Pull all active Kāinga Ora jobs from the SHL portal into the pipeline'}
         </div>
-        {!syncing && (
+        {enabled && !syncing && (
           <div style={{ fontSize: '11px', color: '#aaa', marginTop: '4px' }}>
             Requires local sync server — run <code style={{ background: '#f0ede8', padding: '1px 4px', borderRadius: '3px' }}>bash scripts/run_dbs_sync.sh</code> first
           </div>
         )}
       </div>
-      <button style={syncing ? t.intBtnSecondary : t.intBtn} onClick={runSync} disabled={syncing}>
-        {syncing ? 'Syncing…' : 'Sync DBS jobs'}
-      </button>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: savingToggle ? 'wait' : 'pointer', fontSize: 12, fontWeight: 600, color: '#555' }}>
+          {enabled ? 'On' : 'Off'}
+          <span
+            onClick={() => !savingToggle && toggleSync(!enabled)}
+            style={{ width: 40, height: 22, borderRadius: 22, background: enabled ? 'var(--moss)' : '#ccc', position: 'relative', transition: 'background .15s', flexShrink: 0 }}
+          >
+            <span style={{ position: 'absolute', top: 2, left: enabled ? 20 : 2, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left .15s' }} />
+          </span>
+        </label>
+        <button style={(syncing || !enabled) ? t.intBtnSecondary : t.intBtn} onClick={runSync} disabled={syncing || !enabled}>
+          {syncing ? 'Syncing…' : 'Sync DBS jobs'}
+        </button>
+      </div>
     </div>
   )
 }
