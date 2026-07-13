@@ -231,7 +231,8 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
     const { error } = await supabase
       .from('jobs')
       .update({
-        title: form.title,
+        // Address doubles as the job title — keep them in sync on edit.
+        title: form.address,
         address: form.address,
         job_type: form.job_type,
         description: form.description,
@@ -308,7 +309,7 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
           {/* Header */}
           <div style={styles.panelHeader}>
             <div>
-              <div style={styles.panelTitle}>{job.title}</div>
+              <div style={styles.panelTitle}>{job.address || job.title}</div>
               <div style={styles.panelClient}>{job.clients?.name ?? '—'}</div>
             </div>
             <button onClick={onClose} style={styles.closeBtn}>✕</button>
@@ -391,9 +392,7 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
           {/* Job details */}
           {editing && isStaff ? (
             <div style={styles.section}>
-              <Label>Title</Label>
-              <Input value={form.title} onChange={v => setForm(p => ({ ...p, title: v }))} />
-              <Label>Address</Label>
+              <Label>Address (used as the job title)</Label>
               <AddressInput
                 inputStyle={styles.input}
                 value={form.address}

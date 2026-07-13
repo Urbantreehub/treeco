@@ -11,7 +11,15 @@ export default function NewJobModal({ onClose, onCreated }) {
   const [selectedClient, setSelectedClient] = useState(null)
   const [creatingClient, setCreatingClient] = useState(false)
   const [newClient, setNewClient] = useState({ name: '', phone: '', email: '', address: '', lat: null, lng: null })
-  const [job, setJob] = useState({ title: '', address: '', job_type: '', description: '', lat: null, lng: null })
+  const [job, setJob] = useState({ address: '', job_type: '', description: '', lat: null, lng: null })
+
+  // Move to the job step with the address prefilled from the chosen client, so
+  // the (now mandatory) address is populated and editable rather than blank.
+  function pickClient(c) {
+    setSelectedClient(c)
+    setJob(p => ({ ...p, address: c.address ?? '', lat: c.lat ?? null, lng: c.lng ?? null }))
+    setStep('job')
+  }
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
 
@@ -20,49 +28,53 @@ export default function NewJobModal({ onClose, onCreated }) {
     if (q.length < 2) { setClientResults([]); return }
     const { data } = await supabase
       .from('clients')
-      .select('id, name, phone, email, address')
+      .select('id, name, phone, email, address, lat, lng')
       .ilike('name', `%${q}%`)
       .limit(6)
     setClientResults(data ?? [])
   }
 
   async function createClient() {
-    if (!newClient.name.trim()) return
+    if (!newClient.name.trim() || !newClient.phone.trim() || !newClient.email.trim() || !newClient.address.trim()) {
+      setError('All client fields are required.')
+      return
+    }
     setSaving(true)
+    setError(null)
     const { data, error } = await supabase.from('clients').insert({
       name: newClient.name,
-      phone: newClient.phone || null,
-      email: newClient.email || null,
-      address: newClient.address || null,
+      phone: newClient.phone,
+      email: newClient.email,
+      address: newClient.address,
       lat: newClient.lat,
       lng: newClient.lng,
       geocoded_at: newClient.lat != null ? new Date().toISOString() : null,
     }).select().single()
     if (error) { setError(error.message); setSaving(false); return }
-    setSelectedClient(data)
-    setStep('job')
     setSaving(false)
+    pickClient(data)
   }
 
   async function createJob() {
-    if (!job.title.trim()) return
+    if (!job.address.trim() || !job.job_type || !job.description.trim()) {
+      setError('Address, job type and description are all required.')
+      return
+    }
     setSaving(true)
     setError(null)
-    // Prefer the job's own verified coords; else inherit the client's. Storing
-    // them here means the Planner can place the job immediately — no reliance on
-    // the after-the-fact geocode that silently fails on vague addresses.
-    const usingJobAddr = !!job.address
-    const lat = usingJobAddr ? job.lat : (selectedClient?.lat ?? null)
-    const lng = usingJobAddr ? job.lng : (selectedClient?.lng ?? null)
+    // The address doubles as the job title now — no separate title field.
+    const address = job.address.trim()
     const { error } = await supabase.from('jobs').insert({
       client_id: selectedClient?.id ?? null,
-      title: job.title,
-      address: job.address || selectedClient?.address || null,
-      job_type: job.job_type || null,
-      description: job.description || null,
-      lat,
-      lng,
-      geocoded_at: lat != null ? new Date().toISOString() : null,
+      title: address,
+      address,
+      job_type: job.job_type,
+      description: job.description,
+      // Verified coords from autocomplete let the Planner place the job at once;
+      // a manually-typed address has none and is geocoded later by the Planner.
+      lat: job.lat,
+      lng: job.lng,
+      geocoded_at: job.lat != null ? new Date().toISOString() : null,
       status: 'new_lead',
       status_changed_at: new Date().toISOString(),
     })
@@ -96,7 +108,7 @@ export default function NewJobModal({ onClose, onCreated }) {
             {clientResults.length > 0 && (
               <div style={styles.results}>
                 {clientResults.map(c => (
-                  <button key={c.id} style={styles.clientRow} onClick={() => { setSelectedClient(c); setStep('job') }}>
+                  <button key={c.id} style={styles.clientRow} onClick={() => pickClient(c)}>
                     <div style={styles.clientName}>{c.name}</div>
                     <div style={styles.clientSub}>{c.phone} {c.address}</div>
                   </button>
@@ -111,18 +123,19 @@ export default function NewJobModal({ onClose, onCreated }) {
             {creatingClient ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <input placeholder="Full name *" value={newClient.name} onChange={e => setNewClient(p => ({ ...p, name: e.target.value }))} style={styles.input} />
-                <input placeholder="Phone" value={newClient.phone} onChange={e => setNewClient(p => ({ ...p, phone: e.target.value }))} style={styles.input} />
-                <input placeholder="Email" value={newClient.email} onChange={e => setNewClient(p => ({ ...p, email: e.target.value }))} style={styles.input} />
+                <input placeholder="Phone *" value={newClient.phone} onChange={e => setNewClient(p => ({ ...p, phone: e.target.value }))} style={styles.input} />
+                <input placeholder="Email *" value={newClient.email} onChange={e => setNewClient(p => ({ ...p, email: e.target.value }))} style={styles.input} />
                 <AddressInput
-                  placeholder="Address"
+                  placeholder="Address *"
                   inputStyle={styles.input}
                   value={newClient.address}
                   onChange={v => setNewClient(p => ({ ...p, address: v, lat: null, lng: null }))}
                   onResolve={({ address, lat, lng }) => setNewClient(p => ({ ...p, address, lat, lng }))}
                 />
+                <p style={styles.addrHint}>No match shown? Just type the full address and continue.</p>
                 {error && <p style={styles.error}>{error}</p>}
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <button onClick={createClient} disabled={saving || !newClient.name} style={styles.primaryBtn}>
+                  <button onClick={createClient} disabled={saving || !newClient.name.trim() || !newClient.phone.trim() || !newClient.email.trim() || !newClient.address.trim()} style={styles.primaryBtn}>
                     {saving ? 'Creating…' : 'Create & continue'}
                   </button>
                   <button onClick={() => setCreatingClient(false)} style={styles.ghostBtn}>Back</button>
@@ -141,26 +154,27 @@ export default function NewJobModal({ onClose, onCreated }) {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <input autoFocus placeholder="Job title *" value={job.title} onChange={e => setJob(p => ({ ...p, title: e.target.value }))} style={styles.input} />
               <AddressInput
-                placeholder="Address (defaults to client address)"
+                autoFocus
+                placeholder="Job address *"
                 inputStyle={styles.input}
                 value={job.address}
                 onChange={v => setJob(p => ({ ...p, address: v, lat: null, lng: null }))}
                 onResolve={({ address, lat, lng }) => setJob(p => ({ ...p, address, lat, lng }))}
               />
+              <p style={styles.addrHint}>The address is used as the job title. No match shown? Just type the full address.</p>
 
               <select value={job.job_type} onChange={e => setJob(p => ({ ...p, job_type: e.target.value }))} style={styles.input}>
-                <option value="">Job type…</option>
+                <option value="">Job type… *</option>
                 {JOB_TYPES.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
               </select>
 
-              <textarea placeholder="Description / notes" rows={3} value={job.description} onChange={e => setJob(p => ({ ...p, description: e.target.value }))} style={{ ...styles.input, resize: 'vertical' }} />
+              <textarea placeholder="Description / notes *" rows={3} value={job.description} onChange={e => setJob(p => ({ ...p, description: e.target.value }))} style={{ ...styles.input, resize: 'vertical' }} />
 
               {error && <p style={styles.error}>{error}</p>}
 
               <div style={{ display: 'flex', gap: '8px' }}>
-                <button onClick={createJob} disabled={saving || !job.title} style={styles.primaryBtn}>
+                <button onClick={createJob} disabled={saving || !job.address.trim() || !job.job_type || !job.description.trim()} style={styles.primaryBtn}>
                   {saving ? 'Creating…' : 'Create lead'}
                 </button>
                 <button onClick={() => setStep('client')} style={styles.ghostBtn}>Back</button>
@@ -214,4 +228,5 @@ const styles = {
     padding: '10px 16px', fontSize: '14px', color: 'var(--bark)', cursor: 'pointer', fontFamily: 'var(--font)',
   },
   error: { color: 'var(--danger)', fontSize: '13px' },
+  addrHint: { fontSize: '11px', color: '#999', margin: '-4px 0 2px' },
 }
