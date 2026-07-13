@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import AddressInput from '../components/AddressInput'
 
 const IS_EMBED = new URLSearchParams(window.location.search).get('embed') === '1'
 
@@ -108,7 +109,13 @@ export default function BookQuote() {
         </div>
 
         <label style={s.label}>Property address</label>
-        <input style={s.input} value={f.address} onChange={e => set('address', e.target.value)} placeholder="Street, suburb" />
+        <AddressInput
+          inputStyle={s.input}
+          placeholder="Start typing your street address…"
+          value={f.address}
+          onChange={v => { set('address', v); set('lat', null); set('lng', null) }}
+          onResolve={({ address, lat, lng }) => { set('address', address); set('lat', lat); set('lng', lng) }}
+        />
 
         <label style={s.label}>What do you need done?</label>
         <div style={s.chips}>

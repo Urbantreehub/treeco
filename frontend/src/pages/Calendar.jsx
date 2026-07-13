@@ -15,6 +15,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { supabase } from '../config/supabase'
+import { mapsHref } from '../utils/geo'
 import { SPENCERS_COLOR, isSpencersJob } from '../config/statuses'
 import CartrackMap from '../components/CartrackMap'
 import TruckProgress from '../components/TruckProgress'
@@ -408,7 +409,7 @@ function CrewCalendar() {
                   {job?.clients?.name && <div style={cw.jobClient}>{job.clients.name}</div>}
                   {job?.address && (
                     <a
-                      href={`https://maps.apple.com/?q=${encodeURIComponent(job.address)}`}
+                      href={mapsHref(job.address)}
                       target="_blank"
                       rel="noreferrer"
                       style={cw.jobAddr}

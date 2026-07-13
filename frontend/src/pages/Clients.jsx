@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../config/supabase'
 import { getStatusColor, getStatusLabel } from '../config/statuses'
 import { DEMO_CLIENTS, DEMO_JOBS } from '../demo/mockData'
+import AddressInput from '../components/AddressInput'
+import { mapsHref } from '../utils/geo'
 
 const IS_DEMO = import.meta.env.VITE_DEMO === 'true'
 const IS_PURE_DEMO = IS_DEMO && !import.meta.env.VITE_SUPABASE_URL
@@ -30,6 +32,8 @@ function ClientModal({ client, onSave, onClose }) {
     phone:   client?.phone   ?? '',
     address: client?.address ?? '',
     notes:   client?.notes   ?? '',
+    lat:     client?.lat     ?? null,
+    lng:     client?.lng     ?? null,
   })
   const [saving, setSaving] = useState(false)
   const [error,  setError]  = useState(null)
@@ -40,7 +44,11 @@ function ClientModal({ client, onSave, onClose }) {
     e.preventDefault()
     if (!form.name.trim()) { setError('Name is required'); return }
     setSaving(true); setError(null)
-    const payload = { ...form, updated_at: new Date().toISOString() }
+    const payload = {
+      ...form,
+      geocoded_at: form.lat != null ? new Date().toISOString() : null,
+      updated_at: new Date().toISOString(),
+    }
     const { error: err } = isNew
       ? await supabase.from('clients').insert(payload)
       : await supabase.from('clients').update(payload).eq('id', client.id)
@@ -72,7 +80,12 @@ function ClientModal({ client, onSave, onClose }) {
           </div>
 
           <label style={m.label}>Address</label>
-          <input style={m.input} value={form.address} onChange={set('address')} placeholder="Street address" />
+          <AddressInput
+            inputStyle={m.input}
+            value={form.address}
+            onChange={v => setForm(f => ({ ...f, address: v, lat: null, lng: null }))}
+            onResolve={({ address, lat, lng }) => setForm(f => ({ ...f, address, lat, lng }))}
+          />
 
           <label style={m.label}>Notes</label>
           <textarea style={{ ...m.input, height: '80px', resize: 'vertical' }} value={form.notes} onChange={set('notes')} placeholder="Internal notes…" />
@@ -211,7 +224,7 @@ function ClientPanel({ client, jobs, onEdit, onDelete, onClose }) {
       <div style={p.body}>
         {client.email   && <InfoRow icon="✉" label="Email"   value={<a href={`mailto:${client.email}`} style={p.link}>{client.email}</a>} />}
         {client.phone   && <InfoRow icon="📞" label="Phone"  value={<a href={`tel:${client.phone}`}   style={p.link}>{client.phone}</a>} />}
-        {client.address && <InfoRow icon="📍" label="Address" value={client.address} />}
+        {client.address && <InfoRow icon="📍" label="Address" value={client.address} href={mapsHref(client.address, client.lat, client.lng)} />}
         {client.notes   && <InfoRow icon="📝" label="Notes"   value={client.notes} />}
 
         <div style={p.section}>
@@ -251,13 +264,15 @@ function ClientPanel({ client, jobs, onEdit, onDelete, onClose }) {
   )
 }
 
-function InfoRow({ icon, label, value }) {
+function InfoRow({ icon, label, value, href }) {
   return (
     <div style={p.infoRow}>
       <span style={p.infoIcon}>{icon}</span>
       <div>
         <div style={p.infoLabel}>{label}</div>
-        <div style={p.infoValue}>{value}</div>
+        {href
+          ? <a href={href} target="_blank" rel="noreferrer" style={{ ...p.infoValue, color: '#4A7FA5', textDecoration: 'none' }}>{value}</a>
+          : <div style={p.infoValue}>{value}</div>}
       </div>
     </div>
   )

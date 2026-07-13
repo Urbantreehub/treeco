@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../config/supabase'
 import { v4 as uuid } from 'uuid'
+import { mapsHref } from '../utils/geo'
 
 const COMMON_ADDITIONS = [
   'Extra pruning / canopy work',
@@ -314,7 +315,7 @@ export default function WorkOrder() {
           )}
           {job.address && (
             <MetaRow icon="📍">
-              <a href={`https://maps.apple.com/?q=${encodeURIComponent(job.address)}`} target="_blank" rel="noreferrer" style={s.link}>
+              <a href={mapsHref(job.address, job.lat, job.lng)} target="_blank" rel="noreferrer" style={s.link}>
                 {job.address}
               </a>
             </MetaRow>

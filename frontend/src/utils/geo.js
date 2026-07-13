@@ -11,6 +11,16 @@ const ANON = import.meta.env.VITE_SUPABASE_ANON_KEY
 // quote-run ordering and truck-progress baselines. Adjust if the yard moves.
 export const DEPOT = { lat: -41.2865, lng: 174.7762, label: 'Wellington' }
 
+// Google Maps search link for an address — used everywhere an address is shown
+// so anyone can open directions and eyeball that the place is real. Prefers
+// exact coords when we have them (drops a precise pin), else falls back to the
+// free-text address query.
+export function mapsHref(address, lat, lng) {
+  if (lat != null && lng != null) return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`
+  if (!address) return null
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
+}
+
 // Great-circle distance in kilometres.
 export function haversineKm(a, b) {
   if (!a || !b || a.lat == null || b.lat == null) return null

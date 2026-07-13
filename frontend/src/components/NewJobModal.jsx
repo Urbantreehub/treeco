@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../config/supabase'
+import AddressInput from './AddressInput'
 
 const JOB_TYPES = ['pruning', 'removal', 'stump grinding', 'hedge trimming', 'emergency', 'consultation', 'planting', 'mulching', 'other']
 
@@ -9,8 +10,8 @@ export default function NewJobModal({ onClose, onCreated }) {
   const [clientResults, setClientResults] = useState([])
   const [selectedClient, setSelectedClient] = useState(null)
   const [creatingClient, setCreatingClient] = useState(false)
-  const [newClient, setNewClient] = useState({ name: '', phone: '', email: '', address: '' })
-  const [job, setJob] = useState({ title: '', address: '', job_type: '', description: '', estimated_value: '' })
+  const [newClient, setNewClient] = useState({ name: '', phone: '', email: '', address: '', lat: null, lng: null })
+  const [job, setJob] = useState({ title: '', address: '', job_type: '', description: '', estimated_value: '', lat: null, lng: null })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
 
@@ -28,7 +29,15 @@ export default function NewJobModal({ onClose, onCreated }) {
   async function createClient() {
     if (!newClient.name.trim()) return
     setSaving(true)
-    const { data, error } = await supabase.from('clients').insert(newClient).select().single()
+    const { data, error } = await supabase.from('clients').insert({
+      name: newClient.name,
+      phone: newClient.phone || null,
+      email: newClient.email || null,
+      address: newClient.address || null,
+      lat: newClient.lat,
+      lng: newClient.lng,
+      geocoded_at: newClient.lat != null ? new Date().toISOString() : null,
+    }).select().single()
     if (error) { setError(error.message); setSaving(false); return }
     setSelectedClient(data)
     setStep('job')
@@ -39,6 +48,12 @@ export default function NewJobModal({ onClose, onCreated }) {
     if (!job.title.trim()) return
     setSaving(true)
     setError(null)
+    // Prefer the job's own verified coords; else inherit the client's. Storing
+    // them here means the Planner can place the job immediately — no reliance on
+    // the after-the-fact geocode that silently fails on vague addresses.
+    const usingJobAddr = !!job.address
+    const lat = usingJobAddr ? job.lat : (selectedClient?.lat ?? null)
+    const lng = usingJobAddr ? job.lng : (selectedClient?.lng ?? null)
     const { error } = await supabase.from('jobs').insert({
       client_id: selectedClient?.id ?? null,
       title: job.title,
@@ -46,6 +61,9 @@ export default function NewJobModal({ onClose, onCreated }) {
       job_type: job.job_type || null,
       description: job.description || null,
       estimated_value: job.estimated_value ? Number(job.estimated_value) : null,
+      lat,
+      lng,
+      geocoded_at: lat != null ? new Date().toISOString() : null,
       status: 'new_lead',
       status_changed_at: new Date().toISOString(),
     })
@@ -96,7 +114,13 @@ export default function NewJobModal({ onClose, onCreated }) {
                 <input placeholder="Full name *" value={newClient.name} onChange={e => setNewClient(p => ({ ...p, name: e.target.value }))} style={styles.input} />
                 <input placeholder="Phone" value={newClient.phone} onChange={e => setNewClient(p => ({ ...p, phone: e.target.value }))} style={styles.input} />
                 <input placeholder="Email" value={newClient.email} onChange={e => setNewClient(p => ({ ...p, email: e.target.value }))} style={styles.input} />
-                <input placeholder="Address" value={newClient.address} onChange={e => setNewClient(p => ({ ...p, address: e.target.value }))} style={styles.input} />
+                <AddressInput
+                  placeholder="Address"
+                  inputStyle={styles.input}
+                  value={newClient.address}
+                  onChange={v => setNewClient(p => ({ ...p, address: v, lat: null, lng: null }))}
+                  onResolve={({ address, lat, lng }) => setNewClient(p => ({ ...p, address, lat, lng }))}
+                />
                 {error && <p style={styles.error}>{error}</p>}
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button onClick={createClient} disabled={saving || !newClient.name} style={styles.primaryBtn}>
@@ -119,7 +143,13 @@ export default function NewJobModal({ onClose, onCreated }) {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <input autoFocus placeholder="Job title *" value={job.title} onChange={e => setJob(p => ({ ...p, title: e.target.value }))} style={styles.input} />
-              <input placeholder="Address (defaults to client address)" value={job.address} onChange={e => setJob(p => ({ ...p, address: e.target.value }))} style={styles.input} />
+              <AddressInput
+                placeholder="Address (defaults to client address)"
+                inputStyle={styles.input}
+                value={job.address}
+                onChange={v => setJob(p => ({ ...p, address: v, lat: null, lng: null }))}
+                onResolve={({ address, lat, lng }) => setJob(p => ({ ...p, address, lat, lng }))}
+              />
 
               <select value={job.job_type} onChange={e => setJob(p => ({ ...p, job_type: e.target.value }))} style={styles.input}>
                 <option value="">Job type…</option>

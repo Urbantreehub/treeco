@@ -5,7 +5,9 @@ import { useAuth } from '../context/AuthContext'
 import StatusBadge from './StatusBadge'
 import QuoteReference from './QuoteReference'
 import SpencersInvoice from './SpencersInvoice'
+import AddressInput from './AddressInput'
 import { JOB_STATUSES, STATUS_ORDER, isSpencersJob } from '../config/statuses'
+import { mapsHref } from '../utils/geo'
 
 // Contextual forward-only transitions per status.
 // Legacy statuses (quote_scheduled, accepted_to_schedule, stump_grinding) are
@@ -191,6 +193,8 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
     job_type: job.job_type ?? '',
     description: job.description ?? '',
     estimated_value: job.estimated_value ?? '',
+    lat: job.lat ?? null,
+    lng: job.lng ?? null,
   })
 
   // Spencers/DBS jobs are now titled by address, so detect via ko_reference too.
@@ -233,6 +237,13 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
         job_type: form.job_type,
         description: form.description,
         estimated_value: form.estimated_value ? Number(form.estimated_value) : null,
+        // Verified coords from autocomplete land the pin immediately; if the
+        // address was retyped without picking a suggestion, coords are cleared
+        // (null) so the Planner's geocode pass re-resolves the new address
+        // rather than keeping a stale pin.
+        lat: form.lat,
+        lng: form.lng,
+        geocoded_at: form.lat != null ? new Date().toISOString() : null,
       })
       .eq('id', job.id)
     if (error) { alert(`Save failed: ${error.message}`); return; }
@@ -385,7 +396,12 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
               <Label>Title</Label>
               <Input value={form.title} onChange={v => setForm(p => ({ ...p, title: v }))} />
               <Label>Address</Label>
-              <Input value={form.address} onChange={v => setForm(p => ({ ...p, address: v }))} />
+              <AddressInput
+                inputStyle={styles.input}
+                value={form.address}
+                onChange={v => setForm(p => ({ ...p, address: v, lat: null, lng: null }))}
+                onResolve={({ address, lat, lng }) => setForm(p => ({ ...p, address, lat, lng }))}
+              />
               <Label>Job type</Label>
               <Input value={form.job_type} onChange={v => setForm(p => ({ ...p, job_type: v }))} placeholder="pruning, removal, stump..." />
               <Label>Estimated value ($)</Label>
@@ -404,7 +420,14 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
             </div>
           ) : (
             <div style={styles.section}>
-              <Row label="Address" value={job.address} />
+              {job.address && (
+                <div style={{ marginBottom: '8px' }}>
+                  <div style={styles.rowLabel}>Address</div>
+                  <a href={mapsHref(job.address, job.lat, job.lng)} target="_blank" rel="noreferrer" style={styles.mapLink}>
+                    📍 {job.address}
+                  </a>
+                </div>
+              )}
               <Row label="Job type" value={job.job_type} />
               <Row label="Estimated value" value={job.estimated_value ? `$${Number(job.estimated_value).toLocaleString('en-NZ')}` : null} />
               <Row label="Client phone" value={job.clients?.phone} />
@@ -671,6 +694,7 @@ const styles = {
   sectionTitle: { fontSize: '12px', fontWeight: '600', color: '#888', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' },
   rowLabel: { fontSize: '11px', color: '#aaa', fontWeight: '500', marginBottom: '1px' },
   rowValue: { fontSize: '14px', color: 'var(--bark)' },
+  mapLink: { fontSize: '14px', color: '#4A7FA5', textDecoration: 'none' },
   description: { fontSize: '14px', color: 'var(--bark)', lineHeight: 1.5, whiteSpace: 'pre-wrap' },
   statusSelect: {
     padding: '8px 12px', borderRadius: '8px', border: '1.5px solid var(--border)',
