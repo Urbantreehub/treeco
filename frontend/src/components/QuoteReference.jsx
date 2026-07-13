@@ -4,9 +4,7 @@ import { supabase } from '../config/supabase'
 export default function QuoteReference({ jobId, readOnly = false }) {
   const [loading, setLoading] = useState(true)
   const [images, setImages] = useState([])
-  const [directions, setDirections] = useState('')
-  const [workSpecs, setWorkSpecs] = useState('')
-  const [enquiryRaw, setEnquiryRaw] = useState('')
+  const [description, setDescription] = useState('')
   const [saveState, setSaveState] = useState('idle') // 'idle' | 'saving' | 'saved'
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
@@ -17,7 +15,6 @@ export default function QuoteReference({ jobId, readOnly = false }) {
       .from('job_photos')
       .select('id, url, caption')
       .eq('job_id', jobId)
-      .eq('kind', 'lead_reference')
       .order('created_at')
     if (!imgErr) setImages(data ?? [])
   }, [jobId])
@@ -28,18 +25,12 @@ export default function QuoteReference({ jobId, readOnly = false }) {
     setLoading(true)
     setError('')
     ;(async () => {
-      const [{ data: job, error: jobErr }] = await Promise.all([
-        supabase.from('jobs').select('directions, work_specs, enquiry_raw').eq('id', jobId).single(),
-      ])
+      const { data: job, error: jobErr } = await supabase
+        .from('jobs').select('description').eq('id', jobId).single()
       await fetchImages()
       if (cancelled) return
-      if (jobErr) {
-        setError('Could not load reference data.')
-      } else if (job) {
-        setDirections(job.directions ?? '')
-        setWorkSpecs(job.work_specs ?? '')
-        setEnquiryRaw(job.enquiry_raw ?? '')
-      }
+      if (jobErr) setError('Could not load reference data.')
+      else if (job) setDescription(job.description ?? '')
       setLoading(false)
     })()
     return () => { cancelled = true }
@@ -50,7 +41,7 @@ export default function QuoteReference({ jobId, readOnly = false }) {
     setError('')
     const { error: upErr } = await supabase
       .from('jobs')
-      .update({ directions, work_specs: workSpecs })
+      .update({ description })
       .eq('id', jobId)
     if (upErr) {
       setError(`Save failed: ${upErr.message}`)
@@ -69,16 +60,16 @@ export default function QuoteReference({ jobId, readOnly = false }) {
     for (const file of files) {
       try {
         const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
-        const path = `${jobId}/${crypto.randomUUID()}.${ext}`
+        const path = `reference/${jobId}/${crypto.randomUUID()}.${ext}`
         const { error: upErr } = await supabase.storage
-          .from('job-media')
+          .from('quote-images')
           .upload(path, file, { contentType: file.type || undefined })
         if (upErr) throw upErr
-        const { data: pub } = supabase.storage.from('job-media').getPublicUrl(path)
+        const { data: pub } = supabase.storage.from('quote-images').getPublicUrl(path)
         const url = pub.publicUrl
         const { error: insErr } = await supabase
           .from('job_photos')
-          .insert({ job_id: jobId, url, caption: file.name, kind: 'lead_reference' })
+          .insert({ job_id: jobId, url, caption: file.name })
         if (insErr) throw insErr
       } catch (err) {
         setError(`Upload failed: ${err.message || err}`)
@@ -141,37 +132,19 @@ export default function QuoteReference({ jobId, readOnly = false }) {
             )}
           </div>
 
-          {/* Directions */}
+          {/* Description */}
           <div style={styles.section}>
-            <div style={styles.sectionTitle}>Directions</div>
+            <div style={styles.sectionTitle}>Description</div>
             {readOnly ? (
-              directions
-                ? <div style={styles.textBlock}>{directions}</div>
-                : <div style={styles.muted}>No directions recorded.</div>
+              description
+                ? <div style={styles.textBlock}>{description}</div>
+                : <div style={styles.muted}>No description recorded.</div>
             ) : (
               <textarea
-                value={directions}
-                onChange={e => setDirections(e.target.value)}
-                rows={3}
-                placeholder="Access notes, gate codes, where to park…"
-                style={styles.textarea}
-              />
-            )}
-          </div>
-
-          {/* Work specs */}
-          <div style={styles.section}>
-            <div style={styles.sectionTitle}>Work Specs</div>
-            {readOnly ? (
-              workSpecs
-                ? <div style={styles.textBlock}>{workSpecs}</div>
-                : <div style={styles.muted}>No work specs recorded.</div>
-            ) : (
-              <textarea
-                value={workSpecs}
-                onChange={e => setWorkSpecs(e.target.value)}
+                value={description}
+                onChange={e => setDescription(e.target.value)}
                 rows={4}
-                placeholder="Scope, tree details, hazards, equipment needed…"
+                placeholder="Access notes, scope, tree details, hazards, equipment needed…"
                 style={styles.textarea}
               />
             )}
@@ -188,16 +161,6 @@ export default function QuoteReference({ jobId, readOnly = false }) {
               >
                 {saveState === 'saving' ? 'Saving…' : saveState === 'saved' ? '✓ Saved' : 'Save'}
               </button>
-            </div>
-          )}
-
-          {/* Original enquiry */}
-          {enquiryRaw && (
-            <div style={styles.section}>
-              <details>
-                <summary style={styles.summary}>Original enquiry</summary>
-                <pre style={styles.enquiry}>{enquiryRaw}</pre>
-              </details>
             </div>
           )}
 
