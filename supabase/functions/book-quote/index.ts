@@ -21,6 +21,12 @@ function prettyDate(d: string) {
   if (!d) return ''
   try { return new Date(d + 'T00:00:00').toLocaleDateString('en-NZ', { weekday: 'long', day: 'numeric', month: 'long' }) } catch { return d }
 }
+// Escape public form input before putting it in the office notification email.
+function esc(s: unknown): string {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+}
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS })
@@ -93,13 +99,13 @@ Deno.serve(async (req: Request) => {
       const html = `<div style="font-family:-apple-system,sans-serif;max-width:520px;margin:0 auto;padding:24px">
         <p style="font-size:15px;color:#2C2416"><strong>New website enquiry</strong></p>
         <div style="background:#F8FAF7;border:1px solid #D4E4D0;border-radius:8px;padding:16px;margin:12px 0">
-          <div style="font-size:17px;font-weight:700;color:#2C2416">${name}</div>
-          ${phone ? `<div style="font-size:14px;color:#555">📞 ${phone}</div>` : ''}
-          ${email ? `<div style="font-size:14px;color:#555">✉ ${email}</div>` : ''}
-          ${address ? `<div style="font-size:14px;color:#555">🗺 ${address}</div>` : ''}
-          ${jobType ? `<div style="font-size:14px;color:#555">Type: ${jobType}</div>` : ''}
-          ${preferred ? `<div style="font-size:14px;color:#4A6741;font-weight:600;margin-top:6px">Preferred: ${preferred}</div>` : ''}
-          ${desc ? `<div style="font-size:14px;color:#555;margin-top:6px">${desc}</div>` : ''}
+          <div style="font-size:17px;font-weight:700;color:#2C2416">${esc(name)}</div>
+          ${phone ? `<div style="font-size:14px;color:#555">📞 ${esc(phone)}</div>` : ''}
+          ${email ? `<div style="font-size:14px;color:#555">✉ ${esc(email)}</div>` : ''}
+          ${address ? `<div style="font-size:14px;color:#555">🗺 ${esc(address)}</div>` : ''}
+          ${jobType ? `<div style="font-size:14px;color:#555">Type: ${esc(jobType)}</div>` : ''}
+          ${preferred ? `<div style="font-size:14px;color:#4A6741;font-weight:600;margin-top:6px">Preferred: ${esc(preferred)}</div>` : ''}
+          ${desc ? `<div style="font-size:14px;color:#555;margin-top:6px;white-space:pre-wrap">${esc(desc)}</div>` : ''}
         </div>
         <p style="margin:16px 0"><a href="${Deno.env.get('APP_URL') ?? 'https://app.urbantreeservices.net'}/pipeline" style="background:#4A6741;color:#fff;text-decoration:none;padding:12px 26px;border-radius:8px;font-weight:700">Open pipeline →</a></p>
       </div>`

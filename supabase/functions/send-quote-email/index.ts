@@ -27,6 +27,14 @@ function nzd(v: number) {
   return '$' + Number(v || 0).toLocaleString('en-NZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
+// Escape client-supplied text before putting it in the HTML email — otherwise a
+// name/address containing < & " breaks the layout or silently drops text.
+function esc(s: unknown): string {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+}
+
 function buildHtml(opts: {
   clientFirstName: string
   jobAddress: string
@@ -58,9 +66,9 @@ function buildHtml(opts: {
 
         <!-- Body -->
         <tr><td style="background:#fff;padding:32px">
-          <p style="margin:0 0 16px;font-size:15px;color:#2C2416">Hi ${clientFirstName},</p>
+          <p style="margin:0 0 16px;font-size:15px;color:#2C2416">Hi ${esc(clientFirstName)},</p>
           <p style="margin:0 0 24px;font-size:14px;color:#555;line-height:1.6">
-            Please find your quote for work at <strong>${jobAddress}</strong> below.
+            Please find your quote for work at <strong>${esc(jobAddress)}</strong> below.
             Click the button to view the full quote, accept or decline, and see all the details.
           </p>
 
@@ -151,6 +159,11 @@ Deno.serve(async (req: Request) => {
         to:       clientEmail,
         subject:  `Your quote from Urban Tree Services — ${nzd(quote.total)}`,
         html,
+        text: `Hi ${firstName},\n\n`
+          + `Please find your quote for work at ${jobAddress}.\n\n`
+          + `Quote total: ${nzd(quote.total)} (incl. GST 15%)\n\n`
+          + `View, accept or decline your quote here:\n${quoteUrl}\n\n`
+          + `Urban Tree Services · office@urbantreeservices.net · 027 203 1446`,
       }),
     })
 

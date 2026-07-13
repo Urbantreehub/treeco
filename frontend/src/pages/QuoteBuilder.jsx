@@ -13,8 +13,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { supabase } from '../config/supabase'
 import { v4 as uuid } from 'uuid'
-
-const GST = 0.15
+import { GST, calcTotals } from '../utils/pricing'
 
 const COMPANY = {
   name: 'Urban Tree Services Limited',
@@ -53,16 +52,7 @@ function nzd(v, dp = 2) {
   return '$' + Number(v || 0).toLocaleString('en-NZ', { minimumFractionDigits: dp, maximumFractionDigits: dp })
 }
 
-// ex → incl GST
-function inclGst(v) { return Number(v || 0) * (1 + GST) }
-
-function calcTotals(items) {
-  const subtotal = items
-    .filter(i => !i.optional || i.selected)
-    .reduce((s, i) => s + (Number(i.qty) || 0) * (Number(i.rate) || 0), 0)
-  const gst = subtotal * GST
-  return { subtotal, gst, total: subtotal + gst }
-}
+// GST maths + quote totals now live in ../utils/pricing (imported above).
 
 // ── Image gallery (multiple images per line item) ──────────────────────────
 function ImageGallery({ images, onAdd, onRemove, onMarkup }) {
@@ -95,11 +85,11 @@ function ImageGallery({ images, onAdd, onRemove, onMarkup }) {
         >
           <img src={url} alt="" style={iu.img} />
           <button style={iu.deleteBtn} onClick={() => onRemove(idx)} title="Remove photo">✕</button>
-          {hoverIdx === idx && (
-            <button style={iu.markupBtn} onClick={() => onMarkup(idx, url)} title="Add markup">
-              ✏ Mark up
-            </button>
-          )}
+          {/* Always rendered (not hover-gated) so the markup editor is reachable
+              on touch devices — hover never fires on an iPad. */}
+          <button style={iu.markupBtn} onClick={() => onMarkup(idx, url)} title="Add markup">
+            ✏ Mark up
+          </button>
         </div>
       ))}
       <div style={iu.zone} onClick={() => ref.current?.click()}>
@@ -1323,7 +1313,7 @@ const s = {
 // ── Line item builder styles ──
 const b = {
   lineCard: { background: '#fff', border: '1px solid #E2DDD6', borderRadius: '10px', display: 'flex', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' },
-  lineHandle: { width: '26px', background: '#FAFAFA', borderRight: '1px solid #E2DDD6', cursor: 'grab', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, userSelect: 'none' },
+  lineHandle: { width: '26px', background: '#FAFAFA', borderRight: '1px solid #E2DDD6', cursor: 'grab', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, userSelect: 'none', touchAction: 'none' },
   lineBody: { flex: 1, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '8px' },
   lineTitle: { padding: '7px 9px', borderRadius: '6px', border: '1.5px solid #E2DDD6', fontSize: '14px', fontFamily: 'var(--font)', color: '#2C2416', fontWeight: '500', boxSizing: 'border-box' },
   lineDetail: { width: '100%', padding: '6px 9px', borderRadius: '6px', border: '1.5px solid #E2DDD6', fontSize: '12px', fontFamily: 'var(--font)', color: '#666', resize: 'none', boxSizing: 'border-box' },

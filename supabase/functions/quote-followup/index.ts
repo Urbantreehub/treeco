@@ -21,6 +21,12 @@ function json(body: unknown, status = 200) {
 function nzd(v: number) {
   return '$' + Number(v || 0).toLocaleString('en-NZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
+// Escape client-supplied text before putting it in the HTML email.
+function esc(s: unknown): string {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+}
 function toE164(raw: string): string | null {
   if (!raw) return null
   let n = raw.replace(/[\s()-]/g, '')
@@ -63,8 +69,8 @@ Deno.serve(async (req: Request) => {
       else if (!client?.email) results.email = { ok: false, error: 'Client has no email' }
       else {
         const html = `<div style="font-family:-apple-system,sans-serif;max-width:520px;margin:0 auto;padding:24px">
-          <p style="font-size:15px;color:#2C2416">Hi ${first},</p>
-          <p style="font-size:14px;color:#555;line-height:1.6">Just following up on the quote we sent you${q.jobs?.address ? ` for work at <strong>${q.jobs.address}</strong>` : ''} — total <strong>${nzd(q.total)}</strong>. We'd love to help get this sorted for you.</p>
+          <p style="font-size:15px;color:#2C2416">Hi ${esc(first)},</p>
+          <p style="font-size:14px;color:#555;line-height:1.6">Just following up on the quote we sent you${q.jobs?.address ? ` for work at <strong>${esc(q.jobs.address)}</strong>` : ''} — total <strong>${nzd(q.total)}</strong>. We'd love to help get this sorted for you.</p>
           <p style="margin:24px 0"><a href="${link}" style="background:#4A6741;color:#fff;text-decoration:none;padding:13px 30px;border-radius:8px;font-weight:700">View &amp; accept your quote →</a></p>
           <p style="font-size:13px;color:#888;line-height:1.6">Any questions, just reply or call us on 027 203 1446.<br>— Urban Tree Services</p>
         </div>`
@@ -77,6 +83,10 @@ Deno.serve(async (req: Request) => {
             to: client.email,
             subject: `Following up on your tree quote — ${nzd(q.total)}`,
             html,
+            text: `Hi ${first},\n\n`
+              + `Just following up on the quote we sent you${q.jobs?.address ? ` for work at ${q.jobs.address}` : ''} — total ${nzd(q.total)}.\n\n`
+              + `View or accept your quote here:\n${link}\n\n`
+              + `Any questions, just reply or call us on 027 203 1446.\n— Urban Tree Services`,
           }),
         })
         results.email = r.ok ? { ok: true } : { ok: false, error: (await r.json().catch(() => ({}))).message ?? `Resend ${r.status}` }

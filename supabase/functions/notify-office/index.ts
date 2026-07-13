@@ -21,6 +21,12 @@ function json(body: unknown, status = 200) {
 function nzd(v: number) {
   return '$' + Number(v || 0).toLocaleString('en-NZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
+// Escape client-supplied text (name, address, decline reason) before HTML.
+function esc(s: unknown): string {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
@@ -73,16 +79,16 @@ Deno.serve(async (req) => {
         <tr><td style="padding:24px 28px">
           <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E2DDD6;border-radius:8px;overflow:hidden;margin-bottom:20px">
             <tr style="background:#FAF8F4"><td style="padding:12px 16px;font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:0.06em">Client</td></tr>
-            <tr><td style="padding:12px 16px;font-size:15px;font-weight:700;color:#2C2416">${client?.name ?? '—'}</td></tr>
-            ${client?.phone ? `<tr><td style="padding:0 16px 8px;font-size:13px;color:#555"><a href="tel:${client.phone.replace(/\s/g,'')}" style="color:#4A7FA5">${client.phone}</a></td></tr>` : ''}
-            ${client?.email ? `<tr><td style="padding:0 16px 8px;font-size:13px;color:#555">${client.email}</td></tr>` : ''}
+            <tr><td style="padding:12px 16px;font-size:15px;font-weight:700;color:#2C2416">${esc(client?.name ?? '—')}</td></tr>
+            ${client?.phone ? `<tr><td style="padding:0 16px 8px;font-size:13px;color:#555"><a href="tel:${esc(client.phone.replace(/\s/g,''))}" style="color:#4A7FA5">${esc(client.phone)}</a></td></tr>` : ''}
+            ${client?.email ? `<tr><td style="padding:0 16px 8px;font-size:13px;color:#555">${esc(client.email)}</td></tr>` : ''}
           </table>
           <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #E2DDD6;border-radius:8px;overflow:hidden;margin-bottom:20px">
             <tr style="background:#FAF8F4"><td style="padding:12px 16px;font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:0.06em">Job</td></tr>
-            <tr><td style="padding:12px 16px;font-size:14px;color:#2C2416">${address}${jobType ? ` · ${jobType}` : ''}</td></tr>
+            <tr><td style="padding:12px 16px;font-size:14px;color:#2C2416">${esc(address)}${jobType ? ` · ${esc(jobType)}` : ''}</td></tr>
             <tr><td style="padding:0 16px 12px;font-size:20px;font-weight:800;color:#2C2416">${nzd(total)} <span style="font-size:12px;color:#aaa;font-weight:400">incl. GST</span></td></tr>
           </table>
-          ${reason ? `<div style="background:#FFF0EE;border:1px solid #F5C0BC;border-radius:8px;padding:14px 16px;margin-bottom:20px;font-size:13px;color:#7B2D26"><strong>Decline reason:</strong> ${reason}</div>` : ''}
+          ${reason ? `<div style="background:#FFF0EE;border:1px solid #F5C0BC;border-radius:8px;padding:14px 16px;margin-bottom:20px;font-size:13px;color:#7B2D26"><strong>Decline reason:</strong> ${esc(reason)}</div>` : ''}
           <div style="text-align:center">
             <a href="${quoteUrl}" style="display:inline-block;background:#4A6741;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:700;font-size:14px">
               Open Quote in TreeCo →
@@ -98,7 +104,7 @@ Deno.serve(async (req) => {
 </body>
 </html>`
 
-    await fetch('https://api.resend.com/emails', {
+    const emailRes = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -108,6 +114,13 @@ Deno.serve(async (req) => {
         html,
       }),
     })
+
+    // Surface a failed send instead of reporting success regardless — otherwise
+    // the office is never told a client responded when Resend rejects.
+    if (!emailRes.ok) {
+      const detail = await emailRes.json().catch(() => ({}))
+      return json({ ok: false, error: detail.message ?? `Resend API ${emailRes.status}` }, 502)
+    }
 
     return json({ ok: true })
   } catch (err) {

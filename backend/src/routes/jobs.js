@@ -98,6 +98,7 @@ router.put('/:id/status', requireAuth, async (req, res) => {
   const VALID_STATUSES = [
     'new_lead', 'quote_scheduled', 'quote_sent', 'accepted_to_schedule',
     'scheduled', 'stump_grinding', 'complete_to_invoice', 'invoiced', 'on_hold',
+    'declined',
   ]
   if (!VALID_STATUSES.includes(status)) {
     return res.status(400).json({ error: 'Invalid status' })
