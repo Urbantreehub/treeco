@@ -16,6 +16,12 @@ const CORS = {
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json' } })
 }
+// Escape crew-supplied text before putting it in the office email.
+function esc(s: unknown): string {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+}
 
 const OFFICE_EMAIL = 'josh@urbantreeservices.net'
 
@@ -43,11 +49,11 @@ Deno.serve(async (req: Request) => {
     const label = r.kind === 'wishlist' ? 'Wishlist item' : 'Tool needs replacing'
     const urg   = r.urgency === 'high' ? ' — HIGH PRIORITY' : ''
     const html = `<div style="font-family:-apple-system,sans-serif;max-width:520px;margin:0 auto;padding:24px">
-      <p style="font-size:15px;color:#2C2416"><strong>${who}</strong> submitted a request:</p>
+      <p style="font-size:15px;color:#2C2416"><strong>${esc(who)}</strong> submitted a request:</p>
       <div style="background:#F8FAF7;border:1px solid #D4E4D0;border-radius:8px;padding:16px;margin:12px 0">
         <div style="font-size:12px;font-weight:700;color:#6A8060;text-transform:uppercase;letter-spacing:.06em">${label}${urg}</div>
-        <div style="font-size:17px;font-weight:700;color:#2C2416;margin:6px 0">${r.item}</div>
-        ${r.notes ? `<div style="font-size:14px;color:#555">${r.notes}</div>` : ''}
+        <div style="font-size:17px;font-weight:700;color:#2C2416;margin:6px 0">${esc(r.item)}</div>
+        ${r.notes ? `<div style="font-size:14px;color:#555;white-space:pre-wrap">${esc(r.notes)}</div>` : ''}
       </div>
       <p style="margin:20px 0"><a href="${appUrl}/requests" style="background:#4A6741;color:#fff;text-decoration:none;padding:12px 26px;border-radius:8px;font-weight:700">View in TreeCo →</a></p>
     </div>`
