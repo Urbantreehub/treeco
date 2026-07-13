@@ -67,3 +67,13 @@ a {
     --safe-bottom: env(safe-area-inset-bottom);
   }
 }
+
+/* iOS Safari auto-zooms into any input whose font-size is < 16px. On touch
+   devices force 16px so tapping a field never zooms/pans the page. Scoped to
+   coarse pointers so desktop styling is unaffected; !important is needed to win
+   over the inline font-sizes used throughout the app. */
+@media (pointer: coarse) {
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+}
