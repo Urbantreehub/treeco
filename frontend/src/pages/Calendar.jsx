@@ -32,6 +32,30 @@ function bestQuote(job) {
       || qs.find(q => q.status === 'sent') || qs.find(q => q.status === 'draft') || null
 }
 
+// Turn a free-text on-site estimate ("Half day, 4–6 hrs", "Full day", "90 min")
+// into hours, so dropping a job onto the calendar can auto-size the event.
+// Explicit hours/minutes win; otherwise half/full-day keywords; ranges take the
+// upper bound so the block never under-books the crew. Returns null if unknown.
+function parseDurationHours(text) {
+  if (!text) return null
+  const t = String(text).toLowerCase()
+  const nums = (t.match(/\d+(?:\.\d+)?/g) || []).map(Number)
+  if (nums.length && /(hour|hr|\bh\b)/.test(t)) return Math.max(...nums)
+  if (nums.length && /min/.test(t)) return Math.max(...nums) / 60
+  if (/full\s*day/.test(t)) return 8
+  if (/half\s*day/.test(t)) return 4
+  if (nums.length) return Math.max(...nums) // bare number → assume hours
+  return null
+}
+
+// start_time ("HH:MM:SS") + hours → end_time ("HH:MM:SS"), clamped to 23:59.
+function addHours(startTime, hours) {
+  if (!startTime || !hours) return null
+  const [h, m] = startTime.split(':').map(Number)
+  const end = Math.min(h * 60 + m + Math.round(hours * 60), 23 * 60 + 59)
+  return `${String(Math.floor(end / 60)).padStart(2, '0')}:${String(end % 60).padStart(2, '0')}:00`
+}
+
 // ── Resources ──────────────────────────────────────────────────────────────
 const RESOURCES = [
   { id: 'josh',       title: 'Josh Micallef', index: 0 },
@@ -680,8 +704,12 @@ function FullCalendar_() {
     const hasTime = info.dateStr.length > 10
     const startTime = hasTime ? info.dateStr.slice(11, 19) : null
 
+    // Auto-size the event from the job's on-site time estimate (quote job_pack).
+    const durH = parseDurationHours(bestQuote(job)?.job_pack?.time_required)
+    const endTime = addHours(startTime, durH)
+
     const { error } = await supabase.from('schedule').insert({
-      job_id: job.id, date, start_time: startTime, resource_id: resourceId, status: 'scheduled',
+      job_id: job.id, date, start_time: startTime, end_time: endTime, resource_id: resourceId, status: 'scheduled',
     })
     if (error) { showToast(error.message, true); return }
     await supabase.from('jobs')
@@ -690,7 +718,7 @@ function FullCalendar_() {
 
     const res = RESOURCES.find(r => r.id === resourceId)?.title ?? resourceId
     const dl  = new Date(date).toLocaleDateString('en-NZ', { weekday: 'short', day: 'numeric', month: 'short' })
-    showToast(`Assigned to ${res} · ${dl}`)
+    showToast(`Assigned to ${res} · ${dl}${durH ? ` · ${durH}h` : ''}`)
     load()
   }, [])
 
