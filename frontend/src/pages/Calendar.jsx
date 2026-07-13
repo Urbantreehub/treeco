@@ -527,6 +527,7 @@ function FullCalendar_() {
   const [alerting,          setAlerting]          = useState(false)
   const [trayWidth,         setTrayWidth]         = useState(220)
   const [traySearch,        setTraySearch]        = useState('')
+  const [traySide,          setTraySide]          = useState('quotes') // 'quotes' | 'work'
   const [showTracker,       setShowTracker]       = useState(false)
   const trayResizing        = useRef(false)
   const trayResizeStart     = useRef(null)
@@ -613,9 +614,11 @@ function FullCalendar_() {
     const [{ data: jobs }, { data: rows }] = await Promise.all([
       supabase
         .from('jobs')
+        // new_lead → Quotes tab, accepted_to_schedule → Work tab (scheduled ones
+        // are filtered out below once they have a schedule row).
         .select('*, clients(name, phone, email), quotes(id, status, total, job_pack)')
-        .in('status', ['accepted_to_schedule', 'scheduled'])
-        .order('created_at', { ascending: false }),
+        .in('status', ['new_lead', 'accepted_to_schedule', 'scheduled'])
+        .order('created_at', { ascending: true }),
       supabase
         .from('schedule')
         .select('*, jobs(id, title, status, job_type, address, lat, lng, clients(name, phone))')
@@ -712,8 +715,10 @@ function FullCalendar_() {
       job_id: job.id, date, start_time: startTime, end_time: endTime, resource_id: resourceId, status: 'scheduled',
     })
     if (error) { showToast(error.message, true); return }
+    // Dropping a new lead books a quote visit; an accepted job books the work.
+    const newStatus = job.status === 'new_lead' ? 'quote_scheduled' : 'scheduled'
     await supabase.from('jobs')
-      .update({ status: 'scheduled', status_changed_at: new Date().toISOString() })
+      .update({ status: newStatus, status_changed_at: new Date().toISOString() })
       .eq('id', job.id)
 
     const res = RESOURCES.find(r => r.id === resourceId)?.title ?? resourceId
@@ -809,12 +814,17 @@ function FullCalendar_() {
   }
 
   const trayQ = traySearch.trim().toLowerCase()
+  // Quotes tab = new leads (oldest first, from the created_at-asc query);
+  // Work tab = accepted jobs waiting to be scheduled.
+  const leads = unscheduled.filter(j => j.status === 'new_lead')
+  const work  = unscheduled.filter(j => j.status === 'accepted_to_schedule')
+  const sideList = traySide === 'quotes' ? leads : work
   const filteredUnscheduled = trayQ
-    ? unscheduled.filter(j =>
+    ? sideList.filter(j =>
         [j.title, j.clients?.name, j.address, j.job_type]
           .some(v => v?.toLowerCase().includes(trayQ))
       )
-    : unscheduled
+    : sideList
 
   const VIEWS = [
     { v: 'resourceTimelineDay', label: 'Day' },
@@ -828,15 +838,19 @@ function FullCalendar_() {
       {/* ── Tray (hidden on mobile) ── */}
       {!isMobile && <div style={{ ...s.tray, width: trayWidth, minWidth: 180, maxWidth: 500, position: 'relative' }}>
         <div style={s.trayTop}>
-          <div style={s.trayHead}>
-            <span style={s.trayLabel}>Unscheduled</span>
-            {unscheduled.length > 0 && (
-              <span style={s.trayBadge}>
-                {trayQ && filteredUnscheduled.length !== unscheduled.length
-                  ? `${filteredUnscheduled.length}/${unscheduled.length}`
-                  : unscheduled.length}
-              </span>
-            )}
+          <div style={s.trayTabs}>
+            <button
+              onClick={() => setTraySide('quotes')}
+              style={{ ...s.trayTab, ...(traySide === 'quotes' ? s.trayTabActive : {}) }}
+            >
+              Quotes {leads.length > 0 && <span style={s.trayTabCount}>{leads.length}</span>}
+            </button>
+            <button
+              onClick={() => setTraySide('work')}
+              style={{ ...s.trayTab, ...(traySide === 'work' ? s.trayTabActive : {}) }}
+            >
+              Work {work.length > 0 && <span style={s.trayTabCount}>{work.length}</span>}
+            </button>
           </div>
 
           {/* Search */}
@@ -857,7 +871,7 @@ function FullCalendar_() {
             {loading && <div style={s.empty}>Loading…</div>}
             {!loading && filteredUnscheduled.length === 0 && (
               <div style={s.empty}>
-                {trayQ ? 'No matches' : 'All jobs scheduled ✓'}
+                {trayQ ? 'No matches' : traySide === 'quotes' ? 'No new leads' : 'All jobs scheduled ✓'}
               </div>
             )}
             {filteredUnscheduled.map(j => <TrayCard key={j.id} job={j} onOpen={setDetailJob} />)}
@@ -1198,6 +1212,14 @@ const s = {
   trayHead: { display: 'flex', alignItems: 'center', gap: '7px', padding: '0 14px 6px' },
   trayLabel:{ fontSize: '11px', fontWeight: '700', color: '#2C2416', textTransform: 'uppercase', letterSpacing: '0.05em' },
   trayBadge:{ fontSize: '10px', fontWeight: '700', background: '#D4851A', color: '#fff', borderRadius: '20px', padding: '1px 7px', lineHeight: 1.6 },
+  trayTabs: { display: 'flex', gap: '4px', padding: '0 10px 8px' },
+  trayTab: {
+    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
+    padding: '7px 8px', borderRadius: '8px', border: '1px solid var(--border)', background: '#fff',
+    fontSize: '12px', fontWeight: '700', color: '#8A8378', cursor: 'pointer', fontFamily: 'var(--font)',
+  },
+  trayTabActive: { background: 'var(--bark-mid, #4A6741)', color: '#fff', borderColor: 'var(--bark-mid, #4A6741)' },
+  trayTabCount: { fontSize: '10px', fontWeight: '800', background: 'rgba(0,0,0,0.14)', borderRadius: '20px', padding: '0 6px', lineHeight: 1.7 },
   traySearchWrap: { position: 'relative', margin: '0 10px 8px', display: 'flex', alignItems: 'center' },
   traySearchIcon: { position: 'absolute', left: '8px', fontSize: '11px', pointerEvents: 'none', opacity: 0.5 },
   traySearchInput: {
