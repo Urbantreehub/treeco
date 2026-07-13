@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import StatusBadge from './StatusBadge'
 import QuoteReference from './QuoteReference'
 import SpencersInvoice from './SpencersInvoice'
+import SpencersPortalData from './SpencersPortalData'
 import AddressInput from './AddressInput'
 import { JOB_STATUSES, STATUS_ORDER, isSpencersJob } from '../config/statuses'
 import { mapsHref } from '../utils/geo'
@@ -548,6 +549,9 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
               <span style={{ fontSize: '18px', color: '#8B6238' }}>📄</span>
             </button>
           </div>
+
+          {/* Portal data pulled from the Spencers/Downer portal */}
+          {isSpencersJob(job) && <SpencersPortalData job={job} />}
 
           {/* Spencers invoice — non-SOR quotable items + pre-approval + upload */}
           {isSpencersJob(job) && <SpencersInvoice job={job} />}

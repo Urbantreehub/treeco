@@ -4,6 +4,16 @@ import { supabase } from '../config/supabase'
 import { v4 as uuid } from 'uuid'
 import { mapsHref } from '../utils/geo'
 
+const GST = 0.15
+function nzd(v) { return '$' + Number(v || 0).toLocaleString('en-NZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
+// Charge for a line item: exact incl-GST mirror when present, else qty×rate.
+function lineCharge(item) {
+  const ex = (Number(item.qty) || 0) * (Number(item.rate) || 0)
+  if (!ex && item.price_incl == null) return null
+  const incl = item.price_incl != null ? Number(item.price_incl) : ex * (1 + GST)
+  return { ex: item.price_incl != null ? incl / (1 + GST) : ex, incl, qty: Number(item.qty) || 0, rate: Number(item.rate) || 0 }
+}
+
 const COMMON_ADDITIONS = [
   'Extra pruning / canopy work',
   'Additional tree removal',
@@ -108,7 +118,7 @@ export default function WorkOrder() {
     try { return JSON.parse(localStorage.getItem(`treeco_wo_photos_${jobId}`) ?? '[]') } catch { return [] }
   })
 
-  // S&D photo sections
+  // S&D photo sections — job-level aggregates kept for the "mark complete" gate
   const [duringPhotos, setDuringPhotos] = useState(() => {
     try { return JSON.parse(localStorage.getItem(`treeco_wo_during_${jobId}`) ?? '[]') } catch { return [] }
   })
@@ -116,10 +126,15 @@ export default function WorkOrder() {
     try { return JSON.parse(localStorage.getItem(`treeco_wo_after_${jobId}`) ?? '[]') } catch { return [] }
   })
 
-  const [uploading,    setUploading]    = useState(null) // null | 'during' | 'after' | 'general'
-  const duringRef  = useRef()
-  const afterRef   = useRef()
+  // S&D per-line-item photos: { [itemId]: { before:[], during:[], after:[] } }.
+  const [linePhotos, setLinePhotos] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(`treeco_wo_linephotos_${jobId}`) ?? '{}') } catch { return {} }
+  })
+
+  const [uploading,    setUploading]    = useState(null) // null | 'general' | `${itemId}:${stage}`
   const generalRef = useRef()
+  const lineInputRef = useRef()
+  const lineTarget = useRef(null) // { itemId, stage } for the shared per-item picker
   const [lightbox, setLightbox] = useState(null)
 
   // ── Load job + quote ──────────────────────────────────────────────────────
@@ -166,10 +181,13 @@ export default function WorkOrder() {
   const isDowner   = /downer/i.test(clientName) || /downer/i.test(jobTitle)
 
   const formsComplete     = JOB_FORMS.filter(f => f.required).every(f => formStatus[f.id]?.completed)
-  const sdPhotosComplete  = isSD && duringPhotos.length > 0 && afterPhotos.length > 0
+  const lineDuring = Object.values(linePhotos).flatMap(p => p?.during ?? [])
+  const lineAfter  = Object.values(linePhotos).flatMap(p => p?.after ?? [])
+  const sdPhotosComplete  = isSD && (duringPhotos.length + lineDuring.length) > 0 && (afterPhotos.length + lineAfter.length) > 0
   const readyToComplete   = formsComplete && (!isSD || sdPhotosComplete)
 
   const quotePhotos = items.flatMap(i => i.images?.length ? i.images : (i.image_url ? [i.image_url] : []))
+  const selectedItems = items.filter(i => !i.optional || i.selected)
 
   // ── Photo upload ──────────────────────────────────────────────────────────
   async function handleUpload(file, type) {
@@ -211,6 +229,40 @@ export default function WorkOrder() {
       }
     }
 
+    setUploading(null)
+  }
+
+  async function downerStamp() {
+    const gps = await getGPS()
+    const now = new Date()
+    const datetime = now.toLocaleString('en-NZ', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+    })
+    return { coords: gps ? `${gps.lat}, ${gps.lng}` : 'GPS unavailable', datetime }
+  }
+
+  // Per-line-item before/during/after upload (Spencers/Downer jobs).
+  function openLineUpload(itemId, stage) { lineTarget.current = { itemId, stage }; lineInputRef.current?.click() }
+  async function handleLineUpload(file, itemId, stage) {
+    if (!file || !itemId) return
+    setUploading(`${itemId}:${stage}`)
+    const stamp = isDowner ? await downerStamp() : null
+    const blob = await processImage(file, stamp)
+    const path = `site/${jobId}/${itemId}/${stage}/${uuid()}.jpg`
+    const { error } = await supabase.storage.from('quote-images').upload(path, blob, { contentType: 'image/jpeg' })
+    if (!error) {
+      const url = supabase.storage.from('quote-images').getPublicUrl(path).data.publicUrl
+      setLinePhotos(prev => {
+        const cur = prev[itemId] ?? { before: [], during: [], after: [] }
+        const next = { ...prev, [itemId]: { ...cur, [stage]: [...(cur[stage] ?? []), url] } }
+        localStorage.setItem(`treeco_wo_linephotos_${jobId}`, JSON.stringify(next))
+        return next
+      })
+      // Mirror into the job-level aggregate so the "mark complete" gate still sees it.
+      if (stage === 'during') { const n = [...duringPhotos, url]; setDuringPhotos(n); localStorage.setItem(`treeco_wo_during_${jobId}`, JSON.stringify(n)) }
+      if (stage === 'after')  { const n = [...afterPhotos, url];  setAfterPhotos(n);  localStorage.setItem(`treeco_wo_after_${jobId}`, JSON.stringify(n)) }
+    }
     setUploading(null)
   }
 
@@ -365,7 +417,9 @@ export default function WorkOrder() {
             <span style={s.sectionLabel}>Scope of Work</span>
             {items.length > 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', marginTop: 12 }}>
-                {items.filter(i => !i.optional || i.selected).map((item, idx) => (
+                {selectedItems.map((item, idx) => {
+                  const charge = lineCharge(item)
+                  return (
                   <div key={item.id ?? idx} style={s.taskRow}>
                     <div style={s.taskBullet} />
                     <div style={{ flex: 1 }}>
@@ -384,8 +438,16 @@ export default function WorkOrder() {
                       </div>
                       {item.detail && <div style={s.taskDetail}>{item.detail}</div>}
                     </div>
+                    {charge && (
+                      <div style={s.taskCharge}>
+                        <div style={s.taskChargeTotal}>{nzd(charge.incl)}</div>
+                        <div style={s.taskChargeSub}>
+                          {charge.qty ? `${charge.qty} × ${nzd(charge.rate)} · ` : ''}{nzd(charge.ex)} ex GST
+                        </div>
+                      </div>
+                    )}
                   </div>
-                ))}
+                )})}
               </div>
             ) : job.description ? (
               <div style={{ ...s.descText, marginTop: 12 }}>{job.description}</div>
@@ -399,62 +461,58 @@ export default function WorkOrder() {
           </div>
         )}
 
-        {/* ── Photo Documentation (S&D jobs) ── */}
+        {/* ── Photo Documentation — per line item (S&D jobs) ── */}
         {isSD ? (
           <div style={s.section}>
             <div style={s.sectionHead}>
-              <span style={s.sectionLabel}>Photo Documentation</span>
+              <span style={s.sectionLabel}>Photo Documentation — per item</span>
               {sdPhotosComplete
                 ? <span style={s.allDone}>✓ During &amp; After uploaded</span>
                 : <span style={{ fontSize: 12, fontWeight: 600, color: '#C0392B' }}>During &amp; After required</span>
               }
             </div>
 
-            {/* BEFORE — from quote (read-only) */}
-            <PhotoStrip
-              label="Before"
-              labelColor="#4A7FA5"
-              photos={quotePhotos}
-              readonly
-              onView={setLightbox}
-            />
+            {selectedItems.length === 0 && (
+              <div style={{ ...s.taskDetail, marginTop: 8 }}>No quoted line items to photograph.</div>
+            )}
 
-            {/* DURING */}
-            <PhotoStrip
-              label="During"
-              labelColor="#D4851A"
-              photos={duringPhotos}
-              uploading={uploading === 'during'}
-              onView={setLightbox}
-              onAdd={() => duringRef.current?.click()}
-              required
-            />
+            {selectedItems.map((item, idx) => {
+              const lp = linePhotos[item.id] ?? { before: [], during: [], after: [] }
+              const itemQuoteImgs = item.images?.length ? item.images : (item.image_url ? [item.image_url] : [])
+              return (
+                <div key={item.id ?? idx} style={s.lineItemPhotos}>
+                  <div style={s.lineItemHead}>
+                    {item.code && (
+                      <span style={{ fontFamily: 'monospace', fontSize: 11, fontWeight: 700, color: '#6D4AA8', background: '#6D4AA818', padding: '2px 7px', borderRadius: 5 }}>{item.code}</span>
+                    )}
+                    <span style={s.lineItemName}>{item.code ? (item.description || '').replace(`${item.code} — `, '') : (item.description || 'Item')}</span>
+                  </div>
+                  <PhotoStrip label="Before" labelColor="#4A7FA5"
+                    photos={[...itemQuoteImgs, ...(lp.before ?? [])]}
+                    uploading={uploading === `${item.id}:before`}
+                    onView={setLightbox} onAdd={() => openLineUpload(item.id, 'before')} />
+                  <PhotoStrip label="During" labelColor="#D4851A"
+                    photos={lp.during ?? []}
+                    uploading={uploading === `${item.id}:during`}
+                    onView={setLightbox} onAdd={() => openLineUpload(item.id, 'during')} required />
+                  <PhotoStrip label="After" labelColor="#2e7d32"
+                    photos={lp.after ?? []}
+                    uploading={uploading === `${item.id}:after`}
+                    onView={setLightbox} onAdd={() => openLineUpload(item.id, 'after')} required />
+                </div>
+              )
+            })}
+
+            {/* shared hidden picker — target is set by openLineUpload */}
             <input
-              ref={duringRef} type="file" accept="image/*" capture="environment"
+              ref={lineInputRef} type="file" accept="image/*" capture="environment"
               style={{ display: 'none' }}
-              onChange={e => { handleUpload(e.target.files[0], 'during'); e.target.value = '' }}
+              onChange={e => { const t = lineTarget.current; if (t) handleLineUpload(e.target.files[0], t.itemId, t.stage); e.target.value = '' }}
             />
 
-            {/* AFTER */}
-            <PhotoStrip
-              label="After"
-              labelColor="#2e7d32"
-              photos={afterPhotos}
-              uploading={uploading === 'after'}
-              onView={setLightbox}
-              onAdd={() => afterRef.current?.click()}
-              required
-            />
-            <input
-              ref={afterRef} type="file" accept="image/*" capture="environment"
-              style={{ display: 'none' }}
-              onChange={e => { handleUpload(e.target.files[0], 'after'); e.target.value = '' }}
-            />
-
-            {/* Status readiness banner */}
             {!sdPhotosComplete && (
               <div style={s.photoGate}>
-                Upload at least one During and one After photo before the job can be marked complete.
+                Add During and After photos before the job can be marked complete.
               </div>
             )}
           </div>
@@ -755,6 +813,12 @@ const s = {
   taskBullet: { width: 7, height: 7, borderRadius: '50%', background: '#4A6741', flexShrink: 0, marginTop: 7 },
   taskTitle:  { fontSize: 15, fontWeight: 600, color: '#2C2416', marginBottom: 4 },
   taskDetail: { fontSize: 13, color: '#666', lineHeight: 1.5 },
+  taskCharge: { textAlign: 'right', flexShrink: 0, paddingLeft: 10 },
+  taskChargeTotal: { fontSize: 14, fontWeight: 700, color: '#2C2416', whiteSpace: 'nowrap' },
+  taskChargeSub: { fontSize: 11, color: '#999', whiteSpace: 'nowrap', marginTop: 2 },
+  lineItemPhotos: { marginTop: 14, padding: '12px', background: '#FAF9F7', border: '1px solid #EDEBE7', borderRadius: 10 },
+  lineItemHead: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' },
+  lineItemName: { fontSize: 14, fontWeight: 700, color: '#2C2416' },
   descText:   { fontSize: 14, color: '#555', lineHeight: 1.7, whiteSpace: 'pre-wrap' },
   notesBox:   { marginTop: 14, padding: '12px 14px', background: '#FAF8F4', borderRadius: 8, border: '1px solid #E8E4DC' },
   notesLabel: { fontSize: 10, fontWeight: 700, color: '#bbb', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 },
