@@ -44,6 +44,12 @@ describe('authentication gating', () => {
       .send({ job_id: 'j1', client_id: 'c1', line_items: [] })
     expect(res.status).toBe(403)
   })
+
+  it('403 when a restricted user tries to read a quote (no leaking pricing/contact)', async () => {
+    signInAs('restricted')
+    const res = await request(app).get('/api/quotes/q1').set(AUTH)
+    expect(res.status).toBe(403)
+  })
 })
 
 describe('input validation', () => {

@@ -6,7 +6,7 @@ import { randomBytes } from 'crypto'
 
 const router = Router()
 
-router.get('/:id', requireAuth, async (req, res) => {
+router.get('/:id', requireAuth, requireFullAccess, async (req, res) => {
   const { data, error } = await supabaseAdmin
     .from('quotes')
     .select('*, jobs(id, title, address, clients(name, email, phone))')
