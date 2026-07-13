@@ -11,7 +11,7 @@ export default function NewJobModal({ onClose, onCreated }) {
   const [selectedClient, setSelectedClient] = useState(null)
   const [creatingClient, setCreatingClient] = useState(false)
   const [newClient, setNewClient] = useState({ name: '', phone: '', email: '', address: '', lat: null, lng: null })
-  const [job, setJob] = useState({ title: '', address: '', job_type: '', description: '', estimated_value: '', lat: null, lng: null })
+  const [job, setJob] = useState({ title: '', address: '', job_type: '', description: '', lat: null, lng: null })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
 
@@ -60,7 +60,6 @@ export default function NewJobModal({ onClose, onCreated }) {
       address: job.address || selectedClient?.address || null,
       job_type: job.job_type || null,
       description: job.description || null,
-      estimated_value: job.estimated_value ? Number(job.estimated_value) : null,
       lat,
       lng,
       geocoded_at: lat != null ? new Date().toISOString() : null,
@@ -156,7 +155,6 @@ export default function NewJobModal({ onClose, onCreated }) {
                 {JOB_TYPES.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
               </select>
 
-              <input placeholder="Estimated value ($)" type="number" value={job.estimated_value} onChange={e => setJob(p => ({ ...p, estimated_value: e.target.value }))} style={styles.input} />
               <textarea placeholder="Description / notes" rows={3} value={job.description} onChange={e => setJob(p => ({ ...p, description: e.target.value }))} style={{ ...styles.input, resize: 'vertical' }} />
 
               {error && <p style={styles.error}>{error}</p>}

@@ -10,7 +10,6 @@ const FULL_NAV = [
   { to: '/pipeline',  label: 'Jobs',      icon: PipelineIcon },
   { to: '/calendar',  label: 'Calendar',  icon: CalendarIcon },
   { to: '/planner',   label: 'Planner',   icon: PlannerIcon },
-  { to: '/clients',   label: 'Clients',   icon: ClientsIcon },
   { to: '/mulch',     label: 'Mulch',     icon: MulchIcon },
   { to: '/requests',  label: 'Tools',     icon: ToolIcon },
   { to: '/safety',    label: 'Safety',    icon: SafetyIcon },
@@ -21,7 +20,6 @@ const OFFICE_NAV = [
   { to: '/pipeline',  label: 'Jobs',      icon: PipelineIcon },
   { to: '/calendar',  label: 'Calendar',  icon: CalendarIcon },
   { to: '/planner',   label: 'Planner',   icon: PlannerIcon },
-  { to: '/clients',   label: 'Clients',   icon: ClientsIcon },
   { to: '/mulch',     label: 'Mulch',     icon: MulchIcon },
   { to: '/requests',  label: 'Tools',     icon: ToolIcon },
   { to: '/safety',    label: 'Safety',    icon: SafetyIcon },
@@ -33,6 +31,13 @@ const CREW_NAV = [
   { to: '/safety',   label: 'Safety',   icon: SafetyIcon },
   { to: '/mulch',    label: 'Mulch',    icon: MulchIcon },
   { to: '/requests', label: 'Tools',    icon: ToolIcon },
+]
+
+// Secondary nav — rarely-used items tucked into the mobile "More" sheet and the
+// desktop sidebar's bottom section, kept out of the primary menu. Staff/office
+// only (crew never had Clients).
+const MORE_NAV = [
+  { to: '/clients', label: 'Clients', icon: ClientsIcon },
 ]
 
 export default function Layout() {
@@ -50,15 +55,17 @@ export default function Layout() {
   }
 
   const navItems = isFullAccess ? FULL_NAV : isStaff ? OFFICE_NAV : CREW_NAV
+  const moreNav  = isStaff ? MORE_NAV : []
 
   if (isMobile) {
     // Combine nav + settings, then cap the bottom bar at 5 slots — anything
     // beyond the first 4 collapses into a "More" sheet so the bar never crams.
+    // Secondary items (moreNav, e.g. Clients) always live in the More sheet.
     const mobileItems = [...navItems, ...(isFullAccess ? [{ to: '/settings', label: 'Settings', icon: SettingsIcon }] : [])]
     const MAX = 5
-    const useMore = mobileItems.length > MAX
+    const useMore  = mobileItems.length > MAX - 1 || moreNav.length > 0
     const primary  = useMore ? mobileItems.slice(0, MAX - 1) : mobileItems
-    const overflow = useMore ? mobileItems.slice(MAX - 1) : []
+    const overflow = useMore ? [...mobileItems.slice(MAX - 1), ...moreNav] : []
 
     const badgeCount = (to) => (to === '/safety' ? alertCount : to === '/requests' ? pendingRequests : 0)
     const badgeColor = (to) => (to === '/safety' ? '#e53935' : '#D4851A')
@@ -157,6 +164,12 @@ export default function Layout() {
           </ul>
         </div>
         <div style={d.navBottom}>
+          {moreNav.map(({ to, label, icon: Icon }) => (
+            <NavLink key={to} to={to} style={({ isActive }) => ({ ...d.settingsLink, ...(isActive ? d.navLinkActive : {}) })}>
+              <Icon active={false} size={16} />
+              {label}
+            </NavLink>
+          ))}
           {isFullAccess && (
             <NavLink to="/settings" style={({ isActive }) => ({ ...d.settingsLink, ...(isActive ? d.navLinkActive : {}) })}>
               <SettingsIcon size={16} />

@@ -192,7 +192,6 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
     address: job.address ?? '',
     job_type: job.job_type ?? '',
     description: job.description ?? '',
-    estimated_value: job.estimated_value ?? '',
     lat: job.lat ?? null,
     lng: job.lng ?? null,
   })
@@ -236,7 +235,6 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
         address: form.address,
         job_type: form.job_type,
         description: form.description,
-        estimated_value: form.estimated_value ? Number(form.estimated_value) : null,
         // Verified coords from autocomplete land the pin immediately; if the
         // address was retyped without picking a suggestion, coords are cleared
         // (null) so the Planner's geocode pass re-resolves the new address
@@ -404,8 +402,6 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
               />
               <Label>Job type</Label>
               <Input value={form.job_type} onChange={v => setForm(p => ({ ...p, job_type: v }))} placeholder="pruning, removal, stump..." />
-              <Label>Estimated value ($)</Label>
-              <Input value={form.estimated_value} onChange={v => setForm(p => ({ ...p, estimated_value: v }))} type="number" />
               <Label>Description</Label>
               <textarea
                 value={form.description}
@@ -429,7 +425,6 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
                 </div>
               )}
               <Row label="Job type" value={job.job_type} />
-              <Row label="Estimated value" value={job.estimated_value ? `$${Number(job.estimated_value).toLocaleString('en-NZ')}` : null} />
               <Row label="Client phone" value={job.clients?.phone} />
               <Row label="Client email" value={job.clients?.email} />
               {job.description && (

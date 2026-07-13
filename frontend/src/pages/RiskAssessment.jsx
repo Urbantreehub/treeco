@@ -1,4 +1,5 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
+import { downloadPdf } from '../utils/downloadPdf'
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -640,15 +641,36 @@ function RiskAssessmentForm({ initial, onSave, onDelete, onCancel }) {
 // ── Detail / read-only view ──────────────────────────────────────────────────
 
 function RiskAssessmentDetail({ assessment: a, onEdit, onDelete, onBack }) {
+  const pdfRef = useRef(null)
+  const [exporting, setExporting] = useState(false)
+
+  async function handleDownload() {
+    setExporting(true)
+    try {
+      const safe = (a.site_address || 'risk-assessment').replace(/[^a-z0-9]+/gi, '-').slice(0, 60)
+      await downloadPdf(pdfRef, `Risk-Assessment_${safe}_${a.date || todayStr()}.pdf`)
+    } finally {
+      setExporting(false)
+    }
+  }
+
   return (
     <div style={s.formWrap}>
       <div style={s.formHeader}>
         <button style={s.backBtn} onClick={onBack}>← Back</button>
         <span style={s.formTitle}>{a.site_address || 'Risk Assessment'}</span>
         <div style={{ display: 'flex', gap: 8 }}>
+          <button style={s.pdfBtn} onClick={handleDownload} disabled={exporting}>
+            {exporting ? 'Preparing…' : '↓ PDF'}
+          </button>
           <button style={s.cancelBtn} onClick={onEdit}>Edit</button>
           <button style={s.delBtn} onClick={onDelete}>Delete</button>
         </div>
+      </div>
+
+      <div ref={pdfRef} style={{ background: '#fff', padding: '4px 2px' }}>
+      <div style={{ fontSize: 18, fontWeight: 800, color: '#2C2416', marginBottom: 12 }}>
+        Site-Specific Risk Assessment — {a.site_address || 'Untitled site'}
       </div>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
@@ -771,6 +793,7 @@ function RiskAssessmentDetail({ assessment: a, onEdit, onDelete, onBack }) {
         <ReadRow label="Date" value={fmtDate(a.sign_off_date)} />
         <ReadRow label="Crew acknowledgement" value={a.sign_off_crew} />
       </ReadSection>
+      </div>
     </div>
   )
 }
@@ -876,6 +899,7 @@ const s = {
   formActions: { display: 'flex', gap: 8, alignItems: 'center', paddingTop: 8, flexWrap: 'wrap' },
   delBtn:    { background: '#fff', border: '1px solid #E0B4B0', borderRadius: 7, padding: '9px 14px', fontSize: 13, color: 'var(--danger)', cursor: 'pointer', fontFamily: 'var(--font)' },
   cancelBtn: { background: '#fff', border: '1px solid var(--border)', borderRadius: 7, padding: '9px 16px', fontSize: 13, color: '#666', cursor: 'pointer', fontFamily: 'var(--font)' },
+  pdfBtn:    { background: 'var(--moss)', border: 'none', borderRadius: 7, padding: '9px 16px', fontSize: 13, fontWeight: 600, color: '#fff', cursor: 'pointer', fontFamily: 'var(--font)' },
   draftBtn:  { background: '#fff', border: '1px solid var(--moss)', color: 'var(--moss)', borderRadius: 7, padding: '9px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' },
   saveBtn:   { background: 'var(--moss)', color: '#fff', border: 'none', borderRadius: 7, padding: '9px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)' },
 

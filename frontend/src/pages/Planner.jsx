@@ -14,7 +14,7 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 const JOB_SELECT =
-  'id, title, address, job_type, status, estimated_value, lat, lng, client_id, clients(name, phone)'
+  'id, title, address, job_type, status, lat, lng, client_id, clients(name, phone)'
 
 // ---------- small helpers ----------
 
@@ -124,10 +124,6 @@ function PlannerMap({ points, centroid }) {
 function RunCard({ index, cluster, mode, onSaveRun, onTextClients, savingRun, texting }) {
   const items = cluster.items
   const distance = useMemo(() => routeDistanceKm(items), [items])
-  const totalValue = useMemo(
-    () => items.reduce((sum, j) => sum + (Number(j.estimated_value) || 0), 0),
-    [items]
-  )
   const [runDate, setRunDate] = useState(defaultRunDate())
 
   return (
@@ -140,7 +136,6 @@ function RunCard({ index, cluster, mode, onSaveRun, onTextClients, savingRun, te
           </div>
           <div style={s.cardSub}>
             {distance.toFixed(1)} km round trip
-            {totalValue > 0 && <> · {nzd(totalValue)} est. value</>}
           </div>
         </div>
       </div>
