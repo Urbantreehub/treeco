@@ -51,6 +51,17 @@ export default function SpencersInvoice({ job }) {
 
   if (items === null) return <div style={s.section}><div style={s.title}>Spencers invoice</div><div style={s.muted}>Loading…</div></div>
 
+  // The PDF invoice can only be generated once the job is completed.
+  const isCompleted = ['complete_to_invoice', 'invoiced'].includes(job.status)
+  if (!isCompleted) {
+    return (
+      <div style={s.section}>
+        <div style={s.title}>Spencers invoice</div>
+        <div style={s.muted}>The invoice PDF becomes available once this job is marked complete.</div>
+      </div>
+    )
+  }
+
   const quotable = items.filter(i => i.quotable && (i.selected !== false))
   const totalIncl = round2(quotable.reduce((sum, i) => sum + lineIncl(i), 0))
   const totalEx   = round2(totalIncl / (1 + GST))
