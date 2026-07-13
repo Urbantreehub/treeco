@@ -68,7 +68,7 @@ Deno.serve(async (req: Request) => {
     // Load quote with client and line items
     const { data: quote, error: qErr } = await supabase
       .from('quotes')
-      .select(`id, status, subtotal, gst, total, notes, line_items,
+      .select(`id, status, job_id, subtotal, gst, total, notes, line_items,
         jobs ( address, job_type, clients ( name, email, xero_contact_id ) )`)
       .eq('id', quote_id)
       .single()
@@ -134,6 +134,16 @@ Deno.serve(async (req: Request) => {
       xero_invoice_number: invoiceNumber,
       xero_invoice_url:    invoiceUrl,
     }).eq('id', quote_id)
+
+    // Advance the job to 'invoiced' too — raising the invoice is the action
+    // that completes the lifecycle, so the job shouldn't be left at
+    // complete_to_invoice waiting for a manual status change.
+    if (quote.job_id) {
+      await supabase.from('jobs').update({
+        status: 'invoiced',
+        status_changed_at: new Date().toISOString(),
+      }).eq('id', quote.job_id)
+    }
 
     return json({ invoice_id: invoiceId, invoice_number: invoiceNumber, invoice_url: invoiceUrl })
   } catch (err: any) {

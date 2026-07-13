@@ -28,8 +28,12 @@ function toE164(raw: string): string | null {
   return null
 }
 function tomorrowISO(): string {
-  const d = new Date()
-  d.setDate(d.getDate() + 1)
+  // schedule.date is a NZ calendar date. Compute "tomorrow" in NZ local time —
+  // deriving it from UTC picks the wrong day either side of local midnight
+  // (NZ is UTC+12/+13), so reminders could fire a day early/late or be missed.
+  const nzToday = new Date().toLocaleDateString('en-CA', { timeZone: 'Pacific/Auckland' }) // YYYY-MM-DD
+  const d = new Date(nzToday + 'T00:00:00Z')
+  d.setUTCDate(d.getUTCDate() + 1)
   return d.toISOString().slice(0, 10)
 }
 function fmtDay(iso: string): string {

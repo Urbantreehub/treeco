@@ -159,6 +159,11 @@ Deno.serve(async (req: Request) => {
         to:       clientEmail,
         subject:  `Your quote from Urban Tree Services — ${nzd(quote.total)}`,
         html,
+        text: `Hi ${firstName},\n\n`
+          + `Please find your quote for work at ${jobAddress}.\n\n`
+          + `Quote total: ${nzd(quote.total)} (incl. GST 15%)\n\n`
+          + `View, accept or decline your quote here:\n${quoteUrl}\n\n`
+          + `Urban Tree Services · office@urbantreeservices.net · 027 203 1446`,
       }),
     })
 

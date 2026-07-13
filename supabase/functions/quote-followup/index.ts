@@ -83,6 +83,10 @@ Deno.serve(async (req: Request) => {
             to: client.email,
             subject: `Following up on your tree quote — ${nzd(q.total)}`,
             html,
+            text: `Hi ${first},\n\n`
+              + `Just following up on the quote we sent you${q.jobs?.address ? ` for work at ${q.jobs.address}` : ''} — total ${nzd(q.total)}.\n\n`
+              + `View or accept your quote here:\n${link}\n\n`
+              + `Any questions, just reply or call us on 027 203 1446.\n— Urban Tree Services`,
           }),
         })
         results.email = r.ok ? { ok: true } : { ok: false, error: (await r.json().catch(() => ({}))).message ?? `Resend ${r.status}` }
