@@ -15,9 +15,11 @@ export function useJobs() {
     setLoading(true)
     const { data, error } = await supabase
       .from('jobs')
+      // '*' keeps this resilient to schema drift (e.g. the `category` column,
+      // added by migration 017, may not be live yet) — an explicit list would
+      // 400 the whole query and blank the pipeline if one column is missing.
       .select(`
-        id, status, title, address, job_type, description, estimated_value,
-        created_at, status_changed_at, ko_reference, priority, sla_due_at,
+        *,
         clients (id, name, phone, email),
         quotes (id, status, subtotal, gst, total)
       `)

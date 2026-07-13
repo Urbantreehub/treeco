@@ -8,6 +8,9 @@ import { isSpencersJob } from '../config/statuses'
 // dedicated column — the scraper writes it as a "[CODE]" title prefix or a
 // "Priority: CODE" tag in the description.
 export function koCode(job) {
+  // Manually-created portal jobs store the code in the priority column; the
+  // scraper stores free text there ("Emergency") so only accept a 2-4 letter code.
+  if (job?.priority && /^[A-Z]{2,4}$/.test(job.priority.trim())) return job.priority.trim()
   const t = (job?.title || '').match(/^\[([A-Z]{2,4})\]/)
   if (t) return t[1]
   const d = (job?.description || '').match(/Priority:\s*([A-Z]{2,4})/)

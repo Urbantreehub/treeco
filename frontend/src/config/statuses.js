@@ -73,10 +73,22 @@ export const SPENCERS_COLOR = '#6D4AA8'
 
 export function isSpencersJob(job) {
   if (!job) return false
+  if (job.category === 'spencers' || job.category === 'downer') return true
   if (job.ko_reference) return true
   const title = job.title ?? ''
   const client = job.clients?.name ?? ''
   return title.startsWith('SP —') || /spencer|downer/i.test(title) || /spencer|downer/i.test(client)
+}
+
+// Job category (template): 'residential' | 'spencers' | 'downer'. Stored on the
+// job; falls back to detection for legacy rows created before the category field.
+export function jobCategory(job) {
+  if (job?.category) return job.category
+  if (job?.ko_reference || /downer/i.test(job?.title ?? '') || /downer/i.test(job?.clients?.name ?? '')) {
+    return /downer/i.test(job?.title ?? '') || /downer/i.test(job?.clients?.name ?? '') ? 'downer' : 'spencers'
+  }
+  if (isSpencersJob(job)) return 'spencers'
+  return 'residential'
 }
 
 // Ordered list for pipeline column rendering.

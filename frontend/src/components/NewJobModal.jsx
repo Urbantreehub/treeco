@@ -4,8 +4,41 @@ import AddressInput from './AddressInput'
 
 const JOB_TYPES = ['pruning', 'removal', 'stump grinding', 'hedge trimming', 'emergency', 'consultation', 'planting', 'mulching', 'other']
 
+// Kāinga Ora / Spencers priority codes (code → label) for portal jobs.
+const KO_CODES = [
+  ['URG', 'URG — Urgent'],
+  ['EPS', 'EPS — Emergency'],
+  ['URS', 'URS — Urgent Response'],
+  ['GNL', 'GNL — General'],
+  ['RSC', 'RSC — Responsive'],
+  ['VSC', 'VSC — Void'],
+  ['RM',  'RM — Responsive Maintenance'],
+  ['PM',  'PM — Planned Maintenance'],
+]
+
+const CATEGORIES = [
+  { key: 'residential', label: 'Residential', icon: '🏡', desc: 'Private client — quote & tree work' },
+  { key: 'spencers',    label: 'Spencers',    icon: '🏢', desc: 'Spencers (DBS) portal job — KO reference & KPI' },
+  { key: 'downer',      label: 'Downer',      icon: '🚧', desc: 'Downer portal job — KO reference & KPI, GPS photos' },
+]
+
+// Columns that only exist once migration 017 is applied — insert falls back to
+// the base columns if the DB doesn't have them yet, so job creation never breaks.
+const OPTIONAL_JOB_COLS = ['category', 'ko_reference', 'priority', 'sla_due_at']
+async function insertJob(payload) {
+  let { error } = await supabase.from('jobs').insert(payload)
+  if (error && /(column|schema cache|could not find)/i.test(error.message)) {
+    const base = { ...payload }
+    OPTIONAL_JOB_COLS.forEach(c => delete base[c])
+    ;({ error } = await supabase.from('jobs').insert(base))
+  }
+  return error
+}
+
 export default function NewJobModal({ onClose, onCreated }) {
-  const [step, setStep] = useState('client') // 'client' | 'job'
+  const [step, setStep] = useState('category') // 'category' | 'client' | 'job' | 'portal'
+  const [category, setCategory] = useState('') // 'residential' | 'spencers' | 'downer'
+  const [portal, setPortal] = useState({ address: '', lat: null, lng: null, ko_reference: '', code: '', sla_due: '', description: '', contact_name: '', contact_phone: '' })
   const [clientSearch, setClientSearch] = useState('')
   const [clientResults, setClientResults] = useState([])
   const [selectedClient, setSelectedClient] = useState(null)
@@ -64,8 +97,9 @@ export default function NewJobModal({ onClose, onCreated }) {
     setError(null)
     // The address doubles as the job title now — no separate title field.
     const address = job.address.trim()
-    const { error } = await supabase.from('jobs').insert({
+    const error = await insertJob({
       client_id: selectedClient?.id ?? null,
+      category: 'residential',
       title: address,
       address,
       job_type: job.job_type,
@@ -84,18 +118,123 @@ export default function NewJobModal({ onClose, onCreated }) {
     onClose()
   }
 
+  async function createPortalJob() {
+    if (!portal.address.trim() || !portal.description.trim()) {
+      setError('Address and description are required.')
+      return
+    }
+    setSaving(true)
+    setError(null)
+    // Optional contact becomes a lightweight client so it shows as the job's
+    // secondary contact (Spencers/Downer cards lead with the address).
+    let clientId = null
+    if (portal.contact_name.trim()) {
+      const { data: c } = await supabase.from('clients').insert({
+        name: portal.contact_name.trim(),
+        phone: portal.contact_phone.trim() || null,
+      }).select().single()
+      clientId = c?.id ?? null
+    }
+    const address = portal.address.trim()
+    const error = await insertJob({
+      client_id: clientId,
+      category,                       // 'spencers' | 'downer'
+      title: address,
+      address,
+      description: portal.description,
+      ko_reference: portal.ko_reference.trim() || null,
+      priority: portal.code || null,  // the KO code (GNL/VSC/…)
+      sla_due_at: portal.sla_due ? new Date(portal.sla_due).toISOString() : null,
+      lat: portal.lat,
+      lng: portal.lng,
+      geocoded_at: portal.lat != null ? new Date().toISOString() : null,
+      status: 'new_lead',
+      status_changed_at: new Date().toISOString(),
+    })
+    if (error) { setError(error.message); setSaving(false); return }
+    setSaving(false)
+    onCreated()
+    onClose()
+  }
+
+  function chooseCategory(c) {
+    setCategory(c)
+    setError(null)
+    setStep(c === 'residential' ? 'client' : 'portal')
+  }
+
   return (
     <>
       <div style={styles.backdrop} onClick={onClose} />
       <div style={styles.modal}>
         <div style={styles.header}>
-          <h2 style={styles.title}>{step === 'client' ? 'New job — select client' : 'Job details'}</h2>
+          <h2 style={styles.title}>
+            {step === 'category' ? 'New job'
+              : step === 'portal' ? `New ${category === 'downer' ? 'Downer' : 'Spencers'} job`
+              : step === 'client' ? 'New job — select client' : 'Job details'}
+          </h2>
           <button onClick={onClose} style={styles.closeBtn}>✕</button>
         </div>
 
+        {step === 'category' && (
+          <div style={styles.body}>
+            <p style={styles.hint}>What type of job is this?</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {CATEGORIES.map(c => (
+                <button key={c.key} onClick={() => chooseCategory(c.key)} style={styles.catBtn}>
+                  <span style={{ fontSize: '22px' }}>{c.icon}</span>
+                  <span style={{ flex: 1, textAlign: 'left' }}>
+                    <div style={styles.catLabel}>{c.label}</div>
+                    <div style={styles.catDesc}>{c.desc}</div>
+                  </span>
+                  <span style={styles.catArrow}>→</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {step === 'portal' && (
+          <div style={styles.body}>
+            <div style={styles.clientPill}>
+              {category === 'downer' ? '🚧 Downer' : '🏢 Spencers'} portal job — <button onClick={() => setStep('category')} style={styles.linkBtn}>change</button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <AddressInput
+                autoFocus
+                placeholder="Site address *"
+                inputStyle={styles.input}
+                value={portal.address}
+                onChange={v => setPortal(p => ({ ...p, address: v, lat: null, lng: null }))}
+                onResolve={({ address, lat, lng }) => setPortal(p => ({ ...p, address, lat, lng }))}
+              />
+              <p style={styles.addrHint}>The address is used as the job title.</p>
+              <input placeholder="KO reference" value={portal.ko_reference} onChange={e => setPortal(p => ({ ...p, ko_reference: e.target.value }))} style={styles.input} />
+              <select value={portal.code} onChange={e => setPortal(p => ({ ...p, code: e.target.value }))} style={styles.input}>
+                <option value="">Priority code…</option>
+                {KO_CODES.map(([code, label]) => <option key={code} value={code}>{label}</option>)}
+              </select>
+              <label style={styles.fieldLabel}>KPI due (optional)</label>
+              <input type="datetime-local" value={portal.sla_due} onChange={e => setPortal(p => ({ ...p, sla_due: e.target.value }))} style={styles.input} />
+              <textarea placeholder="Work description / scope *" rows={3} value={portal.description} onChange={e => setPortal(p => ({ ...p, description: e.target.value }))} style={{ ...styles.input, resize: 'vertical' }} />
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input placeholder="Contact name" value={portal.contact_name} onChange={e => setPortal(p => ({ ...p, contact_name: e.target.value }))} style={styles.input} />
+                <input placeholder="Contact phone" value={portal.contact_phone} onChange={e => setPortal(p => ({ ...p, contact_phone: e.target.value }))} style={styles.input} />
+              </div>
+              {error && <p style={styles.error}>{error}</p>}
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button onClick={createPortalJob} disabled={saving || !portal.address.trim() || !portal.description.trim()} style={styles.primaryBtn}>
+                  {saving ? 'Creating…' : 'Create job'}
+                </button>
+                <button onClick={() => setStep('category')} style={styles.ghostBtn}>Back</button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {step === 'client' && (
           <div style={styles.body}>
-            <p style={styles.hint}>Search for an existing client or create a new one.</p>
+            <p style={styles.hint}>Search for an existing client or create a new one. <button onClick={() => setStep('category')} style={styles.linkBtn}>Change type</button></p>
 
             <input
               autoFocus
@@ -229,4 +368,13 @@ const styles = {
   },
   error: { color: 'var(--danger)', fontSize: '13px' },
   addrHint: { fontSize: '11px', color: '#999', margin: '-4px 0 2px' },
+  fieldLabel: { fontSize: '11px', color: '#888', fontWeight: '600', margin: '2px 0 -4px' },
+  catBtn: {
+    display: 'flex', alignItems: 'center', gap: '12px', width: '100%',
+    padding: '14px 16px', borderRadius: '10px', border: '1px solid var(--border)',
+    background: '#fff', cursor: 'pointer', fontFamily: 'var(--font)', textAlign: 'left',
+  },
+  catLabel: { fontSize: '15px', fontWeight: '700', color: 'var(--bark)' },
+  catDesc: { fontSize: '12px', color: '#888', marginTop: '2px' },
+  catArrow: { color: 'var(--moss)', fontSize: '16px', fontWeight: '700' },
 }
