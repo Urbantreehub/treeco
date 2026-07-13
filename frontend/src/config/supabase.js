@@ -44,6 +44,13 @@ const mockClient = {
       getPublicUrl: () => ({ data: { publicUrl: '' } }),
     }),
   },
+  // Realtime no-op — demo mode has no live backend. Without this, any page that
+  // opens a channel (nav badge, chat, tool requests) throws and blanks the app.
+  channel: () => {
+    const ch = { on: () => ch, subscribe: () => ch, unsubscribe: () => {} }
+    return ch
+  },
+  removeChannel: () => {},
 }
 
 // In demo mode with real credentials, use the real client (auto-login path)
