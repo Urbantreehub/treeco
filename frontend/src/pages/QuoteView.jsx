@@ -118,29 +118,21 @@ export default function QuoteView() {
   async function respond(action, reason = '') {
     if (isPreview) return
     setResponding(true)
-    const now = new Date().toISOString()
     const newStatus = action === 'accept' ? 'accepted' : 'declined'
     // Persist the client's optional-item selections and the resulting totals,
-    // so the office sees exactly what was accepted
+    // so the office sees exactly what was accepted. This goes through the
+    // respond_to_quote RPC (SECURITY DEFINER) — the client is the anon role,
+    // which RLS blocks from writing to quotes/jobs directly.
     const finalTotals = calcTotals(items)
-    await supabase.from('quotes').update({
-      status: newStatus,
-      responded_at: now,
-      line_items: items,
-      subtotal: finalTotals.subtotal,
-      gst: finalTotals.gst,
-      total: finalTotals.total,
-      ...(reason ? { decline_reason: reason } : {}),
-    }).eq('client_view_token', token)
-    if (action === 'accept') {
-      await supabase.from('jobs')
-        .update({ status: 'accepted_to_schedule', status_changed_at: now })
-        .eq('id', quote.job_id)
-    } else {
-      await supabase.from('jobs')
-        .update({ status: 'declined', status_changed_at: now })
-        .eq('id', quote.job_id)
-    }
+    await supabase.rpc('respond_to_quote', {
+      p_token: token,
+      p_action: newStatus,
+      p_reason: reason || null,
+      p_line_items: items,
+      p_subtotal: finalTotals.subtotal,
+      p_gst: finalTotals.gst,
+      p_total: finalTotals.total,
+    })
     setResponding(false)
     setResponded(true)
     setResponse(newStatus)

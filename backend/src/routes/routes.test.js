@@ -75,6 +75,17 @@ describe('restricted user status changes', () => {
   })
 })
 
+describe('declined is a valid status (regression for the missing-enum bug)', () => {
+  it('accepts a status change to declined', async () => {
+    signInAs('full')
+    mock.setResponse('jobs', () => ({ data: { id: 'j1', status: 'declined' }, error: null }))
+    const res = await request(app).put('/api/jobs/j1/status').set(AUTH).send({ status: 'declined' })
+    expect(res.status).toBe(200)
+    const update = mock.calls.find(c => c.table === 'jobs' && c.op === 'update')
+    expect(update.payload.status).toBe('declined')
+  })
+})
+
 describe('quote creation pricing', () => {
   it('computes subtotal/gst/total and persists them', async () => {
     signInAs('full')

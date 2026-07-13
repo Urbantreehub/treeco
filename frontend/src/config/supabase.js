@@ -51,6 +51,8 @@ const mockClient = {
     return ch
   },
   removeChannel: () => {},
+  // RPCs (register_quote_open, respond_to_quote) — no-op in demo.
+  rpc: () => Promise.resolve({ data: null, error: null }),
 }
 
 // In demo mode with real credentials, use the real client (auto-login path)
