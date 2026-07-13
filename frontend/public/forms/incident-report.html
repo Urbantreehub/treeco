@@ -973,11 +973,9 @@ async function generatePDF() {
       if (_jid) {
         const _jAddr = new URLSearchParams(location.search).get('job_address') || d.site_address || 'Job'
         const _jDate = new URLSearchParams(location.search).get('job_date') || d.inc_date || 'unknown'
-        const root = await findOrCreateFolder(token, 'TreeCo')
-        const jobsId = await findOrCreateFolder(token, 'Jobs', root)
-        fid = await findOrCreateFolder(token, `${_jAddr} (${_jDate})`, jobsId)
+        fid = await findOrCreateFolder(token, `${_jAddr} (${_jDate})`, TREECO.completedJobs)
       } else {
-        fid = await getSubfolder(token, 'Incident Reports')
+        fid = TREECO.incidentRtw
       }
       await uploadToDrive(doc.output('arraybuffer'), fname, token, fid)
     } catch(e) { console.warn('Drive upload failed:', e.message) }
@@ -986,7 +984,9 @@ async function generatePDF() {
 
 // ── Google Drive ──────────────────────────────────────────────────────────────
 const GOOGLE_CLIENT_ID = '376997677043-ejesngfcmmrub4j6gdftkloiiknm5ppq.apps.googleusercontent.com'
-const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file'
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive'
+// Shared Work/TreeCo folder IDs — completed forms upload straight into these.
+const TREECO = { completedJobs: '1wWhKLF36Mh_PwgRBK1n3Y4sdkNlKjSy9', incidentRtw: '1rLnTq1XvC_Q_Yb1ITSijuCyvPi2f_PSW' }
 let driveToken = null
 async function getDriveToken() {
   return new Promise((res, rej) => {

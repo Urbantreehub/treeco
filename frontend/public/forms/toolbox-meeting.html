@@ -371,7 +371,9 @@ textarea{min-height:80px;resize:vertical;}
 
 <script>
 const GOOGLE_CLIENT_ID = '376997677043-ejesngfcmmrub4j6gdftkloiiknm5ppq.apps.googleusercontent.com';
-const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive';
+// Shared Work/TreeCo folder IDs — completed forms upload straight into these.
+const TREECO = { completedJobs: '1wWhKLF36Mh_PwgRBK1n3Y4sdkNlKjSy9', toolbox: '1p8AFTsELDsYkQDRPcD7wWHFFrxOnLKXm' };
 const STORE_KEY = 'uts_toolbox_v2';
 const GREEN = [46, 125, 50];
 const STAFF = ['Stuart Wilson', 'Lea Molloy', 'Joshua Curran', 'Joshua Micallef', 'Sen Aupouri'];
@@ -683,7 +685,7 @@ async function doExport(){
     const _jid=new URLSearchParams(location.search).get('job_id');
     if(_jid&&window.parent!==window){window.parent.postMessage({type:'form_complete',form_id:'toolbox_meeting',job_id:_jid},'*');}
     if(window.google?.accounts){btn.innerHTML='<div class="btn-spinner"></div> Uploading…';
-      try{const t=await getDriveToken();let fid;if(_jid){const _jAddr=new URLSearchParams(location.search).get('job_address')||'Job';const _jDate=new URLSearchParams(location.search).get('job_date')||d.meetingDate||'unknown';const root=await findOrCreateFolder(t,'TreeCo');const jobsId=await findOrCreateFolder(t,'Jobs',root);fid=await findOrCreateFolder(t,`${_jAddr} (${_jDate})`,jobsId);}else{fid=await getSubfolder(t,'Toolbox Meetings');}await uploadToDrive(doc.output('arraybuffer'),filename,t,fid);showToast('Saved & uploaded to Google Drive ✓','ok');}
+      try{const t=await getDriveToken();let fid;if(_jid){const _jAddr=new URLSearchParams(location.search).get('job_address')||'Job';const _jDate=new URLSearchParams(location.search).get('job_date')||d.meetingDate||'unknown';fid=await findOrCreateFolder(t,`${_jAddr} (${_jDate})`,TREECO.completedJobs);}else{fid=TREECO.toolbox;}await uploadToDrive(doc.output('arraybuffer'),filename,t,fid);showToast('Saved & uploaded to Google Drive ✓','ok');}
       catch(e){showToast('Downloaded — Drive upload failed: '+e.message,'err');}
     }else{showToast('PDF downloaded ✓','ok');}
   }catch(e){showToast('Error: '+e.message,'err');}

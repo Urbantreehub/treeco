@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Return to Work Plan — Urban Tree Services</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 :root{--green:#2e7d32;--green-light:#4caf50;--green-pale:#e8f5e9;--border:#c8e6c9;--text:#1a1a1a;--muted:#555;--bg:#f4f6f4;--card:#fff;--radius:12px;--shadow:0 2px 8px rgba(0,0,0,0.08);--amber:#e65100;--amber-pale:#fff3e0;}
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -542,11 +543,34 @@ function doExport() {
   doc.text(`Urban Tree Services · Return to Work Plan · ${new Date().toLocaleDateString('en-NZ')}`, W / 2, 293, { align: 'center' });
 
   const fname = `RTW_Plan_${wname.replace(/\s+/g, '_') || 'worker'}_${d.injuryDate || 'draft'}.pdf`;
-  doc.save(fname);
-  showToast('PDF saved ✓', 'ok');
+  doc.save(fname);                       // always save locally first
+  pushToDrive(doc, fname, TREECO.incidentRtw); // then best-effort push to Drive
 }
 
 function showToast(msg, type = '') { const t = document.getElementById('toast'); t.textContent = msg; t.className = 'toast show' + (type ? ' ' + type : ''); setTimeout(() => t.className = 'toast', 3000); }
+
+// ── Google Drive (best-effort; the local download above is the guaranteed default) ──
+const GOOGLE_CLIENT_ID = '376997677043-ejesngfcmmrub4j6gdftkloiiknm5ppq.apps.googleusercontent.com';
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive';
+const TREECO = { incidentRtw: '1rLnTq1XvC_Q_Yb1ITSijuCyvPi2f_PSW' };
+let driveToken = null;
+async function getDriveToken() {
+  return new Promise((res, rej) => {
+    if (!window.google?.accounts) { rej(new Error('Google not loaded')); return; }
+    const c = google.accounts.oauth2.initTokenClient({ client_id: GOOGLE_CLIENT_ID, scope: DRIVE_SCOPE, callback: r => r.error ? rej(new Error(r.error)) : (driveToken = r.access_token, res(r.access_token)) });
+    driveToken ? res(driveToken) : c.requestAccessToken({ prompt: '' });
+  });
+}
+async function pushToDrive(doc, filename, folderId) {
+  try {
+    const t = await getDriveToken();
+    const form = new FormData();
+    form.append('metadata', new Blob([JSON.stringify({ name: filename, parents: [folderId], mimeType: 'application/pdf' })], { type: 'application/json' }));
+    form.append('file', new Blob([doc.output('arraybuffer')], { type: 'application/pdf' }));
+    await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', { method: 'POST', headers: { Authorization: 'Bearer ' + t }, body: form });
+    showToast('Saved locally + uploaded to Google Drive ✓', 'ok');
+  } catch (e) { showToast('Saved locally — Drive upload skipped', 'ok'); }
+}
 
 // Init
 const saved = localStorage.getItem(STORE_KEY);

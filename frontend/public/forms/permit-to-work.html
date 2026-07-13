@@ -214,7 +214,9 @@
 
 <script>
 const GOOGLE_CLIENT_ID = '376997677043-ejesngfcmmrub4j6gdftkloiiknm5ppq.apps.googleusercontent.com'
-const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file'
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive'
+// Shared Work/TreeCo folder IDs — completed forms upload straight into these.
+const TREECO = { completedJobs: '1wWhKLF36Mh_PwgRBK1n3Y4sdkNlKjSy9', permitsRescue: '1xPw8Y4o8vKp4dzdrZpg8IuwBug0m8JCv' }
 let driveToken = null
 
 const _jp = new URLSearchParams(location.search)
@@ -372,15 +374,14 @@ async function saveToDrive() {
   const pdfDoc = generatePDF()
   try {
     const t = await getDriveToken()
-    const root = await findOrCreateFolder(t, 'TreeCo')
+    // Write straight into the shared Work/TreeCo folders (full drive scope).
     let fid
     if (_jid) {
       const addr = (_jp.get('job_address') || 'Job').slice(0, 40)
       const dt   = _jp.get('job_date') || document.getElementById('permitDate').value
-      const jobsId = await findOrCreateFolder(t, 'Jobs', root)
-      fid = await findOrCreateFolder(t, `${addr} (${dt})`, jobsId)
+      fid = await findOrCreateFolder(t, `${addr} (${dt})`, TREECO.completedJobs)
     } else {
-      fid = await findOrCreateFolder(t, 'Permits to Work', root)
+      fid = TREECO.permitsRescue
     }
     const bytes = pdfDoc.output('arraybuffer')
     const fname = `permit-to-work-${document.getElementById('permitNo').value}.pdf`

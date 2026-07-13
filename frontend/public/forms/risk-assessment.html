@@ -986,7 +986,9 @@
 // CONFIG
 // ============================================================
 const GOOGLE_CLIENT_ID = '376997677043-ejesngfcmmrub4j6gdftkloiiknm5ppq.apps.googleusercontent.com';
-const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive';
+// Shared Work/TreeCo folder IDs — completed forms upload straight into these.
+const TREECO = { completedJobs: '1wWhKLF36Mh_PwgRBK1n3Y4sdkNlKjSy9', riskAssessments: '1MBcY257fXNugfnNHevceXsUTIOSD3hbh' };
 
 // ============================================================
 // STAFF SELECT HELPER
@@ -2501,15 +2503,13 @@ document.getElementById('saveExportBtn').addEventListener('click', async functio
       try {
         const token = await getDriveToken();
         const pdfBytes = doc.output('arraybuffer');
-        const rootId = await findOrCreateFolder(token, 'TreeCo');
         let folderId;
         if (_jid) {
           const _jAddr = new URLSearchParams(location.search).get('job_address') || 'Job';
           const _jDate = new URLSearchParams(location.search).get('job_date') || filename.match(/\d{8}/)?.[0] || 'unknown';
-          const jobsId = await findOrCreateFolder(token, 'Jobs', rootId);
-          folderId = await findOrCreateFolder(token, `${_jAddr} (${_jDate})`, jobsId);
+          folderId = await findOrCreateFolder(token, `${_jAddr} (${_jDate})`, TREECO.completedJobs);
         } else {
-          folderId = await findOrCreateFolder(token, 'SSSPs', rootId);
+          folderId = TREECO.riskAssessments;
         }
         const result = await uploadToDrive(pdfBytes, filename, token, folderId);
         if (result.id) {

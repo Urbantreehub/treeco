@@ -188,7 +188,9 @@
 
 <script>
 const GOOGLE_CLIENT_ID = '376997677043-ejesngfcmmrub4j6gdftkloiiknm5ppq.apps.googleusercontent.com'
-const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file'
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive'
+// Shared Work/TreeCo folder IDs — completed forms upload straight into these.
+const TREECO = { siteAudits: '1Nq5QEKBfpRvN9G4pRjE9ZqngCadwIPLC' }
 let driveToken = null
 
 const CHECKLIST = [
@@ -524,8 +526,7 @@ async function saveToDrive() {
   const pdfDoc = generatePDF()
   try {
     const t = await getDriveToken()
-    const root = await findOrCreateFolder(t, 'TreeCo')
-    const auditId = await findOrCreateFolder(t, 'H&S Site Audits', root)
+    const auditId = TREECO.siteAudits  // shared Work/TreeCo/Site Audits
     const bytes = pdfDoc.output('arraybuffer')
     const fname = `hs-site-audit-${document.getElementById('auditDate').value}.pdf`
     const form = new FormData()
