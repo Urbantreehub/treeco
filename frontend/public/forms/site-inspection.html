@@ -182,8 +182,7 @@
 </div>
 
 <div class="submit-bar">
-  <button class="btn-save" onclick="generatePDF()">⬇ Save PDF</button>
-  <button class="btn-drive" id="driveBtn" onclick="saveToDrive()">☁ Drive</button>
+  <button class="btn-save" onclick="saveToDrive()">📄 Save &amp; Export PDF</button>
 </div>
 <div class="toast" id="toast"></div>
 
@@ -521,21 +520,20 @@ async function findOrCreateFolder(t, name, parentId = null) {
   return (await cr.json()).id
 }
 async function saveToDrive() {
-  const btn = document.getElementById('driveBtn'); btn.textContent = '⏳ Uploading…'; btn.disabled = true
+  // Save locally first (guaranteed default), then best-effort push to Drive.
+  const pdfDoc = generatePDF()
   try {
     const t = await getDriveToken()
     const root = await findOrCreateFolder(t, 'TreeCo')
     const auditId = await findOrCreateFolder(t, 'H&S Site Audits', root)
-    const pdfDoc = await generatePDF()
     const bytes = pdfDoc.output('arraybuffer')
     const fname = `hs-site-audit-${document.getElementById('auditDate').value}.pdf`
     const form = new FormData()
     form.append('metadata', new Blob([JSON.stringify({ name: fname, parents: [auditId], mimeType: 'application/pdf' })], { type: 'application/json' }))
     form.append('file', new Blob([bytes], { type: 'application/pdf' }))
     await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', { method: 'POST', headers: { Authorization: `Bearer ${t}` }, body: form })
-    showToast('Uploaded to Google Drive ✓')
-  } catch (e) { showToast('Drive error: ' + e.message) }
-  btn.textContent = '☁ Drive'; btn.disabled = false
+    showToast('Saved locally + uploaded to Google Drive ✓')
+  } catch (e) { showToast('Saved locally — Drive upload skipped: ' + e.message) }
 }
 </script>
 </body>
