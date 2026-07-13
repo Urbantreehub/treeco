@@ -19,6 +19,18 @@ import { mapsHref } from '../utils/geo'
 import { SPENCERS_COLOR, isSpencersJob } from '../config/statuses'
 import CartrackMap from '../components/CartrackMap'
 import TruckProgress from '../components/TruckProgress'
+import JobDetailPanel from '../components/JobDetailPanel'
+
+// Price + on-site time for a job come from its best quote (total + job_pack).
+function nzd(v) {
+  if (v == null) return null
+  return '$' + Number(v).toLocaleString('en-NZ', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+}
+function bestQuote(job) {
+  const qs = job?.quotes ?? []
+  return qs.find(q => q.status === 'accepted') || qs.find(q => q.status === 'viewed')
+      || qs.find(q => q.status === 'sent') || qs.find(q => q.status === 'draft') || null
+}
 
 // ── Resources ──────────────────────────────────────────────────────────────
 const RESOURCES = [
@@ -233,7 +245,7 @@ function WeekGrid({ weekStart, events, onEventClick, resources, onReorder }) {
 }
 
 // ── Tray card ──────────────────────────────────────────────────────────────
-function TrayCard({ job }) {
+function TrayCard({ job, onOpen }) {
   const ref = useRef()
 
   useEffect(() => {
@@ -259,12 +271,22 @@ function TrayCard({ job }) {
     ? job.clients?.name?.replace(/^SP — /, '') ?? ''
     : [job.job_type, job.address?.split(',')[0]].filter(Boolean).join(' · ')
 
+  const q = bestQuote(job)
+  const price = q ? nzd(q.total) : null
+  const timeOnSite = q?.job_pack?.time_required || null
+
   return (
-    <div ref={ref} style={tr.card}>
+    <div ref={ref} style={tr.card} onClick={() => onOpen?.(job)} title="Open job details">
       <div style={{ ...tr.bar, background: jobColor(job) }} />
       <div style={tr.body}>
         <div style={tr.name}>{primaryLabel}</div>
         {secondaryLabel ? <div style={tr.meta}>{secondaryLabel}</div> : null}
+        {(timeOnSite || price) && (
+          <div style={tr.stats}>
+            {timeOnSite && <span style={tr.stat}>⏱ {timeOnSite}</span>}
+            {price && <span style={tr.stat}>{price}</span>}
+          </div>
+        )}
       </div>
       <span style={tr.grip}>⠿</span>
     </div>
@@ -475,6 +497,7 @@ function FullCalendar_() {
   const [events,            setEvents]            = useState([])
   const [loading,           setLoading]           = useState(true)
   const [popover,           setPopover]           = useState(null)
+  const [detailJob,         setDetailJob]         = useState(null)
   const [toast,             setToast]             = useState(null)
   const [dayAlert,          setDayAlert]          = useState(null)   // { ymd, recipients[] } | null
   const [alerting,          setAlerting]          = useState(false)
@@ -566,7 +589,7 @@ function FullCalendar_() {
     const [{ data: jobs }, { data: rows }] = await Promise.all([
       supabase
         .from('jobs')
-        .select('id, title, status, job_type, address, clients(name, phone)')
+        .select('*, clients(name, phone, email), quotes(id, status, total, job_pack)')
         .in('status', ['accepted_to_schedule', 'scheduled'])
         .order('created_at', { ascending: false }),
       supabase
@@ -809,7 +832,7 @@ function FullCalendar_() {
                 {trayQ ? 'No matches' : 'All jobs scheduled ✓'}
               </div>
             )}
-            {filteredUnscheduled.map(j => <TrayCard key={j.id} job={j} />)}
+            {filteredUnscheduled.map(j => <TrayCard key={j.id} job={j} onOpen={setDetailJob} />)}
           </div>
         </div>
 
@@ -1014,6 +1037,15 @@ function FullCalendar_() {
           onUnschedule={unscheduleJob}
           onLinkVehicle={linkVehicle}
           onOpenJob={openJob}
+        />
+      )}
+
+      {detailJob && (
+        <JobDetailPanel
+          job={detailJob}
+          onClose={() => setDetailJob(null)}
+          onUpdated={() => { setDetailJob(null); load() }}
+          onFieldSaved={() => load()}
         />
       )}
 
@@ -1247,6 +1279,8 @@ const tr = {
   body: { flex: 1, minWidth: 0 },
   name: { fontSize: '12px', fontWeight: '600', color: '#2C2416', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.3 },
   meta: { fontSize: '10px', color: '#aaa', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: '2px' },
+  stats: { display: 'flex', gap: '8px', marginTop: '3px', flexWrap: 'wrap' },
+  stat:  { fontSize: '10px', fontWeight: '700', color: '#4A6741', background: '#EEF3EC', borderRadius: '4px', padding: '1px 5px', whiteSpace: 'nowrap' },
   grip: { color: '#D0CBC4', fontSize: '13px', flexShrink: 0 },
 }
 
