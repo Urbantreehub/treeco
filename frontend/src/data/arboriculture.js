@@ -24,7 +24,7 @@ export const TERMS = [
   {
     num: '4',
     title: 'Pricing and Payment',
-    text: `All prices are in New Zealand dollars and include GST at 15% unless otherwise stated. Payment is due within 14 days of invoice. Overdue amounts may attract interest at 2% per month compounding on the unpaid balance. We reserve the right to suspend ongoing works where invoices remain unpaid beyond 30 days. Quoted prices are fixed for 30 days from the Quote date unless otherwise stated. After expiry, prices may be subject to revision.`,
+    text: `All prices are in New Zealand dollars and are exclusive of GST; GST is added at 15% unless otherwise stated. Payment is due within 14 days of invoice. Overdue amounts may attract interest at 2% per month compounding on the unpaid balance. We reserve the right to suspend ongoing works where invoices remain unpaid beyond 30 days. Quoted prices are fixed for 30 days from the Quote date unless otherwise stated. After expiry, prices may be subject to revision.`,
   },
   {
     num: '5',

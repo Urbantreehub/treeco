@@ -76,7 +76,7 @@ export function isSpencersJob(job) {
   if (job.ko_reference) return true
   const title = job.title ?? ''
   const client = job.clients?.name ?? ''
-  return title.startsWith('SP —') || /spencer/i.test(title) || /spencer/i.test(client)
+  return title.startsWith('SP —') || /spencer|downer/i.test(title) || /spencer|downer/i.test(client)
 }
 
 // Ordered list for pipeline column rendering.

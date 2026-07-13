@@ -16,7 +16,8 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { supabase } from '../config/supabase'
 import { mapsHref } from '../utils/geo'
-import { SPENCERS_COLOR, isSpencersJob } from '../config/statuses'
+import { SPENCERS_COLOR, isSpencersJob, getStatusLabel, JOB_STATUSES } from '../config/statuses'
+import { jobHeading, koCode, kpiCountdown } from '../utils/jobDisplay'
 import CartrackMap from '../components/CartrackMap'
 import TruckProgress from '../components/TruckProgress'
 import JobDetailPanel from '../components/JobDetailPanel'
@@ -286,18 +287,18 @@ function TrayCard({ job, onOpen }) {
     return () => draggable.destroy()
   }, [job])
 
-  // SP— jobs from DBS have unhelpful titles — show address as primary label
-  const isSP = job.title?.startsWith('SP —') || job.clients?.name?.startsWith('SP —')
-  const primaryLabel = isSP
-    ? (job.address?.split(',')[0] ?? job.clients?.name ?? job.title ?? '—')
-    : (job.clients?.name ?? job.title ?? '—')
-  const secondaryLabel = isSP
-    ? job.clients?.name?.replace(/^SP — /, '') ?? ''
-    : [job.job_type, job.address?.split(',')[0]].filter(Boolean).join(' · ')
+  // Spencers/Downer jobs lead with the address; contact name drops to secondary.
+  const sp = isSpencersJob(job)
+  const { primary, secondary } = jobHeading(job)
+  const primaryLabel = sp ? (job.address?.split(',')[0] ?? primary) : primary
+  const secondaryLabel = sp ? secondary : [job.job_type, job.address?.split(',')[0]].filter(Boolean).join(' · ')
 
+  const code = koCode(job)
+  const kpi = sp ? kpiCountdown(job) : null
   const q = bestQuote(job)
   const price = q ? nzd(q.total) : null
   const timeOnSite = q?.job_pack?.time_required || null
+  const statusColor = JOB_STATUSES[job.status]?.color ?? '#888'
 
   return (
     <div ref={ref} style={tr.card} onClick={() => onOpen?.(job)} title="Open job details">
@@ -305,12 +306,13 @@ function TrayCard({ job, onOpen }) {
       <div style={tr.body}>
         <div style={tr.name}>{primaryLabel}</div>
         {secondaryLabel ? <div style={tr.meta}>{secondaryLabel}</div> : null}
-        {(timeOnSite || price) && (
-          <div style={tr.stats}>
-            {timeOnSite && <span style={tr.stat}>⏱ {timeOnSite}</span>}
-            {price && <span style={tr.stat}>{price}</span>}
-          </div>
-        )}
+        <div style={tr.stats}>
+          <span style={{ ...tr.stat, background: statusColor + '18', color: statusColor }}>{getStatusLabel(job.status)}</span>
+          {code && <span style={{ ...tr.stat, background: '#EBF3FA', color: '#4A7FA5' }}>{code}</span>}
+          {kpi && <span style={{ ...tr.stat, background: kpi.expired ? '#FFF0EE' : '#FDF3E3', color: kpi.expired ? '#C0392B' : '#D4851A' }}>⏱ {kpi.text}</span>}
+          {timeOnSite && <span style={tr.stat}>⏱ {timeOnSite}</span>}
+          {price && <span style={tr.stat}>{price}</span>}
+        </div>
       </div>
       <span style={tr.grip}>⠿</span>
     </div>
@@ -361,7 +363,15 @@ function Popover({ info, weekEvent, vehicles, onClose, onUnschedule, onLinkVehic
     <div style={po.scrim} onClick={onClose}>
       <div style={{ ...po.box, top: rect.top, left: rect.left }} onClick={e => e.stopPropagation()}>
         <div style={{ ...po.stripe, background: jobColor(job) }} />
-        <div style={po.title}>{job.clients?.name ?? job.title ?? '—'}</div>
+        <div style={po.title}>{jobHeading(job).primary}</div>
+        <div style={po.row}>
+          <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: '2px 9px',
+            background: (JOB_STATUSES[job.status]?.color ?? '#888') + '18', color: JOB_STATUSES[job.status]?.color ?? '#888' }}>
+            {getStatusLabel(job.status)}
+          </span>
+          {koCode(job) && <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 5, padding: '2px 7px', marginLeft: 6, background: '#EBF3FA', color: '#4A7FA5' }}>{koCode(job)}</span>}
+        </div>
+        {isSpencersJob(job) && jobHeading(job).secondary && <div style={po.row}><span style={po.icon}>👤</span>{jobHeading(job).secondary}</div>}
         {job.job_type  && <div style={po.row}><span style={po.icon}>🌲</span>{job.job_type}</div>}
         {job.address   && <div style={po.row}><span style={po.icon}>📍</span>{job.address}</div>}
         {job.clients?.phone && <div style={po.row}><span style={po.icon}>📞</span>{job.clients.phone}</div>}
@@ -621,7 +631,7 @@ function FullCalendar_() {
         .order('created_at', { ascending: true }),
       supabase
         .from('schedule')
-        .select('*, jobs(id, title, status, job_type, address, lat, lng, clients(name, phone))')
+        .select('*, jobs(id, title, status, job_type, address, lat, lng, ko_reference, sla_due_at, description, clients(name, phone))')
         .order('date'),
     ])
 

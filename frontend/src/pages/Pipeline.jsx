@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { JOB_STATUSES, STATUS_ORDER, SPENCERS_COLOR, isSpencersJob } from '../config/statuses'
+import { jobHeading, koCode, kpiCountdown } from '../utils/jobDisplay'
 import { useJobs } from '../hooks/useJobs'
 import { useAuth } from '../context/AuthContext'
 import JobDetailPanel from '../components/JobDetailPanel'
@@ -165,6 +166,9 @@ export default function Pipeline() {
               const total = quote ? nzd(quote.total) : null
               const date = job.created_at ? new Date(job.created_at) : null
               const sp = isSpencersJob(job)
+              const { primary, secondary } = jobHeading(job)
+              const code = koCode(job)
+              const kpi = sp ? kpiCountdown(job) : null
               return (
                 <div
                   key={job.id}
@@ -172,15 +176,23 @@ export default function Pipeline() {
                   onClick={() => setSelectedJobId(job.id)}
                 >
                   <div style={s.rowMain}>
-                    <div style={s.client}>{job.clients?.name ?? '—'}</div>
+                    <div style={s.client}>{primary}</div>
                     <div style={s.meta}>
                       {sp && (
                         <span style={{ fontSize: 11, fontWeight: 700, color: SPENCERS_COLOR, background: SPENCERS_COLOR + '18', padding: '1px 7px', borderRadius: 5, letterSpacing: '.02em' }}>
                           Spencers
                         </span>
                       )}
-                      {job.job_type && <span style={s.jobType}>{job.job_type}</span>}
-                      {job.address && <span style={s.address}>{job.address}</span>}
+                      {code && <span style={{ ...s.jobType, fontWeight: 700, color: '#4A7FA5', background: '#EBF3FA', textTransform: 'none' }}>{code}</span>}
+                      {sp ? (secondary && <span style={s.address}>{secondary}</span>)
+                          : (job.job_type && <span style={s.jobType}>{job.job_type}</span>)}
+                      {!sp && job.address && <span style={s.address}>{job.address}</span>}
+                      {kpi && (
+                        <span style={{ ...s.jobType, fontWeight: 700, textTransform: 'none', fontVariantNumeric: 'tabular-nums',
+                          background: kpi.expired ? '#FFF0EE' : '#FDF3E3', color: kpi.expired ? '#C0392B' : '#D4851A' }}>
+                          ⏱ {kpi.text}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div style={s.rowRight}>
