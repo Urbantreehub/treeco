@@ -95,7 +95,10 @@ export default function QuoteView() {
         if (!isPreview) {
           // Atomically record this open: increments opened_count, sets
           // last_opened_at, sets viewed_at if null, and flips sent→viewed.
-          supabase.rpc('register_quote_open', { p_token: token }).catch(() => {})
+          // NB: the Supabase builder is a thenable, not a real Promise, so it
+          // has no .catch — wrap it, or it throws here and the quote is stuck
+          // on the loading screen (blank page for the client).
+          Promise.resolve(supabase.rpc('register_quote_open', { p_token: token })).catch(() => {})
         }
         setLoading(false)
       })
