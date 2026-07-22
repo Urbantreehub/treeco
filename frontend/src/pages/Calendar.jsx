@@ -552,6 +552,8 @@ function FullCalendar_() {
   // Status filter replaces the old Quotes/Work tabs. Starts with everything on
   // so nothing is hidden by default — new leads included.
   const [trayStatuses,      setTrayStatuses]      = useState(() => new Set(TRAY_STATUSES))
+  const [showStatusMenu,    setShowStatusMenu]    = useState(false)
+  const statusMenuRef = useRef(null)
   const [showTracker,       setShowTracker]       = useState(false)
   const trayResizing        = useRef(false)
   const trayResizeStart     = useRef(null)
@@ -579,6 +581,16 @@ function FullCalendar_() {
       return next
     })
   }
+
+  // Close the status dropdown on an outside click, same as the pipeline filter.
+  useEffect(() => {
+    if (!showStatusMenu) return
+    function handler(e) {
+      if (statusMenuRef.current && !statusMenuRef.current.contains(e.target)) setShowStatusMenu(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showStatusMenu])
 
   // Unlike the resource filter, this one may be emptied entirely — an empty
   // selection reads as "show nothing", and the tray says so.
@@ -861,6 +873,7 @@ function FullCalendar_() {
   // with nothing under it, which reads as broken rather than as a filter.
   // Empty statuses stay visible but dimmed.
   const availableStatuses = TRAY_STATUSES
+  const allStatusesOn = TRAY_STATUSES.every(k => trayStatuses.has(k))
   const sideList = unscheduled.filter(j => trayStatuses.has(j.status))
   const filteredUnscheduled = trayQ
     ? sideList.filter(j =>
@@ -881,44 +894,59 @@ function FullCalendar_() {
       {/* ── Tray (hidden on mobile) ── */}
       {!isMobile && <div style={{ ...s.tray, width: trayWidth, minWidth: 180, maxWidth: 500, position: 'relative' }}>
         <div style={s.trayTop}>
-          {/* Status filter — one toggle per status that currently has jobs */}
-          <div style={s.trayFilter}>
-            <div style={s.trayFilterHead}>
-              <span style={s.trayFilterTitle}>Status</span>
-              {trayStatuses.size < availableStatuses.length && (
-                <button
-                  onClick={() => setTrayStatuses(new Set(TRAY_STATUSES))}
-                  style={s.trayFilterReset}
-                >
-                  Show all
-                </button>
-              )}
-            </div>
-            <div style={s.trayChips}>
-              {availableStatuses.map(key => {
-                const on = trayStatuses.has(key)
-                const count = statusCounts[key] ?? 0
-                const color = JOB_STATUSES[key]?.color ?? '#7C93A8'
-                return (
-                  <button
-                    key={key}
-                    onClick={() => toggleTrayStatus(key)}
-                    title={JOB_STATUSES[key]?.description ?? ''}
-                    style={{
-                      ...s.trayChip,
-                      ...(on ? { background: color, borderColor: color, color: '#fff' } : {}),
-                      ...(count === 0 ? { opacity: 0.45 } : {}),
-                    }}
-                  >
-                    <span style={{ ...s.trayChipDot, background: on ? 'rgba(255,255,255,0.85)' : color }} />
-                    {getStatusLabel(key)}
-                    <span style={{ ...s.trayChipCount, ...(on ? { background: 'rgba(0,0,0,0.16)' } : {}) }}>
-                      {count}
-                    </span>
-                  </button>
-                )
-              })}
-            </div>
+          {/* Status filter — dropdown, matching the pipeline's filter menu */}
+          <div style={s.trayFilter} ref={statusMenuRef}>
+            <button
+              onClick={() => setShowStatusMenu(v => !v)}
+              style={{ ...s.statusBtn, ...(showStatusMenu ? s.statusBtnOpen : {}) }}
+            >
+              <span style={s.statusBtnLabel}>
+                {allStatusesOn
+                  ? 'All statuses'
+                  : trayStatuses.size === 0
+                    ? 'No statuses'
+                    : `${trayStatuses.size} of ${availableStatuses.length} statuses`}
+              </span>
+              <span style={s.statusBtnCaret}>{showStatusMenu ? '▲' : '▼'}</span>
+            </button>
+
+            {showStatusMenu && (
+              <div style={s.statusMenu}>
+                <div style={s.statusMenuHead}>
+                  <span style={s.statusMenuTitle}>Status</span>
+                  {!allStatusesOn && (
+                    <button onClick={() => setTrayStatuses(new Set(TRAY_STATUSES))} style={s.statusMenuReset}>
+                      Select all
+                    </button>
+                  )}
+                </div>
+                {availableStatuses.map(key => {
+                  const on = trayStatuses.has(key)
+                  const count = statusCounts[key] ?? 0
+                  const color = JOB_STATUSES[key]?.color ?? '#7C93A8'
+                  return (
+                    <label key={key} style={s.statusItem} title={JOB_STATUSES[key]?.description ?? ''}>
+                      <input
+                        type="checkbox"
+                        checked={on}
+                        onChange={() => toggleTrayStatus(key)}
+                        style={{ display: 'none' }}
+                      />
+                      <span style={{ ...s.statusCheck, background: on ? color : '#fff', borderColor: on ? color : '#ddd' }}>
+                        {on && (
+                          <svg viewBox="0 0 12 10" width="10" height="10" fill="none">
+                            <path d="M1 5l3.5 3.5L11 1" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        )}
+                      </span>
+                      <span style={{ ...s.statusDot, background: color }} />
+                      <span style={s.statusLabel}>{getStatusLabel(key)}</span>
+                      <span style={{ ...s.statusCount, color, background: color + '20' }}>{count}</span>
+                    </label>
+                  )
+                })}
+              </div>
+            )}
           </div>
 
           {/* Search */}
@@ -1278,23 +1306,44 @@ const s = {
     borderRight: '1px solid #E2DDD6',
     display: 'flex', flexDirection: 'column', overflow: 'hidden',
   },
-  trayTop:  { flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: '14px 0 0' },
+  // overflow must stay visible so the status dropdown can escape the tray —
+  // it was previously 'hidden', which clipped the menu into invisibility.
+  // trayList does its own scrolling; minHeight:0 is what keeps that working
+  // inside a flex column once the parent no longer clips.
+  trayTop:  { flex: 1, minHeight: 0, overflow: 'visible', display: 'flex', flexDirection: 'column', padding: '14px 0 0' },
   trayHead: { display: 'flex', alignItems: 'center', gap: '7px', padding: '0 14px 6px' },
   trayLabel:{ fontSize: '11px', fontWeight: '700', color: '#2C2416', textTransform: 'uppercase', letterSpacing: '0.05em' },
   trayBadge:{ fontSize: '10px', fontWeight: '700', background: '#D4851A', color: '#fff', borderRadius: '20px', padding: '1px 7px', lineHeight: 1.6 },
-  trayFilter: { padding: '0 10px 8px' },
-  trayFilterHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' },
-  trayFilterTitle: { fontSize: '10px', fontWeight: '800', color: '#999', textTransform: 'uppercase', letterSpacing: '0.5px' },
-  trayFilterReset: { border: 'none', background: 'none', padding: 0, fontSize: '10px', fontWeight: '700', color: 'var(--bark-mid, #4A6741)', cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline' },
-  trayChips: { display: 'flex', flexWrap: 'wrap', gap: '4px' },
-  trayChip: {
-    display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '3px 7px',
-    borderRadius: '20px', border: '1px solid var(--border, #E4E1D8)', background: '#fff',
-    color: '#666', fontSize: '10.5px', fontWeight: '700', cursor: 'pointer',
-    fontFamily: 'inherit', lineHeight: 1.6, transition: 'background 0.1s',
+  trayFilter: { padding: '0 10px 8px', position: 'relative' },
+  statusBtn: {
+    width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px',
+    padding: '7px 10px', borderRadius: '8px', border: '1px solid var(--border, #E4E1D8)',
+    background: '#fff', color: 'var(--bark, #2C2416)', fontSize: '12px', fontWeight: '600',
+    cursor: 'pointer', fontFamily: 'inherit',
   },
-  trayChipDot: { width: '6px', height: '6px', borderRadius: '50%', flexShrink: 0 },
-  trayChipCount: { fontSize: '9.5px', fontWeight: '800', background: 'rgba(0,0,0,0.08)', borderRadius: '20px', padding: '0 5px', lineHeight: 1.7 },
+  statusBtnOpen: { borderColor: 'var(--bark-mid, #4A6741)' },
+  statusBtnLabel: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  statusBtnCaret: { fontSize: '8px', color: '#999', flexShrink: 0 },
+  statusMenu: {
+    position: 'absolute', top: 'calc(100% + 4px)', left: '10px', right: '10px',
+    background: '#fff', border: '1.5px solid var(--border, #E4E1D8)', borderRadius: '10px',
+    boxShadow: '0 4px 20px rgba(0,0,0,0.12)', padding: '6px 0', zIndex: 60,
+    maxHeight: '320px', overflowY: 'auto',
+  },
+  statusMenuHead: {
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    padding: '4px 12px 8px', borderBottom: '1px solid var(--border, #E4E1D8)', marginBottom: '4px',
+  },
+  statusMenuTitle: { fontSize: '10px', fontWeight: '800', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.05em' },
+  statusMenuReset: { background: 'none', border: 'none', padding: 0, fontSize: '11px', fontWeight: '600', color: 'var(--moss, #4A6741)', cursor: 'pointer', fontFamily: 'inherit' },
+  statusItem: { display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 12px', cursor: 'pointer' },
+  statusCheck: {
+    width: '16px', height: '16px', borderRadius: '4px', border: '1.5px solid #ddd',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  },
+  statusDot: { width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0 },
+  statusLabel: { fontSize: '12.5px', color: 'var(--bark, #2C2416)', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  statusCount: { fontSize: '10.5px', fontWeight: '700', borderRadius: '10px', padding: '1px 6px', flexShrink: 0 },
   traySearchWrap: { position: 'relative', margin: '0 10px 8px', display: 'flex', alignItems: 'center' },
   traySearchIcon: { position: 'absolute', left: '8px', fontSize: '11px', pointerEvents: 'none', opacity: 0.5 },
   traySearchInput: {
@@ -1307,7 +1356,7 @@ const s = {
     position: 'absolute', right: '6px', background: 'none', border: 'none',
     color: '#aaa', cursor: 'pointer', fontSize: '11px', padding: 0, lineHeight: 1,
   },
-  trayList: { flex: 1, overflowY: 'auto', padding: '2px 10px 10px' },
+  trayList: { flex: 1, minHeight: 0, overflowY: 'auto', padding: '2px 10px 10px' },
   trayResizeHandle: {
     position: 'absolute', right: 0, top: 0, bottom: 0, width: '5px',
     cursor: 'col-resize', zIndex: 10,
