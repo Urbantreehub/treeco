@@ -856,8 +856,11 @@ function FullCalendar_() {
     acc[j.status] = (acc[j.status] ?? 0) + 1
     return acc
   }, {})
-  // Only offer statuses that actually have jobs, so the filter stays short.
-  const availableStatuses = TRAY_STATUSES.filter(k => statusCounts[k] > 0)
+  // Every status is always offered. Showing only the ones that currently have
+  // jobs meant the control could render completely empty — a "Status" heading
+  // with nothing under it, which reads as broken rather than as a filter.
+  // Empty statuses stay visible but dimmed.
+  const availableStatuses = TRAY_STATUSES
   const sideList = unscheduled.filter(j => trayStatuses.has(j.status))
   const filteredUnscheduled = trayQ
     ? sideList.filter(j =>
@@ -894,6 +897,7 @@ function FullCalendar_() {
             <div style={s.trayChips}>
               {availableStatuses.map(key => {
                 const on = trayStatuses.has(key)
+                const count = statusCounts[key] ?? 0
                 const color = JOB_STATUSES[key]?.color ?? '#7C93A8'
                 return (
                   <button
@@ -903,12 +907,13 @@ function FullCalendar_() {
                     style={{
                       ...s.trayChip,
                       ...(on ? { background: color, borderColor: color, color: '#fff' } : {}),
+                      ...(count === 0 ? { opacity: 0.45 } : {}),
                     }}
                   >
                     <span style={{ ...s.trayChipDot, background: on ? 'rgba(255,255,255,0.85)' : color }} />
                     {getStatusLabel(key)}
                     <span style={{ ...s.trayChipCount, ...(on ? { background: 'rgba(0,0,0,0.16)' } : {}) }}>
-                      {statusCounts[key]}
+                      {count}
                     </span>
                   </button>
                 )

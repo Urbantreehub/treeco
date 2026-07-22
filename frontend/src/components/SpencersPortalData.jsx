@@ -27,6 +27,42 @@ function descriptionNotes(description) {
   return kept || null
 }
 
+// Portal notes arrive in more than one shape: free text from the job
+// description, or structured entries from the scraper ({date, text, author}).
+// Rendering the structured form directly took down the whole job detail panel —
+// React can't render an object as a child — so everything is coerced to text
+// here and unknown shapes fall back to JSON rather than throwing.
+function asText(v) {
+  if (v == null) return ''
+  if (typeof v === 'string') return v
+  if (typeof v === 'number' || typeof v === 'boolean') return String(v)
+  try { return JSON.stringify(v) } catch { return '' }
+}
+
+function PortalNotes({ value }) {
+  if (typeof value === 'string') return <div style={s.notes}>{value}</div>
+
+  const entries = Array.isArray(value) ? value : [value]
+  return (
+    <div style={s.noteList}>
+      {entries.map((n, i) => {
+        if (n == null) return null
+        if (typeof n !== 'object') return <div key={i} style={s.notes}>{asText(n)}</div>
+        const { date, author, text, note, body, ...rest } = n
+        const meta = [date, author].map(asText).filter(Boolean).join(' · ')
+        const main = asText(text ?? note ?? body)
+          || (Object.keys(rest).length ? asText(rest) : '')
+        return (
+          <div key={i} style={s.notes}>
+            {meta && <div style={s.noteMeta}>{meta}</div>}
+            {main}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 // Flatten raw_snapshot into readable key/value rows, skipping fields already
 // shown elsewhere and any nested objects/arrays (shown as compact JSON).
 const SKIP = new Set(['ko_reference', 'priority', 'status', 'portal_status', 'sla_due_at', 'due', 'description', 'notes', 'address'])
@@ -96,7 +132,7 @@ export default function SpencersPortalData({ job }) {
       {(rawNotes || notes) && (
         <div style={s.block}>
           <div style={s.blockLabel}>Notes</div>
-          <div style={s.notes}>{rawNotes || notes}</div>
+          <PortalNotes value={rawNotes || notes} />
         </div>
       )}
 
@@ -149,6 +185,8 @@ const s = {
   rowLabel: { fontSize: '10px', color: '#A99CC0', fontWeight: '600', textTransform: 'capitalize' },
   rowValue: { fontSize: '13px', color: '#2C2416', wordBreak: 'break-word' },
   notes: { fontSize: '13px', color: '#2C2416', whiteSpace: 'pre-wrap', lineHeight: 1.5, background: '#fff', border: '1px solid #E4DCF0', borderRadius: '7px', padding: '9px 11px' },
+  noteList: { display: 'flex', flexDirection: 'column', gap: '6px' },
+  noteMeta: { fontSize: '11px', fontWeight: '600', color: '#8A8378', marginBottom: '3px' },
   actRow: { display: 'flex', alignItems: 'center', gap: '8px', padding: '5px 0', borderTop: '1px solid #EBE4F5', fontSize: '12px' },
   actName: { flex: 1, color: '#2C2416', fontWeight: '600' },
   actStatus: { fontWeight: '700', whiteSpace: 'nowrap' },
