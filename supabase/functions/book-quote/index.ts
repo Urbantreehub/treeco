@@ -4,7 +4,7 @@
 // emails the office. Runs with the service role so it works for anon callers.
 //
 // POST body: { name, phone, email, address, job_type, job_description,
-//              preferred_date, window, photo_base64? }
+//              preferred_date, window, photos_base64?, photo_base64? }
 // Required secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, RESEND_API_KEY (optional)
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
@@ -73,18 +73,26 @@ Deno.serve(async (req: Request) => {
     }).select('id').single()
     if (jErr) throw new Error(jErr.message)
 
-    // Optional photo → job-media bucket + job_photos row.
-    if (typeof b.photo_base64 === 'string') {
-      const m = b.photo_base64.match(/^data:(image\/\w+);base64,(.+)$/)
-      if (m) {
-        try {
-          const bytes = Uint8Array.from(atob(m[2]), ch => ch.charCodeAt(0))
-          const path = `leads/${job.id}/${Date.now()}.${m[1].split('/')[1]}`
-          await supabase.storage.from('job-media').upload(path, bytes, { contentType: m[1] })
-          const url = supabase.storage.from('job-media').getPublicUrl(path).data.publicUrl
-          await supabase.from('job_photos').insert({ job_id: job.id, url, kind: 'lead_reference' })
-        } catch { /* photo is best-effort */ }
-      }
+    // Optional photos → job-media bucket + job_photos row (one per image).
+    // Accept the new photos_base64 array; fall back to the legacy single
+    // photo_base64. Dedup so the legacy first-photo isn't uploaded twice.
+    const rawPhotos = Array.isArray(b.photos_base64) ? b.photos_base64 : []
+    if (typeof b.photo_base64 === 'string') rawPhotos.push(b.photo_base64)
+    const photos = [...new Set(rawPhotos.filter((p: unknown) => typeof p === 'string'))]
+    let i = 0
+    for (const p of photos) {
+      // Images or PDFs — clients often attach an arborist report or a council
+      // consent alongside the photos.
+      const m = (p as string).match(/^data:(image\/\w+|application\/pdf);base64,(.+)$/)
+      if (!m) continue
+      try {
+        const bytes = Uint8Array.from(atob(m[2]), ch => ch.charCodeAt(0))
+        const ext = m[1] === 'application/pdf' ? 'pdf' : m[1].split('/')[1]
+        const path = `leads/${job.id}/${Date.now()}-${i++}.${ext}`
+        await supabase.storage.from('job-media').upload(path, bytes, { contentType: m[1] })
+        const url = supabase.storage.from('job-media').getPublicUrl(path).data.publicUrl
+        await supabase.from('job_photos').insert({ job_id: job.id, url, kind: 'lead_reference' })
+      } catch { /* photos are best-effort */ }
     }
 
     // Notify the office (best-effort).

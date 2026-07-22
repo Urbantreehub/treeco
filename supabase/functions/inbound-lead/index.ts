@@ -32,6 +32,7 @@ function pickExt(name?: string, contentType?: string): string {
     'image/jpeg': 'jpg', 'image/jpg': 'jpg', 'image/png': 'png',
     'image/gif': 'gif', 'image/webp': 'webp', 'image/heic': 'heic',
     'image/heif': 'heif', 'image/tiff': 'tiff', 'image/bmp': 'bmp',
+    'application/pdf': 'pdf',
   }
   return map[(contentType || '').toLowerCase()] || 'bin'
 }
@@ -123,7 +124,10 @@ Deno.serve(async (req) => {
 
     for (const att of attachments) {
       const contentType: string = att?.ContentType || ''
-      if (!contentType.toLowerCase().startsWith('image/')) continue
+      const ct = contentType.toLowerCase()
+      // Images and PDFs. Anything else (signatures, vcards, tracking pixels
+      // dressed as attachments) is still skipped.
+      if (!ct.startsWith('image/') && ct !== 'application/pdf') continue
       if (!att?.Content) continue
 
       try {

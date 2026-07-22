@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../config/supabase'
+import { FILE_ACCEPT, isPdf } from '../utils/files'
 
 export default function QuoteReference({ jobId, readOnly = false }) {
   const [loading, setLoading] = useState(true)
@@ -96,32 +97,48 @@ export default function QuoteReference({ jobId, readOnly = false }) {
         <>
           {/* Images */}
           <div style={styles.section}>
-            <div style={styles.sectionTitle}>Reference Images</div>
+            <div style={styles.sectionTitle}>Reference Files</div>
             {images.length > 0 ? (
               <div style={styles.grid}>
                 {images.map(img => (
-                  <button
-                    key={img.id}
-                    type="button"
-                    onClick={() => setLightbox(img.url)}
-                    style={styles.thumbBtn}
-                    title={img.caption || 'View image'}
-                  >
-                    <img src={img.url} alt={img.caption || 'reference'} style={styles.thumb} />
-                  </button>
+                  // PDFs can't render in an <img> — they get a document tile and
+                  // open in a new tab rather than the image lightbox.
+                  isPdf(img.url) ? (
+                    <a
+                      key={img.id}
+                      href={img.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ ...styles.thumbBtn, ...styles.docTile }}
+                      title={img.caption || 'Open PDF'}
+                    >
+                      <span style={styles.docIcon}>📄</span>
+                      <span style={styles.docLabel}>{img.caption || 'PDF'}</span>
+                    </a>
+                  ) : (
+                    <button
+                      key={img.id}
+                      type="button"
+                      onClick={() => setLightbox(img.url)}
+                      style={styles.thumbBtn}
+                      title={img.caption || 'View image'}
+                    >
+                      <img src={img.url} alt={img.caption || 'reference'} style={styles.thumb} />
+                    </button>
+                  )
                 ))}
               </div>
             ) : (
-              <div style={styles.muted}>No reference images yet.</div>
+              <div style={styles.muted}>No reference files yet.</div>
             )}
 
             {!readOnly && (
               <div style={{ marginTop: '10px' }}>
                 <label style={styles.uploadBtn}>
-                  {uploading ? 'Uploading…' : '+ Add images'}
+                  {uploading ? 'Uploading…' : '+ Add images or PDFs'}
                   <input
                     type="file"
-                    accept="image/*"
+                    accept={FILE_ACCEPT}
                     multiple
                     disabled={uploading}
                     onChange={handleUpload}
@@ -211,6 +228,16 @@ const styles = {
     overflow: 'hidden', cursor: 'pointer', background: 'var(--cream)', aspectRatio: '1',
   },
   thumb: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
+  docTile: {
+    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+    gap: '4px', textDecoration: 'none', padding: '6px', textAlign: 'center',
+  },
+  docIcon: { fontSize: '22px', lineHeight: 1 },
+  docLabel: {
+    fontSize: '9.5px', fontWeight: '600', color: 'var(--bark)', lineHeight: 1.25,
+    wordBreak: 'break-word', display: '-webkit-box', WebkitLineClamp: 3,
+    WebkitBoxOrient: 'vertical', overflow: 'hidden',
+  },
   uploadBtn: {
     display: 'inline-block', background: 'none', border: '1px solid var(--border)',
     borderRadius: '8px', padding: '8px 14px', fontSize: '13px', fontWeight: '600',

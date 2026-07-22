@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { useAuth } from '../context/AuthContext'
 import ImageMarkup from '../components/ImageMarkup'
 import QuoteReference from '../components/QuoteReference'
 import { searchSor, CHARGE_CODES } from '../data/sorCodes'
+import { FILE_ACCEPT, isPdf } from '../utils/files'
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragOverlay,
 } from '@dnd-kit/core'
@@ -56,6 +58,14 @@ function nzd(v, dp = 2) {
 // ex → incl GST
 function inclGst(v) { return Number(v || 0) * (1 + GST) }
 
+const VERSION_REASON = {
+  sent:         'Sent to client',
+  edit_offline: 'Taken offline to revise',
+  accepted:     'Accepted',
+  declined:     'Declined',
+  manual:       'Manual snapshot',
+}
+
 function calcTotals(items) {
   const subtotal = items
     .filter(i => !i.optional || i.selected)
@@ -93,9 +103,16 @@ function ImageGallery({ images, onAdd, onRemove, onMarkup }) {
           onMouseEnter={() => setHoverIdx(idx)}
           onMouseLeave={() => setHoverIdx(null)}
         >
-          <img src={url} alt="" style={iu.img} />
-          <button style={iu.deleteBtn} onClick={() => onRemove(idx)} title="Remove photo">✕</button>
-          {hoverIdx === idx && (
+          {isPdf(url)
+            ? <a href={url} target="_blank" rel="noopener noreferrer" title="Open PDF"
+                 style={{ ...iu.img, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          background: '#FAFAF8', color: '#666', fontSize: 11, fontWeight: 700, textDecoration: 'none' }}>
+                📄 PDF
+              </a>
+            : <img src={url} alt="" style={iu.img} />}
+          <button style={iu.deleteBtn} onClick={() => onRemove(idx)} title="Remove attachment">✕</button>
+          {/* Markup only makes sense on a raster image */}
+          {hoverIdx === idx && !isPdf(url) && (
             <button style={iu.markupBtn} onClick={() => onMarkup(idx, url)} title="Add markup">
               ✏ Mark up
             </button>
@@ -103,7 +120,7 @@ function ImageGallery({ images, onAdd, onRemove, onMarkup }) {
         </div>
       ))}
       <div style={iu.zone} onClick={() => ref.current?.click()}>
-        <input ref={ref} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFile} />
+        <input ref={ref} type="file" accept={FILE_ACCEPT} style={{ display: 'none' }} onChange={handleFile} />
         <span style={{ fontSize: '18px' }}>🖼</span>
         <span style={iu.hint}>{uploading ? 'Uploading…' : 'Add photo'}</span>
       </div>
@@ -138,7 +155,7 @@ const iu = {
 }
 
 // ── Line item (builder) ────────────────────────────────────────────────────
-function SorAutocomplete({ value, onChange, onSelect }) {
+function SorAutocomplete({ value, onChange, onSelect, library = [] }) {
   const [results, setResults] = useState([])
   const [open, setOpen]       = useState(false)
   const [cursor, setCursor]   = useState(-1)
@@ -147,7 +164,14 @@ function SorAutocomplete({ value, onChange, onSelect }) {
   function handleChange(e) {
     const v = e.target.value
     onChange(v)
-    const hits = searchSor(v)
+    // SOR codes cover Spencers/Downer work; the library is everything else the
+    // team has saved. Library hits lead — they're the ones someone chose to keep.
+    const q = v.trim().toLowerCase()
+    const libHits = q.length < 2 ? [] : library
+      .filter(l => l.description?.toLowerCase().includes(q) || l.detail?.toLowerCase().includes(q))
+      .slice(0, 5)
+      .map(l => ({ code: 'Saved', desc: l.description, uom: l.detail ?? '', rate: l.rate, libraryId: l.id }))
+    const hits = [...libHits, ...searchSor(v)]
     setResults(hits)
     setOpen(hits.length > 0)
     setCursor(-1)
@@ -225,7 +249,7 @@ const ac = {
   uom:  { fontSize: '11px', fontWeight: '600', borderRadius: '4px', padding: '2px 6px' },
 }
 
-function LineItem({ item, onChange, onDelete, onMarkup }) {
+function LineItem({ item, onChange, onDelete, onMarkup, library = [], onSaveToLibrary }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: item.id })
 
@@ -262,11 +286,14 @@ function LineItem({ item, onChange, onDelete, onMarkup }) {
           <SorAutocomplete
             value={item.description}
             onChange={desc => onChange({ ...item, description: desc })}
+            library={library}
             onSelect={sor => onChange({
               ...item,
-              description: `${sor.code} — ${sor.desc}`,
-              detail: item.detail || `UOM: ${sor.uom}`,
-              qty: CHARGE_CODES.has(sor.code) ? 1 : item.qty,
+              // A saved item is already worded how the team wants it; SOR codes
+              // get the code prefixed because Spencers expect to see it.
+              description: sor.libraryId ? sor.desc : `${sor.code} — ${sor.desc}`,
+              detail: sor.libraryId ? (sor.uom || item.detail) : (item.detail || `UOM: ${sor.uom}`),
+              qty: !sor.libraryId && CHARGE_CODES.has(sor.code) ? 1 : item.qty,
               // Prefill the rate-card price; quote-required codes (rate null) keep manual entry
               rate: sor.rate != null ? sor.rate : item.rate,
             })}
@@ -356,7 +383,16 @@ function LineItem({ item, onChange, onDelete, onMarkup }) {
             <div style={b.lineTotalEx}>({nzd(exTotal)} ex GST)</div>
           </div>
 
-          <button style={{ ...b.removeBtn, marginLeft: 'auto' }} onClick={() => onDelete(item.id)}>
+          {onSaveToLibrary && item.description?.trim() && (
+            <button
+              style={{ ...b.libBtn, marginLeft: 'auto' }}
+              onClick={() => onSaveToLibrary(item)}
+              title="Save this wording and rate for reuse on future quotes"
+            >
+              ☆ Save item
+            </button>
+          )}
+          <button style={{ ...b.removeBtn, marginLeft: onSaveToLibrary && item.description?.trim() ? 0 : 'auto' }} onClick={() => onDelete(item.id)}>
             Remove
           </button>
         </div>
@@ -644,6 +680,7 @@ export default function QuoteBuilder() {
   const location = useLocation()
   const isMobile = useIsMobile()
   const isNew = id === 'new'
+  const { session } = useAuth()
   const preselectedJobId = isNew ? new URLSearchParams(window.location.search).get('job') : null
 
   const [quote, setQuote] = useState(null)
@@ -664,6 +701,16 @@ export default function QuoteBuilder() {
   const [xeroLoading, setXeroLoading] = useState(false)
   const [emailLoading, setEmailLoading] = useState(false)
   const [smsLoading, setSmsLoading] = useState(false)
+  const [versions, setVersions] = useState([])
+  const [showVersions, setShowVersions] = useState(false)
+  const [showOnBehalf, setShowOnBehalf] = useState(false)
+  const [onBehalfReason, setOnBehalfReason] = useState('')
+  const [onBehalfSaving, setOnBehalfSaving] = useState(false)
+  const [templates, setTemplates] = useState([])
+  const [library, setLibrary] = useState([])
+  const [showTemplates, setShowTemplates] = useState(false)
+  const [templateName, setTemplateName] = useState('')
+  const [savingTemplate, setSavingTemplate] = useState(false)
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
@@ -689,6 +736,7 @@ export default function QuoteBuilder() {
           setPrivateNotes(data.private_notes ?? '')
           setJobPack(data.job_pack ?? {})
         })
+      loadVersions()
     } else {
       supabase.from('jobs')
         .select('id, address, job_type, clients (name)')
@@ -696,6 +744,7 @@ export default function QuoteBuilder() {
         .order('created_at', { ascending: false })
         .then(({ data }) => setJobs(data ?? []))
     }
+    loadLibrary()
   }, [id, isNew])
 
   const totals = calcTotals(items)
@@ -703,6 +752,69 @@ export default function QuoteBuilder() {
   const addItem = () => setItems(prev => [...prev, {
     id: uuid(), description: '', detail: '', qty: 1, rate: '', optional: false, selected: true, images: [], image_url: null,
   }])
+
+  // ── Templates & saved items ──────────────────────────────────────────────
+  // The SOR rate card covers Spencers/Downer work only. Residential quoting was
+  // rebuilt from scratch every time, so common jobs are now saveable.
+  async function loadLibrary() {
+    const [{ data: tpl }, { data: lib }] = await Promise.all([
+      supabase.from('quote_templates').select('id, name, description, line_items, notes, use_count').order('use_count', { ascending: false }),
+      supabase.from('quote_items_library').select('id, description, detail, rate, use_count').order('use_count', { ascending: false }),
+    ])
+    // Tables arrive in migration 022 — absent until it's applied, hence no error toast.
+    if (tpl) setTemplates(tpl)
+    if (lib) setLibrary(lib)
+  }
+
+  async function saveAsTemplate() {
+    const name = templateName.trim()
+    if (!name) return
+    if (items.length === 0) { showToast('Add some line items first', 'error'); return }
+    setSavingTemplate(true)
+    // Strip per-quote specifics — photos and ids belong to this job, not the template.
+    const cleaned = items.map(({ description, detail, qty, rate, optional }) => ({
+      description, detail, qty, rate, optional, selected: !optional,
+    }))
+    const { error } = await supabase.from('quote_templates').insert({
+      name, line_items: cleaned, notes,
+      created_by: session?.user?.id ?? null,
+    })
+    setSavingTemplate(false)
+    if (error) { showToast(error.message, 'error'); return }
+    setTemplateName('')
+    setShowTemplates(false)
+    showToast(`Saved "${name}" as a template`)
+    loadLibrary()
+  }
+
+  // Appends rather than replaces — a quote is often a template plus extras, and
+  // silently wiping someone's work would be worse than an extra delete click.
+  async function applyTemplate(tpl) {
+    setItems(prev => [
+      ...prev,
+      ...(tpl.line_items ?? []).map(i => ({
+        ...i, id: uuid(), images: [], image_url: null,
+        selected: i.optional ? false : true,
+      })),
+    ])
+    setShowTemplates(false)
+    showToast(`Added ${tpl.line_items?.length ?? 0} items from "${tpl.name}"`)
+    supabase.from('quote_templates')
+      .update({ use_count: (tpl.use_count ?? 0) + 1 }).eq('id', tpl.id).then(() => {})
+  }
+
+  async function saveItemToLibrary(item) {
+    if (!item.description?.trim()) { showToast('Give the item a description first', 'error'); return }
+    const { error } = await supabase.from('quote_items_library').insert({
+      description: item.description.trim(),
+      detail: item.detail || null,
+      rate: Number(item.rate) || null,
+      created_by: session?.user?.id ?? null,
+    })
+    if (error) { showToast(error.message, 'error'); return }
+    showToast('Saved to your item library')
+    loadLibrary()
+  }
 
   const updateItem = useCallback((updated) => {
     setItems(prev => prev.map(i => i.id === updated.id ? updated : i))
@@ -724,22 +836,41 @@ export default function QuoteBuilder() {
   }
 
   async function save(newStatus, openSendModal = false) {
+    // A quote that has been responded to or billed is a record of what was
+    // agreed, not a working document. Editing one in place used to be possible
+    // and silently rewrote the live client link. Revisions now go through
+    // "take offline", which snapshots first.
+    if (!newStatus && isLocked) {
+      showToast(
+        quote.status === 'accepted'
+          ? 'This quote has been accepted. Use "Revise quote" to make changes — the accepted version is kept.'
+          : 'This quote is closed and can\'t be edited.',
+        'error',
+      )
+      setSaving(false)
+      return
+    }
     setSaving(true)
+    const uid = session?.user?.id ?? null
     const payload = {
       line_items: items, subtotal: totals.subtotal, gst: totals.gst, total: totals.total,
       notes, private_notes: privateNotes, job_pack: jobPack,
+      updated_by: uid,
       ...(newStatus ? { status: newStatus } : {}),
-      ...(newStatus === 'sent' ? { sent_at: new Date().toISOString() } : {}),
+      ...(newStatus === 'sent' ? { sent_at: new Date().toISOString(), sent_by: uid } : {}),
     }
-    // Graceful fallback if optional columns don't exist yet (migrations 007, 009)
-    const OPTIONAL_COLS = ['job_pack', 'private_notes', 'notes', 'valid_until']
+    // Graceful fallback if optional columns don't exist yet (migrations 007, 009,
+    // 022 — attribution columns land in 022 and may not be applied yet)
+    const OPTIONAL_COLS = ['job_pack', 'private_notes', 'notes', 'valid_until',
+                           'updated_by', 'created_by', 'sent_by']
     async function tryUpsert(p, isInsert, insertMeta) {
       let res = isInsert
         ? await supabase.from('quotes').insert({ ...insertMeta, ...p }).select().single()
         : await supabase.from('quotes').update(p).eq('id', id)
       const errMsg = res.error?.message ?? ''
       if (OPTIONAL_COLS.some(c => errMsg.includes(c))) {
-        const { job_pack: _jp, private_notes: _pn, notes: _n, ...pFallback } = p
+        const { job_pack: _jp, private_notes: _pn, notes: _n,
+                updated_by: _ub, sent_by: _sb, ...pFallback } = p
         const metaFallback = isInsert
           ? Object.fromEntries(Object.entries(insertMeta).filter(([k]) => k !== 'valid_until'))
           : undefined
@@ -753,7 +884,10 @@ export default function QuoteBuilder() {
       if (!jobId) { showToast('Select a job first', 'error'); setSaving(false); return }
       const token = uuid().replace(/-/g, '')
       const validUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
-      const { data, error } = await tryUpsert(payload, true, { job_id: jobId, status: newStatus ?? 'draft', client_view_token: token, valid_until: validUntil })
+      const { data, error } = await tryUpsert(payload, true, {
+        job_id: jobId, status: newStatus ?? 'draft', client_view_token: token,
+        valid_until: validUntil, created_by: session?.user?.id ?? null,
+      })
       if (error) showToast(error.message, 'error')
       else if (data) { showToast('Quote created'); navigate(`/quotes/${data.id}`, { replace: true, state: openSendModal ? { openSendModal: true } : null }) }
       else showToast('Quote created')
@@ -767,6 +901,81 @@ export default function QuoteBuilder() {
       if (data) { setQuote(data); setJob(data.jobs) }
     }
     setSaving(false)
+  }
+
+  // ── Revise a sent quote ──────────────────────────────────────────────────
+  // Snapshots the current version and hides the figures from the client while
+  // it's being changed, so nobody can accept a quote mid-revision.
+  async function takeOffline() {
+    if (!quote?.id) return
+    setSaving(true)
+    const { data, error } = await supabase.rpc('take_quote_offline', { p_quote_id: quote.id })
+    setSaving(false)
+    if (error || !data?.ok) {
+      showToast(error?.message ?? `Couldn't take the quote offline (${data?.reason ?? 'unknown'})`, 'error')
+      return
+    }
+    showToast('Quote taken offline — the client sees a holding message')
+    await reloadQuote()
+    await loadVersions()
+  }
+
+  // Re-issues after a revision and resets the expiry — a revised quote
+  // shouldn't inherit what was left of the old one's validity.
+  async function republish() {
+    if (!quote?.id) return
+    setSaving(true)
+    await save()   // persist edits before the status flips back to sent
+    const { data, error } = await supabase.rpc('republish_quote', { p_quote_id: quote.id, p_valid_days: 30 })
+    setSaving(false)
+    if (error || !data?.ok) {
+      showToast(error?.message ?? 'Could not republish', 'error')
+      return
+    }
+    showToast('Back online — remember to email the client the update')
+    await reloadQuote()
+    await loadVersions()
+  }
+
+  // ── Accept on behalf ─────────────────────────────────────────────────────
+  // For approvals given by phone or in person. Unlike the old status-dropdown
+  // workaround this sets responded_at, moves the job to accepted_to_schedule,
+  // and records who marked it and why.
+  async function acceptOnBehalf() {
+    if (!quote?.id) return
+    setOnBehalfSaving(true)
+    const { data, error } = await supabase.rpc('accept_quote_on_behalf', {
+      p_quote_id: quote.id,
+      p_reason: onBehalfReason.trim() || null,
+    })
+    setOnBehalfSaving(false)
+    if (error || !data?.ok) {
+      showToast(error?.message ?? `Couldn't record acceptance (${data?.reason ?? 'unknown'})`, 'error')
+      return
+    }
+    setShowOnBehalf(false)
+    setOnBehalfReason('')
+    showToast('Recorded as accepted on the client\'s behalf')
+    await reloadQuote()
+    await loadVersions()
+  }
+
+  async function reloadQuote() {
+    const { data } = await supabase.from('quotes')
+      .select(`*, jobs (id, address, job_type, title, status, clients (id, name, email, phone))`)
+      .eq('id', id).single()
+    if (data) { setQuote(data); setJob(data.jobs) }
+  }
+
+  async function loadVersions() {
+    if (!id || isNew) return
+    const { data, error } = await supabase
+      .from('quote_versions')
+      .select('id, version_no, subtotal, total, reason, created_at, created_by, users:created_by(name)')
+      .eq('quote_id', id)
+      .order('version_no', { ascending: false })
+    // Table arrives in migration 022; absent until it's applied.
+    if (!error && data) setVersions(data)
   }
 
   async function handlePreviewSend() {
@@ -896,6 +1105,43 @@ export default function QuoteBuilder() {
   const canSms      = !!clientPhone && quote?.client_view_token && quote?.status !== 'draft'
   const canComplete = quote?.status === 'accepted'
   const canXero     = quote?.status === 'complete'
+  // Responded-to or billed quotes are records, not drafts. Revisions go via
+  // takeOffline() so the prior version is snapshotted first.
+  const isLocked    = ['accepted', 'declined', 'complete', 'invoiced'].includes(quote?.status)
+  const isOffline   = quote?.status === 'editing'
+  const canRevise   = ['sent', 'viewed', 'expired'].includes(quote?.status)
+  // Phone approvals — only meaningful once the client has actually been sent it.
+  const canOnBehalf = ['sent', 'viewed', 'expired'].includes(quote?.status)
+
+  // How this quote was accepted. Quotient distinguishes a genuine acceptance
+  // from a staff-recorded one only by the absence of a fingerprint, which is
+  // easy to miss — here it's stated outright.
+  const acceptance = quote?.status === 'accepted' && quote?.accepted_via
+    ? (quote.accepted_via === 'on_behalf'
+        ? {
+            bg: '#EBF3FA', border: '#A9C8E0', color: '#2A6899',
+            title: 'Accepted by staff on the client\'s behalf',
+            detail: [
+              quote.on_behalf_reason,
+              quote.responded_at && new Date(quote.responded_at).toLocaleString('en-NZ', {
+                day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+              }),
+            ].filter(Boolean).join(' · '),
+            note: 'No client device record — this was recorded manually.',
+          }
+        : {
+            bg: '#E8F0E6', border: '#4A674155', color: '#2F5233',
+            title: 'Accepted by the client',
+            detail: quote.responded_at
+              ? new Date(quote.responded_at).toLocaleString('en-NZ', {
+                  day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+                })
+              : '',
+            note: [quote.accept_ip && `IP ${quote.accept_ip}`,
+                   quote.accept_user_agent && quote.accept_user_agent.slice(0, 60)]
+                  .filter(Boolean).join(' · '),
+          })
+    : null
 
   return (
     <>
@@ -911,23 +1157,34 @@ export default function QuoteBuilder() {
           </div>
           <div style={{ ...s.hRight, flexWrap: 'wrap' }}>
             {st && <span style={{ ...s.badge, background: st.bg, color: st.color }}>{st.label}</span>}
-            {quote && (
-              <select
-                value=""
-                onChange={e => { if (e.target.value) save(e.target.value) }}
-                disabled={saving}
-                aria-label="Change quote status"
-                style={{
-                  padding: '6px 10px', borderRadius: '7px', border: '1.5px solid var(--border)',
-                  background: '#fff', color: 'var(--bark)', fontSize: '12px', fontWeight: '600',
-                  fontFamily: 'var(--font)', cursor: 'pointer', outline: 'none',
-                }}
-              >
-                <option value="">{saving ? 'Saving…' : 'Change status…'}</option>
-                {['draft', 'sent', 'viewed', 'accepted', 'declined']
-                  .filter(k => k !== quote.status)
-                  .map(k => <option key={k} value={k}>{ST[k].label}</option>)}
-              </select>
+            {/* The free-form status dropdown that used to sit here is gone. It
+                allowed accepted → draft, which re-armed the client's ability to
+                respond on a quote that had already been agreed. Status now moves
+                through the specific actions below, each of which does the
+                associated bookkeeping. */}
+            {canRevise && (
+              <button style={s.reviseBtn} onClick={takeOffline} disabled={saving}
+                      title="Snapshot this version and hide the figures from the client while you edit">
+                ✎ Revise
+              </button>
+            )}
+            {isOffline && (
+              <button style={s.republishBtn} onClick={republish} disabled={saving}
+                      title="Save changes and put the quote back in front of the client">
+                {saving ? 'Publishing…' : '↑ Back online'}
+              </button>
+            )}
+            {canOnBehalf && (
+              <button style={s.onBehalfBtn} onClick={() => setShowOnBehalf(true)} disabled={saving}
+                      title="Client approved by phone or in person">
+                ✓ Accept for client
+              </button>
+            )}
+            {versions.length > 0 && (
+              <button style={s.versionsBtn} onClick={() => setShowVersions(true)}
+                      title="Previous versions of this quote">
+                🕐 {versions.length}
+              </button>
             )}
             {!isMobile && (
               <button style={s.previewBtn} onClick={async () => { await save(); setShowPreview(true) }} disabled={saving}>
@@ -967,16 +1224,29 @@ export default function QuoteBuilder() {
                 {xeroLoading ? 'Sending…' : '→ Xero'}
               </button>
             )}
-            {quote?.status !== 'invoiced' && (
+            {!isLocked && (
               <>
                 <button style={s.saveBtn} onClick={() => save()} disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
-                {quote?.status !== 'complete' && (
-                  <button style={s.sendBtn} onClick={handleSend} disabled={saving}>{isMobile ? 'Send →' : 'Send to client →'}</button>
-                )}
+                <button style={s.sendBtn} onClick={handleSend} disabled={saving}>{isMobile ? 'Send →' : 'Send to client →'}</button>
               </>
             )}
           </div>
         </div>
+
+        {acceptance && (
+          <div style={{ ...s.acceptBanner, background: acceptance.bg, borderColor: acceptance.border, color: acceptance.color }}>
+            <div style={s.acceptTitle}>{acceptance.title}</div>
+            {acceptance.detail && <div style={s.acceptDetail}>{acceptance.detail}</div>}
+            {acceptance.note && <div style={s.acceptNote}>{acceptance.note}</div>}
+          </div>
+        )}
+
+        {isOffline && (
+          <div style={s.offlineBanner}>
+            <strong>Offline for revision.</strong> The client sees a holding message
+            instead of the figures and can't accept until you put it back online.
+          </div>
+        )}
 
         {/* ── Body ── */}
         <div style={{ ...s.body, flexDirection: isMobile ? 'column' : 'row' }}>
@@ -1010,7 +1280,7 @@ export default function QuoteBuilder() {
                 <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px' }}>
                     {items.map(item => (
-                      <LineItem key={item.id} item={item} onChange={updateItem} onDelete={deleteItem} onMarkup={setMarkupItem} />
+                      <LineItem key={item.id} item={item} onChange={updateItem} onDelete={deleteItem} onMarkup={setMarkupItem} library={library} onSaveToLibrary={saveItemToLibrary} />
                     ))}
                   </div>
                 </SortableContext>
@@ -1021,6 +1291,12 @@ export default function QuoteBuilder() {
 
               {items.length === 0 && <div style={s.emptyItems}>No items yet</div>}
               <button style={s.addBtn} onClick={addItem}>+ Add line item</button>
+              {!isLocked && (
+                <button style={s.templateBtn} onClick={() => setShowTemplates(true)}
+                        title="Reuse a saved set of line items, or save this quote as one">
+                  ⧉ Templates{templates.length > 0 ? ` (${templates.length})` : ''}
+                </button>
+              )}
             </div>
 
             {/* Job Pack — crew-facing ops checklist */}
@@ -1266,6 +1542,114 @@ export default function QuoteBuilder() {
         />
       )}
 
+      {showOnBehalf && quote && (
+        <div style={s.modalBackdrop} onClick={() => setShowOnBehalf(false)}>
+          <div style={s.obModal} onClick={e => e.stopPropagation()}>
+            <div style={s.obTitle}>Accept on the client's behalf</div>
+            <p style={s.obHint}>
+              For approvals given by phone or in person. This will be recorded as
+              accepted <strong>by you</strong>, not by the client — the difference is
+              kept on the record and shown on the quote.
+            </p>
+            <label style={s.obLabel}>How did they approve? (optional)</label>
+            <textarea
+              style={s.obInput}
+              rows={3}
+              placeholder="e.g. Phoned 20 July, spoke to Margaret — confirmed to go ahead"
+              value={onBehalfReason}
+              onChange={e => setOnBehalfReason(e.target.value)}
+            />
+            <div style={s.obActions}>
+              <button style={s.obConfirm} onClick={acceptOnBehalf} disabled={onBehalfSaving}>
+                {onBehalfSaving ? 'Recording…' : 'Record acceptance'}
+              </button>
+              <button style={s.obCancel} onClick={() => setShowOnBehalf(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showTemplates && (
+        <div style={s.modalBackdrop} onClick={() => setShowTemplates(false)}>
+          <div style={s.verModal} onClick={e => e.stopPropagation()}>
+            <div style={s.obTitle}>Templates</div>
+            {templates.length === 0 ? (
+              <p style={s.obHint}>
+                No templates yet. Build a quote you'd reuse — a standard removal, a
+                crown reduction — then save it here and it's one click next time.
+              </p>
+            ) : (
+              <>
+                <p style={s.obHint}>Items are added to the current quote, not replaced.</p>
+                <div style={s.verList}>
+                  {templates.map(t => (
+                    <button key={t.id} style={s.tplRow} onClick={() => applyTemplate(t)}>
+                      <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+                        <div style={s.verReason}>{t.name}</div>
+                        <div style={s.verMeta}>
+                          {t.line_items?.length ?? 0} item{(t.line_items?.length ?? 0) === 1 ? '' : 's'}
+                          {t.use_count > 0 ? ` · used ${t.use_count}×` : ''}
+                        </div>
+                      </div>
+                      <span style={s.tplAdd}>Add →</span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+            <div style={s.tplSaveBox}>
+              <label style={s.obLabel}>Save this quote as a template</label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  style={{ ...s.obInput, flex: 1 }}
+                  placeholder="e.g. Standard gum removal + stump"
+                  value={templateName}
+                  onChange={e => setTemplateName(e.target.value)}
+                />
+                <button
+                  style={{ ...s.obConfirm, opacity: templateName.trim() ? 1 : 0.45 }}
+                  onClick={saveAsTemplate}
+                  disabled={!templateName.trim() || savingTemplate}
+                >
+                  {savingTemplate ? 'Saving…' : 'Save'}
+                </button>
+              </div>
+            </div>
+            <button style={s.obCancel} onClick={() => setShowTemplates(false)}>Close</button>
+          </div>
+        </div>
+      )}
+
+      {showVersions && (
+        <div style={s.modalBackdrop} onClick={() => setShowVersions(false)}>
+          <div style={s.verModal} onClick={e => e.stopPropagation()}>
+            <div style={s.obTitle}>Version history</div>
+            <p style={s.obHint}>
+              Each revision snapshots the quote as it stood before the change.
+              Kept indefinitely — the accepted version is never overwritten.
+            </p>
+            <div style={s.verList}>
+              {versions.map(v => (
+                <div key={v.id} style={s.verRow}>
+                  <div style={s.verNo}>v{v.version_no}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={s.verReason}>{VERSION_REASON[v.reason] ?? v.reason ?? 'Edited'}</div>
+                    <div style={s.verMeta}>
+                      {new Date(v.created_at).toLocaleString('en-NZ', {
+                        day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+                      })}
+                      {v.users?.name ? ` · ${v.users.name}` : ''}
+                    </div>
+                  </div>
+                  <div style={s.verAmt}>{nzd(v.subtotal)} <span style={s.verEx}>ex GST</span></div>
+                </div>
+              ))}
+            </div>
+            <button style={s.obCancel} onClick={() => setShowVersions(false)}>Close</button>
+          </div>
+        </div>
+      )}
+
       {toast && (
         <div style={{ ...s.toast, background: toast.type === 'error' ? '#C0392B' : '#4A6741' }}>
           {toast.msg}
@@ -1295,6 +1679,72 @@ const s = {
   },
   pdfBtn: { background: '#FAF8F4', border: '1px solid #E2DDD6', borderRadius: '7px', padding: '7px 12px', fontSize: '13px', fontWeight: '600', color: '#2C2416', cursor: 'pointer', fontFamily: 'var(--font)' },
   saveBtn: { background: '#FAF8F4', border: '1px solid #E2DDD6', borderRadius: '7px', padding: '7px 14px', fontSize: '13px', fontWeight: '600', color: '#2C2416', cursor: 'pointer', fontFamily: 'var(--font)' },
+
+  templateBtn: {
+    background: '#fff', border: '1px dashed #C9C2B2', borderRadius: '7px', padding: '8px 14px',
+    fontSize: '13px', fontWeight: '600', color: '#7A7267', cursor: 'pointer', fontFamily: 'var(--font)',
+  },
+  tplRow: {
+    display: 'flex', alignItems: 'center', gap: '12px', padding: '11px 8px',
+    borderBottom: '1px solid #F0EDE7', background: 'none', border: 'none',
+    borderBottomWidth: '1px', borderBottomStyle: 'solid', borderBottomColor: '#F0EDE7',
+    width: '100%', cursor: 'pointer', fontFamily: 'var(--font)',
+  },
+  tplAdd: { fontSize: '12px', fontWeight: '700', color: '#4A6741', whiteSpace: 'nowrap' },
+  tplSaveBox: {
+    borderTop: '1px solid #E2DDD6', paddingTop: '14px', marginTop: '4px',
+    display: 'flex', flexDirection: 'column', gap: '6px',
+  },
+
+  acceptBanner: {
+    margin: '0 20px', marginTop: '12px', padding: '13px 16px', borderRadius: '10px',
+    border: '1px solid', display: 'flex', flexDirection: 'column', gap: '3px',
+  },
+  acceptTitle:  { fontSize: '14px', fontWeight: '700' },
+  acceptDetail: { fontSize: '13px', opacity: 0.85 },
+  acceptNote:   { fontSize: '11.5px', opacity: 0.6 },
+  offlineBanner: {
+    margin: '12px 20px 0', padding: '12px 16px', borderRadius: '10px',
+    background: '#FDF3E3', border: '1px solid #E8C98A', color: '#8A5A0B',
+    fontSize: '13.5px', lineHeight: 1.5,
+  },
+
+  reviseBtn:    { background: '#FDF3E3', border: '1px solid #E8C98A', borderRadius: '7px', padding: '7px 12px', fontSize: '12px', fontWeight: '700', color: '#B26B0E', cursor: 'pointer', fontFamily: 'var(--font)' },
+  republishBtn: { background: '#4A6741', border: 'none', borderRadius: '7px', padding: '7px 12px', fontSize: '12px', fontWeight: '700', color: '#fff', cursor: 'pointer', fontFamily: 'var(--font)' },
+  onBehalfBtn:  { background: '#EBF3FA', border: '1px solid #A9C8E0', borderRadius: '7px', padding: '7px 12px', fontSize: '12px', fontWeight: '700', color: '#2A6899', cursor: 'pointer', fontFamily: 'var(--font)' },
+  versionsBtn:  { background: '#fff', border: '1px solid #E2DDD6', borderRadius: '7px', padding: '7px 10px', fontSize: '12px', fontWeight: '700', color: '#7A7267', cursor: 'pointer', fontFamily: 'var(--font)' },
+
+  modalBackdrop: {
+    position: 'fixed', inset: 0, background: 'rgba(44,36,22,0.45)', zIndex: 200,
+    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px',
+  },
+  obModal: {
+    background: '#fff', borderRadius: '12px', padding: '24px', width: '100%', maxWidth: '440px',
+    display: 'flex', flexDirection: 'column', gap: '12px', fontFamily: 'var(--font)',
+  },
+  verModal: {
+    background: '#fff', borderRadius: '12px', padding: '24px', width: '100%', maxWidth: '480px',
+    maxHeight: '80vh', display: 'flex', flexDirection: 'column', gap: '12px', fontFamily: 'var(--font)',
+  },
+  obTitle: { fontSize: '17px', fontWeight: '700', color: '#2C2416' },
+  obHint:  { fontSize: '13.5px', color: '#777', lineHeight: 1.55, margin: 0 },
+  obLabel: { fontSize: '11px', fontWeight: '700', color: '#888', textTransform: 'uppercase', letterSpacing: '0.4px' },
+  obInput: {
+    width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #E2DDD6',
+    fontSize: '14px', fontFamily: 'var(--font)', color: '#2C2416', background: '#FAF8F4',
+    boxSizing: 'border-box', resize: 'vertical',
+  },
+  obActions: { display: 'flex', gap: '10px', marginTop: '4px' },
+  obConfirm: { background: '#4A6741', color: '#fff', border: 'none', borderRadius: '8px', padding: '10px 18px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)' },
+  obCancel:  { background: '#fff', color: '#777', border: '1px solid #E2DDD6', borderRadius: '8px', padding: '10px 18px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
+
+  verList: { display: 'flex', flexDirection: 'column', overflowY: 'auto', minHeight: 0 },
+  verRow: { display: 'flex', alignItems: 'center', gap: '12px', padding: '11px 0', borderBottom: '1px solid #F0EDE7' },
+  verNo: { fontSize: '11px', fontWeight: '800', color: '#4A6741', minWidth: '26px', fontVariantNumeric: 'tabular-nums' },
+  verReason: { fontSize: '13.5px', fontWeight: '600', color: '#2C2416' },
+  verMeta: { fontSize: '11.5px', color: '#A8A196', marginTop: '2px' },
+  verAmt: { fontSize: '13px', fontWeight: '700', color: '#2C2416', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' },
+  verEx: { fontSize: '10px', fontWeight: '600', color: '#A8A196' },
   sendBtn: { background: '#4A6741', color: '#fff', border: 'none', borderRadius: '7px', padding: '8px 16px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
   emailBtn: { background: '#EBF3FA', color: '#4A7FA5', border: '1.5px solid #4A7FA5', borderRadius: '7px', padding: '7px 14px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
   completeBtn: { background: '#E6F4EC', color: '#1A7A4A', border: '1.5px solid #1A7A4A', borderRadius: '7px', padding: '7px 14px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
@@ -1334,6 +1784,7 @@ const b = {
   priceInput: { padding: '7px 8px 7px 20px', borderRadius: '6px', border: '1.5px solid #E2DDD6', fontSize: '13px', fontFamily: 'var(--font)', color: '#2C2416', width: '110px', textAlign: 'right' },
   lineTotal: { fontSize: '15px', fontWeight: '700', color: '#2C2416', transition: 'opacity 0.2s' },
   lineTotalEx: { fontSize: '10px', color: '#aaa' },
+  libBtn: { background: 'none', border: '1px solid #E2DDD6', borderRadius: '6px', padding: '5px 10px', fontSize: '11.5px', fontWeight: '600', color: '#7A7267', cursor: 'pointer', fontFamily: 'var(--font)' },
   removeBtn: { background: 'none', border: 'none', color: '#C0392B', fontSize: '12px', cursor: 'pointer', fontFamily: 'var(--font)', padding: '3px 6px' },
   // Fixed / Optional segmented control
   segWrap: { display: 'flex', borderRadius: '7px', border: '1.5px solid #E2DDD6', overflow: 'hidden', flexShrink: 0 },

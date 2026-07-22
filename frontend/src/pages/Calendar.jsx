@@ -21,12 +21,9 @@ import { jobHeading, koCode, kpiCountdown } from '../utils/jobDisplay'
 import CartrackMap from '../components/CartrackMap'
 import TruckProgress from '../components/TruckProgress'
 import JobDetailPanel from '../components/JobDetailPanel'
+import { exGst, quoteEx } from '../utils/money'
 
-// Price + on-site time for a job come from its best quote (total + job_pack).
-function nzd(v) {
-  if (v == null) return null
-  return '$' + Number(v).toLocaleString('en-NZ', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
-}
+// Price + on-site time for a job come from its best quote (subtotal + job_pack).
 function bestQuote(job) {
   const qs = job?.quotes ?? []
   return qs.find(q => q.status === 'accepted') || qs.find(q => q.status === 'viewed')
@@ -56,6 +53,20 @@ function addHours(startTime, hours) {
   const end = Math.min(h * 60 + m + Math.round(hours * 60), 23 * 60 + 59)
   return `${String(Math.floor(end / 60)).padStart(2, '0')}:${String(end % 60).padStart(2, '0')}:00`
 }
+
+// ── Tray statuses ──────────────────────────────────────────────────────────
+// Statuses a job can hold while it still needs a slot on the calendar, in
+// pipeline order. complete_to_invoice / invoiced / declined are excluded — that
+// work is finished or dead and has no business in a scheduling tray.
+const TRAY_STATUSES = [
+  'new_lead',
+  'quote_scheduled',
+  'quote_sent',
+  'accepted_to_schedule',
+  'scheduled',
+  'stump_grinding',
+  'on_hold',
+]
 
 // ── Resources ──────────────────────────────────────────────────────────────
 const RESOURCES = [
@@ -296,7 +307,8 @@ function TrayCard({ job, onOpen }) {
   const code = koCode(job)
   const kpi = sp ? kpiCountdown(job) : null
   const q = bestQuote(job)
-  const price = q ? nzd(q.total) : null
+  // Tray cards are staff-only, so the pill carries the ex-GST figure with its label.
+  const price = q ? exGst(quoteEx(q)) : null
   const timeOnSite = q?.job_pack?.time_required || null
   const statusColor = JOB_STATUSES[job.status]?.color ?? '#888'
 
@@ -537,7 +549,9 @@ function FullCalendar_() {
   const [alerting,          setAlerting]          = useState(false)
   const [trayWidth,         setTrayWidth]         = useState(220)
   const [traySearch,        setTraySearch]        = useState('')
-  const [traySide,          setTraySide]          = useState('quotes') // 'quotes' | 'work'
+  // Status filter replaces the old Quotes/Work tabs. Starts with everything on
+  // so nothing is hidden by default — new leads included.
+  const [trayStatuses,      setTrayStatuses]      = useState(() => new Set(TRAY_STATUSES))
   const [showTracker,       setShowTracker]       = useState(false)
   const trayResizing        = useRef(false)
   const trayResizeStart     = useRef(null)
@@ -562,6 +576,17 @@ function FullCalendar_() {
       const next = new Set(prev)
       if (next.has(id)) { if (next.size > 1) next.delete(id) }
       else next.add(id)
+      return next
+    })
+  }
+
+  // Unlike the resource filter, this one may be emptied entirely — an empty
+  // selection reads as "show nothing", and the tray says so.
+  function toggleTrayStatus(key) {
+    setTrayStatuses(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
       return next
     })
   }
@@ -624,10 +649,12 @@ function FullCalendar_() {
     const [{ data: jobs }, { data: rows }] = await Promise.all([
       supabase
         .from('jobs')
-        // new_lead → Quotes tab, accepted_to_schedule → Work tab (scheduled ones
-        // are filtered out below once they have a schedule row).
-        .select('*, clients(name, phone, email), quotes(id, status, total, job_pack)')
-        .in('status', ['new_lead', 'accepted_to_schedule', 'scheduled'])
+        // Every status that can still need a calendar slot. The tray's status
+        // filter narrows this client-side; previously the query itself was
+        // limited to three statuses, which is why quote_sent/on_hold jobs — and
+        // any lead already moved past new_lead — never reached the tray at all.
+        .select('*, clients(name, phone, email), quotes(id, status, subtotal, total, job_pack)')
+        .in('status', TRAY_STATUSES)
         .order('created_at', { ascending: true }),
       supabase
         .from('schedule')
@@ -824,11 +851,14 @@ function FullCalendar_() {
   }
 
   const trayQ = traySearch.trim().toLowerCase()
-  // Quotes tab = new leads (oldest first, from the created_at-asc query);
-  // Work tab = accepted jobs waiting to be scheduled.
-  const leads = unscheduled.filter(j => j.status === 'new_lead')
-  const work  = unscheduled.filter(j => j.status === 'accepted_to_schedule')
-  const sideList = traySide === 'quotes' ? leads : work
+  // How many unscheduled jobs sit in each status — drives the filter counts.
+  const statusCounts = unscheduled.reduce((acc, j) => {
+    acc[j.status] = (acc[j.status] ?? 0) + 1
+    return acc
+  }, {})
+  // Only offer statuses that actually have jobs, so the filter stays short.
+  const availableStatuses = TRAY_STATUSES.filter(k => statusCounts[k] > 0)
+  const sideList = unscheduled.filter(j => trayStatuses.has(j.status))
   const filteredUnscheduled = trayQ
     ? sideList.filter(j =>
         [j.title, j.clients?.name, j.address, j.job_type]
@@ -848,19 +878,42 @@ function FullCalendar_() {
       {/* ── Tray (hidden on mobile) ── */}
       {!isMobile && <div style={{ ...s.tray, width: trayWidth, minWidth: 180, maxWidth: 500, position: 'relative' }}>
         <div style={s.trayTop}>
-          <div style={s.trayTabs}>
-            <button
-              onClick={() => setTraySide('quotes')}
-              style={{ ...s.trayTab, ...(traySide === 'quotes' ? s.trayTabActive : {}) }}
-            >
-              Quotes {leads.length > 0 && <span style={s.trayTabCount}>{leads.length}</span>}
-            </button>
-            <button
-              onClick={() => setTraySide('work')}
-              style={{ ...s.trayTab, ...(traySide === 'work' ? s.trayTabActive : {}) }}
-            >
-              Work {work.length > 0 && <span style={s.trayTabCount}>{work.length}</span>}
-            </button>
+          {/* Status filter — one toggle per status that currently has jobs */}
+          <div style={s.trayFilter}>
+            <div style={s.trayFilterHead}>
+              <span style={s.trayFilterTitle}>Status</span>
+              {trayStatuses.size < availableStatuses.length && (
+                <button
+                  onClick={() => setTrayStatuses(new Set(TRAY_STATUSES))}
+                  style={s.trayFilterReset}
+                >
+                  Show all
+                </button>
+              )}
+            </div>
+            <div style={s.trayChips}>
+              {availableStatuses.map(key => {
+                const on = trayStatuses.has(key)
+                const color = JOB_STATUSES[key]?.color ?? '#7C93A8'
+                return (
+                  <button
+                    key={key}
+                    onClick={() => toggleTrayStatus(key)}
+                    title={JOB_STATUSES[key]?.description ?? ''}
+                    style={{
+                      ...s.trayChip,
+                      ...(on ? { background: color, borderColor: color, color: '#fff' } : {}),
+                    }}
+                  >
+                    <span style={{ ...s.trayChipDot, background: on ? 'rgba(255,255,255,0.85)' : color }} />
+                    {getStatusLabel(key)}
+                    <span style={{ ...s.trayChipCount, ...(on ? { background: 'rgba(0,0,0,0.16)' } : {}) }}>
+                      {statusCounts[key]}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
           </div>
 
           {/* Search */}
@@ -881,7 +934,9 @@ function FullCalendar_() {
             {loading && <div style={s.empty}>Loading…</div>}
             {!loading && filteredUnscheduled.length === 0 && (
               <div style={s.empty}>
-                {trayQ ? 'No matches' : traySide === 'quotes' ? 'No new leads' : 'All jobs scheduled ✓'}
+                {trayQ ? 'No matches'
+                  : trayStatuses.size === 0 ? 'No statuses selected'
+                  : 'All jobs scheduled ✓'}
               </div>
             )}
             {filteredUnscheduled.map(j => <TrayCard key={j.id} job={j} onOpen={setDetailJob} />)}
@@ -1222,14 +1277,19 @@ const s = {
   trayHead: { display: 'flex', alignItems: 'center', gap: '7px', padding: '0 14px 6px' },
   trayLabel:{ fontSize: '11px', fontWeight: '700', color: '#2C2416', textTransform: 'uppercase', letterSpacing: '0.05em' },
   trayBadge:{ fontSize: '10px', fontWeight: '700', background: '#D4851A', color: '#fff', borderRadius: '20px', padding: '1px 7px', lineHeight: 1.6 },
-  trayTabs: { display: 'flex', gap: '4px', padding: '0 10px 8px' },
-  trayTab: {
-    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
-    padding: '7px 8px', borderRadius: '8px', border: '1px solid var(--border)', background: '#fff',
-    fontSize: '12px', fontWeight: '700', color: '#8A8378', cursor: 'pointer', fontFamily: 'var(--font)',
+  trayFilter: { padding: '0 10px 8px' },
+  trayFilterHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' },
+  trayFilterTitle: { fontSize: '10px', fontWeight: '800', color: '#999', textTransform: 'uppercase', letterSpacing: '0.5px' },
+  trayFilterReset: { border: 'none', background: 'none', padding: 0, fontSize: '10px', fontWeight: '700', color: 'var(--bark-mid, #4A6741)', cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline' },
+  trayChips: { display: 'flex', flexWrap: 'wrap', gap: '4px' },
+  trayChip: {
+    display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '3px 7px',
+    borderRadius: '20px', border: '1px solid var(--border, #E4E1D8)', background: '#fff',
+    color: '#666', fontSize: '10.5px', fontWeight: '700', cursor: 'pointer',
+    fontFamily: 'inherit', lineHeight: 1.6, transition: 'background 0.1s',
   },
-  trayTabActive: { background: 'var(--bark-mid, #4A6741)', color: '#fff', borderColor: 'var(--bark-mid, #4A6741)' },
-  trayTabCount: { fontSize: '10px', fontWeight: '800', background: 'rgba(0,0,0,0.14)', borderRadius: '20px', padding: '0 6px', lineHeight: 1.7 },
+  trayChipDot: { width: '6px', height: '6px', borderRadius: '50%', flexShrink: 0 },
+  trayChipCount: { fontSize: '9.5px', fontWeight: '800', background: 'rgba(0,0,0,0.08)', borderRadius: '20px', padding: '0 5px', lineHeight: 1.7 },
   traySearchWrap: { position: 'relative', margin: '0 10px 8px', display: 'flex', alignItems: 'center' },
   traySearchIcon: { position: 'absolute', left: '8px', fontSize: '11px', pointerEvents: 'none', opacity: 0.5 },
   traySearchInput: {

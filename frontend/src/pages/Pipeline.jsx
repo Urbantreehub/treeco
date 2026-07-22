@@ -5,11 +5,7 @@ import { useJobs } from '../hooks/useJobs'
 import { useAuth } from '../context/AuthContext'
 import JobDetailPanel from '../components/JobDetailPanel'
 import NewJobModal from '../components/NewJobModal'
-
-function nzd(v) {
-  if (v == null) return null
-  return '$' + Number(v).toLocaleString('en-NZ', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
-}
+import { nzd0, quoteEx } from '../utils/money'
 
 function bestQuote(job) {
   const qs = job.quotes ?? []
@@ -163,7 +159,9 @@ export default function Pipeline() {
             {filtered.map(job => {
               const st = JOB_STATUSES[job.status]
               const quote = bestQuote(job)
-              const total = quote ? nzd(quote.total) : null
+              // Staff-facing row: show the ex-GST figure, labelled, so it can't be
+              // mistaken for the incl-GST number the client sees on the quote.
+              const totalEx = quote ? quoteEx(quote) : null
               const date = job.created_at ? new Date(job.created_at) : null
               const sp = isSpencersJob(job)
               const { primary, secondary } = jobHeading(job)
@@ -201,7 +199,11 @@ export default function Pipeline() {
                         {st.label}
                       </span>
                     )}
-                    {total && <div style={s.total}>{total}</div>}
+                    {totalEx != null && (
+                      <div style={s.total}>
+                        {nzd0(totalEx)}<span style={s.gstNote}> ex GST</span>
+                      </div>
+                    )}
                     {date && <div style={s.date}>{date.toLocaleDateString('en-NZ', { day: 'numeric', month: 'short' })}</div>}
                   </div>
                 </div>
@@ -316,7 +318,8 @@ const s = {
   address: { fontSize: '12px', color: '#aaa' },
   rowRight: { display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 },
   statusBadge: { fontSize: '11px', fontWeight: '600', borderRadius: '20px', padding: '3px 10px', whiteSpace: 'nowrap' },
-  total: { fontSize: '14px', fontWeight: '700', color: 'var(--bark)', minWidth: '70px', textAlign: 'right' },
+  total: { fontSize: '14px', fontWeight: '700', color: 'var(--bark)', minWidth: '96px', textAlign: 'right' },
+  gstNote: { fontSize: '10px', fontWeight: '600', color: 'var(--muted, #8A8A8A)', marginLeft: '3px' },
   date: { fontSize: '11px', color: '#aaa', minWidth: '55px', textAlign: 'right' },
   empty: { textAlign: 'center', color: '#ccc', padding: '60px 0', fontSize: '14px' },
 }

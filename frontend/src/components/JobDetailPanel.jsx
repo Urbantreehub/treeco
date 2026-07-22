@@ -9,6 +9,7 @@ import SpencersPortalData from './SpencersPortalData'
 import AddressInput from './AddressInput'
 import { JOB_STATUSES, STATUS_ORDER, isSpencersJob } from '../config/statuses'
 import { mapsHref } from '../utils/geo'
+import { exGst, quoteEx } from '../utils/money'
 
 // Contextual forward-only transitions per status.
 // Legacy statuses (quote_scheduled, accepted_to_schedule, stump_grinding) are
@@ -340,27 +341,27 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
                 ))}
               </div>
             )}
-            {/* Escape hatch — unusual or backwards moves */}
-            <details>
-              <summary style={{ fontSize: '11px', color: '#bbb', cursor: 'pointer', userSelect: 'none', listStyle: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                <span>▸</span> Move to different status…
-              </summary>
-              <select
-                value=""
-                disabled={changingStatus}
-                onChange={e => { if (e.target.value) handleStatusChange(e.target.value) }}
-                style={{ ...styles.statusSelect, marginTop: '8px', width: '100%' }}
-                aria-label="Change status"
-              >
-                <option value="">Select status…</option>
-                {Object.keys(JOB_STATUSES)
-                  .filter(k => k !== job.status)
-                  .filter(k => k !== 'invoiced' || job.status === 'complete_to_invoice')
-                  .map(key => (
-                    <option key={key} value={key}>{JOB_STATUSES[key].label}</option>
-                  ))}
-              </select>
-            </details>
+            {/* Any-direction status change — always visible so a job can be moved
+                back as easily as forward (invoiced/complete_to_invoice would
+                otherwise be dead ends with no action buttons at all). */}
+            <label style={styles.statusChangeLabel} htmlFor={`status-select-${job.id}`}>
+              Change status
+            </label>
+            <select
+              id={`status-select-${job.id}`}
+              value=""
+              disabled={changingStatus}
+              onChange={e => { if (e.target.value) handleStatusChange(e.target.value) }}
+              style={{ ...styles.statusSelect, width: '100%' }}
+            >
+              <option value="">Move to…</option>
+              {Object.keys(JOB_STATUSES)
+                .filter(k => k !== job.status)
+                .filter(k => k !== 'invoiced' || job.status === 'complete_to_invoice')
+                .map(key => (
+                  <option key={key} value={key}>{JOB_STATUSES[key].label}</option>
+                ))}
+            </select>
           </div>
 
           {/* Quote follow-up — shown when awaiting client response */}
@@ -460,9 +461,10 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
                         <span style={{ fontSize: '18px' }}>📄</span>
                         <div style={{ textAlign: 'left' }}>
                           <div style={{ fontWeight: '600', fontSize: '14px' }}>Open quote</div>
-                          {q.total != null && (
+                          {/* Internal panel — ex-GST. The quote page itself still shows incl-GST. */}
+                          {quoteEx(q) != null && (
                             <div style={{ fontSize: '12px', color: '#888', marginTop: '1px' }}>
-                              ${Number(q.total).toLocaleString('en-NZ')} incl GST
+                              {exGst(quoteEx(q), 2)}
                             </div>
                           )}
                         </div>
@@ -694,6 +696,10 @@ const styles = {
   rowValue: { fontSize: '14px', color: 'var(--bark)' },
   mapLink: { fontSize: '14px', color: '#4A7FA5', textDecoration: 'none' },
   description: { fontSize: '14px', color: 'var(--bark)', lineHeight: 1.5, whiteSpace: 'pre-wrap' },
+  statusChangeLabel: {
+    display: 'block', fontSize: '11px', fontWeight: '700', color: '#888',
+    textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '5px',
+  },
   statusSelect: {
     padding: '8px 12px', borderRadius: '8px', border: '1.5px solid var(--border)',
     background: '#fff', color: 'var(--bark)', fontSize: '13px', fontWeight: '600',

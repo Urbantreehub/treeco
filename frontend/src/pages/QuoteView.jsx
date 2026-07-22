@@ -74,17 +74,22 @@ export default function QuoteView() {
   const [declineStep, setDeclineStep] = useState(false)
   const [declineReason, setDeclineReason] = useState('')
   const [response, setResponse] = useState(null)
+  const [blocked, setBlocked] = useState(null)   // expired / being-edited / failure message
+  const [question, setQuestion] = useState('')
+  const [askState, setAskState] = useState('idle') // 'idle' | 'sending' | 'sent'
   const [tcAgreed, setTcAgreed] = useState(false)
   const [showTc, setShowTc] = useState(false)
   const [showGlossary, setShowGlossary] = useState(false)
 
   useEffect(() => {
+    // Via RPC, not a direct table read: quotes/jobs/clients have no anon RLS
+    // policy, so a logged-out client's .from('quotes') returns nothing and the
+    // page falsely reports an expired link. get_quote_by_token is SECURITY
+    // DEFINER and scoped to the single row matching the token.
     supabase
-      .from('quotes')
-      .select(`*, jobs (id, address, job_type, title, clients (name, email, phone))`)
-      .eq('client_view_token', token)
-      .single()
-      .then(({ data }) => {
+      .rpc('get_quote_by_token', { p_token: token })
+      .then(({ data, error }) => {
+        if (error) { console.error('Quote load failed', error); setNotFound(true); setLoading(false); return }
         if (!data) { setNotFound(true); setLoading(false); return }
         setQuote(data)
         setItems((data.line_items ?? []).map(i => ({ ...i })))
@@ -96,6 +101,16 @@ export default function QuoteView() {
           // Atomically record this open: increments opened_count, sets
           // last_opened_at, sets viewed_at if null, and flips sent→viewed.
           supabase.rpc('register_quote_open', { p_token: token }).catch(() => {})
+          // Tell the office, but only the first time — viewed_at is null until
+          // this open is registered, so it's the one reliable "never seen
+          // before" signal available on the client.
+          if (!data.viewed_at) {
+            fetch(`${SUPABASE_URL}/functions/v1/notify-office`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', apikey: import.meta.env.VITE_SUPABASE_ANON_KEY },
+              body: JSON.stringify({ quote_id: data.id, action: 'opened' }),
+            }).catch(() => {})
+          }
         }
         setLoading(false)
       })
@@ -118,28 +133,44 @@ export default function QuoteView() {
   async function respond(action, reason = '') {
     if (isPreview) return
     setResponding(true)
-    const now = new Date().toISOString()
     const newStatus = action === 'accept' ? 'accepted' : 'declined'
-    // Persist the client's optional-item selections and the resulting totals,
-    // so the office sees exactly what was accepted
-    const finalTotals = calcTotals(items)
-    await supabase.from('quotes').update({
-      status: newStatus,
-      responded_at: now,
-      line_items: items,
-      subtotal: finalTotals.subtotal,
-      gst: finalTotals.gst,
-      total: finalTotals.total,
-      ...(reason ? { decline_reason: reason } : {}),
-    }).eq('client_view_token', token)
-    if (action === 'accept') {
-      await supabase.from('jobs')
-        .update({ status: 'accepted_to_schedule', status_changed_at: now })
-        .eq('id', quote.job_id)
-    } else {
-      await supabase.from('jobs')
-        .update({ status: 'declined', status_changed_at: now })
-        .eq('id', quote.job_id)
+    // One RPC rather than two anon UPDATEs: those were blocked by RLS and their
+    // results never checked, so the page showed "accepted" while nothing saved.
+    //
+    // Only the optional-item SELECTIONS are sent. Totals are recomputed by the
+    // database from the stored line items — the server no longer trusts figures
+    // from the browser, since anyone holding a link could otherwise accept at a
+    // price of their choosing.
+    const { data: result, error } = await supabase.rpc('respond_to_quote', {
+      p_token:      token,
+      p_action:     action,
+      p_reason:     reason || null,
+      p_line_items: items.map(i => ({ id: i.id, selected: !!i.selected })),
+      p_user_agent: navigator.userAgent ?? null,
+    })
+    if (error || !result?.ok) {
+      // Already-responded is a benign race (double-click, re-opened link) —
+      // show the recorded answer. Anything else needs explaining.
+      if (result?.reason === 'already_responded') {
+        setResponding(false)
+        setResponded(true)
+        setResponse(result.status)
+        setDeclineStep(false)
+        return
+      }
+      setResponding(false)
+      setDeclineStep(false)
+      if (result?.reason === 'expired') {
+        setBlocked('This quote has passed its valid-until date, so we can\'t accept it online. Give us a call and we\'ll reissue it at current prices.')
+        return
+      }
+      if (result?.reason === 'editing') {
+        setBlocked('We\'re updating this quote right now. We\'ll email you the moment the new version is ready.')
+        return
+      }
+      console.error('Quote response failed', error ?? result)
+      setBlocked('Sorry — we couldn\'t record your response. Please call us on 027 203 1446 and we\'ll sort it out.')
+      return
     }
     setResponding(false)
     setResponded(true)
@@ -150,6 +181,30 @@ export default function QuoteView() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', apikey: import.meta.env.VITE_SUPABASE_ANON_KEY },
       body: JSON.stringify({ quote_id: quote.id, action: newStatus, reason }),
+    }).catch(() => {})
+  }
+
+  async function askQuestion() {
+    const body = question.trim()
+    if (!body) return
+    setAskState('sending')
+    const { data, error } = await supabase.rpc('post_quote_question', {
+      p_token: token,
+      p_body: body,
+    })
+    if (error || !data?.ok) {
+      console.error('Question failed', error ?? data)
+      setAskState('idle')
+      setBlocked('We couldn\'t send that just now — please call us on 027 203 1446.')
+      return
+    }
+    setQuestion('')
+    setAskState('sent')
+    // Best-effort nudge so the office sees it without polling the quote.
+    fetch(`${SUPABASE_URL}/functions/v1/notify-office`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', apikey: import.meta.env.VITE_SUPABASE_ANON_KEY },
+      body: JSON.stringify({ quote_id: quote.id, action: 'question', reason: body }),
     }).catch(() => {})
   }
 
@@ -174,6 +229,26 @@ export default function QuoteView() {
     )
   }
 
+  // Being revised — show a holding page rather than figures that are about to
+  // change. Without this the client could accept a quote mid-edit.
+  if (!isPreview && quote.status === 'editing') {
+    return (
+      <div style={p.loadWrap}>
+        <img src="/logo.png" alt="Urban Tree Services" style={{ height: '56px', marginBottom: '16px', opacity: 0.7 }} />
+        <div style={{ fontSize: '17px', color: 'var(--bark, #2C2416)', fontWeight: 600 }}>
+          We're updating this quote
+        </div>
+        <div style={{ fontSize: '14px', color: '#888', marginTop: '8px', maxWidth: '340px', textAlign: 'center', lineHeight: 1.5 }}>
+          Changes are being made right now. We'll email you as soon as the updated
+          version is ready — usually the same day.
+        </div>
+        <div style={{ fontSize: '13px', color: '#bbb', marginTop: '14px' }}>
+          Need it sooner? <a href="tel:0272031446" style={{ color: '#4A6741' }}>027 203 1446</a>
+        </div>
+      </div>
+    )
+  }
+
   const client = quote.jobs?.clients
   const firstName = client?.name?.split(' ')[0] ?? 'there'
   const hasOptional = items.some(i => i.optional)
@@ -184,6 +259,10 @@ export default function QuoteView() {
   const expiryDate = quote.valid_until
     ? fmtDate(quote.valid_until)
     : fmtDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000))
+  // Computed by the database rather than the browser's clock, so a client with
+  // a wrong system date sees the same answer the server will enforce.
+  const isExpired = !isPreview && (quote.is_expired === true || quote.status === 'expired')
+  const comments = quote.comments ?? []
 
   async function handleDownload() {
     setDownloading(true)
@@ -447,7 +526,20 @@ export default function QuoteView() {
           {/* ── CTA / Response ── */}
           {!responded ? (
             <div style={p.ctaBox}>
-              {!declineStep ? (
+              {blocked && <div style={p.blockedNote}>{blocked}</div>}
+              {/* Expiry is enforced server-side; this just avoids offering a
+                  button that is going to be refused. */}
+              {isExpired ? (
+                <div style={p.expiredCard}>
+                  <div style={p.expiredTitle}>This quote has expired</div>
+                  <p style={p.expiredHint}>
+                    It was valid until <strong>{expiryDate}</strong>. Prices move with fuel,
+                    disposal and insurance costs, so we'd rather requote than hold you to an
+                    old figure. Call us and we'll reissue it — usually same day.
+                  </p>
+                  <a href="tel:0272031446" style={p.expiredCall}>Call 027 203 1446</a>
+                </div>
+              ) : !declineStep ? (
                 <>
                   <label style={p.tcAcknowledge}>
                     <input
@@ -515,6 +607,60 @@ export default function QuoteView() {
                   ? <>We'll be in touch within 1 business day to confirm your booking date.<br />Ref: #{quoteNum} · <a href="tel:0272031446" style={{ color: 'inherit' }}>027 203 1446</a></>
                   : <>We've received your response. Call <a href="tel:0272031446" style={{ color: 'inherit' }}>027 203 1446</a> if you'd like to discuss further.</>}
               </div>
+            </div>
+          )}
+
+          {/* ── Questions ──
+              Previously the only way to query a quote was to phone. A written
+              thread keeps the question attached to the quote it's about, so
+              whoever picks it up has the context. */}
+          {!isPreview && (
+            <div style={p.askBox}>
+              <div style={p.askHeader}>Questions about this quote?</div>
+              {comments.length > 0 && (
+                <div style={p.thread}>
+                  {comments.map(c => (
+                    <div
+                      key={c.id}
+                      style={{ ...p.bubble, ...(c.author === 'staff' ? p.bubbleStaff : p.bubbleClient) }}
+                    >
+                      <div style={p.bubbleWho}>
+                        {c.author === 'staff' ? COMPANY.shortName : 'You'}
+                        <span style={p.bubbleWhen}>{fmtDate(c.created_at)}</span>
+                      </div>
+                      <div style={p.bubbleBody}>{c.body}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {askState === 'sent' ? (
+                <div style={p.askSent}>
+                  Thanks — we've got your question and will come back to you, usually the same day.
+                </div>
+              ) : (
+                <>
+                  <textarea
+                    style={p.askInput}
+                    placeholder="e.g. Does the price include removing the stump?"
+                    value={question}
+                    onChange={e => setQuestion(e.target.value)}
+                    rows={3}
+                    disabled={askState === 'sending'}
+                  />
+                  <div style={p.askActions}>
+                    <button
+                      style={{ ...p.askBtn, opacity: question.trim() ? 1 : 0.45 }}
+                      onClick={askQuestion}
+                      disabled={!question.trim() || askState === 'sending'}
+                    >
+                      {askState === 'sending' ? 'Sending…' : 'Send question'}
+                    </button>
+                    <span style={p.askOr}>
+                      or call <a href="tel:0272031446" style={p.askCall}>027 203 1446</a>
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
           )}
 
@@ -828,6 +974,55 @@ const p = {
   declineConfirm: { padding: '10px 20px', background: 'var(--danger)', color: '#fff', border: 'none', borderRadius: '7px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
   cancelBtn: { padding: '10px 16px', background: 'none', border: '1px solid var(--border)', borderRadius: '7px', fontSize: '14px', color: '#888', cursor: 'pointer', fontFamily: 'var(--font)' },
   respondedBanner: { marginBottom: '32px', padding: '24px', borderRadius: '12px', border: '1.5px solid', textAlign: 'center' },
+
+  blockedNote: {
+    background: '#FDF3E3', border: '1px solid #E8C98A', color: '#8A5A0B',
+    borderRadius: '10px', padding: '12px 14px', fontSize: '14px', lineHeight: 1.55,
+    marginBottom: '14px',
+  },
+  expiredCard: {
+    background: '#fff', borderRadius: '10px', border: '1px solid var(--border)',
+    padding: '22px', display: 'flex', flexDirection: 'column', gap: '10px', textAlign: 'center',
+  },
+  expiredTitle: { fontSize: '17px', fontWeight: '700', color: 'var(--bark)' },
+  expiredHint: { fontSize: '14px', color: '#777', lineHeight: 1.6, margin: 0 },
+  expiredCall: {
+    alignSelf: 'center', marginTop: '4px', background: 'var(--moss)', color: '#fff',
+    textDecoration: 'none', padding: '11px 22px', borderRadius: '9px',
+    fontSize: '15px', fontWeight: '700',
+  },
+
+  askBox: {
+    marginBottom: '32px', background: '#fff', border: '1px solid var(--border)',
+    borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px',
+  },
+  askHeader: { fontSize: '15px', fontWeight: '700', color: 'var(--bark)' },
+  thread: { display: 'flex', flexDirection: 'column', gap: '10px' },
+  bubble: { borderRadius: '10px', padding: '11px 13px', maxWidth: '86%' },
+  bubbleClient: { background: 'var(--cream, #FAF8F4)', border: '1px solid var(--border)', alignSelf: 'flex-end' },
+  bubbleStaff: { background: '#E8F0E6', border: '1px solid #4A674133', alignSelf: 'flex-start' },
+  bubbleWho: {
+    fontSize: '11px', fontWeight: '700', color: '#7A7267', marginBottom: '4px',
+    display: 'flex', gap: '8px', alignItems: 'baseline',
+  },
+  bubbleWhen: { fontWeight: '400', color: '#A8A196' },
+  bubbleBody: { fontSize: '14px', color: 'var(--bark)', lineHeight: 1.55, whiteSpace: 'pre-wrap' },
+  askInput: {
+    width: '100%', padding: '11px 13px', borderRadius: '9px', border: '1px solid var(--border)',
+    fontSize: '14px', fontFamily: 'inherit', color: 'var(--bark)', background: 'var(--cream, #FAF8F4)',
+    boxSizing: 'border-box', resize: 'vertical',
+  },
+  askActions: { display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' },
+  askBtn: {
+    background: 'var(--moss)', color: '#fff', border: 'none', borderRadius: '9px',
+    padding: '10px 18px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'inherit',
+  },
+  askOr: { fontSize: '13px', color: '#999' },
+  askCall: { color: 'var(--moss)', fontWeight: '600' },
+  askSent: {
+    background: '#E8F0E6', border: '1px solid #4A674133', borderRadius: '9px',
+    padding: '13px 15px', fontSize: '14px', color: '#2F5233', lineHeight: 1.55,
+  },
 
   // Download button
   downloadBtn: {

@@ -490,10 +490,13 @@ export default function Dashboard() {
           </div>
         )}
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '16px' }}>
+          {/* treeRevenue is quote subtotals (ex GST) unless Xero is connected, in which
+              case it's the Xero P&L revenue figure — whose GST basis depends on the org's
+              Xero tax settings, which this app never reads. Only label what we can vouch for. */}
           <StatCard
             label="Crew days booked"
             value={crewDays.toFixed(1)}
-            sub={`${nzd(treeRevenue)} revenue ÷ $2,500/day`}
+            sub={`${nzd(treeRevenue)}${usingXero ? '' : ' ex GST'} revenue ÷ $2,500/day`}
             color={crewDays < 5 ? '#C0392B' : crewDays < 10 ? '#D4851A' : 'var(--moss)'}
             onClick={() => nav('/quotes')}
           />

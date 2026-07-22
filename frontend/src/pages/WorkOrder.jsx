@@ -3,9 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../config/supabase'
 import { v4 as uuid } from 'uuid'
 import { mapsHref } from '../utils/geo'
+import { FILE_ACCEPT, isResizableImage, extOf, isPdf } from '../utils/files'
+import { nzd, exGst, inclGst } from '../utils/money'
 
 const GST = 0.15
-function nzd(v) { return '$' + Number(v || 0).toLocaleString('en-NZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
 // Charge for a line item: exact incl-GST mirror when present, else qty×rate.
 function lineCharge(item) {
   const ex = (Number(item.qty) || 0) * (Number(item.rate) || 0)
@@ -82,6 +83,21 @@ function processImage(file, stamp = null) {
     img.onerror = () => { URL.revokeObjectURL(url); resolve(file) }
     img.src = url
   })
+}
+
+// PDFs must bypass the canvas pipeline entirely: processImage decodes through
+// an <img>, which fails on a PDF, and its onerror path resolves the raw file —
+// which was then uploaded as contentType 'image/jpeg' under a .jpg path and
+// stored unopenable. Non-images keep their real bytes, extension and MIME.
+async function prepareUpload(file, stamp) {
+  if (!isResizableImage(file)) {
+    return {
+      body: file,
+      ext: extOf(file.name) || 'pdf',
+      contentType: file.type || 'application/pdf',
+    }
+  }
+  return { body: await processImage(file, stamp), ext: 'jpg', contentType: 'image/jpeg' }
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
@@ -206,9 +222,9 @@ export default function WorkOrder() {
       stamp = { coords: gps ? `${gps.lat}, ${gps.lng}` : 'GPS unavailable', datetime }
     }
 
-    const blob = await processImage(file, stamp)
-    const path = `site/${jobId}/${type}/${uuid()}.jpg`
-    const { error } = await supabase.storage.from('quote-images').upload(path, blob, { contentType: 'image/jpeg' })
+    const { body, ext, contentType } = await prepareUpload(file, stamp)
+    const path = `site/${jobId}/${type}/${uuid()}.${ext}`
+    const { error } = await supabase.storage.from('quote-images').upload(path, body, { contentType })
 
     if (!error) {
       const { data } = supabase.storage.from('quote-images').getPublicUrl(path)
@@ -248,9 +264,9 @@ export default function WorkOrder() {
     if (!file || !itemId) return
     setUploading(`${itemId}:${stage}`)
     const stamp = isDowner ? await downerStamp() : null
-    const blob = await processImage(file, stamp)
-    const path = `site/${jobId}/${itemId}/${stage}/${uuid()}.jpg`
-    const { error } = await supabase.storage.from('quote-images').upload(path, blob, { contentType: 'image/jpeg' })
+    const { body, ext, contentType } = await prepareUpload(file, stamp)
+    const path = `site/${jobId}/${itemId}/${stage}/${uuid()}.${ext}`
+    const { error } = await supabase.storage.from('quote-images').upload(path, body, { contentType })
     if (!error) {
       const url = supabase.storage.from('quote-images').getPublicUrl(path).data.publicUrl
       setLinePhotos(prev => {
@@ -440,9 +456,10 @@ export default function WorkOrder() {
                     </div>
                     {charge && (
                       <div style={s.taskCharge}>
-                        <div style={s.taskChargeTotal}>{nzd(charge.incl)}</div>
+                        {/* Crew-facing sheet: ex-GST leads, incl-GST demoted to the sub-line. */}
+                        <div style={s.taskChargeTotal}>{exGst(charge.ex, 2)}</div>
                         <div style={s.taskChargeSub}>
-                          {charge.qty ? `${charge.qty} × ${nzd(charge.rate)} · ` : ''}{nzd(charge.ex)} ex GST
+                          {charge.qty ? `${charge.qty} × ${nzd(charge.rate)} · ` : ''}{inclGst(charge.incl, 2)}
                         </div>
                       </div>
                     )}
@@ -505,7 +522,7 @@ export default function WorkOrder() {
 
             {/* shared hidden picker — target is set by openLineUpload */}
             <input
-              ref={lineInputRef} type="file" accept="image/*" capture="environment"
+              ref={lineInputRef} type="file" accept={FILE_ACCEPT}
               style={{ display: 'none' }}
               onChange={e => { const t = lineTarget.current; if (t) handleLineUpload(e.target.files[0], t.itemId, t.stage); e.target.value = '' }}
             />
@@ -523,11 +540,14 @@ export default function WorkOrder() {
             {photos.length > 0 && (
               <div style={{ ...s.photoGrid, marginTop: 12 }}>
                 {photos.map((url, i) => (
-                  <img key={`${i}-${url}`} src={url} alt="" onClick={() => setLightbox(url)} style={s.thumb} />
+                  isPdf(url)
+                    ? <a key={`${i}-${url}`} href={url} target="_blank" rel="noopener noreferrer"
+                        style={{ ...s.thumb, ...s.pdfThumb }} title="Open PDF">📄 PDF</a>
+                    : <img key={`${i}-${url}`} src={url} alt="" onClick={() => setLightbox(url)} style={s.thumb} />
                 ))}
               </div>
             )}
-            <input ref={generalRef} type="file" accept="image/*" capture="environment"
+            <input ref={generalRef} type="file" accept={FILE_ACCEPT}
               style={{ display: 'none' }}
               onChange={e => { handleUpload(e.target.files[0], 'general'); e.target.value = '' }}
             />
@@ -752,8 +772,15 @@ function PhotoStrip({ label, labelColor, photos, readonly, uploading, onView, on
       </div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
         {photos.map((url, i) => (
-          <img key={`${i}-${url}`} src={url} alt="" onClick={() => onView(url)}
-            style={{ width: 80, height: 60, objectFit: 'cover', borderRadius: 8, cursor: 'zoom-in', border: '1px solid #E2DDD6', flexShrink: 0 }} />
+          isPdf(url)
+            ? <a key={`${i}-${url}`} href={url} target="_blank" rel="noopener noreferrer" title="Open PDF"
+                style={{ width: 80, height: 60, borderRadius: 8, border: '1px solid #E2DDD6', flexShrink: 0,
+                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+                         background: '#FAFAF8', color: '#666', fontSize: 11, fontWeight: 700, textDecoration: 'none' }}>
+                📄 PDF
+              </a>
+            : <img key={`${i}-${url}`} src={url} alt="" onClick={() => onView(url)}
+                style={{ width: 80, height: 60, objectFit: 'cover', borderRadius: 8, cursor: 'zoom-in', border: '1px solid #E2DDD6', flexShrink: 0 }} />
         ))}
         {!readonly && (
           <button onClick={onAdd} disabled={uploading} style={{
@@ -830,6 +857,8 @@ const s = {
   },
   photoGrid: { display: 'flex', flexWrap: 'wrap', gap: 10 },
   thumb:     { width: 80, height: 60, objectFit: 'cover', borderRadius: 8, cursor: 'zoom-in', border: '1px solid #E2DDD6' },
+  pdfThumb:  { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, background: '#FAFAF8',
+               color: '#666', fontSize: 11, fontWeight: 700, textDecoration: 'none', cursor: 'pointer' },
   photoBtn:  {
     padding: '12px 0', background: '#fff', border: '1.5px dashed #D0D9C8',
     borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: 'pointer',

@@ -26,9 +26,12 @@ function upcomingQuoteDays(n = 6) {
 const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 const label = (d) => d.toLocaleDateString('en-NZ', { weekday: 'short', day: 'numeric', month: 'short' })
 
+const MAX_PHOTOS = 6
+const MAX_PHOTO_BYTES = 10 * 1024 * 1024 // ~10MB per image
+
 export default function BookQuote() {
   const [f, setF] = useState({ name: '', phone: '', email: '', address: '', job_type: '', job_description: '', preferred_date: '', window: '' })
-  const [photo, setPhoto] = useState(null)
+  const [photos, setPhotos] = useState([])
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState(false)
   const [err, setErr] = useState(null)
@@ -46,12 +49,32 @@ export default function BookQuote() {
   })
 
   function onPhoto(e) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = () => setPhoto(reader.result)
-    reader.readAsDataURL(file)
+    const files = Array.from(e.target.files || [])
+    e.target.value = '' // allow re-picking the same file(s)
+    if (!files.length) return
+
+    const room = MAX_PHOTOS - photos.length
+    if (room <= 0) { setErr(`You can add up to ${MAX_PHOTOS} photos`); return }
+
+    let tooBig = false
+    const picked = []
+    for (const file of files) {
+      if (picked.length >= room) break
+      if (file.size > MAX_PHOTO_BYTES) { tooBig = true; continue }
+      picked.push(file)
+    }
+    if (tooBig) setErr('Some photos were skipped — each must be under 10MB')
+    else if (files.length > room) setErr(`Only the first ${room} photo${room === 1 ? '' : 's'} were added (max ${MAX_PHOTOS})`)
+    else setErr(null)
+
+    picked.forEach(file => {
+      const reader = new FileReader()
+      reader.onload = () => setPhotos(prev => (prev.length >= MAX_PHOTOS ? prev : [...prev, reader.result]))
+      reader.readAsDataURL(file)
+    })
   }
+
+  const removePhoto = (i) => setPhotos(prev => prev.filter((_, idx) => idx !== i))
 
   async function submit(e) {
     e.preventDefault()
@@ -63,7 +86,7 @@ export default function BookQuote() {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/book-quote`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', apikey: ANON, Authorization: `Bearer ${ANON}` },
-        body: JSON.stringify({ ...f, photo_base64: photo }),
+        body: JSON.stringify({ ...f, photos_base64: photos, photo_base64: photos[0] ?? null }),
       })
       const b = await res.json()
       if (!res.ok) throw new Error(b.error || 'Something went wrong')
@@ -75,14 +98,26 @@ export default function BookQuote() {
     }
   }
 
+  function reset() {
+    setF({ name: '', phone: '', email: '', address: '', job_type: '', job_description: '', preferred_date: '', window: '' })
+    setPhotos([])
+    setErr(null)
+    setDone(false)
+  }
+
   if (done) return (
     <div style={{ ...s.page, ...(IS_EMBED ? { background: 'transparent', padding: '0', minHeight: 0 } : {}) }}>
-      <div style={s.card}>
+      <div style={{ ...s.card, alignItems: 'center', textAlign: 'center', padding: '40px 24px 32px' }}>
         <img src="/logo.png" alt="Urban Tree Services" style={s.logo} />
-        <div style={{ fontSize: '40px', margin: '8px 0' }}>✓</div>
-        <h1 style={s.title}>Request received</h1>
-        <p style={s.lead}>Thanks {f.name.split(' ')[0]} — we've got your enquiry and will be in touch within 1 business day to confirm a time.</p>
+        <div style={s.checkCircle}>
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        </div>
+        <h1 style={s.title}>Request received!</h1>
+        <p style={s.lead}>Thanks {f.name.split(' ')[0]} — we've got your details and photos. We'll be in touch, usually the same day.</p>
         <p style={s.small}>Need us sooner? Call <a href="tel:0272031446" style={s.link}>027 203 1446</a>.</p>
+        <button type="button" onClick={reset} style={s.againLink}>Send another request</button>
       </div>
     </div>
   )
@@ -141,12 +176,26 @@ export default function BookQuote() {
           ))}
         </div>
 
-        <label style={s.label}>Photo (optional)</label>
-        <label style={s.photoBtn}>
-          {photo ? '📷 Photo added — tap to change' : '📷 Add a photo of the tree'}
-          <input type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={onPhoto} />
-        </label>
-        {photo && <img src={photo} alt="" style={s.preview} />}
+        <label style={s.label}>Photos (optional)</label>
+        {photos.length > 0 && (
+          <div style={s.thumbs}>
+            {photos.map((src, i) => (
+              <div key={i} style={s.thumbWrap}>
+                {/* PDFs have no visual preview — show a document tile instead */}
+                {src.startsWith('data:application/pdf')
+                  ? <div style={{ ...s.thumb, ...s.thumbDoc }}>📄</div>
+                  : <img src={src} alt="" style={s.thumb} />}
+                <button type="button" onClick={() => removePhoto(i)} style={s.thumbRemove} aria-label="Remove attachment">×</button>
+              </div>
+            ))}
+          </div>
+        )}
+        {photos.length < MAX_PHOTOS && (
+          <label style={s.photoBtn}>
+            {photos.length ? `📷 Add another photo (${photos.length}/${MAX_PHOTOS})` : '📷 Add photos of the tree'}
+            <input type="file" accept="image/*,application/pdf,.pdf" multiple style={{ display: 'none' }} onChange={onPhoto} />
+          </label>
+        )}
 
         {err && <div style={s.err}>{err}</div>}
         <button type="submit" style={{ ...s.submit, opacity: submitting ? 0.6 : 1 }} disabled={submitting}>
@@ -172,7 +221,13 @@ const s = {
   chip: { padding: '9px 13px', borderRadius: '20px', border: '1.5px solid var(--border)', background: '#fff', color: '#666', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
   chipOn: { background: 'var(--moss-pale)', borderColor: 'var(--moss)', color: 'var(--moss)' },
   photoBtn: { display: 'block', padding: '13px', borderRadius: '9px', border: '1.5px dashed var(--border)', background: '#FAFAF8', color: '#777', fontSize: '14px', fontWeight: '600', cursor: 'pointer', textAlign: 'center' },
-  preview: { width: '100%', maxHeight: '200px', objectFit: 'cover', borderRadius: '10px', marginTop: '10px' },
+  thumbs: { display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' },
+  thumbWrap: { position: 'relative', width: '72px', height: '72px' },
+  thumb: { width: '72px', height: '72px', objectFit: 'cover', borderRadius: '9px', border: '1.5px solid var(--border)' },
+  thumbDoc: { display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FAFAF8', fontSize: '26px', boxSizing: 'border-box' },
+  thumbRemove: { position: 'absolute', top: '-7px', right: '-7px', width: '22px', height: '22px', borderRadius: '50%', border: 'none', background: '#2C2416', color: '#fff', fontSize: '15px', lineHeight: '20px', cursor: 'pointer', padding: 0, boxShadow: '0 1px 4px rgba(0,0,0,0.3)' },
+  checkCircle: { width: '64px', height: '64px', borderRadius: '50%', background: 'var(--moss)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '4px 0 14px', boxShadow: '0 4px 14px rgba(74,103,65,0.35)' },
+  againLink: { marginTop: '18px', background: 'none', border: 'none', color: 'var(--moss)', fontSize: '14px', fontWeight: '600', cursor: 'pointer', textDecoration: 'underline', fontFamily: 'var(--font)' },
   err: { background: '#FFF0EE', color: '#C0392B', border: '1px solid #F0C8C2', borderRadius: '8px', padding: '10px 12px', fontSize: '13px', marginTop: '14px' },
   submit: { marginTop: '18px', padding: '15px', borderRadius: '11px', border: 'none', background: 'var(--moss)', color: '#fff', fontSize: '16px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)', boxShadow: '0 2px 8px rgba(74,103,65,0.3)' },
   small: { fontSize: '12px', color: '#999', textAlign: 'center', marginTop: '12px' },

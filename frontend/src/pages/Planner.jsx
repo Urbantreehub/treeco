@@ -18,11 +18,6 @@ const JOB_SELECT =
 
 // ---------- small helpers ----------
 
-function nzd(v) {
-  if (v == null) return null
-  return '$' + Number(v).toLocaleString('en-NZ', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
-}
-
 function firstName(name) {
   if (!name) return 'there'
   return String(name).trim().split(/\s+/)[0]

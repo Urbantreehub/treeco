@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { supabase } from '../config/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { FILE_ACCEPT, isPdf } from '../utils/files'
+import { nzd as money } from '../utils/money'
 
 // Mulch dump sites: live map + pins, photos, dump instructions, contact and
 // agreed per-load price. Crew log a dumped load, which auto-generates a Xero
@@ -10,7 +12,10 @@ import { useIsMobile } from '../hooks/useIsMobile'
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON = import.meta.env.VITE_SUPABASE_ANON_KEY
 const fnHeaders = { 'Content-Type': 'application/json', apikey: ANON, Authorization: `Bearer ${ANON}` }
-const nzd = (v) => '$' + Number(v || 0).toLocaleString('en-NZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+// price_per_load is entered ex GST (see the "Agreed price per load (ex GST)" field),
+// so every display of it below is labelled accordingly. Coerce first — the shared
+// formatter returns null for a missing value, and these sites can have no price set.
+const nzd = (v) => money(Number(v) || 0, 2)
 function timeAgo(d) {
   const diff = Date.now() - new Date(d).getTime(), m = Math.floor(diff / 6e4), h = Math.floor(m / 60), day = Math.floor(h / 24)
   if (m < 1) return 'just now'; if (m < 60) return `${m}m ago`; if (h < 24) return `${h}h ago`
@@ -133,7 +138,7 @@ export default function MulchDump() {
                     <button key={s.id} style={{ ...mstyle.siteRow, ...(activeId === s.id ? mstyle.siteRowActive : {}) }} onClick={() => setActiveId(s.id)}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={mstyle.siteName}>{s.name}</div>
-                        <div style={mstyle.siteMeta}>{s.address || 'No address'} · {nzd(s.price_per_load)}/load</div>
+                        <div style={mstyle.siteMeta}>{s.address || 'No address'} · {nzd(s.price_per_load)} ex GST / load</div>
                         {last && <div style={mstyle.siteLast}>Last dump {timeAgo(last.dumped_at)}</div>}
                       </div>
                       {s.photos?.[0] && <img src={s.photos[0]} alt="" style={mstyle.siteThumb} />}
@@ -191,7 +196,9 @@ function SiteDetail({ site, dumps, isStaff, onLog, onRetry, onEdit, showToast })
       {site.photos?.length > 0 && (
         <div style={mstyle.photoStrip}>
           {site.photos.map((url, i) => (
-            <img key={i} src={url} alt="" style={mstyle.photo} onClick={() => setLightbox(url)} />
+            isPdf(url)
+              ? <a key={i} href={url} target="_blank" rel="noopener noreferrer" title="Open PDF" style={{ ...mstyle.photo, ...mstyle.pdfTile }}>📄 PDF</a>
+              : <img key={i} src={url} alt="" style={mstyle.photo} onClick={() => setLightbox(url)} />
           ))}
         </div>
       )}
@@ -207,7 +214,7 @@ function SiteDetail({ site, dumps, isStaff, onLog, onRetry, onEdit, showToast })
         {isStaff && (
           <div style={mstyle.infoBox}>
             <div style={mstyle.cardLabel}>Agreed price</div>
-            <div style={mstyle.price}>{nzd(site.price_per_load)}<span style={mstyle.perLoad}> / load</span></div>
+            <div style={mstyle.price}>{nzd(site.price_per_load)}<span style={mstyle.perLoad}> ex GST / load</span></div>
           </div>
         )}
         <div style={{ ...mstyle.infoBox, flex: isStaff ? 1 : 'unset', minWidth: isStaff ? '160px' : 'unset' }}>
@@ -225,9 +232,11 @@ function SiteDetail({ site, dumps, isStaff, onLog, onRetry, onEdit, showToast })
       ) : (
         <div style={mstyle.logCard}>
           <div style={mstyle.cardLabel}>Log a dumped load</div>
-          {isStaff && <div style={mstyle.logHint}>This creates a Xero draft invoice for {nzd(site.price_per_load)} to {site.contact_name || site.name}.</div>}
+          {/* The agreed rate is ex GST; what the invoicing function actually bills isn't
+              verifiable from here, so don't state the invoice total — name the rate instead. */}
+          {isStaff && <div style={mstyle.logHint}>This creates a Xero draft invoice to {site.contact_name || site.name} at the agreed rate of {nzd(site.price_per_load)} ex GST per load.</div>}
           <textarea style={mstyle.textarea} placeholder="Note (optional) — e.g. full truck load, left by the gate" value={note} onChange={e => setNote(e.target.value)} rows={2} />
-          <input ref={fileRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={e => setPhoto(e.target.files?.[0] || null)} />
+          <input ref={fileRef} type="file" accept={FILE_ACCEPT} style={{ display: 'none' }} onChange={e => setPhoto(e.target.files?.[0] || null)} />
           <button style={mstyle.photoBtn} onClick={() => fileRef.current?.click()}>{photo ? `📷 ${photo.name.slice(0, 20)}` : '📷 Add photo (optional)'}</button>
           <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
             <button style={{ ...mstyle.confirmBtn, opacity: busy ? 0.6 : 1 }} onClick={submit} disabled={busy}>{busy ? 'Logging…' : 'Confirm dump'}</button>
@@ -244,7 +253,7 @@ function SiteDetail({ site, dumps, isStaff, onLog, onRetry, onEdit, showToast })
             <div key={d.id} style={mstyle.dumpRow}>
               <div style={{ flex: 1 }}>
                 <div style={mstyle.dumpTop}>
-                  {isStaff && <>{nzd(d.price)} · </>}{timeAgo(d.dumped_at)} · {d.users?.name || 'Crew'}
+                  {isStaff && <>{nzd(d.price)} ex GST · </>}{timeAgo(d.dumped_at)} · {d.users?.name || 'Crew'}
                 </div>
                 {d.load_note && <div style={mstyle.dumpNote}>{d.load_note}</div>}
                 {isStaff && <InvoicePill dump={d} isStaff={isStaff} onRetry={onRetry} />}
@@ -353,12 +362,14 @@ function SiteEditor({ site, meId, onClose, onSaved, showToast }) {
           <div style={mstyle.photoStrip}>
             {(f.photos || []).map((url, i) => (
               <div key={i} style={{ position: 'relative' }}>
-                <img src={url} alt="" style={mstyle.photo} />
+                {isPdf(url)
+                  ? <a href={url} target="_blank" rel="noopener noreferrer" title="Open PDF" style={{ ...mstyle.photo, ...mstyle.pdfTile }}>📄 PDF</a>
+                  : <img src={url} alt="" style={mstyle.photo} />}
                 <button style={mstyle.removePhoto} onClick={() => set('photos', f.photos.filter((_, j) => j !== i))}>✕</button>
               </div>
             ))}
           </div>
-          <input ref={fileRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={e => addPhotos(Array.from(e.target.files || []))} />
+          <input ref={fileRef} type="file" accept={FILE_ACCEPT} multiple style={{ display: 'none' }} onChange={e => addPhotos(Array.from(e.target.files || []))} />
           <button style={mstyle.photoBtn} onClick={() => fileRef.current?.click()} disabled={uploading}>{uploading ? 'Uploading…' : '＋ Add photos'}</button>
         </div>
         <div style={mstyle.modalFoot}>
@@ -397,6 +408,8 @@ const mstyle = {
 
   photoStrip: { display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' },
   photo: { width: '96px', height: '96px', borderRadius: '10px', objectFit: 'cover', cursor: 'pointer', border: '1px solid var(--border)' },
+  pdfTile: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', background: '#FAFAF8',
+             color: '#666', fontSize: '11px', fontWeight: '700', textDecoration: 'none', boxSizing: 'border-box' },
   removePhoto: { position: 'absolute', top: '-6px', right: '-6px', width: '20px', height: '20px', borderRadius: '50%', border: 'none', background: 'var(--danger)', color: '#fff', fontSize: '11px', cursor: 'pointer' },
 
   card: { background: '#fff', border: '1px solid var(--border)', borderRadius: '10px', padding: '14px', marginBottom: '12px' },

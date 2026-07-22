@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../config/supabase'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { useNavigate } from 'react-router-dom'
+import { exGst, quoteEx } from '../utils/money'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -44,12 +45,6 @@ function timeAgo(dateStr) {
   if (mon < 12) return `${mon} month${mon === 1 ? '' : 's'} ago`
   const yr = Math.floor(mon / 12)
   return `${yr} year${yr === 1 ? '' : 's'} ago`
-}
-
-function fmtMoney(n) {
-  const v = Number(n)
-  if (!Number.isFinite(v)) return '—'
-  return v.toLocaleString('en-AU', { style: 'currency', currency: 'AUD', minimumFractionDigits: 0, maximumFractionDigits: 0 })
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -121,7 +116,8 @@ function QuoteCard({ q, isMobile, onFollowUp, onTextLink, onOpen, busy }) {
           {job.title && <div style={s.jobTitle}>{job.title}</div>}
         </div>
         <div style={s.rightCol}>
-          <div style={s.total}>{fmtMoney(q.total)}</div>
+          {/* Staff tracking view — ex-GST, labelled; the client's copy stays incl-GST. */}
+          <div style={s.total}>{exGst(quoteEx(q)) ?? '—'}</div>
           <span style={{ ...s.pill, background: qStatusColor(q.status) }}>
             {qStatusLabel(q.status)}
           </span>
@@ -204,7 +200,7 @@ export default function SentQuotes() {
     try {
       const { data, error } = await supabase
         .from('quotes')
-        .select('id, status, total, client_view_token, sent_at, viewed_at, responded_at, opened_count, last_opened_at, followup_count, last_followup_at, jobs ( title, address, clients ( name, email, phone ) )')
+        .select('id, status, subtotal, total, client_view_token, sent_at, viewed_at, responded_at, opened_count, last_opened_at, followup_count, last_followup_at, jobs ( title, address, clients ( name, email, phone ) )')
         .not('sent_at', 'is', null)
         .order('sent_at', { ascending: false })
       if (error) throw error
