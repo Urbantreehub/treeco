@@ -18,11 +18,21 @@ function mockChain(result = { data: null, error: null }) {
     eq:     () => mockChain(result),
     neq:    () => mockChain(result),
     ilike:  () => mockChain(result),
+    like:   () => mockChain(result),
     in:     () => mockChain(result),
     is:     () => mockChain(result),
+    not:    () => mockChain(result),
+    or:     () => mockChain(result),
+    lt:     () => mockChain(result),
+    lte:    () => mockChain(result),
+    gt:     () => mockChain(result),
+    gte:    () => mockChain(result),
+    contains: () => mockChain(result),
+    range:  () => mockChain(result),
     order:  () => mockChain(result),
     limit:  () => mockChain(result),
-    single: () => Promise.resolve({ data: null, error: null }),
+    single: () => Promise.resolve(Array.isArray(result.data) ? { data: result.data[0] ?? null, error: null } : result),
+    maybeSingle: () => Promise.resolve(Array.isArray(result.data) ? { data: result.data[0] ?? null, error: null } : result),
     then:   (res, rej) => Promise.resolve(result).then(res, rej),
     catch:  (rej) => Promise.resolve(result).catch(rej),
     finally:(fn)  => Promise.resolve(result).finally(fn),
@@ -30,8 +40,38 @@ function mockChain(result = { data: null, error: null }) {
   return c
 }
 
+// Seeded demo revenue so the Dashboard renders with real-looking figures in the
+// public demo. Spread across this year and last year so the range filter has
+// something to show. Demo-only — never used against a real backend.
+function demoQuotes() {
+  const rows = [
+    // [year, monthIndex, subtotal, status, job_type]
+    [2026, 6, 4850, 'invoiced', 'Tree Removal'], [2026, 6, 2100, 'accepted', 'Pruning'],
+    [2026, 5, 3200, 'invoiced', 'Pruning'],       [2026, 4, 5600, 'complete', 'Tree Removal'],
+    [2026, 3, 2750, 'accepted', 'Hedge'],          [2026, 2, 4100, 'invoiced', 'Tree Removal'],
+    [2026, 1, 1800, 'accepted', 'Stump Grinding'], [2026, 0, 3900, 'invoiced', 'Pruning'],
+    [2026, 5, 2600, 'sent', 'Pruning'],            [2026, 3, 3300, 'declined', 'Tree Removal'],
+    [2025, 10, 5200, 'invoiced', 'Tree Removal'],  [2025, 9, 3400, 'accepted', 'Pruning'],
+    [2025, 7, 4700, 'invoiced', 'Tree Removal'],   [2025, 5, 2900, 'complete', 'Hedge'],
+    [2025, 3, 3800, 'invoiced', 'Pruning'],        [2025, 1, 2400, 'accepted', 'Tree Removal'],
+    [2025, 10, 1500, 'stump grinding', 'Stump Grinding'],
+  ]
+  return rows.map(([y, m, subtotal, status, job_type], i) => ({
+    id: `demo-q${i}`, status, subtotal, total: Math.round(subtotal * 1.15),
+    created_at: new Date(y, m, 12).toISOString(), jobs: { job_type },
+  }))
+}
+
+const DEMO_TABLES = {
+  quotes:   () => demoQuotes(),
+  vehicles: () => ([
+    { id: 'v1', name: 'Isuzu tipper', plate: 'KRT294', active: true, cof_due: null, ruc_km_remaining: 1240, notes: '' },
+    { id: 'v2', name: 'Nissan crew cab', plate: 'MHD812', active: true, cof_due: null, ruc_km_remaining: 620, notes: '' },
+  ]),
+}
+
 const mockClient = {
-  from:    () => mockChain(),
+  from:    (table) => mockChain({ data: DEMO_TABLES[table] ? DEMO_TABLES[table]() : null, error: null }),
   auth: {
     getSession:         () => Promise.resolve({ data: { session: null } }),
     onAuthStateChange:  () => ({ data: { subscription: { unsubscribe: () => {} } } }),
