@@ -426,7 +426,7 @@ const s = {
     margin: 0,
     fontSize: 22,
     fontWeight: 800,
-    color: 'var(--bark)',
+    color: 'var(--ink)',
     lineHeight: 1.1,
   },
   pageSubtitle: {
@@ -622,7 +622,7 @@ const s = {
   staffName: {
     fontSize: 17,
     fontWeight: 700,
-    color: 'var(--bark)',
+    color: 'var(--ink)',
   },
   staffRole: {
     fontSize: 13,
@@ -663,7 +663,7 @@ const s = {
     flex: 1,
     fontSize: 14,
     fontWeight: 700,
-    color: 'var(--bark)',
+    color: 'var(--ink)',
   },
   sectionCount: {
     fontSize: 12,

@@ -789,7 +789,7 @@ function SOPEditor({ doc, onSave, onDelete, onBack }) {
     <div style={{ maxWidth: 920 }}>
       <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:16, flexWrap:'wrap' }}>
         <button style={s.backBtn} onClick={onBack}>← Back</button>
-        <div style={{ flex:1, fontWeight:800, fontSize:15, color:'var(--bark)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+        <div style={{ flex:1, fontWeight:800, fontSize:15, color:'var(--ink)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
           {form.doc_number} — {form.title}
         </div>
         <button style={s.pdfBtn2} onClick={() => printPDF(form)}>↓ PDF</button>
@@ -869,7 +869,7 @@ function SOPEditor({ doc, onSave, onDelete, onBack }) {
           {PPE.map(p => (
             <label key={p.id} style={{ display:'flex', alignItems:'center', gap:8, fontSize:13, cursor:'pointer' }}>
               <input type="checkbox" checked={(form.ppe??[]).includes(p.id)} onChange={() => togPPE(p.id)} />
-              <span style={{ fontWeight:600, color:'var(--bark)' }}>{p.label}</span>
+              <span style={{ fontWeight:600, color:'var(--ink)' }}>{p.label}</span>
               {p.std && <span style={{ color:'#999', fontSize:11 }}>{p.std}</span>}
             </label>
           ))}
@@ -962,7 +962,7 @@ function Sec({ label, children }) {
   return (
     <div style={s.sec}>
       <div style={s.secHead} onClick={() => setOpen(v => !v)}>
-        <span style={{ fontWeight:700, fontSize:13, color:'var(--bark)' }}>{label}</span>
+        <span style={{ fontWeight:700, fontSize:13, color:'var(--ink)' }}>{label}</span>
         <span style={{ color:'#bbb', fontSize:13 }}>{open ? '▲' : '▼'}</span>
       </div>
       {open && <div style={s.secBody}>{children}</div>}
@@ -980,13 +980,13 @@ const MF = ({ label, children }) => (
 // ── Styles ────────────────────────────────────────────────────────────────────
 
 const s = {
-  secTitle: { fontSize:13, fontWeight:700, color:'var(--bark)', textTransform:'uppercase', letterSpacing:'0.04em' },
-  addBtn:   { background:'var(--moss)', color:'#fff', border:'none', borderRadius:8, padding:'8px 16px', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'var(--font)' },
+  secTitle: { fontSize:13, fontWeight:700, color:'var(--ink)', textTransform:'uppercase', letterSpacing:'0.04em' },
+  addBtn:   { background:'var(--terra)', color:'#fff', border:'none', borderRadius:8, padding:'8px 16px', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'var(--font)' },
   editBtn:  { background:'none', border:'none', borderRadius:6, padding:'5px 8px', fontSize:11, color:'#bbb', cursor:'pointer', fontFamily:'var(--font)', flexShrink:0 },
-  pdfBtn:   { background:'var(--moss)', color:'#fff', border:'none', borderRadius:6, padding:'6px 14px', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'var(--font)', flexShrink:0 },
-  pdfBtn2:  { background:'var(--moss)', color:'#fff', border:'none', borderRadius:7, padding:'8px 14px', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'var(--font)' },
+  pdfBtn:   { background:'var(--terra)', color:'#fff', border:'none', borderRadius:6, padding:'6px 14px', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'var(--font)', flexShrink:0 },
+  pdfBtn2:  { background:'var(--terra)', color:'#fff', border:'none', borderRadius:7, padding:'8px 14px', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'var(--font)' },
   backBtn:  { background:'#fff', border:'1px solid var(--border)', borderRadius:7, padding:'7px 12px', fontSize:12, color:'#666', cursor:'pointer', fontFamily:'var(--font)', flexShrink:0 },
-  saveBtn:  { background:'var(--moss)', color:'#fff', border:'none', borderRadius:7, padding:'9px 18px', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'var(--font)' },
+  saveBtn:  { background:'var(--terra)', color:'#fff', border:'none', borderRadius:7, padding:'9px 18px', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'var(--font)' },
   cancelBtn:{ background:'#fff', border:'1px solid var(--border)', borderRadius:7, padding:'9px 16px', fontSize:13, color:'#666', cursor:'pointer', fontFamily:'var(--font)' },
   delBtn:   { background:'#fff', border:'1px solid #E0B4B0', borderRadius:7, padding:'7px 12px', fontSize:12, color:'var(--danger)', cursor:'pointer', fontFamily:'var(--font)' },
   secBtn:   { background:'#fff', border:'1px solid var(--border)', borderRadius:7, padding:'6px 12px', fontSize:12, color:'#555', cursor:'pointer', fontFamily:'var(--font)' },
@@ -994,7 +994,7 @@ const s = {
 
   list:     { display:'flex', flexDirection:'column', gap:8 },
   row:      { display:'flex', alignItems:'flex-start', gap:10, background:'#fff', border:'1px solid var(--border)', borderRadius:10, padding:'12px 16px' },
-  rowTitle: { fontSize:14, fontWeight:600, color:'var(--bark)' },
+  rowTitle: { fontSize:14, fontWeight:600, color:'var(--ink)' },
   rowMeta:  { fontSize:11, color:'#999' },
   badge:    { fontSize:10, fontWeight:700, borderRadius:5, padding:'2px 7px', textTransform:'uppercase', whiteSpace:'nowrap' },
   verBadge: { fontSize:10, fontWeight:600, background:'#F3F4F6', color:'#888', borderRadius:4, padding:'2px 6px' },
@@ -1007,8 +1007,8 @@ const s = {
   table:    { width:'100%', borderCollapse:'collapse', fontSize:12 },
   th:       { background:'#3A5C2E', color:'#fff', padding:'6px 7px', fontWeight:700, textAlign:'left', fontSize:11, textTransform:'uppercase', letterSpacing:'0.03em', border:'1px solid #2a4a20' },
   td:       { padding:'5px 5px', borderBottom:'1px solid #f0f0ee', verticalAlign:'top', border:'1px solid #eee' },
-  cell:     { width:'100%', padding:'4px 6px', borderRadius:4, border:'1px solid var(--border)', fontSize:11.5, color:'var(--bark)', fontFamily:'var(--font)', boxSizing:'border-box', background:'#fff', resize:'vertical' },
+  cell:     { width:'100%', padding:'4px 6px', borderRadius:4, border:'1px solid var(--border)', fontSize:11.5, color:'var(--ink)', fontFamily:'var(--font)', boxSizing:'border-box', background:'#fff', resize:'vertical' },
 
   flbl:     { fontSize:11, fontWeight:600, color:'#888', textTransform:'uppercase', letterSpacing:'0.04em', marginBottom:4 },
-  inp:      { width:'100%', padding:'8px 10px', borderRadius:7, border:'1.5px solid var(--border)', fontSize:13, color:'var(--bark)', fontFamily:'var(--font)', boxSizing:'border-box', background:'#fff' },
+  inp:      { width:'100%', padding:'8px 10px', borderRadius:7, border:'1.5px solid var(--border)', fontSize:13, color:'var(--ink)', fontFamily:'var(--font)', boxSizing:'border-box', background:'#fff' },
 }

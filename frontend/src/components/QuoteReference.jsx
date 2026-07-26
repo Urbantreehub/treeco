@@ -190,7 +190,7 @@ const styles = {
     display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px',
     marginBottom: '4px',
   },
-  title: { fontSize: '16px', fontWeight: '700', color: 'var(--bark)' },
+  title: { fontSize: '16px', fontWeight: '700', color: 'var(--ink)' },
   badge: {
     fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.4px',
     color: '#B26A00', background: '#FDF3E3', border: '1px solid #E8C98A',
@@ -214,27 +214,27 @@ const styles = {
   uploadBtn: {
     display: 'inline-block', background: 'none', border: '1px solid var(--border)',
     borderRadius: '8px', padding: '8px 14px', fontSize: '13px', fontWeight: '600',
-    color: 'var(--bark)', cursor: 'pointer', fontFamily: 'var(--font)',
+    color: 'var(--ink)', cursor: 'pointer', fontFamily: 'var(--font)',
   },
   textBlock: {
-    fontSize: '14px', color: 'var(--bark)', lineHeight: 1.5, whiteSpace: 'pre-wrap',
+    fontSize: '14px', color: 'var(--ink)', lineHeight: 1.5, whiteSpace: 'pre-wrap',
   },
   textarea: {
     width: '100%', padding: '9px 12px', borderRadius: '8px',
     border: '1px solid var(--border)', fontSize: '14px',
-    fontFamily: 'var(--font)', color: 'var(--bark)',
+    fontFamily: 'var(--font)', color: 'var(--ink)',
     background: 'var(--cream)', boxSizing: 'border-box', resize: 'vertical',
   },
   primaryBtn: {
-    background: 'var(--moss)', color: '#fff', border: 'none',
+    background: 'var(--terra)', color: '#fff', border: 'none',
     borderRadius: '8px', padding: '9px 20px', fontSize: '14px',
     fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)',
   },
   summary: {
-    fontSize: '13px', fontWeight: '600', color: 'var(--bark)', cursor: 'pointer',
+    fontSize: '13px', fontWeight: '600', color: 'var(--ink)', cursor: 'pointer',
   },
   enquiry: {
-    marginTop: '8px', fontSize: '12px', color: 'var(--bark)', lineHeight: 1.5,
+    marginTop: '8px', fontSize: '12px', color: 'var(--ink)', lineHeight: 1.5,
     whiteSpace: 'pre-wrap', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
     background: 'var(--cream)', border: '1px solid var(--border)',
     borderRadius: '8px', padding: '10px 12px', overflowX: 'auto',

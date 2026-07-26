@@ -162,7 +162,7 @@ const styles = {
   clientName: {
     fontWeight: '600',
     fontSize: '13px',
-    color: 'var(--bark)',
+    color: 'var(--ink)',
     lineHeight: 1.3,
     flex: 1,
   },
@@ -190,8 +190,8 @@ const styles = {
   },
   typeTag: {
     fontSize: '10px',
-    background: 'var(--moss-pale)',
-    color: 'var(--moss)',
+    background: 'var(--terra-wash)',
+    color: 'var(--terra)',
     borderRadius: '4px',
     padding: '2px 6px',
     fontWeight: '500',
@@ -200,6 +200,6 @@ const styles = {
   value: {
     fontSize: '12px',
     fontWeight: '700',
-    color: 'var(--bark)',
+    color: 'var(--ink)',
   },
 }

@@ -953,17 +953,17 @@ function FullCalendar_() {
         {dayAlert && (
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }} onClick={() => !alerting && setDayAlert(null)}>
             <div style={{ background: '#fff', borderRadius: '14px', width: '100%', maxWidth: '420px', padding: '20px', boxShadow: '0 8px 30px rgba(0,0,0,0.25)' }} onClick={e => e.stopPropagation()}>
-              <div style={{ fontSize: '17px', fontWeight: '700', color: 'var(--bark)', marginBottom: '6px' }}>Text the day's clients?</div>
+              <div style={{ fontSize: '17px', fontWeight: '700', color: 'var(--ink)', marginBottom: '6px' }}>Text the day's clients?</div>
               <div style={{ fontSize: '13px', color: '#777', marginBottom: '12px', lineHeight: 1.5 }}>
                 This texts <strong>{dayAlert.recipients.length}</strong> client{dayAlert.recipients.length === 1 ? '' : 's'} scheduled for {new Date(dayAlert.ymd + 'T00:00:00').toLocaleDateString('en-NZ', { weekday: 'long', day: 'numeric', month: 'long' })}.
               </div>
               <ul style={{ margin: '0 0 14px', paddingLeft: '18px', maxHeight: '160px', overflowY: 'auto' }}>
                 {dayAlert.recipients.map((r, i) => (
-                  <li key={i} style={{ fontSize: '13px', color: 'var(--bark)', lineHeight: 1.6 }}>{r.name || 'Client'} · {r.phone}</li>
+                  <li key={i} style={{ fontSize: '13px', color: 'var(--ink)', lineHeight: 1.6 }}>{r.name || 'Client'} · {r.phone}</li>
                 ))}
               </ul>
               <div style={{ display: 'flex', gap: '8px' }}>
-                <button style={{ flex: 1, padding: '11px', borderRadius: '9px', border: 'none', background: 'var(--moss)', color: '#fff', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)', opacity: alerting ? 0.6 : 1 }} onClick={sendDayAlerts} disabled={alerting}>
+                <button style={{ flex: 1, padding: '11px', borderRadius: '9px', border: 'none', background: 'var(--terra)', color: '#fff', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)', opacity: alerting ? 0.6 : 1 }} onClick={sendDayAlerts} disabled={alerting}>
                   {alerting ? 'Sending…' : `Send ${dayAlert.recipients.length} text${dayAlert.recipients.length === 1 ? '' : 's'}`}
                 </button>
                 <button style={{ padding: '11px 18px', borderRadius: '9px', border: '1px solid var(--border)', background: '#fff', color: '#888', fontSize: '14px', cursor: 'pointer', fontFamily: 'var(--font)' }} onClick={() => setDayAlert(null)} disabled={alerting}>Cancel</button>
@@ -1228,7 +1228,7 @@ const s = {
     padding: '7px 8px', borderRadius: '8px', border: '1px solid var(--border)', background: '#fff',
     fontSize: '12px', fontWeight: '700', color: '#8A8378', cursor: 'pointer', fontFamily: 'var(--font)',
   },
-  trayTabActive: { background: 'var(--bark-mid, #4A6741)', color: '#fff', borderColor: 'var(--bark-mid, #4A6741)' },
+  trayTabActive: { background: 'var(--ink-mid, #2E4A63)', color: '#fff', borderColor: 'var(--ink-mid, #2E4A63)' },
   trayTabCount: { fontSize: '10px', fontWeight: '800', background: 'rgba(0,0,0,0.14)', borderRadius: '20px', padding: '0 6px', lineHeight: 1.7 },
   traySearchWrap: { position: 'relative', margin: '0 10px 8px', display: 'flex', alignItems: 'center' },
   traySearchIcon: { position: 'absolute', left: '8px', fontSize: '11px', pointerEvents: 'none', opacity: 0.5 },

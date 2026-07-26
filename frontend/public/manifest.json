@@ -4,8 +4,8 @@
   "description": "Urban Tree Services job management",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#2C2416",
-  "theme_color": "#2C2416",
+  "background_color": "#FCF5EC",
+  "theme_color": "#C15A34",
   "orientation": "portrait-primary",
   "icons": [
     { "src": "/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml", "purpose": "any maskable" },

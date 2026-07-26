@@ -100,7 +100,7 @@ export default function Login() {
 
         {mode === 'set-password' ? (
           <form onSubmit={handleSetPassword} style={styles.form}>
-            <div style={{ fontSize: '15px', fontWeight: '600', color: 'var(--bark)', marginBottom: '4px' }}>Set your password</div>
+            <div style={{ fontSize: '15px', fontWeight: '600', color: 'var(--ink)', marginBottom: '4px' }}>Set your password</div>
             <div style={{ fontSize: '13px', color: '#888', marginBottom: '16px', lineHeight: 1.5 }}>
               Choose a password to complete your account setup.
             </div>
@@ -163,13 +163,13 @@ export default function Login() {
         ) : resetSent ? (
           <div style={styles.resetSuccess}>
             <div style={{ fontSize: '32px', marginBottom: '12px' }}>✉️</div>
-            <div style={{ fontSize: '16px', fontWeight: '600', color: 'var(--bark)', marginBottom: '8px' }}>Check your email</div>
+            <div style={{ fontSize: '16px', fontWeight: '600', color: 'var(--ink)', marginBottom: '8px' }}>Check your email</div>
             <div style={{ fontSize: '14px', color: '#888', lineHeight: 1.6, textAlign: 'center' }}>
               We sent a password reset link to <strong>{resetEmail}</strong>. Click the link in the email to set a new password.
             </div>
             <button
               type="button"
-              style={{ ...styles.button, marginTop: '24px', background: 'none', color: 'var(--moss)', border: '1.5px solid var(--moss)' }}
+              style={{ ...styles.button, marginTop: '24px', background: 'none', color: 'var(--terra)', border: '1.5px solid var(--terra)' }}
               onClick={() => { setMode('login'); setResetSent(false) }}
             >
               Back to sign in
@@ -177,7 +177,7 @@ export default function Login() {
           </div>
         ) : (
           <form onSubmit={handleReset} style={styles.form}>
-            <div style={{ fontSize: '15px', fontWeight: '600', color: 'var(--bark)', marginBottom: '4px' }}>Reset your password</div>
+            <div style={{ fontSize: '15px', fontWeight: '600', color: 'var(--ink)', marginBottom: '4px' }}>Reset your password</div>
             <div style={{ fontSize: '13px', color: '#888', marginBottom: '4px', lineHeight: 1.5 }}>
               Enter your email and we'll send you a link to set a new password.
             </div>
@@ -265,7 +265,7 @@ const styles = {
     gap: '6px',
     fontSize: '14px',
     fontWeight: '500',
-    color: 'var(--bark)',
+    color: 'var(--ink)',
   },
   input: {
     padding: '12px 14px',
@@ -274,14 +274,14 @@ const styles = {
     fontSize: '16px',
     fontFamily: 'var(--font)',
     background: 'var(--cream)',
-    color: 'var(--bark)',
+    color: 'var(--ink)',
     outline: 'none',
     transition: 'border-color 0.15s',
   },
   button: {
     marginTop: '8px',
     padding: '14px',
-    background: 'var(--moss)',
+    background: 'var(--terra)',
     color: '#fff',
     border: 'none',
     borderRadius: 'var(--radius)',

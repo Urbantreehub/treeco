@@ -166,14 +166,14 @@ const s = {
   center: { display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', color: '#888' },
   toolbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', position: 'sticky', top: 0, background: '#F4F2EF', zIndex: 5 },
   back: { background: 'none', border: '1px solid var(--border)', borderRadius: '8px', padding: '8px 14px', fontSize: '13px', color: '#666', cursor: 'pointer', fontFamily: 'var(--font)' },
-  dl: { background: 'var(--moss)', border: 'none', borderRadius: '8px', padding: '9px 16px', fontSize: '13px', fontWeight: '700', color: '#fff', cursor: 'pointer', fontFamily: 'var(--font)' },
+  dl: { background: 'var(--terra)', border: 'none', borderRadius: '8px', padding: '9px 16px', fontSize: '13px', fontWeight: '700', color: '#fff', cursor: 'pointer', fontFamily: 'var(--font)' },
 
   doc: { maxWidth: '760px', margin: '0 auto 40px', background: '#fff', padding: '36px 40px', boxShadow: '0 2px 16px rgba(44,36,22,0.1)', borderRadius: '4px' },
   head: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   logo: { height: '52px', objectFit: 'contain' },
-  docTitle: { fontSize: '22px', fontWeight: '800', color: 'var(--bark)', letterSpacing: '0.04em' },
+  docTitle: { fontSize: '22px', fontWeight: '800', color: 'var(--ink)', letterSpacing: '0.04em' },
   docDate: { fontSize: '12px', color: '#aaa', marginTop: '2px' },
-  rule: { height: '2px', background: 'var(--moss)', margin: '18px 0 22px' },
+  rule: { height: '2px', background: 'var(--terra)', margin: '18px 0 22px' },
 
   grid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 24px', marginBottom: '8px' },
   section: { marginTop: '22px' },
@@ -184,6 +184,6 @@ const s = {
   li: { fontSize: '14px', color: '#333', lineHeight: 1.7 },
   qty: { color: '#888', fontWeight: '600' },
   pills: { display: 'flex', gap: '8px', flexWrap: 'wrap' },
-  pill: { fontSize: '13px', fontWeight: '600', color: 'var(--bark)', background: '#F4F0EA', border: '1px solid var(--border)', borderRadius: '18px', padding: '5px 12px' },
+  pill: { fontSize: '13px', fontWeight: '600', color: 'var(--ink)', background: '#F4F0EA', border: '1px solid var(--border)', borderRadius: '18px', padding: '5px 12px' },
   footer: { marginTop: '32px', paddingTop: '16px', borderTop: '1px solid #eee', textAlign: 'center', fontSize: '11px', color: '#bbb' },
 }

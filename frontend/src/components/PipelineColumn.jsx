@@ -62,7 +62,7 @@ const styles = {
   label: {
     fontSize: '12px',
     fontWeight: '600',
-    color: 'var(--bark)',
+    color: 'var(--ink)',
     lineHeight: 1.2,
   },
   count: {

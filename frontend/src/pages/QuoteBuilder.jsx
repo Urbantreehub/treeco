@@ -909,7 +909,7 @@ export default function QuoteBuilder() {
                 aria-label="Change quote status"
                 style={{
                   padding: '6px 10px', borderRadius: '7px', border: '1.5px solid var(--border)',
-                  background: '#fff', color: 'var(--bark)', fontSize: '12px', fontWeight: '600',
+                  background: '#fff', color: 'var(--ink)', fontSize: '12px', fontWeight: '600',
                   fontFamily: 'var(--font)', cursor: 'pointer', outline: 'none',
                 }}
               >

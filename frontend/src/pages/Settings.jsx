@@ -468,7 +468,7 @@ function DbsCard({ toast }) {
           {enabled ? 'On' : 'Off'}
           <span
             onClick={() => !savingToggle && toggleSync(!enabled)}
-            style={{ width: 40, height: 22, borderRadius: 22, background: enabled ? 'var(--moss)' : '#ccc', position: 'relative', transition: 'background .15s', flexShrink: 0 }}
+            style={{ width: 40, height: 22, borderRadius: 22, background: enabled ? 'var(--terra)' : '#ccc', position: 'relative', transition: 'background .15s', flexShrink: 0 }}
           >
             <span style={{ position: 'absolute', top: 2, left: enabled ? 20 : 2, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left .15s' }} />
           </span>

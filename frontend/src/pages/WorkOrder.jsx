@@ -587,7 +587,7 @@ export default function WorkOrder() {
               </div>
               <button onClick={notifyOffice} disabled={notifyState === 'sending'} style={{
                 ...s.notifyBtn,
-                background: notifyState === 'sent' ? '#2e7d32' : 'var(--moss)',
+                background: notifyState === 'sent' ? '#2e7d32' : 'var(--terra)',
                 opacity: notifyState === 'sending' ? 0.7 : 1,
               }}>
                 {notifyState === 'sending' ? 'Sending…' : notifyState === 'sent' ? '✓ Office notified' : '📤 Notify office of additions'}
@@ -844,7 +844,7 @@ const s = {
     fontSize: 14, fontFamily: 'var(--font)', color: 'var(--ink)', background: '#FAFAF8', outline: 'none',
   },
   addBtn: {
-    padding: '10px 20px', background: 'var(--moss)', color: '#fff', border: 'none',
+    padding: '10px 20px', background: 'var(--terra)', color: '#fff', border: 'none',
     borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', flexShrink: 0,
   },
   additionRow: {

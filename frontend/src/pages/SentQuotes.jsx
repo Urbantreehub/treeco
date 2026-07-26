@@ -70,7 +70,7 @@ function Toast({ toast }) {
   if (!toast) return null
   const color =
     toast.kind === 'error' ? 'var(--danger)' :
-    toast.kind === 'success' ? 'var(--moss)' : 'var(--bark)'
+    toast.kind === 'success' ? 'var(--terra)' : 'var(--ink)'
   return (
     <div style={{ ...s.toast, borderLeft: `4px solid ${color}` }}>
       {toast.msg}
@@ -312,7 +312,7 @@ export default function SentQuotes() {
       <div style={{ ...s.summary, gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)' }}>
         <Stat label="Sent (awaiting)" value={counts.sent} color="var(--amber)" />
         <Stat label="Opened, no reply" value={counts.opened} color="var(--sky)" />
-        <Stat label="Accepted" value={counts.accepted} color="var(--moss)" />
+        <Stat label="Accepted" value={counts.accepted} color="var(--terra)" />
         <Stat label="Declined" value={counts.declined} color="var(--danger)" />
         <Stat label="Needs follow-up" value={counts.followUp} color="var(--amber)" highlight />
       </div>
@@ -371,7 +371,7 @@ function Stat({ label, value, color, highlight }) {
 const s = {
   page: { padding: '24px', maxWidth: 900, margin: '0 auto', fontFamily: 'var(--font)' },
   head: { marginBottom: 20 },
-  h1: { margin: 0, fontSize: 26, color: 'var(--bark)', fontWeight: 700 },
+  h1: { margin: 0, fontSize: 26, color: 'var(--ink)', fontWeight: 700 },
   sub: { margin: '4px 0 0', color: '#8A857D', fontSize: 14 },
 
   summary: { display: 'grid', gap: 10, marginBottom: 18 },
@@ -385,11 +385,11 @@ const s = {
 
   chips: { display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 18 },
   chip: {
-    border: '1px solid var(--border)', background: '#fff', color: 'var(--bark)',
+    border: '1px solid var(--border)', background: '#fff', color: 'var(--ink)',
     borderRadius: 999, padding: '6px 14px', fontSize: 13, cursor: 'pointer',
     fontFamily: 'var(--font)',
   },
-  chipActive: { background: 'var(--moss)', borderColor: 'var(--moss)', color: '#fff' },
+  chipActive: { background: 'var(--terra)', borderColor: 'var(--terra)', color: '#fff' },
 
   list: { display: 'flex', flexDirection: 'column', gap: 12 },
   card: {
@@ -398,29 +398,29 @@ const s = {
   },
   cardOverdue: { borderLeft: '4px solid var(--amber)' },
   cardTop: { display: 'flex', gap: 12, alignItems: 'flex-start', justifyContent: 'space-between' },
-  clientName: { fontWeight: 600, fontSize: 16, color: 'var(--bark)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  clientName: { fontWeight: 600, fontSize: 16, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   address: { fontSize: 13, color: '#8A857D', marginTop: 2 },
   jobTitle: { fontSize: 13, color: '#8A857D', marginTop: 2 },
   rightCol: { textAlign: 'right', flexShrink: 0 },
-  total: { fontWeight: 700, fontSize: 16, color: 'var(--bark)' },
+  total: { fontWeight: 700, fontSize: 16, color: 'var(--ink)' },
   pill: {
     display: 'inline-block', color: '#fff', fontSize: 11, fontWeight: 600,
     padding: '3px 10px', borderRadius: 999, marginTop: 6,
   },
 
   meta: { display: 'flex', flexWrap: 'wrap', gap: '6px 14px', marginTop: 12, fontSize: 13, alignItems: 'center' },
-  openedTag: { color: 'var(--moss)', fontWeight: 600 },
+  openedTag: { color: 'var(--terra)', fontWeight: 600 },
   notOpened: { color: '#A8A29A' },
   sentAgo: { color: '#8A857D' },
   followNote: { marginTop: 6, fontSize: 12, color: 'var(--sky)' },
 
   actions: { display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 14 },
   btnPrimary: {
-    background: 'var(--moss)', color: '#fff', border: 'none', borderRadius: 8,
+    background: 'var(--terra)', color: '#fff', border: 'none', borderRadius: 8,
     padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)',
   },
   btnGhost: {
-    background: '#fff', color: 'var(--bark)', border: '1px solid var(--border)', borderRadius: 8,
+    background: '#fff', color: 'var(--ink)', border: '1px solid var(--border)', borderRadius: 8,
     padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)',
   },
 
@@ -433,7 +433,7 @@ const s = {
   menuTitle: { fontSize: 11, color: '#8A857D', padding: '4px 8px', textTransform: 'uppercase', letterSpacing: 0.4 },
   menuItem: {
     display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none',
-    padding: '9px 8px', fontSize: 14, color: 'var(--bark)', cursor: 'pointer', borderRadius: 6,
+    padding: '9px 8px', fontSize: 14, color: 'var(--ink)', cursor: 'pointer', borderRadius: 6,
     fontFamily: 'var(--font)',
   },
   menuCancel: {
@@ -449,7 +449,7 @@ const s = {
 
   toast: {
     position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 1000,
-    background: 'var(--bark)', color: '#fff', padding: '12px 18px', borderRadius: 'var(--radius)',
+    background: 'var(--ink)', color: '#fff', padding: '12px 18px', borderRadius: 'var(--radius)',
     fontSize: 14, maxWidth: '90vw', boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
   },
 }

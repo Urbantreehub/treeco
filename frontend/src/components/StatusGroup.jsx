@@ -64,7 +64,7 @@ export default function StatusGroup({ status, jobs, onCardClick, defaultOpen = t
               <span style={styles.totalDivider}>·</span>
               <span style={styles.totalItem}>
                 <span style={styles.totalLbl}>Incl GST</span>
-                <span style={{ ...styles.totalVal, color: 'var(--moss)', fontWeight: '700' }}>{nzd(quoteTotals.inclGst)}</span>
+                <span style={{ ...styles.totalVal, color: 'var(--terra)', fontWeight: '700' }}>{nzd(quoteTotals.inclGst)}</span>
               </span>
             </div>
           ) : null
@@ -133,7 +133,7 @@ const styles = {
   label: {
     fontSize: '14px',
     fontWeight: '600',
-    color: 'var(--bark)',
+    color: 'var(--ink)',
   },
   count: {
     fontSize: '12px',

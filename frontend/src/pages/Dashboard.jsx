@@ -87,13 +87,13 @@ function AddToScheduleModal({ item, onClose, onSaved }) {
     <div style={{ position:'fixed', inset:0, background:'rgba(44,36,22,0.4)', zIndex:900, display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
       <div style={{ background:'#fff', borderRadius:14, width:380, maxWidth:'95vw', boxShadow:'0 20px 60px rgba(0,0,0,0.25)', overflow:'hidden' }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'16px 18px', borderBottom:'1px solid #eee' }}>
-          <span style={{ fontSize:15, fontWeight:800, color:'var(--bark)' }}>Add to Schedule</span>
+          <span style={{ fontSize:15, fontWeight:800, color:'var(--ink)' }}>Add to Schedule</span>
           <button onClick={onClose} style={{ background:'none', border:'none', fontSize:18, color:'#bbb', cursor:'pointer' }}>✕</button>
         </div>
         <div style={{ padding:'16px 18px', display:'flex', flexDirection:'column', gap:12 }}>
           <div>
             <div style={ms.lbl}>Event</div>
-            <div style={{ fontSize:14, fontWeight:600, color:'var(--bark)', padding:'8px 10px', background:'#f8f8f6', borderRadius:7, border:'1px solid #eee' }}>{item.title}</div>
+            <div style={{ fontSize:14, fontWeight:600, color:'var(--ink)', padding:'8px 10px', background:'#f8f8f6', borderRadius:7, border:'1px solid #eee' }}>{item.title}</div>
           </div>
           <div style={{ display:'flex', gap:10 }}>
             <div style={{ flex:1 }}>
@@ -132,8 +132,8 @@ function AddToScheduleModal({ item, onClose, onSaved }) {
 
 const ms = {
   lbl:       { fontSize:11, fontWeight:600, color:'#888', textTransform:'uppercase', letterSpacing:'0.04em', marginBottom:4 },
-  inp:       { width:'100%', padding:'8px 10px', borderRadius:7, border:'1.5px solid #ddd', fontSize:13, color:'var(--bark)', fontFamily:'var(--font)', boxSizing:'border-box', background:'#fff' },
-  saveBtn:   { background:'var(--moss)', color:'#fff', border:'none', borderRadius:7, padding:'9px 18px', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'var(--font)' },
+  inp:       { width:'100%', padding:'8px 10px', borderRadius:7, border:'1.5px solid #ddd', fontSize:13, color:'var(--ink)', fontFamily:'var(--font)', boxSizing:'border-box', background:'#fff' },
+  saveBtn:   { background:'var(--terra)', color:'#fff', border:'none', borderRadius:7, padding:'9px 18px', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'var(--font)' },
   cancelBtn: { background:'#fff', border:'1px solid #ddd', borderRadius:7, padding:'9px 16px', fontSize:13, color:'#666', cursor:'pointer', fontFamily:'var(--font)' },
 }
 
@@ -201,11 +201,11 @@ function SafetyActionsWidget({ onNavigate }) {
     <div style={{ background:'#fff', border:`1.5px solid ${overdueCount > 0 ? '#F0C0B8' : '#D8EBD0'}`, borderRadius:12, overflow:'hidden', marginBottom:28 }}>
       <div style={{ display:'flex', alignItems:'center', gap:10, padding:'13px 18px', background: overdueCount > 0 ? '#FFF8F6' : '#F6FAF4', borderBottom:'1px solid #E8EDE4' }}>
         <span style={{ fontSize:18 }}>🦺</span>
-        <span style={{ fontSize:14, fontWeight:700, color:'var(--bark)', flex:1 }}>
+        <span style={{ fontSize:14, fontWeight:700, color:'var(--ink)', flex:1 }}>
           Safety Actions
           {items.length > 0 && <span style={{ marginLeft:8, fontSize:11, fontWeight:700, background: overdueCount > 0 ? '#FFF0EE':'#FDF3E3', color: overdueCount > 0 ? '#C0392B':'#D4851A', borderRadius:20, padding:'2px 8px' }}>{items.length} need attention</span>}
         </span>
-        <button onClick={() => onNavigate('/safety')} style={{ fontSize:12, color:'var(--moss)', background:'none', border:'1px solid var(--moss)', borderRadius:6, padding:'5px 10px', cursor:'pointer', fontWeight:600, fontFamily:'var(--font)' }}>Safety →</button>
+        <button onClick={() => onNavigate('/safety')} style={{ fontSize:12, color:'var(--terra)', background:'none', border:'1px solid var(--terra)', borderRadius:6, padding:'5px 10px', cursor:'pointer', fontWeight:600, fontFamily:'var(--font)' }}>Safety →</button>
       </div>
 
       <div style={{ padding:'12px 16px', display:'flex', flexDirection:'column', gap:7 }}>
@@ -229,7 +229,7 @@ function SafetyActionsWidget({ onNavigate }) {
             <div key={item.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 12px', background:u.bg, borderRadius:8, border:`1px solid ${u.color}30` }}>
               <span style={{ width:8, height:8, borderRadius:'50%', background:u.dot, flexShrink:0 }} />
               <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ fontSize:13, fontWeight:600, color:'var(--bark)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{item.title}</div>
+                <div style={{ fontSize:13, fontWeight:600, color:'var(--ink)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{item.title}</div>
                 <div style={{ fontSize:11, color:'#888', marginTop:1 }}>{item.desc}</div>
               </div>
               <span style={{ fontSize:11, fontWeight:700, color:u.color, flexShrink:0 }}>{dLabel(item.dueDate)}</span>
@@ -246,7 +246,7 @@ function SafetyActionsWidget({ onNavigate }) {
         <div style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 12px', background:'#F0F5EE', borderRadius:8, border:'1px solid #C8D8C0', marginTop: items.length > 0 ? 4 : 0 }}>
           <span style={{ fontSize:16, flexShrink:0 }}>🧰</span>
           <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ fontSize:13, fontWeight:600, color:'var(--bark)' }}>Schedule Toolbox Meeting</div>
+            <div style={{ fontSize:13, fontWeight:600, color:'var(--ink)' }}>Schedule Toolbox Meeting</div>
             <div style={{ fontSize:11, color:'#777', marginTop:1 }}>
               Monthly H&S briefing — SWMS review, hazard debrief &amp; crew sign-off
               <span style={{ marginLeft:6, color:'#4A6741', fontWeight:600 }}>Suggested: {nextToolbox.toLocaleDateString('en-NZ',{weekday:'short',day:'numeric',month:'short'})}</span>
@@ -289,7 +289,7 @@ function MiniBar({ months }) {
           <div style={{
             width: '100%',
             height: `${Math.max(4, (m.revenue / max) * 56)}px`,
-            background: i === months.length - 1 ? 'var(--moss)' : 'var(--border)',
+            background: i === months.length - 1 ? 'var(--terra)' : 'var(--border)',
             borderRadius: '3px 3px 0 0',
             transition: 'height 0.4s',
           }} />
@@ -313,7 +313,7 @@ function StatCard({ label, value, sub, color, onClick }) {
       minWidth: '160px',
     }}>
       <div style={{ fontSize: '11px', fontWeight: '600', color: '#999', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>{label}</div>
-      <div style={{ fontSize: '28px', fontWeight: '700', color: color || 'var(--bark)', lineHeight: 1 }}>{value}</div>
+      <div style={{ fontSize: '28px', fontWeight: '700', color: color || 'var(--ink)', lineHeight: 1 }}>{value}</div>
       {sub && <div style={{ fontSize: '12px', color: '#aaa', marginTop: '6px' }}>{sub}</div>}
     </div>
   )
@@ -457,7 +457,7 @@ export default function Dashboard() {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '24px' }}>
         <div>
-          <h1 style={{ fontSize: '22px', fontWeight: '700', color: 'var(--bark)', margin: 0 }}>Business Health</h1>
+          <h1 style={{ fontSize: '22px', fontWeight: '700', color: 'var(--ink)', margin: 0 }}>Business Health</h1>
           <div style={{ fontSize: '13px', color: '#aaa', marginTop: '3px' }}>
             {new Date().toLocaleDateString('en-NZ', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           </div>
@@ -483,10 +483,10 @@ export default function Dashboard() {
       <Section title={`Revenue snapshot${usingXero ? ' — from Xero' : ' — from accepted quotes'}`}>
         {usingXero && (
           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '12px' }}>
-            <StatCard label="Total revenue (FY)" value={nzd(xeroPnl.revenue)} sub="This financial year · Xero" color="var(--moss)" />
+            <StatCard label="Total revenue (FY)" value={nzd(xeroPnl.revenue)} sub="This financial year · Xero" color="var(--terra)" />
             <StatCard label="Total expenses (FY)" value={nzd(xeroPnl.expenses)} sub="This financial year · Xero" color="#D4851A" />
             <StatCard label="Net profit (FY)" value={nzd(xeroPnl.netProfit)} sub="Revenue minus expenses · Xero"
-              color={xeroPnl.netProfit >= 0 ? 'var(--moss)' : '#C0392B'} />
+              color={xeroPnl.netProfit >= 0 ? 'var(--terra)' : '#C0392B'} />
           </div>
         )}
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '16px' }}>
@@ -494,14 +494,14 @@ export default function Dashboard() {
             label="Crew days booked"
             value={crewDays.toFixed(1)}
             sub={`${nzd(treeRevenue)} revenue ÷ $2,500/day`}
-            color={crewDays < 5 ? '#C0392B' : crewDays < 10 ? '#D4851A' : 'var(--moss)'}
+            color={crewDays < 5 ? '#C0392B' : crewDays < 10 ? '#D4851A' : 'var(--terra)'}
             onClick={() => nav('/quotes')}
           />
           <StatCard
             label="Quote success rate"
             value={successRate != null ? `${successRate}%` : '—'}
             sub={`${accepted.length} accepted of ${sent.length} sent`}
-            color={successRate != null && successRate < 40 ? '#D4851A' : 'var(--bark)'}
+            color={successRate != null && successRate < 40 ? '#D4851A' : 'var(--ink)'}
             onClick={() => nav('/quotes')}
           />
           {!usingXero && (
@@ -572,13 +572,13 @@ export default function Dashboard() {
 
                 return (
                   <tr key={v.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                    <td style={{ padding: '12px 14px', fontWeight: '600', color: 'var(--bark)' }}>{v.name}</td>
+                    <td style={{ padding: '12px 14px', fontWeight: '600', color: 'var(--ink)' }}>{v.name}</td>
 
                     <td style={{ padding: '12px 14px' }}>
                       {isEditing
                         ? <input value={ev.plate || ''} onChange={e => setEditVeh({ ...ev, plate: e.target.value })}
                             style={styles.cell_input} placeholder="ABC123" />
-                        : <span style={{ color: ev.plate ? 'var(--bark)' : '#ccc' }}>{ev.plate || '—'}</span>
+                        : <span style={{ color: ev.plate ? 'var(--ink)' : '#ccc' }}>{ev.plate || '—'}</span>
                       }
                     </td>
 
@@ -656,7 +656,7 @@ const styles = {
     outline: 'none',
   },
   btn_save: {
-    background: 'var(--moss)',
+    background: 'var(--terra)',
     color: '#fff',
     border: 'none',
     borderRadius: '5px',
@@ -676,8 +676,8 @@ const styles = {
   },
   btn_edit: {
     background: 'none',
-    color: 'var(--moss)',
-    border: '1px solid var(--moss)',
+    color: 'var(--terra)',
+    border: '1px solid var(--terra)',
     borderRadius: '5px',
     padding: '4px 10px',
     fontSize: '12px',
@@ -685,7 +685,7 @@ const styles = {
     cursor: 'pointer',
   },
   btn_primary: {
-    background: 'var(--moss)',
+    background: 'var(--terra)',
     color: '#fff',
     border: 'none',
     borderRadius: '6px',

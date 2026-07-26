@@ -28,17 +28,17 @@ const JobPack      = lazy(() => import('./pages/JobPack'))
 const BookQuote    = lazy(() => import('./pages/BookQuote'))
 
 const PageFallback = () => (
-  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100dvh', color: 'var(--bark)' }}>Loading…</div>
+  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100dvh', color: 'var(--ink)' }}>Loading…</div>
 )
 
 function RequireAuth({ children }) {
   const { session, loading } = useAuth()
   if (IS_DEMO || AUTO_LOGIN) {
     // Skip auth gate — auto-login handles session in the background
-    if (loading) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'var(--bark)' }}>Loading…</div>
+    if (loading) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'var(--ink)' }}>Loading…</div>
     return children
   }
-  if (loading) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'var(--bark)' }}>Loading…</div>
+  if (loading) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'var(--ink)' }}>Loading…</div>
   if (!session) return <Navigate to="/login" replace />
   return children
 }

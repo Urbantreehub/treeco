@@ -311,7 +311,7 @@ function SettingsIcon({ active, size = 22 }) {
 
 const pageFallback = {
   display: 'flex', alignItems: 'center', justifyContent: 'center',
-  height: '100%', minHeight: '40vh', color: 'var(--bark)', opacity: 0.5, fontSize: '14px',
+  height: '100%', minHeight: '40vh', color: 'var(--ink)', opacity: 0.5, fontSize: '14px',
 }
 
 // ── Mobile styles ─────────────────────────────────────────────────────────
@@ -400,7 +400,7 @@ const d = {
   shell:   { display: 'flex', height: '100vh', overflow: 'hidden' },
   nav: {
     width: 'var(--nav-width)', minWidth: 'var(--nav-width)',
-    background: 'var(--bark)', display: 'flex', flexDirection: 'column',
+    background: 'var(--ink)', display: 'flex', flexDirection: 'column',
     justifyContent: 'space-between', padding: '20px 0', overflowY: 'auto',
   },
   navTop:  { display: 'flex', flexDirection: 'column', gap: '32px' },
@@ -421,11 +421,11 @@ const d = {
     marginBottom: '4px',
   },
   navBottom: {
-    padding: '16px 12px 0', borderTop: '1px solid var(--bark-mid)',
+    padding: '16px 12px 0', borderTop: '1px solid var(--ink-mid)',
     display: 'flex', flexDirection: 'column', gap: '12px',
   },
   userInfo:    { display: 'flex', alignItems: 'center', gap: '10px', padding: '4px 0' },
-  avatar:      { width: '36px', height: '36px', borderRadius: '50%', background: 'var(--moss)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700', fontSize: '14px', flexShrink: 0 },
+  avatar:      { width: '36px', height: '36px', borderRadius: '50%', background: 'var(--terra)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700', fontSize: '14px', flexShrink: 0 },
   userName:    { color: '#fff', fontSize: '13px', fontWeight: '600', lineHeight: 1.2 },
   accessBadge: { color: 'rgba(255,255,255,0.5)', fontSize: '11px', marginTop: '2px' },
   signOutBtn:  { background: 'none', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px', color: 'rgba(255,255,255,0.6)', fontSize: '13px', padding: '8px 12px', width: '100%', cursor: 'pointer', fontFamily: 'var(--font)' },

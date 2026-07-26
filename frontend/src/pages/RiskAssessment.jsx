@@ -443,7 +443,7 @@ function RiskAssessmentForm({ initial, onSave, onDelete, onCancel }) {
 
         {form.work_above_3m && (
           <div style={{ ...s.alertBox, marginTop: 10 }}>
-            <label style={{ ...s.checkLabel, fontWeight: 600, color: 'var(--bark)' }}>
+            <label style={{ ...s.checkLabel, fontWeight: 600, color: 'var(--ink)' }}>
               <input type="checkbox" checked={form.aerial_rescue_person_trained} onChange={e => set('aerial_rescue_person_trained', e.target.checked)} style={s.cb} />
               A second person trained in aerial rescue will be on site at all times
             </label>
@@ -769,7 +769,7 @@ function RiskAssessmentDetail({ assessment: a, onEdit, onDelete, onBack }) {
               const rScore = Number(r.residual_likelihood) * Number(r.residual_consequence)
               return (
                 <div key={hazard} style={{ marginBottom: 16, paddingBottom: 16, borderBottom: '1px solid var(--border)' }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--bark)', marginBottom: 6 }}>{hazard}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>{hazard}</div>
                   <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
                     {r.likelihood && r.consequence && (
                       <span style={{ ...s.riskChip, background: iLv.bg, color: iLv.color }}>Inherent: {iLv.label} ({iScore})</span>
@@ -853,64 +853,64 @@ function ReadRow({ label, value }) {
 
 const s = {
   // List
-  sectionTitle: { fontSize: 13, fontWeight: 700, color: 'var(--bark)', textTransform: 'uppercase', letterSpacing: '0.04em' },
+  sectionTitle: { fontSize: 13, fontWeight: 700, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.04em' },
   list:    { display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 },
   row:     { display: 'flex', alignItems: 'center', gap: 10, background: '#fff', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 16px', cursor: 'pointer' },
-  rowTitle:{ fontSize: 14, fontWeight: 600, color: 'var(--bark)' },
+  rowTitle:{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' },
   rowMeta: { fontSize: 12, color: '#999', marginTop: 2 },
   badge:   { fontSize: 11, fontWeight: 700, borderRadius: 6, padding: '3px 8px', whiteSpace: 'nowrap', flexShrink: 0 },
-  addBtn:  { background: 'var(--moss)', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' },
+  addBtn:  { background: 'var(--terra)', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' },
   empty:   { color: '#bbb', fontSize: 14, padding: '24px 0', textAlign: 'center' },
 
   // Form shell
   formWrap:   { paddingBottom: 40 },
   formHeader: { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, flexWrap: 'wrap' },
-  formTitle:  { fontSize: 16, fontWeight: 800, color: 'var(--bark)', flex: 1 },
+  formTitle:  { fontSize: 16, fontWeight: 800, color: 'var(--ink)', flex: 1 },
   backBtn:    { background: 'none', border: 'none', color: 'var(--sky)', fontSize: 13, fontWeight: 600, cursor: 'pointer', padding: 0, fontFamily: 'var(--font)', flexShrink: 0 },
 
   // Sections
   section:     { background: '#fff', border: '1px solid var(--border)', borderRadius: 10, marginBottom: 14, overflow: 'hidden' },
-  sectionHead: { background: 'var(--bark)', color: '#fff', fontSize: 12, fontWeight: 700, padding: '8px 16px', letterSpacing: '0.04em', textTransform: 'uppercase' },
+  sectionHead: { background: 'var(--ink)', color: '#fff', fontSize: 12, fontWeight: 700, padding: '8px 16px', letterSpacing: '0.04em', textTransform: 'uppercase' },
   sectionBody: { padding: '14px 16px' },
-  subHead:     { fontSize: 11, fontWeight: 700, color: 'var(--bark)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8, marginTop: 4 },
+  subHead:     { fontSize: 11, fontWeight: 700, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8, marginTop: 4 },
 
   // Fields
   fieldLabel: { fontSize: 11, fontWeight: 600, color: '#888', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 },
-  input:      { width: '100%', padding: '9px 11px', borderRadius: 7, border: '1.5px solid var(--border)', fontSize: 13, color: 'var(--bark)', fontFamily: 'var(--font)', boxSizing: 'border-box', background: '#fff' },
+  input:      { width: '100%', padding: '9px 11px', borderRadius: 7, border: '1.5px solid var(--border)', fontSize: 13, color: 'var(--ink)', fontFamily: 'var(--font)', boxSizing: 'border-box', background: '#fff' },
   checkGroup: { display: 'flex', flexDirection: 'column', gap: 8 },
-  checkLabel: { display: 'flex', alignItems: 'flex-start', fontSize: 13, color: 'var(--bark)', cursor: 'pointer', lineHeight: 1.4 },
-  cb:         { marginTop: 2, flexShrink: 0, accentColor: 'var(--moss)' },
+  checkLabel: { display: 'flex', alignItems: 'flex-start', fontSize: 13, color: 'var(--ink)', cursor: 'pointer', lineHeight: 1.4 },
+  cb:         { marginTop: 2, flexShrink: 0, accentColor: 'var(--terra)' },
 
   // Alerts
   hint:        { fontSize: 12, color: '#888', lineHeight: 1.5, marginBottom: 10 },
   stopWork:    { background: '#FFF0EE', color: '#C0392B', fontSize: 12, fontWeight: 600, borderRadius: 6, padding: '8px 12px', marginTop: 8 },
   alertBox:    { background: 'var(--amber-pale)', border: '1px solid #E8C98A', borderRadius: 8, padding: '12px 14px', marginBottom: 12 },
-  signOffBox:  { background: 'var(--moss-pale)', border: '1px solid var(--moss)', borderRadius: 8, padding: '12px 14px', marginBottom: 14 },
-  signOffText: { fontSize: 13, color: 'var(--bark)', lineHeight: 1.5 },
+  signOffBox:  { background: 'var(--terra-wash)', border: '1px solid var(--terra)', borderRadius: 8, padding: '12px 14px', marginBottom: 14 },
+  signOffText: { fontSize: 13, color: 'var(--ink)', lineHeight: 1.5 },
 
   // Risk rating
   riskLegend:     { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 14 },
   riskChip:       { fontSize: 11, fontWeight: 700, borderRadius: 5, padding: '2px 7px', whiteSpace: 'nowrap' },
   riskCard:       { background: '#fafafa', border: '1px solid var(--border)', borderRadius: 8, padding: '12px 14px', marginBottom: 12 },
-  riskHazardTitle:{ fontSize: 13, fontWeight: 700, color: 'var(--bark)', marginBottom: 10 },
-  riskSubHead:    { fontSize: 11, fontWeight: 700, color: 'var(--moss)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 },
+  riskHazardTitle:{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 },
+  riskSubHead:    { fontSize: 11, fontWeight: 700, color: 'var(--terra)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 },
 
   // Form actions
   formActions: { display: 'flex', gap: 8, alignItems: 'center', paddingTop: 8, flexWrap: 'wrap' },
   delBtn:    { background: '#fff', border: '1px solid #E0B4B0', borderRadius: 7, padding: '9px 14px', fontSize: 13, color: 'var(--danger)', cursor: 'pointer', fontFamily: 'var(--font)' },
   cancelBtn: { background: '#fff', border: '1px solid var(--border)', borderRadius: 7, padding: '9px 16px', fontSize: 13, color: '#666', cursor: 'pointer', fontFamily: 'var(--font)' },
-  pdfBtn:    { background: 'var(--moss)', border: 'none', borderRadius: 7, padding: '9px 16px', fontSize: 13, fontWeight: 600, color: '#fff', cursor: 'pointer', fontFamily: 'var(--font)' },
-  draftBtn:  { background: '#fff', border: '1px solid var(--moss)', color: 'var(--moss)', borderRadius: 7, padding: '9px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' },
-  saveBtn:   { background: 'var(--moss)', color: '#fff', border: 'none', borderRadius: 7, padding: '9px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)' },
+  pdfBtn:    { background: 'var(--terra)', border: 'none', borderRadius: 7, padding: '9px 16px', fontSize: 13, fontWeight: 600, color: '#fff', cursor: 'pointer', fontFamily: 'var(--font)' },
+  draftBtn:  { background: '#fff', border: '1px solid var(--terra)', color: 'var(--terra)', borderRadius: 7, padding: '9px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' },
+  saveBtn:   { background: 'var(--terra)', color: '#fff', border: 'none', borderRadius: 7, padding: '9px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)' },
 
   // Detail / read view
   readSectionTitle: { fontSize: 11, fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 },
   readCard:  { background: '#fff', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 16px' },
   readRow:   { marginBottom: 10 },
   readLabel: { fontSize: 11, color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 2 },
-  readValue: { fontSize: 13, color: 'var(--bark)', lineHeight: 1.4, whiteSpace: 'pre-wrap' },
-  readList:  { fontSize: 13, color: 'var(--bark)', paddingLeft: 18, lineHeight: 1.8, listStyleType: 'disc' },
+  readValue: { fontSize: 13, color: 'var(--ink)', lineHeight: 1.4, whiteSpace: 'pre-wrap' },
+  readList:  { fontSize: 13, color: 'var(--ink)', paddingLeft: 18, lineHeight: 1.8, listStyleType: 'disc' },
   readEmpty: { fontSize: 13, color: '#bbb', fontStyle: 'italic' },
   controlRow:  { fontSize: 13, color: '#444', display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 6, lineHeight: 1.4 },
-  controlBadge:{ fontSize: 10, fontWeight: 700, background: 'var(--moss-pale)', color: 'var(--moss)', borderRadius: 4, padding: '2px 6px', whiteSpace: 'nowrap', flexShrink: 0, marginTop: 1 },
+  controlBadge:{ fontSize: 10, fontWeight: 700, background: 'var(--terra-wash)', color: 'var(--terra)', borderRadius: 4, padding: '2px 6px', whiteSpace: 'nowrap', flexShrink: 0, marginTop: 1 },
 }

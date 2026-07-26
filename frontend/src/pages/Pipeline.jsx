@@ -238,13 +238,13 @@ const s = {
     display: 'flex', flexDirection: 'column', gap: '10px',
   },
   titleRow: { display: 'flex', alignItems: 'center', gap: '10px' },
-  title: { fontSize: '20px', fontWeight: '700', color: 'var(--bark)' },
+  title: { fontSize: '20px', fontWeight: '700', color: 'var(--ink)' },
   countBadge: {
     fontSize: '12px', color: '#888', background: 'var(--cream)',
     border: '1px solid var(--border)', borderRadius: '10px', padding: '2px 9px',
   },
   newBtn: {
-    marginLeft: 'auto', background: 'var(--moss)', color: '#fff', border: 'none',
+    marginLeft: 'auto', background: 'var(--terra)', color: '#fff', border: 'none',
     borderRadius: '8px', padding: '8px 16px', fontSize: '13px', fontWeight: '600',
     cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap',
   },
@@ -254,7 +254,7 @@ const s = {
   searchInput: {
     padding: '8px 32px 8px 34px', borderRadius: '8px',
     border: '1.5px solid var(--border)', fontSize: '13px',
-    fontFamily: 'var(--font)', color: 'var(--bark)', background: 'var(--cream)',
+    fontFamily: 'var(--font)', color: 'var(--ink)', background: 'var(--cream)',
     width: '100%', outline: 'none',
   },
   clearBtn: {
@@ -267,9 +267,9 @@ const s = {
     background: '#fff', color: '#666', fontSize: '13px', fontWeight: '500',
     cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap',
   },
-  filterBtnActive: { borderColor: 'var(--moss)', color: 'var(--moss)', background: 'var(--moss-pale)' },
+  filterBtnActive: { borderColor: 'var(--terra)', color: 'var(--terra)', background: 'var(--terra-wash)' },
   filterCount: {
-    background: 'var(--moss)', color: '#fff', borderRadius: '10px',
+    background: 'var(--terra)', color: '#fff', borderRadius: '10px',
     padding: '1px 6px', fontSize: '11px', fontWeight: '700',
   },
   filterMenu: {
@@ -286,7 +286,7 @@ const s = {
     textTransform: 'uppercase', letterSpacing: '0.05em',
   },
   clearAllBtn: {
-    background: 'none', border: 'none', color: 'var(--moss)',
+    background: 'none', border: 'none', color: 'var(--terra)',
     fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)', padding: '0',
   },
   filterItem: { display: 'flex', alignItems: 'center', gap: '9px', padding: '8px 14px', cursor: 'pointer' },
@@ -296,7 +296,7 @@ const s = {
     transition: 'background 0.1s, border-color 0.1s',
   },
   filterDot: { width: '9px', height: '9px', borderRadius: '50%', flexShrink: 0 },
-  filterLabel: { fontSize: '13px', color: 'var(--bark)', flex: 1 },
+  filterLabel: { fontSize: '13px', color: 'var(--ink)', flex: 1 },
   filterCountBadge: { fontSize: '11px', fontWeight: '700', borderRadius: '10px', padding: '1px 7px' },
   body: { flex: 1, overflowY: 'auto', padding: '16px 20px' },
   list: { display: 'flex', flexDirection: 'column', gap: '8px' },
@@ -307,16 +307,16 @@ const s = {
     transition: 'box-shadow 0.15s',
   },
   rowMain: { flex: 1, minWidth: 0 },
-  client: { fontSize: '14px', fontWeight: '600', color: 'var(--bark)', marginBottom: '3px' },
+  client: { fontSize: '14px', fontWeight: '600', color: 'var(--ink)', marginBottom: '3px' },
   meta: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
   jobType: {
-    fontSize: '11px', background: 'var(--moss-pale)', color: 'var(--moss)',
+    fontSize: '11px', background: 'var(--terra-wash)', color: 'var(--terra)',
     borderRadius: '4px', padding: '2px 6px', fontWeight: '500',
   },
   address: { fontSize: '12px', color: '#aaa' },
   rowRight: { display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 },
   statusBadge: { fontSize: '11px', fontWeight: '600', borderRadius: '20px', padding: '3px 10px', whiteSpace: 'nowrap' },
-  total: { fontSize: '14px', fontWeight: '700', color: 'var(--bark)', minWidth: '70px', textAlign: 'right' },
+  total: { fontSize: '14px', fontWeight: '700', color: 'var(--ink)', minWidth: '70px', textAlign: 'right' },
   date: { fontSize: '11px', color: '#aaa', minWidth: '55px', textAlign: 'right' },
   empty: { textAlign: 'center', color: '#ccc', padding: '60px 0', fontSize: '14px' },
 }

@@ -148,7 +148,7 @@ export default function CartrackMap() {
       {/* Loading overlay */}
       {loading && (
         <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center',
-          background:'rgba(255,255,255,0.8)', fontSize:'13px', color:'var(--bark)' }}>
+          background:'rgba(255,255,255,0.8)', fontSize:'13px', color:'var(--ink)' }}>
           Loading fleet positions…
         </div>
       )}

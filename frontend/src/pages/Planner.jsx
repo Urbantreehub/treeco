@@ -485,7 +485,7 @@ const s = {
     background: '#fff', borderBottom: '1px solid var(--border)',
     padding: '16px 20px 12px', flexShrink: 0,
   },
-  title: { fontSize: '20px', fontWeight: '700', color: 'var(--bark)' },
+  title: { fontSize: '20px', fontWeight: '700', color: 'var(--ink)' },
   subtitle: { fontSize: '13px', color: '#8a8478', marginTop: '2px' },
 
   tabsWrap: {
@@ -501,29 +501,29 @@ const s = {
     color: '#8a8478', fontSize: '13px', fontWeight: '600', cursor: 'pointer',
     borderRadius: '8px', fontFamily: 'var(--font)', whiteSpace: 'nowrap',
   },
-  tabActive: { background: 'var(--moss)', color: '#fff' },
+  tabActive: { background: 'var(--terra)', color: '#fff' },
 
   body: { flex: 1, overflowY: 'auto', padding: '16px 20px 40px' },
 
   summary: {
     display: 'flex', alignItems: 'baseline', gap: '8px',
-    background: 'var(--moss-pale)', border: '1px solid var(--border)',
+    background: 'var(--terra-wash)', border: '1px solid var(--border)',
     borderRadius: 'var(--radius)', padding: '12px 16px', marginBottom: '14px',
   },
-  summaryNum: { fontSize: '22px', fontWeight: '800', color: 'var(--moss)' },
-  summaryText: { fontSize: '13px', color: 'var(--bark-mid)' },
+  summaryNum: { fontSize: '22px', fontWeight: '800', color: 'var(--terra)' },
+  summaryText: { fontSize: '13px', color: 'var(--ink-mid)' },
 
   sliderCard: {
     background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius)',
     padding: '14px 16px', marginBottom: '16px',
   },
   sliderTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' },
-  sliderLabel: { fontSize: '13px', fontWeight: '600', color: 'var(--bark)' },
+  sliderLabel: { fontSize: '13px', fontWeight: '600', color: 'var(--ink)' },
   sliderValue: {
-    fontSize: '13px', fontWeight: '700', color: 'var(--moss)',
-    background: 'var(--moss-pale)', borderRadius: '20px', padding: '2px 10px',
+    fontSize: '13px', fontWeight: '700', color: 'var(--terra)',
+    background: 'var(--terra-wash)', borderRadius: '20px', padding: '2px 10px',
   },
-  slider: { width: '100%', accentColor: 'var(--moss)', cursor: 'pointer' },
+  slider: { width: '100%', accentColor: 'var(--terra)', cursor: 'pointer' },
   sliderHint: { fontSize: '12px', color: '#8a8478', marginTop: '8px' },
 
   runGrid: {
@@ -537,30 +537,30 @@ const s = {
   },
   cardHead: { display: 'flex', alignItems: 'center', gap: '10px' },
   runBadge: {
-    width: '30px', height: '30px', borderRadius: '50%', background: 'var(--moss)',
+    width: '30px', height: '30px', borderRadius: '50%', background: 'var(--terra)',
     color: '#fff', fontSize: '14px', fontWeight: '800', display: 'flex',
     alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
   cardHeadText: { minWidth: 0 },
-  cardTitle: { fontSize: '14px', fontWeight: '700', color: 'var(--bark)' },
+  cardTitle: { fontSize: '14px', fontWeight: '700', color: 'var(--ink)' },
   cardSub: { fontSize: '12px', color: '#8a8478', marginTop: '2px' },
 
-  map: { height: '180px', width: '100%', borderRadius: 'var(--radius)', overflow: 'hidden', background: 'var(--moss-pale)' },
+  map: { height: '180px', width: '100%', borderRadius: 'var(--radius)', overflow: 'hidden', background: 'var(--terra-wash)' },
   mapEmpty: {
     height: '180px', width: '100%', borderRadius: 'var(--radius)',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    background: 'var(--moss-pale)', color: '#8a8478', fontSize: '12px',
+    background: 'var(--terra-wash)', color: '#8a8478', fontSize: '12px',
   },
 
   stopList: { listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '6px', margin: 0, padding: 0 },
   stopRow: { display: 'flex', alignItems: 'center', gap: '10px' },
   stopNum: {
-    width: '20px', height: '20px', borderRadius: '50%', background: 'var(--moss-pale)',
-    color: 'var(--moss)', fontSize: '11px', fontWeight: '700', display: 'flex',
+    width: '20px', height: '20px', borderRadius: '50%', background: 'var(--terra-wash)',
+    color: 'var(--terra)', fontSize: '11px', fontWeight: '700', display: 'flex',
     alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
   stopInfo: { flex: 1, minWidth: 0 },
-  stopClient: { fontSize: '13px', fontWeight: '600', color: 'var(--bark)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  stopClient: { fontSize: '13px', fontWeight: '600', color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   stopAddr: { fontSize: '11px', color: '#aaa', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   stopPill: { fontSize: '10px', fontWeight: '600', borderRadius: '20px', padding: '2px 8px', whiteSpace: 'nowrap', flexShrink: 0 },
 
@@ -569,14 +569,14 @@ const s = {
     borderTop: '1px solid var(--border)', paddingTop: '12px',
   },
   dateWrap: { display: 'flex', alignItems: 'center', gap: '8px' },
-  dateLabel: { fontSize: '12px', fontWeight: '600', color: 'var(--bark-mid)' },
+  dateLabel: { fontSize: '12px', fontWeight: '600', color: 'var(--ink-mid)' },
   dateInput: {
     flex: 1, padding: '7px 10px', borderRadius: '8px', border: '1.5px solid var(--border)',
-    fontSize: '13px', fontFamily: 'var(--font)', color: 'var(--bark)', background: 'var(--cream)', outline: 'none',
+    fontSize: '13px', fontFamily: 'var(--font)', color: 'var(--ink)', background: 'var(--cream)', outline: 'none',
   },
   actionBtns: { display: 'flex', gap: '8px', flexWrap: 'wrap' },
   primaryBtn: {
-    flex: 1, background: 'var(--moss)', color: '#fff', border: 'none', borderRadius: '8px',
+    flex: 1, background: 'var(--terra)', color: '#fff', border: 'none', borderRadius: '8px',
     padding: '9px 14px', fontSize: '13px', fontWeight: '600', cursor: 'pointer',
     fontFamily: 'var(--font)', whiteSpace: 'nowrap',
   },
@@ -592,18 +592,18 @@ const s = {
     marginTop: '20px', background: '#fff', border: '1px dashed var(--border)',
     borderRadius: 'var(--radius)', padding: '14px 16px',
   },
-  ungeoTitle: { fontSize: '13px', fontWeight: '700', color: 'var(--bark-mid)' },
+  ungeoTitle: { fontSize: '13px', fontWeight: '700', color: 'var(--ink-mid)' },
   ungeoHint: { fontSize: '12px', color: '#8a8478', marginTop: '2px', marginBottom: '10px' },
   ungeoList: { listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '6px' },
   ungeoItem: { display: 'flex', justifyContent: 'space-between', gap: '12px', fontSize: '12px' },
-  ungeoClient: { fontWeight: '600', color: 'var(--bark)' },
+  ungeoClient: { fontWeight: '600', color: 'var(--ink)' },
   ungeoAddr: { color: '#aaa', textAlign: 'right', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
 
   empty: { textAlign: 'center', color: '#b7b1a6', padding: '50px 20px', fontSize: '14px', lineHeight: 1.5 },
 
   toast: {
     position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)',
-    background: 'var(--bark)', color: '#fff', padding: '11px 20px', borderRadius: '24px',
+    background: 'var(--ink)', color: '#fff', padding: '11px 20px', borderRadius: '24px',
     fontSize: '13px', fontWeight: '500', boxShadow: '0 6px 24px rgba(0,0,0,0.25)',
     zIndex: 1000, maxWidth: '90vw', textAlign: 'center',
   },

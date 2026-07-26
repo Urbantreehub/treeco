@@ -349,17 +349,17 @@ const MF = ({ label, children }) => (
 // ── Styles ────────────────────────────────────────────────────────────────────
 
 const s = {
-  sectionTitle: { fontSize: 13, fontWeight: 700, color: 'var(--bark)', textTransform: 'uppercase', letterSpacing: '0.04em' },
-  addBtn:  { background: 'var(--moss)', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' },
+  sectionTitle: { fontSize: 13, fontWeight: 700, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.04em' },
+  addBtn:  { background: 'var(--terra)', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' },
 
   alertBanner:  { background: '#FFF0EE', border: '1px solid #F5C5BE', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#C0392B', marginBottom: 12 },
   suggestBanner: { background: '#FDF8EE', border: '1px solid #E8D5A3', borderRadius: 8, padding: '10px 14px', marginBottom: 14 },
   linkBtn: { background: 'none', border: 'none', color: 'var(--sky)', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 0, fontFamily: 'var(--font)', textDecoration: 'underline' },
-  quickBtn:{ background: 'var(--moss)', color: '#fff', border: 'none', borderRadius: 6, padding: '3px 10px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', flexShrink: 0 },
+  quickBtn:{ background: 'var(--terra)', color: '#fff', border: 'none', borderRadius: 6, padding: '3px 10px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', flexShrink: 0 },
 
   list:  { display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 },
   row:   { display: 'flex', alignItems: 'center', gap: 10, background: '#fff', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px' },
-  rowTitle: { fontSize: 14, fontWeight: 600, color: 'var(--bark)', lineHeight: 1.3 },
+  rowTitle: { fontSize: 14, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.3 },
   rowMeta:  { fontSize: 11, color: '#999' },
 
   catBadge:   { fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 7px', whiteSpace: 'nowrap', letterSpacing: '0.02em' },
@@ -372,20 +372,20 @@ const s = {
   scrim:     { position: 'fixed', inset: 0, background: 'rgba(44,36,22,0.35)', zIndex: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 },
   modal:     { background: '#fff', borderRadius: 12, width: 500, maxWidth: '95vw', maxHeight: '90dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.25)' },
   modalHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 18px', borderBottom: '1px solid var(--border)' },
-  modalTitle:{ fontSize: 15, fontWeight: 800, color: 'var(--bark)' },
+  modalTitle:{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' },
   xBtn:      { background: 'none', border: 'none', fontSize: 18, color: '#bbb', cursor: 'pointer', lineHeight: 1 },
   modalBody: { padding: '14px 18px', overflowY: 'auto', display: 'flex', flexDirection: 'column' },
   modalFoot: { display: 'flex', gap: 8, alignItems: 'center', padding: '12px 18px', borderTop: '1px solid var(--border)' },
 
   fieldLabel: { fontSize: 11, fontWeight: 600, color: '#888', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 },
-  input:      { width: '100%', padding: '9px 11px', borderRadius: 7, border: '1.5px solid var(--border)', fontSize: 13, color: 'var(--bark)', fontFamily: 'var(--font)', boxSizing: 'border-box', background: '#fff', resize: 'vertical' },
+  input:      { width: '100%', padding: '9px 11px', borderRadius: 7, border: '1.5px solid var(--border)', fontSize: 13, color: 'var(--ink)', fontFamily: 'var(--font)', boxSizing: 'border-box', background: '#fff', resize: 'vertical' },
 
   uploadLabel:{ display: 'block', padding: '10px 14px', border: '1.5px dashed var(--border)', borderRadius: 7, fontSize: 13, color: '#888', cursor: 'pointer', textAlign: 'center' },
   fileChip:   { display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#555', background: '#f8f8f6', border: '1px solid var(--border)', borderRadius: 7, padding: '8px 12px' },
   inlineBtn:  { background: 'none', border: 'none', color: 'var(--danger)', fontSize: 12, cursor: 'pointer', padding: 0, fontFamily: 'var(--font)', marginLeft: 'auto' },
   errMsg:     { fontSize: 12, color: 'var(--danger)', marginTop: 6 },
 
-  saveBtn:   { background: 'var(--moss)', color: '#fff', border: 'none', borderRadius: 7, padding: '9px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)' },
+  saveBtn:   { background: 'var(--terra)', color: '#fff', border: 'none', borderRadius: 7, padding: '9px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)' },
   cancelBtn: { background: '#fff', border: '1px solid var(--border)', borderRadius: 7, padding: '9px 16px', fontSize: 13, color: '#666', cursor: 'pointer', fontFamily: 'var(--font)' },
   delBtn:    { background: '#fff', border: '1px solid #E0B4B0', borderRadius: 7, padding: '9px 14px', fontSize: 13, color: 'var(--danger)', cursor: 'pointer', fontFamily: 'var(--font)' },
 }

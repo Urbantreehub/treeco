@@ -581,18 +581,18 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
                     placeholder={`Message to ${job.clients?.name?.split(' ')[0] || 'client'}…`}
                     rows={3}
                     maxLength={480}
-                    style={{ width: '100%', border: '1px solid var(--border)', borderRadius: '8px', padding: '10px', fontSize: '14px', fontFamily: 'var(--font)', color: 'var(--bark)', outline: 'none', boxSizing: 'border-box', resize: 'vertical' }}
+                    style={{ width: '100%', border: '1px solid var(--border)', borderRadius: '8px', padding: '10px', fontSize: '14px', fontFamily: 'var(--font)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box', resize: 'vertical' }}
                   />
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
                     <span style={{ fontSize: '11px', color: '#aaa' }}>{smsText.length}/480</span>
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <button onClick={() => { setSmsOpen(false); setSmsText('') }} style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid var(--border)', background: '#fff', color: '#888', fontSize: '13px', cursor: 'pointer', fontFamily: 'var(--font)' }}>Cancel</button>
-                      <button onClick={sendText} disabled={!smsText.trim() || smsSending} style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: 'var(--moss)', color: '#fff', fontSize: '13px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)', opacity: !smsText.trim() || smsSending ? 0.5 : 1 }}>{smsSending ? 'Sending…' : 'Send text'}</button>
+                      <button onClick={sendText} disabled={!smsText.trim() || smsSending} style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: 'var(--terra)', color: '#fff', fontSize: '13px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)', opacity: !smsText.trim() || smsSending ? 0.5 : 1 }}>{smsSending ? 'Sending…' : 'Send text'}</button>
                     </div>
                   </div>
                 </div>
               )}
-              {smsNote && <div style={{ fontSize: '12px', marginTop: '6px', color: smsNote.err ? 'var(--danger)' : 'var(--moss)' }}>{smsNote.msg}</div>}
+              {smsNote && <div style={{ fontSize: '12px', marginTop: '6px', color: smsNote.err ? 'var(--danger)' : 'var(--terra)' }}>{smsNote.msg}</div>}
             </div>
           )}
 
@@ -677,7 +677,7 @@ const styles = {
     display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
     marginBottom: '16px',
   },
-  panelTitle: { fontSize: '18px', fontWeight: '700', color: 'var(--bark)', marginBottom: '2px' },
+  panelTitle: { fontSize: '18px', fontWeight: '700', color: 'var(--ink)', marginBottom: '2px' },
   panelClient: { fontSize: '14px', color: '#888' },
   closeBtn: {
     background: 'none', border: 'none', fontSize: '18px',
@@ -688,21 +688,21 @@ const styles = {
   },
   sectionTitle: { fontSize: '12px', fontWeight: '600', color: '#888', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' },
   rowLabel: { fontSize: '11px', color: '#aaa', fontWeight: '500', marginBottom: '1px' },
-  rowValue: { fontSize: '14px', color: 'var(--bark)' },
+  rowValue: { fontSize: '14px', color: 'var(--ink)' },
   mapLink: { fontSize: '14px', color: '#4A7FA5', textDecoration: 'none' },
-  description: { fontSize: '14px', color: 'var(--bark)', lineHeight: 1.5, whiteSpace: 'pre-wrap' },
+  description: { fontSize: '14px', color: 'var(--ink)', lineHeight: 1.5, whiteSpace: 'pre-wrap' },
   statusSelect: {
     padding: '8px 12px', borderRadius: '8px', border: '1.5px solid var(--border)',
-    background: '#fff', color: 'var(--bark)', fontSize: '13px', fontWeight: '600',
+    background: '#fff', color: 'var(--ink)', fontSize: '13px', fontWeight: '600',
     fontFamily: 'var(--font)', cursor: 'pointer', outline: 'none',
   },
   actionBtn: {
     padding: '8px 14px', borderRadius: '8px', border: '1px solid var(--border)',
-    background: '#fff', color: 'var(--bark)', fontSize: '13px', fontWeight: '600',
+    background: '#fff', color: 'var(--ink)', fontSize: '13px', fontWeight: '600',
     cursor: 'pointer', fontFamily: 'var(--font)', transition: 'opacity 0.1s',
   },
   actionBtnPrimary: {
-    background: 'var(--moss)', color: '#fff', borderColor: 'var(--moss)',
+    background: 'var(--terra)', color: '#fff', borderColor: 'var(--terra)',
   },
   actionBtnDanger: {
     borderColor: '#E0B0AA', color: 'var(--danger)',
@@ -710,29 +710,29 @@ const styles = {
   input: {
     width: '100%', padding: '9px 12px', borderRadius: '8px',
     border: '1px solid var(--border)', fontSize: '14px',
-    fontFamily: 'var(--font)', color: 'var(--bark)',
+    fontFamily: 'var(--font)', color: 'var(--ink)',
     background: 'var(--cream)', boxSizing: 'border-box',
   },
   primaryBtn: {
-    background: 'var(--moss)', color: '#fff', border: 'none',
+    background: 'var(--terra)', color: '#fff', border: 'none',
     borderRadius: '8px', padding: '9px 20px', fontSize: '14px',
     fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)',
   },
   ghostBtn: {
     background: 'none', border: '1px solid var(--border)',
     borderRadius: '8px', padding: '9px 16px', fontSize: '14px',
-    color: 'var(--bark)', cursor: 'pointer', fontFamily: 'var(--font)',
+    color: 'var(--ink)', cursor: 'pointer', fontFamily: 'var(--font)',
   },
   quoteOpenBtn: {
     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
     background: '#F0F7EE', border: '1.5px solid #4A6741',
     borderRadius: '10px', padding: '12px 14px', fontSize: '14px',
-    color: 'var(--bark)', cursor: 'pointer', fontFamily: 'var(--font)', width: '100%',
+    color: 'var(--ink)', cursor: 'pointer', fontFamily: 'var(--font)', width: '100%',
   },
   quoteBtn: {
     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
     background: 'var(--cream)', border: '1px solid var(--border)',
     borderRadius: '8px', padding: '9px 14px', fontSize: '14px',
-    color: 'var(--bark)', cursor: 'pointer', fontFamily: 'var(--font)', width: '100%',
+    color: 'var(--ink)', cursor: 'pointer', fontFamily: 'var(--font)', width: '100%',
   },
 }

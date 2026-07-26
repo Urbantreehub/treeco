@@ -13,22 +13,17 @@ The redesign is ~80% done — the design tokens, the light translucent bottom ta
 bar, and the sign-in screen are all in. What's left is cleanup and the app-chrome
 colours that still show the **old bark brown**.
 
-### 1a. Fix the PWA app-chrome colours (quick — 15 min)
-The phone status bar, splash screen, and install icon still use the old bark brown
-`#2C2416` instead of terracotta/cream. This is the most visible leftover.
-- `frontend/public/manifest.json` — `theme_color` and `background_color` are still `#2C2416`.
-- `frontend/index.html` — `<meta name="theme-color" content="#2C2416" />` still old.
-- Blueprint calls for terracotta + cream here (`TreeCo-Redesign-Blueprint.md` §6, step 6).
+### 1a. Fix the PWA app-chrome colours ✅ DONE
+Phone status bar / splash / install icon no longer show the old bark brown.
+- `frontend/public/manifest.json` — `theme_color` → terracotta `#C15A34`, `background_color` → cream `#FCF5EC`.
+- `frontend/index.html` — `<meta name="theme-color">` → terracotta `#C15A34`.
+- Blueprint §6, step 6.
 
-### 1b. Retire the legacy colour tokens (medium — a couple of hours)
-`theme.css` currently aliases the old names (`--moss` → `--terra`, `--bark` → `--ink`)
-so nothing breaks, but **30 files still call `var(--moss)` / `var(--bark)` directly.**
-The blueprint wants these retired page by page (§6, step 2). Files still using them:
-components/ (QuoteReference, NewJobModal, JobCard, Layout, CartrackMap,
-PipelineColumn, JobDetailPanel, StatusGroup), App.jsx, and pages/ (Chat,
-RiskAssessment, StaffHub, Planner, SOP, QuoteBuilder, JobPack, Safety, BookQuote,
-QuoteView, Calendar, SWMS, MulchDump, Settings, WorkOrder, HSDocuments, Dashboard,
-Login, Pipeline, ToolRequests, SentQuotes).
+### 1b. Retire the legacy colour tokens ✅ DONE
+All 260 `var(--moss)` / `var(--bark)` usages across 30 files swapped to the canonical
+`var(--terra)` / `var(--ink)` names, the dead aliases removed from `theme.css`, and a
+stale `#4A6741` moss-green fallback in Calendar.jsx corrected. Build + all 21 tests
+pass. Blueprint §6, step 2.
 
 ### 1c. Move hardcoded hex values to semantic tokens (medium)
 ~49 hardcoded hex colours remain (e.g. amber `#D4851A`, red `#e53935`) across 17
@@ -75,7 +70,7 @@ finish" rather than "build from scratch." Confirm current state before starting 
 ---
 
 ### Suggested order for tomorrow
-1. **1a** (15 min, high visual payoff) →
-2. **1c** semantic-colour cleanup on the top 3–4 files →
-3. **1b** legacy-token retirement, a few pages at a time →
+1. ~~**1a**~~ ✅ and ~~**1b**~~ ✅ are done.
+2. **1c** semantic-colour cleanup on the top 3–4 files (Layout, JobCard, JobDetailPanel, Dashboard).
+3. **1d** per-screen redesign passes.
 4. Then pick one Phase 1b feature (Xero verify or SMS triggers) to make real progress.

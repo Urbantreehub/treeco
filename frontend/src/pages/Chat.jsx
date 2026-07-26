@@ -160,7 +160,7 @@ export default function Chat() {
     <div style={{ ...s.sidebar, ...(isMobile ? s.sidebarMobile : {}) }}>
       <div style={s.sideHeader}>Conversations</div>
       <button style={{ ...s.convItem, ...(activeKey === 'team' ? s.convActive : {}) }} onClick={() => setActiveKey('team')}>
-        <div style={{ ...s.avatar, background: 'var(--moss)' }}>#</div>
+        <div style={{ ...s.avatar, background: 'var(--terra)' }}>#</div>
         <div style={s.convBody}>
           <div style={s.convName}>Team</div>
           <div style={s.convHint}>Everyone</div>
@@ -243,21 +243,21 @@ const s = {
 
   sidebar: { width: '260px', minWidth: '260px', borderRight: '1px solid var(--border)', background: '#fff', overflowY: 'auto', display: 'flex', flexDirection: 'column' },
   sidebarMobile: { width: '100%', minWidth: 0, borderRight: 'none' },
-  sideHeader: { padding: '16px 18px 8px', fontSize: '16px', fontWeight: '700', color: 'var(--bark)' },
+  sideHeader: { padding: '16px 18px 8px', fontSize: '16px', fontWeight: '700', color: 'var(--ink)' },
   sideLabel: { padding: '14px 18px 6px', fontSize: '11px', fontWeight: '700', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.06em' },
   sideEmpty: { padding: '4px 18px', fontSize: '13px', color: '#bbb' },
   convItem: { display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px 14px', border: 'none', background: 'none', cursor: 'pointer', fontFamily: 'var(--font)', textAlign: 'left', borderLeft: '3px solid transparent' },
-  convActive: { background: 'var(--moss-pale)', borderLeft: '3px solid var(--moss)' },
+  convActive: { background: 'var(--terra-wash)', borderLeft: '3px solid var(--terra)' },
   avatar: { width: '38px', height: '38px', borderRadius: '50%', background: 'var(--sky)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700', fontSize: '14px', flexShrink: 0 },
   convBody: { flex: 1, minWidth: 0 },
-  convName: { fontSize: '14px', fontWeight: '600', color: 'var(--bark)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  convName: { fontSize: '14px', fontWeight: '600', color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   convHint: { fontSize: '12px', color: '#aaa' },
   dot: { width: '9px', height: '9px', borderRadius: '50%', background: '#D4851A', flexShrink: 0 },
 
   thread: { flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0 },
   threadHeader: { display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 20px', borderBottom: '1px solid var(--border)', background: '#fff', flexShrink: 0 },
-  backBtn: { background: 'none', border: 'none', fontSize: '22px', color: 'var(--bark)', cursor: 'pointer', padding: '0 4px', lineHeight: 1 },
-  title: { fontSize: '17px', fontWeight: '700', color: 'var(--bark)' },
+  backBtn: { background: 'none', border: 'none', fontSize: '22px', color: 'var(--ink)', cursor: 'pointer', padding: '0 4px', lineHeight: 1 },
+  title: { fontSize: '17px', fontWeight: '700', color: 'var(--ink)' },
   sub: { fontSize: '12px', color: '#999', marginTop: '1px' },
   placeholder: { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#bbb', fontSize: '14px' },
 
@@ -267,13 +267,13 @@ const s = {
   dayPill: { fontSize: '11px', fontWeight: '600', color: '#999', background: '#EDEAE4', borderRadius: '10px', padding: '3px 12px' },
   row: { display: 'flex', width: '100%', marginTop: '2px' },
   bubble: { maxWidth: '78%', borderRadius: '14px', padding: '8px 12px', boxShadow: '0 1px 2px rgba(44,36,22,0.08)' },
-  bubbleMine: { background: 'var(--moss)', color: '#fff', borderBottomRightRadius: '4px' },
-  bubbleOther: { background: '#fff', color: 'var(--bark)', border: '1px solid var(--border)', borderBottomLeftRadius: '4px' },
-  sender: { fontSize: '11px', fontWeight: '700', color: 'var(--moss-light)', marginBottom: '3px' },
+  bubbleMine: { background: 'var(--terra)', color: '#fff', borderBottomRightRadius: '4px' },
+  bubbleOther: { background: '#fff', color: 'var(--ink)', border: '1px solid var(--border)', borderBottomLeftRadius: '4px' },
+  sender: { fontSize: '11px', fontWeight: '700', color: 'var(--terra-light)', marginBottom: '3px' },
   body: { fontSize: '14px', lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word' },
   time: { fontSize: '10px', textAlign: 'right', marginTop: '3px' },
 
   composer: { display: 'flex', gap: '8px', padding: '12px 14px', borderTop: '1px solid var(--border)', background: '#fff', flexShrink: 0 },
-  input: { flex: 1, padding: '11px 14px', borderRadius: '22px', border: '1.5px solid var(--border)', fontSize: '14px', fontFamily: 'var(--font)', color: 'var(--bark)', outline: 'none' },
-  sendBtn: { padding: '0 20px', borderRadius: '22px', border: 'none', background: 'var(--moss)', color: '#fff', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)' },
+  input: { flex: 1, padding: '11px 14px', borderRadius: '22px', border: '1.5px solid var(--border)', fontSize: '14px', fontFamily: 'var(--font)', color: 'var(--ink)', outline: 'none' },
+  sendBtn: { padding: '0 20px', borderRadius: '22px', border: 'none', background: 'var(--terra)', color: '#fff', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)' },
 }

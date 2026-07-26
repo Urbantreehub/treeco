@@ -4,8 +4,8 @@
 :root {
   /* ── Redesign palette — sampled from the brand icons ──────────────────────
      Terracotta accent, navy ink, cream/peach ground. These are the canonical
-     names; the legacy tokens below alias onto them so every existing
-     var(--moss) / var(--bark) usage re-skins from this one file. */
+     names used throughout the app. The old bark/moss token names have been
+     retired — use --ink / --terra directly. */
   --ink:         #22384F;   /* navy — primary text & dark surfaces (nav) */
   --ink-mid:     #2E4A63;   /* raised navy — active nav link on the sidebar */
   --ink-2:       #64717F;   /* secondary text */
@@ -18,12 +18,7 @@
   --peach:       #F7DFC7;   /* gradient stop */
   --tab-inactive:#A79683;   /* warm grey — inactive bottom-tab icon/label */
 
-  /* ── Legacy tokens, remapped onto the redesign palette ── */
-  --bark:        var(--ink);
-  --bark-mid:    var(--ink-mid);
-  --moss:        var(--terra);
-  --moss-light:  var(--terra-light);
-  --moss-pale:   var(--terra-wash);
+  /* ── Semantic + ground tokens ── */
   --amber:       #D4851A;
   --amber-pale:  #FDF3E3;
   --sky:         #4A7FA5;
@@ -54,7 +49,7 @@ html, body, #root {
 body {
   font-family: var(--font);
   background: var(--cream);
-  color: var(--bark);
+  color: var(--ink);
   -webkit-font-smoothing: antialiased;
 }
 

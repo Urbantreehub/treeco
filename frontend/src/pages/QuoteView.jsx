@@ -284,7 +284,7 @@ export default function QuoteView() {
                     ...p.itemCard,
                     borderLeft: isOptional
                       ? `4px solid ${item.selected ? '#4A6741' : 'var(--border)'}`
-                      : '4px solid var(--bark)',
+                      : '4px solid var(--ink)',
                     opacity: isActive ? 1 : 0.55,
                   }}
                 >
@@ -666,7 +666,7 @@ const p = {
     boxShadow: '0 1px 4px rgba(44,36,22,0.06)',
   },
   whyHeader: {
-    fontSize: '11px', fontWeight: '800', color: 'var(--moss)',
+    fontSize: '11px', fontWeight: '800', color: 'var(--terra)',
     textTransform: 'uppercase', letterSpacing: '0.09em', marginBottom: '16px',
   },
   reviewRow: {
@@ -682,7 +682,7 @@ const p = {
     position: 'absolute', top: 0, left: 0, overflow: 'hidden',
     color: '#E8A33D', whiteSpace: 'nowrap',
   },
-  reviewNum: { fontSize: '18px', fontWeight: '800', color: 'var(--bark)' },
+  reviewNum: { fontSize: '18px', fontWeight: '800', color: 'var(--ink)' },
   reviewLink: { fontSize: '13px', fontWeight: '600', color: '#4A7FA5', textDecoration: 'none' },
   reviewQuotes: { display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minWidth: '220px' },
   reviewQuote: { margin: 0, display: 'flex', flexDirection: 'column', gap: '2px' },
@@ -697,15 +697,15 @@ const p = {
     background: '#fff', border: '1px solid var(--border)', borderRadius: '9px',
     padding: '11px 13px',
   },
-  qualGlyph: { fontSize: '16px', lineHeight: 1.2, flexShrink: 0, color: 'var(--moss)' },
-  qualLabel: { fontSize: '13px', fontWeight: '700', color: 'var(--bark)', marginBottom: '2px' },
+  qualGlyph: { fontSize: '16px', lineHeight: 1.2, flexShrink: 0, color: 'var(--terra)' },
+  qualLabel: { fontSize: '13px', fontWeight: '700', color: 'var(--ink)', marginBottom: '2px' },
   qualDetail: { fontSize: '11px', color: '#777', lineHeight: 1.45 },
   whyList: { listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexWrap: 'wrap', gap: '8px 20px' },
   whyItem: { display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '13px', color: '#4A4A42', lineHeight: 1.5, flex: '1 1 240px' },
   whyCheck: {
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
     width: '17px', height: '17px', borderRadius: '50%', flexShrink: 0,
-    background: 'var(--moss)', color: '#fff', fontSize: '10px', fontWeight: '800', marginTop: '1px',
+    background: 'var(--terra)', color: '#fff', fontSize: '10px', fontWeight: '800', marginTop: '1px',
   },
 
   // Items
@@ -719,7 +719,7 @@ const p = {
   itemBody: { padding: '16px 18px' },
   itemTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', marginBottom: '10px' },
   itemDesc: { flex: 1 },
-  itemTitle: { fontSize: '16px', fontWeight: '600', color: 'var(--bark)', marginBottom: '4px' },
+  itemTitle: { fontSize: '16px', fontWeight: '600', color: 'var(--ink)', marginBottom: '4px' },
   itemDetail: { fontSize: '13px', color: '#777', lineHeight: 1.5 },
   itemRight: { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px', flexShrink: 0 },
   toggleBtn: {
@@ -729,7 +729,7 @@ const p = {
     whiteSpace: 'nowrap',
   },
   priceStack: { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' },
-  itemTotal: { fontSize: '18px', fontWeight: '700', color: 'var(--bark)', textAlign: 'right' },
+  itemTotal: { fontSize: '18px', fontWeight: '700', color: 'var(--ink)', textAlign: 'right' },
   itemTotalEx: { fontSize: '11px', color: '#aaa', textAlign: 'right' },
   itemMeta: { display: 'flex', alignItems: 'center', gap: '10px' },
   itemQtyRate: { fontSize: '12px', color: '#aaa' },
@@ -744,8 +744,8 @@ const p = {
   totalsInner: { padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '10px' },
   tRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   tLabel: { fontSize: '14px', color: '#888' },
-  tVal: { fontSize: '14px', color: 'var(--bark)' },
-  tTotal: { fontSize: '22px', fontWeight: '700', color: 'var(--bark)', borderTop: '2px solid var(--border)', paddingTop: '12px', marginTop: '4px' },
+  tVal: { fontSize: '14px', color: 'var(--ink)' },
+  tTotal: { fontSize: '22px', fontWeight: '700', color: 'var(--ink)', borderTop: '2px solid var(--border)', paddingTop: '12px', marginTop: '4px' },
 
   // Notes
   notesBox: { background: '#fff', borderRadius: '10px', border: '1px solid var(--border)', padding: '18px 20px', marginBottom: '24px', boxShadow: '0 1px 4px rgba(44,36,22,0.06)' },
@@ -770,12 +770,12 @@ const p = {
     padding: '14px 18px', background: '#FAFAF8', border: 'none', cursor: 'pointer',
     fontFamily: 'var(--font)', textAlign: 'left',
   },
-  tcToggleLabel: { fontSize: '13px', fontWeight: '700', color: 'var(--bark)', flex: 1 },
+  tcToggleLabel: { fontSize: '13px', fontWeight: '700', color: 'var(--ink)', flex: 1 },
   tcVersion: { fontSize: '11px', color: '#bbb', fontWeight: '500' },
   tcChevron: { fontSize: '11px', color: '#bbb' },
   tcBody: { padding: '18px 20px', borderTop: '1px solid var(--border)', background: '#fff' },
   tcClause: { marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid #F0EDE8' },
-  tcClauseTitle: { fontSize: '12px', fontWeight: '700', color: 'var(--bark)', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.04em' },
+  tcClauseTitle: { fontSize: '12px', fontWeight: '700', color: 'var(--ink)', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.04em' },
   tcClauseText: { fontSize: '13px', color: '#555', lineHeight: 1.75 },
   tcFootnote: { fontSize: '12px', color: '#aaa', lineHeight: 1.6, fontStyle: 'italic', marginTop: '8px' },
   glossaryIntro: { fontSize: '13px', color: '#888', marginBottom: '16px', lineHeight: 1.6, margin: '0 0 16px' },
@@ -786,7 +786,7 @@ const p = {
     borderBottom: '1px solid #F0EDE8',
   },
   glossaryEntry: { marginBottom: '12px', paddingLeft: '12px', borderLeft: '3px solid var(--border)' },
-  glossaryTerm: { fontSize: '13px', fontWeight: '700', color: 'var(--bark)', marginBottom: '3px' },
+  glossaryTerm: { fontSize: '13px', fontWeight: '700', color: 'var(--ink)', marginBottom: '3px' },
   glossaryDef: { fontSize: '12px', color: '#666', lineHeight: 1.65 },
 
   // T&C acknowledgement checkbox
@@ -796,7 +796,7 @@ const p = {
     padding: '12px 14px', marginBottom: '14px', cursor: 'pointer',
     fontSize: '13px', color: '#555', lineHeight: 1.55,
   },
-  tcCheckbox: { width: '18px', height: '18px', accentColor: 'var(--moss)', flexShrink: 0, marginTop: '2px', cursor: 'pointer' },
+  tcCheckbox: { width: '18px', height: '18px', accentColor: 'var(--terra)', flexShrink: 0, marginTop: '2px', cursor: 'pointer' },
   tcInlineLink: {
     background: 'none', border: 'none', color: '#4A7FA5', textDecoration: 'underline',
     cursor: 'pointer', fontFamily: 'var(--font)', fontSize: 'inherit', padding: '0',
@@ -807,7 +807,7 @@ const p = {
   ctaHint: { fontSize: '12px', color: '#888', marginBottom: '14px', lineHeight: 1.5, textAlign: 'center' },
   ctaBtns: { display: 'flex', gap: '12px' },
   acceptBtn: {
-    flex: 2, padding: '18px', background: 'var(--moss)', color: '#fff',
+    flex: 2, padding: '18px', background: 'var(--terra)', color: '#fff',
     border: 'none', borderRadius: '10px', fontSize: '17px', fontWeight: '700',
     cursor: 'pointer', fontFamily: 'var(--font)', boxShadow: '0 2px 8px rgba(74,103,65,0.3)',
   },
@@ -817,9 +817,9 @@ const p = {
     cursor: 'pointer', fontFamily: 'var(--font)',
   },
   declineCard: { background: '#fff', borderRadius: '10px', border: '1px solid var(--border)', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' },
-  declineTitle: { fontSize: '16px', fontWeight: '700', color: 'var(--bark)' },
+  declineTitle: { fontSize: '16px', fontWeight: '700', color: 'var(--ink)' },
   declineHint: { fontSize: '13px', color: '#888', margin: 0 },
-  declineInput: { padding: '10px 12px', borderRadius: '7px', border: '1.5px solid var(--border)', fontSize: '14px', fontFamily: 'var(--font)', color: 'var(--bark)', resize: 'vertical' },
+  declineInput: { padding: '10px 12px', borderRadius: '7px', border: '1.5px solid var(--border)', fontSize: '14px', fontFamily: 'var(--font)', color: 'var(--ink)', resize: 'vertical' },
   declineConfirm: { padding: '10px 20px', background: 'var(--danger)', color: '#fff', border: 'none', borderRadius: '7px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
   cancelBtn: { padding: '10px 16px', background: 'none', border: '1px solid var(--border)', borderRadius: '7px', fontSize: '14px', color: '#888', cursor: 'pointer', fontFamily: 'var(--font)' },
   respondedBanner: { marginBottom: '32px', padding: '24px', borderRadius: '12px', border: '1.5px solid', textAlign: 'center' },
@@ -851,9 +851,9 @@ const p = {
     padding: '16px 20px', marginBottom: '24px',
     display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '10px',
   },
-  contactLabel: { fontSize: '14px', fontWeight: '600', color: 'var(--bark)' },
+  contactLabel: { fontSize: '14px', fontWeight: '600', color: 'var(--ink)' },
   contactLinks: { display: 'flex', flexWrap: 'wrap', gap: '16px' },
-  contactLink: { fontSize: '14px', color: 'var(--moss)', fontWeight: '600', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '5px' },
+  contactLink: { fontSize: '14px', color: 'var(--terra)', fontWeight: '600', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '5px' },
 
   // Footer
   footer: { marginTop: '48px', paddingTop: '24px', borderTop: '1px solid var(--border)', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' },
