@@ -257,6 +257,6 @@ const styles = {
   lightboxClose: {
     position: 'fixed', top: '20px', right: '24px', background: 'rgba(255,255,255,0.9)',
     border: 'none', borderRadius: '50%', width: '36px', height: '36px',
-    fontSize: '16px', cursor: 'pointer', color: '#2C2416',
+    fontSize: '16px', cursor: 'pointer', color: 'var(--ink)',
   },
 }

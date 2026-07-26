@@ -90,8 +90,8 @@ export default function Safety() {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', background: '#fff', borderBottom: '1px solid #E8EDE4', flexShrink: 0 }}>
-          <button onClick={() => setActiveForm(null)} style={{ background: 'none', border: '1px solid #D0D9C8', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#4A6741' }}>← Back</button>
-          <span style={{ fontWeight: 700, fontSize: 15, color: '#2C2416' }}>{activeForm.title}</span>
+          <button onClick={() => setActiveForm(null)} style={{ background: 'none', border: '1px solid #D0D9C8', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: 'var(--terra)' }}>← Back</button>
+          <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--ink)' }}>{activeForm.title}</span>
         </div>
         <iframe src={activeForm.url} style={{ flex: 1, border: 'none', width: '100%' }} title={activeForm.title} />
       </div>
@@ -304,7 +304,7 @@ const s = {
   title: { fontSize: 22, fontWeight: 800, color: 'var(--bark)' },
   sub: { fontSize: 13, color: '#888', marginTop: 2 },
   secNav: { display:'flex', alignItems:'center', gap:12, marginBottom:18, paddingBottom:14, borderBottom:'1px solid var(--border)' },
-  secNavBack: { background:'none', border:'1px solid var(--border)', borderRadius:8, padding:'6px 14px', fontSize:13, fontWeight:600, cursor:'pointer', color:'#4A6741', fontFamily:'var(--font)', flexShrink:0 },
+  secNavBack: { background:'none', border:'1px solid var(--border)', borderRadius:8, padding:'6px 14px', fontSize:13, fontWeight:600, cursor:'pointer', color:'var(--terra)', fontFamily:'var(--font)', flexShrink:0 },
   secNavTitle: { fontSize:16, fontWeight:800, color:'var(--bark)' },
   body: {},
   statRow: { display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 24 },
@@ -349,7 +349,7 @@ function CheckCard({ check, urgency, confirming, setConfirming, onDone }) {
       <span style={{ fontSize: 26, flexShrink: 0 }}>{TYPE_ICONS[check.check_type] ?? '📌'}</span>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 14, fontWeight: 700, color: '#2C2416' }}>{check.title}</span>
+          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{check.title}</span>
           <span style={{ fontSize: 10, fontWeight: 700, color: tag.color, background: `${tag.color}18`, borderRadius: 5, padding: '2px 6px' }}>{tag.text}</span>
         </div>
         <div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>
@@ -438,12 +438,12 @@ function HomeNav({ isStaff, checksAlert, flaggedCount, onSelect }) {
         return (
           <button key={item.key} onClick={() => onSelect(item.key)}
             style={{ display:'flex', alignItems:'center', gap:16, padding:'14px 18px', background:'#fff', border:'1.5px solid #E0E8D8', borderRadius:12, cursor:'pointer', textAlign:'left', fontFamily:'var(--font)', width:'100%' }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor='#4A6741'; e.currentTarget.style.boxShadow='0 2px 12px rgba(74,103,65,0.1)' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor='var(--terra)'; e.currentTarget.style.boxShadow='0 2px 12px rgba(74,103,65,0.1)' }}
             onMouseLeave={e => { e.currentTarget.style.borderColor='#E0E8D8'; e.currentTarget.style.boxShadow='none' }}
           >
             <span style={{ fontSize:26, flexShrink:0, lineHeight:1 }}>{item.icon}</span>
             <div style={{ flex:1, minWidth:0 }}>
-              <div style={{ fontSize:15, fontWeight:700, color:'#2C2416' }}>{item.label}</div>
+              <div style={{ fontSize:15, fontWeight:700, color:'var(--ink)' }}>{item.label}</div>
               <div style={{ fontSize:13, color:'#888', marginTop:2 }}>{item.desc}</div>
             </div>
             {alert > 0 && <span style={{ background:'#FFF0EE', color:'#C0392B', fontWeight:700, fontSize:12, borderRadius:20, padding:'2px 9px', flexShrink:0 }}>{alert}</span>}
@@ -503,12 +503,12 @@ function FormsPanel({ onSelect }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {forms.map(form => (
               <button key={form.id} onClick={() => onSelect(form)} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px', background: '#fff', border: '1.5px solid #E0E8D8', borderRadius: 12, cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)' }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = '#4A6741'; e.currentTarget.style.boxShadow = '0 2px 12px rgba(74,103,65,0.1)' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--terra)'; e.currentTarget.style.boxShadow = '0 2px 12px rgba(74,103,65,0.1)' }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = '#E0E8D8'; e.currentTarget.style.boxShadow = 'none' }}
               >
                 <span style={{ fontSize: 28, flexShrink: 0 }}>{form.icon}</span>
                 <div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: '#2C2416', marginBottom: 3 }}>{form.title}</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 3 }}>{form.title}</div>
                   <div style={{ fontSize: 13, color: '#777', lineHeight: 1.4 }}>{form.description}</div>
                 </div>
                 <span style={{ marginLeft: 'auto', color: '#C0CABB', fontSize: 20 }}>›</span>

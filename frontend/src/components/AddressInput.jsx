@@ -146,12 +146,12 @@ const st = {
   dropdown: {
     position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
     margin: '4px 0 0', padding: '4px', listStyle: 'none',
-    background: '#fff', border: '1px solid #E2DDD6', borderRadius: '10px',
+    background: '#fff', border: '1px solid var(--border)', borderRadius: '10px',
     boxShadow: '0 8px 24px rgba(0,0,0,0.12)', maxHeight: '240px', overflowY: 'auto',
   },
   item: {
     display: 'flex', alignItems: 'flex-start', gap: '6px',
-    padding: '9px 10px', fontSize: '13px', color: '#2C2416',
+    padding: '9px 10px', fontSize: '13px', color: 'var(--ink)',
     borderRadius: '7px', cursor: 'pointer', lineHeight: 1.35,
   },
   pin: { flexShrink: 0 },

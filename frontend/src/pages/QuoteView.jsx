@@ -283,7 +283,7 @@ export default function QuoteView() {
                   style={{
                     ...p.itemCard,
                     borderLeft: isOptional
-                      ? `4px solid ${item.selected ? '#4A6741' : '#E2DDD6'}`
+                      ? `4px solid ${item.selected ? '#4A6741' : 'var(--border)'}`
                       : '4px solid var(--bark)',
                     opacity: isActive ? 1 : 0.55,
                   }}
@@ -340,7 +340,7 @@ export default function QuoteView() {
                             ...p.optTag,
                             background: item.selected ? '#E8F0E6' : '#F5F5F5',
                             color: item.selected ? '#4A6741' : '#aaa',
-                            borderColor: item.selected ? '#4A674144' : '#E2DDD6',
+                            borderColor: item.selected ? '#4A674144' : 'var(--border)',
                           }}>
                             Optional
                           </span>
@@ -625,31 +625,31 @@ const p = {
     padding: '28px 36px 20px',
   },
   logoImg: { height: '56px', width: 'auto', objectFit: 'contain' },
-  headerDivider: { height: '1px', background: '#E2DDD6', margin: '0 36px' },
+  headerDivider: { height: '1px', background: 'var(--border)', margin: '0 36px' },
 
   // Parties
   parties: {
     display: 'flex', justifyContent: 'space-between', gap: '24px',
-    padding: '24px 36px', borderBottom: '1px solid #E2DDD6',
+    padding: '24px 36px', borderBottom: '1px solid var(--border)',
   },
   party: { flex: 1 },
   partyLabel: {
     fontSize: '10px', fontWeight: '700', color: '#aaa',
     textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px',
   },
-  partyName: { fontSize: '15px', fontWeight: '700', color: '#2C2416', marginBottom: '6px' },
+  partyName: { fontSize: '15px', fontWeight: '700', color: 'var(--ink)', marginBottom: '6px' },
   partyDetail: { fontSize: '13px', color: '#555', lineHeight: 1.8 },
   inlineLink: { color: '#4A7FA5', textDecoration: 'none' },
 
   // Quote meta bar
   metaBar: {
     display: 'flex', alignItems: 'center', gap: '0',
-    padding: '14px 36px', background: '#FAF8F4', borderBottom: '1px solid #E2DDD6',
+    padding: '14px 36px', background: 'var(--cream)', borderBottom: '1px solid var(--border)',
   },
   metaItem: { display: 'flex', flexDirection: 'column', gap: '2px', flex: 1 },
-  metaDivider: { width: '1px', height: '36px', background: '#E2DDD6', margin: '0 24px' },
+  metaDivider: { width: '1px', height: '36px', background: 'var(--border)', margin: '0 24px' },
   metaLabel: { fontSize: '10px', fontWeight: '700', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.06em' },
-  metaValue: { fontSize: '13px', fontWeight: '600', color: '#2C2416' },
+  metaValue: { fontSize: '13px', fontWeight: '600', color: 'var(--ink)' },
 
   // Document body
   doc: { padding: '28px 36px 48px' },
@@ -660,7 +660,7 @@ const p = {
 
   // Why choose us (credibility)
   whyBox: {
-    background: 'linear-gradient(180deg, #F8FAF7 0%, #FAF8F4 100%)',
+    background: 'linear-gradient(180deg, #F8FAF7 0%, var(--cream) 100%)',
     border: '1px solid #D4E4D0', borderRadius: '12px',
     padding: '22px 22px 20px', marginBottom: '24px',
     boxShadow: '0 1px 4px rgba(44,36,22,0.06)',
@@ -672,7 +672,7 @@ const p = {
   reviewRow: {
     display: 'flex', flexWrap: 'wrap', gap: '18px', alignItems: 'flex-start',
     justifyContent: 'space-between', marginBottom: '18px',
-    paddingBottom: '18px', borderBottom: '1px solid #E2DDD6',
+    paddingBottom: '18px', borderBottom: '1px solid var(--border)',
   },
   reviewRating: { display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 },
   stars: { display: 'inline-flex', gap: '2px', lineHeight: 1 },
@@ -785,7 +785,7 @@ const p = {
     letterSpacing: '0.08em', marginBottom: '10px', paddingBottom: '6px',
     borderBottom: '1px solid #F0EDE8',
   },
-  glossaryEntry: { marginBottom: '12px', paddingLeft: '12px', borderLeft: '3px solid #E2DDD6' },
+  glossaryEntry: { marginBottom: '12px', paddingLeft: '12px', borderLeft: '3px solid var(--border)' },
   glossaryTerm: { fontSize: '13px', fontWeight: '700', color: 'var(--bark)', marginBottom: '3px' },
   glossaryDef: { fontSize: '12px', color: '#666', lineHeight: 1.65 },
 
@@ -826,15 +826,15 @@ const p = {
 
   // Download button
   downloadBtn: {
-    background: 'none', border: '1px solid #E2DDD6', borderRadius: '8px',
-    padding: '8px 14px', fontSize: '13px', fontWeight: '600', color: '#2C2416',
+    background: 'none', border: '1px solid var(--border)', borderRadius: '8px',
+    padding: '8px 14px', fontSize: '13px', fontWeight: '600', color: 'var(--ink)',
     cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', gap: '6px',
   },
 
   // Preview bar
   previewBar: {
     position: 'sticky', top: 0, zIndex: 50,
-    background: '#2C2416', display: 'flex', alignItems: 'center',
+    background: 'var(--ink)', display: 'flex', alignItems: 'center',
     justifyContent: 'space-between', padding: '10px 20px',
     boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
   },

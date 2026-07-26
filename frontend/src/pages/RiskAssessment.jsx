@@ -669,7 +669,7 @@ function RiskAssessmentDetail({ assessment: a, onEdit, onDelete, onBack }) {
       </div>
 
       <div ref={pdfRef} style={{ background: '#fff', padding: '4px 2px' }}>
-      <div style={{ fontSize: 18, fontWeight: 800, color: '#2C2416', marginBottom: 12 }}>
+      <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)', marginBottom: 12 }}>
         Site-Specific Risk Assessment — {a.site_address || 'Untitled site'}
       </div>
 

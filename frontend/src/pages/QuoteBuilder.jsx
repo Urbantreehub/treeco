@@ -46,7 +46,7 @@ const JP_TOOLS = [
 ]
 const DIFF_COLORS = { 1: '#2e7d32', 2: '#7FA650', 3: '#D4851A', 4: '#E05C33', 5: '#C0392B' }
 const jpLabel = { fontSize: '11px', fontWeight: '700', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '5px' }
-const jpInput = { width: '100%', padding: '8px 10px', borderRadius: '7px', border: '1.5px solid #E2DDD6', fontSize: '13px', fontFamily: 'var(--font)', color: '#2C2416', boxSizing: 'border-box' }
+const jpInput = { width: '100%', padding: '8px 10px', borderRadius: '7px', border: '1.5px solid var(--border)', fontSize: '13px', fontFamily: 'var(--font)', color: 'var(--ink)', boxSizing: 'border-box' }
 
 function nzd(v, dp = 2) {
   return '$' + Number(v || 0).toLocaleString('en-NZ', { minimumFractionDigits: dp, maximumFractionDigits: dp })
@@ -103,7 +103,7 @@ function ImageGallery({ images, onAdd, onRemove, onMarkup }) {
 const iu = {
   gallery: { display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' },
   wrap: { position: 'relative', flexShrink: 0, borderRadius: '6px', overflow: 'visible' },
-  img: { width: '90px', height: '66px', objectFit: 'cover', display: 'block', borderRadius: '6px', border: '1px solid #E2DDD6' },
+  img: { width: '90px', height: '66px', objectFit: 'cover', display: 'block', borderRadius: '6px', border: '1px solid var(--border)' },
   deleteBtn: {
     position: 'absolute', top: '-7px', right: '-7px',
     width: '18px', height: '18px', borderRadius: '50%',
@@ -120,7 +120,7 @@ const iu = {
     textAlign: 'center', zIndex: 2,
   },
   zone: {
-    width: '90px', height: '66px', border: '1.5px dashed #E2DDD6', borderRadius: '6px',
+    width: '90px', height: '66px', border: '1.5px dashed var(--border)', borderRadius: '6px',
     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
     cursor: 'pointer', gap: '2px', background: '#FAFAFA', flexShrink: 0,
   },
@@ -232,7 +232,7 @@ function LineItem({ item, onChange, onDelete, onMarkup }) {
     onChange({ ...item, images: next, image_url: next[0] ?? null })
   }
 
-  const borderColor = item.optional ? '#D4851A' : '#E2DDD6'
+  const borderColor = item.optional ? '#D4851A' : 'var(--border)'
 
   return (
     <div ref={setNodeRef} style={{
@@ -293,8 +293,8 @@ function LineItem({ item, onChange, onDelete, onMarkup }) {
             <button
               style={{
                 ...b.clientToggleBtn,
-                background: item.selected ? '#4A6741' : '#fff',
-                color: item.selected ? '#fff' : '#4A6741',
+                background: item.selected ? 'var(--terra)' : '#fff',
+                color: item.selected ? '#fff' : 'var(--terra)',
                 boxShadow: item.selected ? '0 2px 8px rgba(74,103,65,0.25)' : 'none',
               }}
               onClick={() => onChange({ ...item, selected: !item.selected })}
@@ -490,7 +490,7 @@ function _QuotePreviewStatic({ quote, items, notes, onClose, onSend, saving }) {
                   <div style={{ width: '130px', textAlign: 'right', fontSize: '13px', color: '#666' }}>{nzd(item.rate)}</div>
                   <div style={{ width: '50px', textAlign: 'center', fontSize: '13px', color: '#666' }}>{item.qty}</div>
                   <div style={{ width: '120px', textAlign: 'right' }}>
-                    <div style={{ fontSize: '14px', fontWeight: '600', color: '#2C2416' }}>{isActive ? nzd(inclLine) : '—'}</div>
+                    <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)' }}>{isActive ? nzd(inclLine) : '—'}</div>
                     <div style={{ fontSize: '10px', color: '#aaa' }}>incl GST</div>
                   </div>
                 </div>
@@ -576,19 +576,19 @@ function SendModal({ quote, onClose, onSent, saving }) {
 const sm = {
   backdrop: { position: 'fixed', inset: 0, background: 'rgba(44,36,22,0.5)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' },
   box: { background: '#fff', borderRadius: '12px', width: '460px', maxWidth: '95vw', boxShadow: '0 12px 40px rgba(0,0,0,0.2)' },
-  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid #E2DDD6' },
-  title: { fontSize: '15px', fontWeight: '700', color: '#2C2416' },
+  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid var(--border)' },
+  title: { fontSize: '15px', fontWeight: '700', color: 'var(--ink)' },
   close: { background: 'none', border: 'none', color: '#aaa', cursor: 'pointer', fontSize: '16px' },
   body: { padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '12px' },
   label: { fontSize: '11px', fontWeight: '700', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.06em' },
   linkRow: { display: 'flex', gap: '8px' },
-  linkUrl: { flex: 1, background: '#FAF8F4', border: '1px solid #E2DDD6', borderRadius: '6px', padding: '8px 10px', fontSize: '12px', color: '#4A7FA5', wordBreak: 'break-all' },
+  linkUrl: { flex: 1, background: 'var(--cream)', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 10px', fontSize: '12px', color: '#4A7FA5', wordBreak: 'break-all' },
   copyBtn: { background: '#4A7FA5', color: '#fff', border: 'none', borderRadius: '6px', padding: '8px 14px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'var(--font)' },
-  emailBtn: { display: 'block', background: '#FAF8F4', border: '1px solid #E2DDD6', borderRadius: '7px', padding: '10px 14px', fontSize: '13px', color: '#2C2416', textDecoration: 'none', textAlign: 'center', fontFamily: 'var(--font)' },
+  emailBtn: { display: 'block', background: 'var(--cream)', border: '1px solid var(--border)', borderRadius: '7px', padding: '10px 14px', fontSize: '13px', color: 'var(--ink)', textDecoration: 'none', textAlign: 'center', fontFamily: 'var(--font)' },
   note: { fontSize: '12px', color: '#aaa', lineHeight: 1.5 },
-  footer: { display: 'flex', gap: '10px', justifyContent: 'flex-end', padding: '14px 20px', borderTop: '1px solid #E2DDD6' },
-  cancelBtn: { background: 'none', border: '1px solid #E2DDD6', borderRadius: '7px', padding: '8px 14px', fontSize: '13px', color: '#888', cursor: 'pointer', fontFamily: 'var(--font)' },
-  sentBtn: { background: '#4A6741', color: '#fff', border: 'none', borderRadius: '7px', padding: '8px 18px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
+  footer: { display: 'flex', gap: '10px', justifyContent: 'flex-end', padding: '14px 20px', borderTop: '1px solid var(--border)' },
+  cancelBtn: { background: 'none', border: '1px solid var(--border)', borderRadius: '7px', padding: '8px 14px', fontSize: '13px', color: '#888', cursor: 'pointer', fontFamily: 'var(--font)' },
+  sentBtn: { background: 'var(--terra)', color: '#fff', border: 'none', borderRadius: '7px', padding: '8px 18px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
 }
 
 // ── Email modal ─────────────────────────────────────────────────────────────
@@ -608,7 +608,7 @@ function EmailModal({ quote, onClose, onSend, sending }) {
         <div style={sm.body}>
           <div style={{ background: '#F8FAF7', border: '1px solid #D4E4D0', borderRadius: '8px', padding: '14px 16px' }}>
             <div style={{ fontSize: '11px', fontWeight: '700', color: '#6A8060', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>Will send to</div>
-            <div style={{ fontSize: '14px', fontWeight: '600', color: '#2C2416' }}>{clientEmail}</div>
+            <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)' }}>{clientEmail}</div>
             <div style={{ fontSize: '12px', color: '#888', marginTop: '2px' }}>Subject: Your quote from Urban Tree Services — {nzd(total)}</div>
           </div>
           <div style={sm.note}>
@@ -1047,7 +1047,7 @@ export default function QuoteBuilder() {
                       {['Small', 'Large', 'None'].map(v => (
                         <button key={v} onClick={() => setJobPack(p => ({ ...p, chipper: p.chipper === v ? null : v }))} style={{
                           flex: 1, padding: '5px 2px', borderRadius: '6px', border: '1.5px solid',
-                          borderColor: jobPack.chipper === v ? '#4A6741' : '#E2DDD6',
+                          borderColor: jobPack.chipper === v ? '#4A6741' : 'var(--border)',
                           background: jobPack.chipper === v ? '#E8F0E6' : '#fff',
                           color: jobPack.chipper === v ? '#4A6741' : '#aaa',
                           fontSize: '11px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)',
@@ -1064,7 +1064,7 @@ export default function QuoteBuilder() {
                         return (
                           <button key={v} onClick={() => setJobPack(p => { const n = v === 'Yes'; return { ...p, avant: p.avant === n ? null : n } })} style={{
                             flex: 1, padding: '5px 2px', borderRadius: '6px', border: '1.5px solid',
-                            borderColor: active ? '#4A6741' : '#E2DDD6',
+                            borderColor: active ? '#4A6741' : 'var(--border)',
                             background: active ? '#E8F0E6' : '#fff',
                             color: active ? '#4A6741' : '#aaa',
                             fontSize: '11px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)',
@@ -1082,7 +1082,7 @@ export default function QuoteBuilder() {
                         return (
                           <button key={v} onClick={() => setJobPack(p => { const n = v === 'Yes'; return { ...p, stump_grinder: p.stump_grinder === n ? null : n } })} style={{
                             flex: 1, padding: '5px 2px', borderRadius: '6px', border: '1.5px solid',
-                            borderColor: active ? '#4A6741' : '#E2DDD6',
+                            borderColor: active ? '#4A6741' : 'var(--border)',
                             background: active ? '#E8F0E6' : '#fff',
                             color: active ? '#4A6741' : '#aaa',
                             fontSize: '11px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)',
@@ -1101,7 +1101,7 @@ export default function QuoteBuilder() {
                   {[1,2,3,4,5].map(n => (
                     <button key={n} onClick={() => setJobPack(p => ({ ...p, difficulty: p.difficulty === n ? null : n }))} style={{
                       width: '36px', height: '36px', borderRadius: '8px',
-                      border: `1.5px solid ${jobPack.difficulty === n ? DIFF_COLORS[n] : '#E2DDD6'}`,
+                      border: `1.5px solid ${jobPack.difficulty === n ? DIFF_COLORS[n] : 'var(--border)'}`,
                       background: jobPack.difficulty === n ? DIFF_COLORS[n] + '22' : '#fff',
                       color: jobPack.difficulty === n ? DIFF_COLORS[n] : '#ccc',
                       fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)', flexShrink: 0,
@@ -1120,7 +1120,7 @@ export default function QuoteBuilder() {
                 <div style={jpLabel}>Tools needed</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
                   {JP_TOOLS.map(tool => (
-                    <label key={tool.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#2C2416' }}>
+                    <label key={tool.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: 'var(--ink)' }}>
                       <input
                         type="checkbox"
                         checked={!!((jobPack.tools ?? {})[tool.id])}
@@ -1202,7 +1202,7 @@ export default function QuoteBuilder() {
             {quote && (
               <div style={s.metaCard}>
                 <div style={s.cardTitle}>Client</div>
-                <div style={{ fontWeight: '600', color: '#2C2416', marginBottom: '4px' }}>{quote.jobs?.clients?.name}</div>
+                <div style={{ fontWeight: '600', color: 'var(--ink)', marginBottom: '4px' }}>{quote.jobs?.clients?.name}</div>
                 {quote.jobs?.clients?.email && <div style={s.metaLine}>{quote.jobs.clients.email}</div>}
                 {quote.jobs?.clients?.phone && <div style={s.metaLine}>{quote.jobs.clients.phone}</div>}
                 {quote.jobs?.address && <div style={{ ...s.metaLine, marginTop: '6px' }}>{quote.jobs.address}</div>}
@@ -1267,74 +1267,74 @@ export default function QuoteBuilder() {
 
 // ── Builder styles ──
 const s = {
-  page: { display: 'flex', flexDirection: 'column', height: '100%', background: '#FAF8F4' },
+  page: { display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--cream)' },
   header: {
-    background: '#fff', borderBottom: '1px solid #E2DDD6', padding: '12px 20px',
+    background: '#fff', borderBottom: '1px solid var(--border)', padding: '12px 20px',
     display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexShrink: 0,
   },
   hLeft: { display: 'flex', alignItems: 'center', gap: '10px' },
   hRight: { display: 'flex', alignItems: 'center', gap: '8px' },
-  iconBtn: { background: 'none', border: '1px solid #E2DDD6', borderRadius: '7px', padding: '6px 10px', cursor: 'pointer', fontSize: '14px' },
-  backBtn: { background: 'none', border: '1px solid #E2DDD6', borderRadius: '7px', padding: '6px 12px', fontSize: '12px', color: '#888', cursor: 'pointer', fontFamily: 'var(--font)' },
-  title: { fontSize: '16px', fontWeight: '700', color: '#2C2416' },
+  iconBtn: { background: 'none', border: '1px solid var(--border)', borderRadius: '7px', padding: '6px 10px', cursor: 'pointer', fontSize: '14px' },
+  backBtn: { background: 'none', border: '1px solid var(--border)', borderRadius: '7px', padding: '6px 12px', fontSize: '12px', color: '#888', cursor: 'pointer', fontFamily: 'var(--font)' },
+  title: { fontSize: '16px', fontWeight: '700', color: 'var(--ink)' },
   sub: { fontSize: '11px', color: '#aaa' },
   badge: { fontSize: '11px', fontWeight: '600', borderRadius: '20px', padding: '3px 10px' },
   previewBtn: {
-    background: 'none', border: '1.5px solid #4A6741', borderRadius: '7px', padding: '7px 14px',
-    fontSize: '13px', fontWeight: '600', color: '#4A6741', cursor: 'pointer', fontFamily: 'var(--font)',
+    background: 'none', border: '1.5px solid var(--terra)', borderRadius: '7px', padding: '7px 14px',
+    fontSize: '13px', fontWeight: '600', color: 'var(--terra)', cursor: 'pointer', fontFamily: 'var(--font)',
   },
-  pdfBtn: { background: '#FAF8F4', border: '1px solid #E2DDD6', borderRadius: '7px', padding: '7px 12px', fontSize: '13px', fontWeight: '600', color: '#2C2416', cursor: 'pointer', fontFamily: 'var(--font)' },
-  saveBtn: { background: '#FAF8F4', border: '1px solid #E2DDD6', borderRadius: '7px', padding: '7px 14px', fontSize: '13px', fontWeight: '600', color: '#2C2416', cursor: 'pointer', fontFamily: 'var(--font)' },
-  sendBtn: { background: '#4A6741', color: '#fff', border: 'none', borderRadius: '7px', padding: '8px 16px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
+  pdfBtn: { background: 'var(--cream)', border: '1px solid var(--border)', borderRadius: '7px', padding: '7px 12px', fontSize: '13px', fontWeight: '600', color: 'var(--ink)', cursor: 'pointer', fontFamily: 'var(--font)' },
+  saveBtn: { background: 'var(--cream)', border: '1px solid var(--border)', borderRadius: '7px', padding: '7px 14px', fontSize: '13px', fontWeight: '600', color: 'var(--ink)', cursor: 'pointer', fontFamily: 'var(--font)' },
+  sendBtn: { background: 'var(--terra)', color: '#fff', border: 'none', borderRadius: '7px', padding: '8px 16px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
   emailBtn: { background: '#EBF3FA', color: '#4A7FA5', border: '1.5px solid #4A7FA5', borderRadius: '7px', padding: '7px 14px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
   completeBtn: { background: '#E6F4EC', color: '#1A7A4A', border: '1.5px solid #1A7A4A', borderRadius: '7px', padding: '7px 14px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
   xeroBtn: { background: '#1A7A4A', color: '#fff', border: 'none', borderRadius: '7px', padding: '8px 16px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
   body: { flex: 1, overflowY: 'auto', padding: '18px 20px', display: 'flex', gap: '18px', alignItems: 'flex-start' },
   main: { flex: 1, display: 'flex', flexDirection: 'column', gap: '14px', minWidth: 0 },
   sidebar: { width: '260px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '12px', position: 'sticky', top: 0 },
-  card: { background: '#fff', borderRadius: '10px', border: '1px solid #E2DDD6', padding: '16px 18px' },
+  card: { background: '#fff', borderRadius: '10px', border: '1px solid var(--border)', padding: '16px 18px' },
   cardTitle: { fontSize: '11px', fontWeight: '700', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px' },
   gstNote: { fontSize: '12px', color: '#666', background: '#EBF3FA', borderRadius: '6px', padding: '8px 12px', lineHeight: 1.5 },
-  select: { width: '100%', padding: '9px 10px', borderRadius: '7px', border: '1.5px solid #E2DDD6', fontSize: '13px', fontFamily: 'var(--font)', color: '#2C2416' },
+  select: { width: '100%', padding: '9px 10px', borderRadius: '7px', border: '1.5px solid var(--border)', fontSize: '13px', fontFamily: 'var(--font)', color: 'var(--ink)' },
   emptyItems: { textAlign: 'center', color: '#ccc', padding: '24px 0', fontSize: '13px' },
-  addBtn: { marginTop: '12px', background: 'none', border: '1px dashed #E2DDD6', borderRadius: '7px', padding: '10px', fontSize: '13px', color: '#4A6741', cursor: 'pointer', fontFamily: 'var(--font)', width: '100%', fontWeight: '600' },
-  textarea: { width: '100%', padding: '10px 12px', borderRadius: '7px', border: '1.5px solid #E2DDD6', fontSize: '13px', fontFamily: 'var(--font)', color: '#2C2416', resize: 'vertical', boxSizing: 'border-box', lineHeight: 1.6 },
-  totalsCard: { background: '#fff', borderRadius: '10px', border: '1px solid #E2DDD6', padding: '16px 18px' },
+  addBtn: { marginTop: '12px', background: 'none', border: '1px dashed var(--border)', borderRadius: '7px', padding: '10px', fontSize: '13px', color: 'var(--terra)', cursor: 'pointer', fontFamily: 'var(--font)', width: '100%', fontWeight: '600' },
+  textarea: { width: '100%', padding: '10px 12px', borderRadius: '7px', border: '1.5px solid var(--border)', fontSize: '13px', fontFamily: 'var(--font)', color: 'var(--ink)', resize: 'vertical', boxSizing: 'border-box', lineHeight: 1.6 },
+  totalsCard: { background: '#fff', borderRadius: '10px', border: '1px solid var(--border)', padding: '16px 18px' },
   optNote: { fontSize: '11px', color: '#D4851A', background: '#FDF3E3', borderRadius: '6px', padding: '6px 10px', marginBottom: '10px' },
   tRow: { display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#666' },
-  tBig: { fontSize: '16px', fontWeight: '700', color: '#2C2416', borderTop: '1px solid #E2DDD6', paddingTop: '10px', marginTop: '4px' },
-  linkBox: { marginTop: '14px', padding: '10px', background: '#FAF8F4', borderRadius: '8px', border: '1px solid #E2DDD6' },
+  tBig: { fontSize: '16px', fontWeight: '700', color: 'var(--ink)', borderTop: '1px solid var(--border)', paddingTop: '10px', marginTop: '4px' },
+  linkBox: { marginTop: '14px', padding: '10px', background: 'var(--cream)', borderRadius: '8px', border: '1px solid var(--border)' },
   copyBtn: { background: '#4A7FA5', color: '#fff', border: 'none', borderRadius: '6px', padding: '6px 12px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)', width: '100%' },
-  metaCard: { background: '#fff', borderRadius: '10px', border: '1px solid #E2DDD6', padding: '16px 18px' },
+  metaCard: { background: '#fff', borderRadius: '10px', border: '1px solid var(--border)', padding: '16px 18px' },
   metaLine: { fontSize: '13px', color: '#888' },
   toast: { position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)', color: '#fff', padding: '10px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', zIndex: 9999 },
 }
 
 // ── Line item builder styles ──
 const b = {
-  lineCard: { background: '#fff', border: '1px solid #E2DDD6', borderRadius: '10px', display: 'flex', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' },
-  lineHandle: { width: '26px', background: '#FAFAFA', borderRight: '1px solid #E2DDD6', cursor: 'grab', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, userSelect: 'none', touchAction: 'none' },
+  lineCard: { background: '#fff', border: '1px solid var(--border)', borderRadius: '10px', display: 'flex', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' },
+  lineHandle: { width: '26px', background: '#FAFAFA', borderRight: '1px solid var(--border)', cursor: 'grab', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, userSelect: 'none', touchAction: 'none' },
   lineBody: { flex: 1, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '8px' },
-  lineTitle: { padding: '7px 9px', borderRadius: '6px', border: '1.5px solid #E2DDD6', fontSize: '14px', fontFamily: 'var(--font)', color: '#2C2416', fontWeight: '500', boxSizing: 'border-box' },
-  lineDetail: { width: '100%', padding: '6px 9px', borderRadius: '6px', border: '1.5px solid #E2DDD6', fontSize: '12px', fontFamily: 'var(--font)', color: '#666', resize: 'none', boxSizing: 'border-box' },
+  lineTitle: { padding: '7px 9px', borderRadius: '6px', border: '1.5px solid var(--border)', fontSize: '14px', fontFamily: 'var(--font)', color: 'var(--ink)', fontWeight: '500', boxSizing: 'border-box' },
+  lineDetail: { width: '100%', padding: '6px 9px', borderRadius: '6px', border: '1.5px solid var(--border)', fontSize: '12px', fontFamily: 'var(--font)', color: '#666', resize: 'none', boxSizing: 'border-box' },
   linePrice: { display: 'flex', alignItems: 'flex-end', gap: '14px', paddingTop: '8px', borderTop: '1px solid #f5f5f5', flexWrap: 'wrap' },
   priceCol: { display: 'flex', flexDirection: 'column', gap: '3px' },
   priceLabel: { fontSize: '10px', fontWeight: '700', color: '#aaa', textTransform: 'uppercase' },
   priceDollar: { position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', color: '#aaa', fontSize: '12px', pointerEvents: 'none' },
-  priceInput: { padding: '7px 8px 7px 20px', borderRadius: '6px', border: '1.5px solid #E2DDD6', fontSize: '13px', fontFamily: 'var(--font)', color: '#2C2416', width: '110px', textAlign: 'right' },
-  lineTotal: { fontSize: '15px', fontWeight: '700', color: '#2C2416', transition: 'opacity 0.2s' },
+  priceInput: { padding: '7px 8px 7px 20px', borderRadius: '6px', border: '1.5px solid var(--border)', fontSize: '13px', fontFamily: 'var(--font)', color: 'var(--ink)', width: '110px', textAlign: 'right' },
+  lineTotal: { fontSize: '15px', fontWeight: '700', color: 'var(--ink)', transition: 'opacity 0.2s' },
   lineTotalEx: { fontSize: '10px', color: '#aaa' },
   removeBtn: { background: 'none', border: 'none', color: '#C0392B', fontSize: '12px', cursor: 'pointer', fontFamily: 'var(--font)', padding: '3px 6px' },
   // Fixed / Optional segmented control
-  segWrap: { display: 'flex', borderRadius: '7px', border: '1.5px solid #E2DDD6', overflow: 'hidden', flexShrink: 0 },
+  segWrap: { display: 'flex', borderRadius: '7px', border: '1.5px solid var(--border)', overflow: 'hidden', flexShrink: 0 },
   seg: { padding: '6px 11px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)', border: 'none', background: 'transparent', color: '#aaa', transition: 'all 0.15s' },
-  segActiveFixed: { background: '#2C2416', color: '#fff' },
+  segActiveFixed: { background: 'var(--ink)', color: '#fff' },
   segActiveOpt: { background: '#D4851A', color: '#fff' },
   // Client-style optional toggle (mirrors QuoteView)
   optClientRow: { display: 'flex', alignItems: 'center', gap: '10px', padding: '6px 10px', background: '#FDF9F0', borderRadius: '7px', border: '1px solid #F5C842' },
   optClientLabel: { fontSize: '11px', color: '#B8860B', fontWeight: '600', whiteSpace: 'nowrap' },
   clientToggleBtn: {
-    padding: '8px 18px', borderRadius: '20px', border: '2px solid #4A6741',
+    padding: '8px 18px', borderRadius: '20px', border: '2px solid var(--terra)',
     fontSize: '13px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)',
     transition: 'all 0.2s', whiteSpace: 'nowrap',
   },
@@ -1344,49 +1344,49 @@ const b = {
 const pv = {
   overlay: { position: 'fixed', inset: 0, zIndex: 200, display: 'flex', flexDirection: 'column', background: '#1C1C1E' },
   bar: {
-    background: '#2C2416', padding: '12px 24px',
+    background: 'var(--ink)', padding: '12px 24px',
     display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0,
     boxShadow: '0 2px 12px rgba(0,0,0,0.3)',
   },
   backBtn: { background: 'none', border: '1.5px solid rgba(255,255,255,0.3)', borderRadius: '7px', padding: '8px 16px', fontSize: '13px', fontWeight: '600', color: 'rgba(255,255,255,0.8)', cursor: 'pointer', fontFamily: 'var(--font)' },
-  sendBtn: { background: '#4A6741', color: '#fff', border: 'none', borderRadius: '7px', padding: '8px 18px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
+  sendBtn: { background: 'var(--terra)', color: '#fff', border: 'none', borderRadius: '7px', padding: '8px 18px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
   iframe: { flex: 1, border: 'none', width: '100%' },
   barLeft: { display: 'flex', alignItems: 'center', gap: '12px' },
   barRight: { display: 'flex', gap: '10px' },
-  continueBtn: { background: 'none', border: '1.5px solid #4A6741', borderRadius: '7px', padding: '8px 16px', fontSize: '13px', fontWeight: '600', color: '#4A6741', cursor: 'pointer', fontFamily: 'var(--font)' },
+  continueBtn: { background: 'none', border: '1.5px solid var(--terra)', borderRadius: '7px', padding: '8px 16px', fontSize: '13px', fontWeight: '600', color: 'var(--terra)', cursor: 'pointer', fontFamily: 'var(--font)' },
   page: { flex: 1, overflow: 'auto', padding: '32px 20px 60px' },
   doc: { width: '100%', minWidth: '680px', maxWidth: '780px', margin: '0 auto', background: '#fff', borderRadius: '4px', boxShadow: '0 4px 24px rgba(0,0,0,0.12)', overflow: 'hidden' },
-  letterhead: { background: '#2C2416', color: '#fff', padding: '24px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
+  letterhead: { background: 'var(--ink)', color: '#fff', padding: '24px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
   logoMark: { display: 'flex', alignItems: 'center', gap: '12px' },
   companyName: { fontSize: '18px', fontWeight: '700' },
   companyTag: { fontSize: '11px', opacity: 0.6, marginTop: '2px' },
   docMeta: { textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '4px' },
   metaRow: { display: 'flex', gap: '10px', justifyContent: 'flex-end', fontSize: '12px' },
   metaLbl: { opacity: 0.6 },
-  divider: { height: '3px', background: '#4A6741' },
-  parties: { display: 'flex', justifyContent: 'space-between', padding: '24px 32px', borderBottom: '1px solid #E2DDD6' },
+  divider: { height: '3px', background: 'var(--terra)' },
+  parties: { display: 'flex', justifyContent: 'space-between', padding: '24px 32px', borderBottom: '1px solid var(--border)' },
   partyLabel: { fontSize: '10px', fontWeight: '700', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' },
-  partyName: { fontSize: '15px', fontWeight: '700', color: '#2C2416', marginBottom: '4px' },
+  partyName: { fontSize: '15px', fontWeight: '700', color: 'var(--ink)', marginBottom: '4px' },
   partyDetail: { fontSize: '12px', color: '#666', lineHeight: 1.7 },
-  jobHeading: { padding: '20px 32px 12px', fontSize: '20px', fontWeight: '800', color: '#2C2416', letterSpacing: '-0.3px', borderBottom: '1px solid #E2DDD6' },
+  jobHeading: { padding: '20px 32px 12px', fontSize: '20px', fontWeight: '800', color: 'var(--ink)', letterSpacing: '-0.3px', borderBottom: '1px solid var(--border)' },
   itemsTable: { padding: '0 32px 16px' },
   tableHeader: {
     display: 'flex', gap: '12px', padding: '10px 0',
     fontSize: '10px', fontWeight: '700', color: '#aaa', textTransform: 'uppercase',
-    borderBottom: '2px solid #E2DDD6', marginTop: '8px',
+    borderBottom: '2px solid var(--border)', marginTop: '8px',
   },
   tableRow: { display: 'flex', gap: '12px', padding: '14px 0', borderBottom: '1px solid #F0EDE8', alignItems: 'flex-start' },
-  rowTitle: { fontSize: '14px', fontWeight: '600', color: '#2C2416', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
+  rowTitle: { fontSize: '14px', fontWeight: '600', color: 'var(--ink)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
   rowDetail: { fontSize: '12px', color: '#666', lineHeight: 1.6, marginBottom: '8px', whiteSpace: 'pre-wrap' },
-  rowImg: { width: '120px', height: '80px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #E2DDD6', marginTop: '8px' },
+  rowImg: { width: '120px', height: '80px', objectFit: 'cover', borderRadius: '6px', border: '1px solid var(--border)', marginTop: '8px' },
   optBadge: { fontSize: '10px', background: '#FDF3E3', color: '#D4851A', borderRadius: '10px', padding: '2px 8px', fontWeight: '600', border: '1px solid #FAE8CC' },
   totals: { display: 'flex', justifyContent: 'flex-end', padding: '0 32px 24px' },
-  totalsInner: { width: '280px', display: 'flex', flexDirection: 'column', gap: '8px', background: '#FAFAF9', border: '1px solid #E2DDD6', borderRadius: '8px', padding: '16px' },
+  totalsInner: { width: '280px', display: 'flex', flexDirection: 'column', gap: '8px', background: '#FAFAF9', border: '1px solid var(--border)', borderRadius: '8px', padding: '16px' },
   totalRow: { display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#666' },
-  totalRowBig: { fontSize: '18px', fontWeight: '800', color: '#2C2416', borderTop: '2px solid #E2DDD6', paddingTop: '10px', marginTop: '4px' },
+  totalRowBig: { fontSize: '18px', fontWeight: '800', color: 'var(--ink)', borderTop: '2px solid var(--border)', paddingTop: '10px', marginTop: '4px' },
   gstNote: { fontSize: '10px', color: '#aaa', textAlign: 'right', marginTop: '4px' },
-  notesSection: { padding: '20px 32px', borderTop: '1px solid #E2DDD6' },
-  notesTitle: { fontSize: '13px', fontWeight: '700', color: '#2C2416', marginBottom: '8px' },
+  notesSection: { padding: '20px 32px', borderTop: '1px solid var(--border)' },
+  notesTitle: { fontSize: '13px', fontWeight: '700', color: 'var(--ink)', marginBottom: '8px' },
   notesBody: { fontSize: '13px', color: '#555', lineHeight: 1.8, margin: 0, whiteSpace: 'pre-wrap', fontFamily: 'var(--font)' },
-  footer: { background: '#2C2416', color: 'rgba(255,255,255,0.5)', padding: '14px 32px', fontSize: '11px', textAlign: 'center' },
+  footer: { background: 'var(--ink)', color: 'rgba(255,255,255,0.5)', padding: '14px 32px', fontSize: '11px', textAlign: 'center' },
 }

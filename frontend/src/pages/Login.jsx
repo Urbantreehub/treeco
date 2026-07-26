@@ -88,9 +88,15 @@ export default function Login() {
     <div style={styles.page}>
       <div style={styles.card}>
         <div style={styles.logo}>
-          <span style={styles.logoIcon}>🌲</span>
+          <svg width="40" height="40" viewBox="0 0 60 60" style={{ flexShrink: 0 }} aria-hidden="true">
+            <g stroke="var(--terra)" strokeWidth="6" strokeLinecap="round">
+              <line x1="30" y1="9" x2="30" y2="51" /><line x1="9" y1="30" x2="51" y2="30" />
+              <line x1="15" y1="15" x2="45" y2="45" /><line x1="45" y1="15" x2="15" y2="45" />
+            </g>
+          </svg>
           <h1 style={styles.logoText}>TreeCo</h1>
         </div>
+        <p style={styles.tagline}>The whole business, in your pocket.</p>
 
         {mode === 'set-password' ? (
           <form onSubmit={handleSetPassword} style={styles.form}>
@@ -214,31 +220,39 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: 'var(--cream)',
+    background: 'linear-gradient(170deg, var(--cream) 0%, var(--peach) 100%)',
     padding: '24px',
   },
   card: {
-    background: '#fff',
-    borderRadius: 'var(--radius)',
-    boxShadow: 'var(--shadow)',
-    padding: '48px 40px',
+    background: 'rgba(255, 255, 255, 0.72)',
+    backdropFilter: 'blur(16px)',
+    WebkitBackdropFilter: 'blur(16px)',
+    borderRadius: '22px',
+    boxShadow: '0 20px 50px -20px rgba(40, 25, 10, 0.28)',
+    padding: '44px 38px',
     width: '100%',
     maxWidth: '400px',
-    border: '1px solid var(--border)',
+    border: '1px solid rgba(255, 255, 255, 0.6)',
   },
   logo: {
     display: 'flex',
     alignItems: 'center',
     gap: '12px',
-    marginBottom: '36px',
+    marginBottom: '8px',
     justifyContent: 'center',
   },
   logoIcon: { fontSize: '32px' },
   logoText: {
-    fontSize: '28px',
-    fontWeight: '700',
-    color: 'var(--bark)',
-    letterSpacing: '-0.5px',
+    fontSize: '30px',
+    fontWeight: '800',
+    color: 'var(--ink)',
+    letterSpacing: '-1px',
+  },
+  tagline: {
+    textAlign: 'center',
+    color: 'var(--ink-2)',
+    fontSize: '13.5px',
+    margin: '0 0 32px',
   },
   form: {
     display: 'flex',

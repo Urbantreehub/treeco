@@ -127,7 +127,7 @@ function SortableResourceRow({ resource, visible, onToggle }) {
       <div style={{ width: '9px', height: '9px', borderRadius: '50%', background: RESOURCE_COLOR[resource.id], flexShrink: 0 }} />
       <span style={fp.name}>{resource.title}</span>
       <button
-        style={{ ...fp.toggle, background: visible ? '#4A6741' : '#E2DDD6', color: visible ? '#fff' : '#999' }}
+        style={{ ...fp.toggle, background: visible ? '#4A6741' : 'var(--border)', color: visible ? '#fff' : '#999' }}
         onClick={() => onToggle(resource.id)}
       >
         {visible ? 'On' : 'Off'}
@@ -492,16 +492,16 @@ function CrewCalendar() {
 
 const cw = {
   shell:  { display: 'flex', flexDirection: 'column', height: '100%', background: '#F5F3F0' },
-  header: { padding: '20px 24px 16px', background: '#fff', borderBottom: '1px solid #E2DDD6', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
+  header: { padding: '20px 24px 16px', background: '#fff', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
   dayLabel:   { fontSize: '11px', fontWeight: '700', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' },
-  dateLabel:  { fontSize: '20px', fontWeight: '800', color: '#2C2416' },
+  dateLabel:  { fontSize: '20px', fontWeight: '800', color: 'var(--ink)' },
   resourceName: { fontSize: '13px', fontWeight: '600', color: '#555' },
   body:   { flex: 1, overflowY: 'auto', padding: '20px 24px' },
   empty:  { textAlign: 'center', color: '#bbb', fontSize: '14px', padding: '60px 0' },
   jobList:{ display: 'flex', flexDirection: 'column', gap: '12px', maxWidth: '600px' },
   jobCard:{ background: '#fff', borderRadius: '10px', padding: '16px 16px 16px 14px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' },
   jobTime:  { fontSize: '11px', fontWeight: '700', color: '#aaa', letterSpacing: '0.04em', marginBottom: '4px' },
-  jobTitle: { fontSize: '16px', fontWeight: '800', color: '#2C2416', marginBottom: '4px' },
+  jobTitle: { fontSize: '16px', fontWeight: '800', color: 'var(--ink)', marginBottom: '4px' },
   jobClient:{ fontSize: '13px', color: '#666', marginBottom: '4px' },
   jobAddr:  { display: 'block', fontSize: '13px', color: '#4A7FA5', textDecoration: 'none', marginBottom: '4px' },
   jobNotes: { fontSize: '12px', color: '#888', marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #F0EDE8', lineHeight: 1.5 },
@@ -1112,7 +1112,7 @@ function FullCalendar_() {
       )}
 
       {toast && (
-        <div style={{ ...s.toast, background: toast.err ? '#C0392B' : '#2C2416' }}>
+        <div style={{ ...s.toast, background: toast.err ? '#C0392B' : 'var(--ink)' }}>
           {toast.msg}
         </div>
       )}
@@ -1151,7 +1151,7 @@ function renderResource(info) {
     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '0 8px 0 4px', height: '100%' }}>
       <span style={{ color: '#C8C2BC', fontSize: '14px', cursor: 'grab', userSelect: 'none', lineHeight: 1, flexShrink: 0 }}>⠿</span>
       <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: color, flexShrink: 0 }} />
-      <span style={{ fontSize: '12px', fontWeight: '600', color: '#2C2416' }}>{info.resource.title}</span>
+      <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--ink)' }}>{info.resource.title}</span>
     </div>
   )
 }
@@ -1190,7 +1190,7 @@ const FC_CSS = `
     text-transform: uppercase; letter-spacing: 0.06em;
     padding: 0 10px; display: flex; align-items: center;
   }
-  .fc-datagrid-cell-frame { border-right: 1px solid #E2DDD6 !important; }
+  .fc-datagrid-cell-frame { border-right: 1px solid var(--border) !important; }
   /* Force both sides of each resource row to match height */
   .fc-resource-timeline .fc-datagrid-body tr { height: 56px !important; }
   .fc-resource-timeline .fc-timeline-lane { height: 56px !important; min-height: 56px !important; }
@@ -1204,7 +1204,7 @@ const FC_CSS = `
   .fc-timeline-slot.fc-timeline-slot-minor { border-color: #F5F3F0 !important; }
   .fc-scroller::-webkit-scrollbar { width: 5px; height: 5px; }
   .fc-scroller::-webkit-scrollbar-track { background: transparent; }
-  .fc-scroller::-webkit-scrollbar-thumb { background: #E2DDD6; border-radius: 4px; }
+  .fc-scroller::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
   .fc-list-event:hover td { background: #F5F3F0 !important; }
   .fc-list-day-cushion { background: #F5F3F0 !important; font-size: 12px; }
   .fc-list-event-title { font-size: 13px; font-weight: 600; }
@@ -1215,12 +1215,12 @@ const s = {
   shell: { display: 'flex', height: '100%', overflow: 'hidden', background: '#F5F3F0' },
   tray: {
     width: '200px', flexShrink: 0, background: '#fff',
-    borderRight: '1px solid #E2DDD6',
+    borderRight: '1px solid var(--border)',
     display: 'flex', flexDirection: 'column', overflow: 'hidden',
   },
   trayTop:  { flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: '14px 0 0' },
   trayHead: { display: 'flex', alignItems: 'center', gap: '7px', padding: '0 14px 6px' },
-  trayLabel:{ fontSize: '11px', fontWeight: '700', color: '#2C2416', textTransform: 'uppercase', letterSpacing: '0.05em' },
+  trayLabel:{ fontSize: '11px', fontWeight: '700', color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.05em' },
   trayBadge:{ fontSize: '10px', fontWeight: '700', background: '#D4851A', color: '#fff', borderRadius: '20px', padding: '1px 7px', lineHeight: 1.6 },
   trayTabs: { display: 'flex', gap: '4px', padding: '0 10px 8px' },
   trayTab: {
@@ -1234,8 +1234,8 @@ const s = {
   traySearchIcon: { position: 'absolute', left: '8px', fontSize: '11px', pointerEvents: 'none', opacity: 0.5 },
   traySearchInput: {
     width: '100%', padding: '6px 24px 6px 26px', fontSize: '12px',
-    border: '1.5px solid #E2DDD6', borderRadius: '7px',
-    background: '#FAF8F4', color: '#2C2416', outline: 'none',
+    border: '1.5px solid var(--border)', borderRadius: '7px',
+    background: 'var(--cream)', color: 'var(--ink)', outline: 'none',
     fontFamily: 'var(--font)',
   },
   traySearchClear: {
@@ -1250,55 +1250,55 @@ const s = {
   },
   trayResizeHandle_hover: { background: 'rgba(74,103,65,0.15)' },
   empty:    { textAlign: 'center', color: '#ccc', fontSize: '11px', padding: '20px 0' },
-  legend:     { borderTop: '1px solid #E2DDD6', padding: '12px 14px' },
+  legend:     { borderTop: '1px solid var(--border)', padding: '12px 14px' },
   legendRow:  { display: 'flex', alignItems: 'center', gap: '8px', padding: '3px 0' },
   legendDot:  { width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0 },
   legendName: { fontSize: '11px', color: '#555', fontWeight: '500' },
   main:    { flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#fff' },
-  trackerSection: { flexShrink: 0, borderTop: '1px solid #E2DDD6', background: '#fff' },
+  trackerSection: { flexShrink: 0, borderTop: '1px solid var(--border)', background: '#fff' },
   trackerToggle: {
     width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     padding: '10px 16px', background: 'none', border: 'none', cursor: 'pointer',
-    fontFamily: 'var(--font)', fontSize: '13px', fontWeight: '600', color: '#2C2416',
+    fontFamily: 'var(--font)', fontSize: '13px', fontWeight: '600', color: 'var(--ink)',
   },
   trackerChevron: { fontSize: '22px', color: '#4A6741', lineHeight: 1, display: 'inline-block' },
   trackerBody: { padding: '0 16px 16px' },
   toolbar: {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    padding: '10px 16px', background: '#fff', borderBottom: '1px solid #E2DDD6', flexShrink: 0,
+    padding: '10px 16px', background: '#fff', borderBottom: '1px solid var(--border)', flexShrink: 0,
   },
   tbLeft:   { display: 'flex', alignItems: 'center', gap: '8px' },
   tbRight:  { display: 'flex', gap: '2px', background: '#F5F3F0', borderRadius: '7px', padding: '2px' },
   todayBtn: {
     padding: '6px 14px', borderRadius: '6px',
-    background: '#2C2416', color: '#fff', border: 'none',
+    background: 'var(--ink)', color: '#fff', border: 'none',
     fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)',
   },
   navGroup: { display: 'flex', gap: '2px' },
   navBtn: {
-    padding: '5px 10px', borderRadius: '6px', border: '1px solid #E2DDD6',
+    padding: '5px 10px', borderRadius: '6px', border: '1px solid var(--border)',
     background: '#fff', color: '#666', fontSize: '17px', cursor: 'pointer', lineHeight: 1,
   },
-  dateTitle:{ fontSize: '15px', fontWeight: '700', color: '#2C2416', margin: '0 0 0 4px' },
+  dateTitle:{ fontSize: '15px', fontWeight: '700', color: 'var(--ink)', margin: '0 0 0 4px' },
   viewBtn: {
     padding: '5px 14px', borderRadius: '5px', border: 'none',
     background: 'transparent', fontSize: '12px', fontWeight: '500',
     color: '#888', cursor: 'pointer', fontFamily: 'var(--font)', transition: 'all 0.12s',
   },
-  viewBtnOn: { background: '#fff', color: '#2C2416', fontWeight: '700', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' },
+  viewBtnOn: { background: '#fff', color: 'var(--ink)', fontWeight: '700', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' },
   filterBtn: {
     display: 'flex', alignItems: 'center', gap: '6px',
-    padding: '5px 12px', borderRadius: '6px', border: '1px solid #E2DDD6',
+    padding: '5px 12px', borderRadius: '6px', border: '1px solid var(--border)',
     background: '#fff', color: '#555', fontSize: '12px', fontWeight: '600',
     cursor: 'pointer', fontFamily: 'var(--font)', transition: 'all 0.12s',
   },
-  filterBtnOn: { background: '#2C2416', color: '#fff', borderColor: '#2C2416' },
+  filterBtnOn: { background: 'var(--ink)', color: '#fff', borderColor: 'var(--ink)' },
   filterBadge: {
     background: '#D4851A', color: '#fff', fontSize: '10px', fontWeight: '700',
     borderRadius: '20px', padding: '1px 6px', lineHeight: 1.6,
   },
   crewStrip: {
-    flexShrink: 0, borderBottom: '1px solid #E2DDD6', background: '#FAFAF8',
+    flexShrink: 0, borderBottom: '1px solid var(--border)', background: '#FAFAF8',
     padding: '8px 16px', display: 'flex', alignItems: 'flex-start', gap: '14px',
     maxHeight: '120px', overflowY: 'auto',
   },
@@ -1313,7 +1313,7 @@ const s = {
     padding: '2px 4px', borderRadius: '6px',
   },
   crewName: {
-    fontSize: '11px', fontWeight: '600', color: '#2C2416',
+    fontSize: '11px', fontWeight: '600', color: 'var(--ink)',
     width: '120px', flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
   },
   crewProgress: { flex: 1, minWidth: 0 },
@@ -1337,7 +1337,7 @@ const tr = {
   },
   bar:  { width: '3px', height: '32px', borderRadius: '2px', flexShrink: 0 },
   body: { flex: 1, minWidth: 0 },
-  name: { fontSize: '12px', fontWeight: '600', color: '#2C2416', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.3 },
+  name: { fontSize: '12px', fontWeight: '600', color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.3 },
   meta: { fontSize: '10px', color: '#aaa', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: '2px' },
   stats: { display: 'flex', gap: '8px', marginTop: '3px', flexWrap: 'wrap' },
   stat:  { fontSize: '10px', fontWeight: '700', color: '#4A6741', background: '#EEF3EC', borderRadius: '4px', padding: '1px 5px', whiteSpace: 'nowrap' },
@@ -1346,21 +1346,21 @@ const tr = {
 
 const po = {
   scrim:    { position: 'fixed', inset: 0, zIndex: 400 },
-  box:      { position: 'fixed', width: '250px', background: '#fff', borderRadius: '10px', boxShadow: '0 8px 32px rgba(44,36,22,0.18)', border: '1px solid #E2DDD6', overflow: 'hidden', zIndex: 401 },
+  box:      { position: 'fixed', width: '250px', background: '#fff', borderRadius: '10px', boxShadow: '0 8px 32px rgba(44,36,22,0.18)', border: '1px solid var(--border)', overflow: 'hidden', zIndex: 401 },
   stripe:   { height: '4px', width: '100%' },
-  title:    { fontSize: '14px', fontWeight: '700', color: '#2C2416', padding: '12px 14px 6px' },
+  title:    { fontSize: '14px', fontWeight: '700', color: 'var(--ink)', padding: '12px 14px 6px' },
   row:      { display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '12px', color: '#555', lineHeight: 1.6, padding: '1px 14px' },
   icon:     { fontSize: '11px', marginTop: '2px', flexShrink: 0 },
   truckRow: { display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px 2px' },
   select:   {
     flex: 1, fontSize: '12px', padding: '5px 6px', borderRadius: '6px',
-    border: '1px solid #E2DDD6', background: '#FAF8F4', color: '#2C2416',
+    border: '1px solid var(--border)', background: 'var(--cream)', color: 'var(--ink)',
     fontFamily: 'var(--font)', cursor: 'pointer', outline: 'none',
   },
   openBtn:  { display: 'block', width: 'calc(100% - 28px)', margin: '10px 14px 0', background: '#4A6741', border: 'none', borderRadius: '6px', padding: '9px', fontSize: '12px', fontWeight: '700', color: '#fff', cursor: 'pointer', fontFamily: 'var(--font)' },
-  btns:     { display: 'flex', gap: '8px', padding: '12px 14px', borderTop: '1px solid #E2DDD6', marginTop: '8px' },
+  btns:     { display: 'flex', gap: '8px', padding: '12px 14px', borderTop: '1px solid var(--border)', marginTop: '8px' },
   backBtn:  { flex: 1, background: '#FDF3E3', border: '1px solid #FADFAA', borderRadius: '6px', padding: '7px', fontSize: '11px', fontWeight: '600', color: '#B8860B', cursor: 'pointer', fontFamily: 'var(--font)' },
-  closeBtn: { background: '#2C2416', border: 'none', borderRadius: '6px', padding: '7px 14px', fontSize: '11px', fontWeight: '600', color: '#fff', cursor: 'pointer', fontFamily: 'var(--font)' },
+  closeBtn: { background: 'var(--ink)', border: 'none', borderRadius: '6px', padding: '7px 14px', fontSize: '11px', fontWeight: '600', color: '#fff', cursor: 'pointer', fontFamily: 'var(--font)' },
 }
 
 // ── Week grid styles ───────────────────────────────────────────────────────
@@ -1369,7 +1369,7 @@ const wg = {
   headerRow: {
     display: 'grid',
     gridTemplateColumns: '140px repeat(5, 1fr)',
-    borderBottom: '2px solid #E2DDD6',
+    borderBottom: '2px solid var(--border)',
     background: '#FAFAF8',
     flexShrink: 0,
   },
@@ -1377,7 +1377,7 @@ const wg = {
     fontSize: '10px', fontWeight: '700', color: '#aaa',
     textTransform: 'uppercase', letterSpacing: '0.06em',
     padding: '10px 10px',
-    borderRight: '1px solid #E2DDD6',
+    borderRight: '1px solid var(--border)',
     display: 'flex', alignItems: 'center',
   },
   dayHeader: {
@@ -1399,11 +1399,11 @@ const wg = {
   resourceCell: {
     display: 'flex', alignItems: 'center', gap: '6px',
     padding: '8px 8px 8px 6px',
-    borderRight: '1px solid #E2DDD6',
+    borderRight: '1px solid var(--border)',
     flexShrink: 0,
   },
   grip: { color: '#C8C2BC', fontSize: '14px', cursor: 'grab', userSelect: 'none', touchAction: 'none', lineHeight: 1, flexShrink: 0 },
-  resourceName: { fontSize: '12px', fontWeight: '600', color: '#2C2416' },
+  resourceName: { fontSize: '12px', fontWeight: '600', color: 'var(--ink)' },
   cell: {
     padding: '4px 5px', borderRight: '1px solid #EDEBE7',
     display: 'flex', flexDirection: 'column', gap: '3px',
@@ -1424,16 +1424,16 @@ const fp = {
   panel: {
     position: 'fixed', top: '56px', right: '16px',
     width: '240px', background: '#fff',
-    borderRadius: '10px', border: '1px solid #E2DDD6',
+    borderRadius: '10px', border: '1px solid var(--border)',
     boxShadow: '0 8px 32px rgba(44,36,22,0.14)',
     overflow: 'hidden', zIndex: 301,
   },
   header: {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     padding: '12px 14px 10px',
-    borderBottom: '1px solid #E2DDD6',
+    borderBottom: '1px solid var(--border)',
   },
-  title: { fontSize: '12px', fontWeight: '700', color: '#2C2416', textTransform: 'uppercase', letterSpacing: '0.05em' },
+  title: { fontSize: '12px', fontWeight: '700', color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.05em' },
   hint:  { fontSize: '10px', color: '#bbb' },
   row: {
     display: 'flex', alignItems: 'center', gap: '10px',
@@ -1441,7 +1441,7 @@ const fp = {
     background: '#fff', cursor: 'default',
   },
   grip: { color: '#D0CBC4', fontSize: '14px', cursor: 'grab', touchAction: 'none', flexShrink: 0, lineHeight: 1 },
-  name: { flex: 1, fontSize: '13px', fontWeight: '500', color: '#2C2416' },
+  name: { flex: 1, fontSize: '13px', fontWeight: '500', color: 'var(--ink)' },
   toggle: {
     padding: '3px 10px', borderRadius: '20px', border: 'none',
     fontSize: '11px', fontWeight: '700', cursor: 'pointer',

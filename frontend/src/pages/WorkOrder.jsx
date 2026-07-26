@@ -401,7 +401,7 @@ export default function WorkOrder() {
                   background: done ? '#F0FFF4' : f.required ? '#FFF8F8' : '#FAFAFA',
                 }}>
                   <span style={{ fontSize: 22 }}>{f.icon}</span>
-                  <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: '#2C2416' }}>{f.label}</span>
+                  <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>{f.label}</span>
                   <span style={{ fontSize: 22, fontWeight: 700, color: done ? '#2e7d32' : f.required ? '#C0392B' : '#C8D4C4' }}>
                     {done ? '✓' : f.required ? '✕' : '+'}
                   </span>
@@ -578,7 +578,7 @@ export default function WorkOrder() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
                 {additions.map(a => (
                   <div key={a.id} style={s.additionRow}>
-                    <div style={{ flex: 1, fontSize: 14, fontWeight: 500, color: '#2C2416' }}>{a.label}</div>
+                    <div style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>{a.label}</div>
                     <div style={s.qtyWrap}>
                       <button onClick={() => updateQty(a.id, -1)} style={s.qtyBtn}>−</button>
                       <span style={{ fontSize: 14, fontWeight: 700, minWidth: 24, textAlign: 'center' }}>×{a.qty}</span>
@@ -611,7 +611,7 @@ export default function WorkOrder() {
             style={{
               width: '100%', boxSizing: 'border-box', padding: '12px 14px',
               borderRadius: 8, border: '1.5px solid #D4DDD0', background: '#FAFAF8',
-              fontSize: 14, fontFamily: 'var(--font)', color: '#2C2416',
+              fontSize: 14, fontFamily: 'var(--font)', color: 'var(--ink)',
               lineHeight: 1.6, resize: 'vertical', outline: 'none',
             }}
           />
@@ -709,17 +709,17 @@ function JobPackCard({ pack }) {
 }
 
 const jp = {
-  pill:     { display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 20, border: '1.5px solid #D0E4CC', background: '#F0F7EE', fontSize: 13, fontWeight: 600, color: '#2C2416' },
+  pill:     { display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 20, border: '1.5px solid #D0E4CC', background: '#F0F7EE', fontSize: 13, fontWeight: 600, color: 'var(--ink)' },
   pillIcon: { fontSize: 14 },
   row:      { display: 'flex', alignItems: 'baseline', gap: 10, paddingBottom: 10, marginBottom: 10, borderBottom: '1px solid #F2EFE8' },
   rowLabel: { fontSize: 11, fontWeight: 700, color: '#bbb', textTransform: 'uppercase', letterSpacing: '0.05em', flexShrink: 0, width: 72 },
-  rowValue: { fontSize: 14, color: '#2C2416', fontWeight: 500 },
+  rowValue: { fontSize: 14, color: 'var(--ink)', fontWeight: 500 },
   tool:     { fontSize: 12, fontWeight: 600, color: '#4A6741', background: '#E8F0E6', padding: '3px 10px', borderRadius: 12 },
 }
 
 function MetaRow({ icon, children }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, fontSize: 14, color: '#2C2416', marginBottom: 8, lineHeight: 1.5 }}>
+    <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, fontSize: 14, color: 'var(--ink)', marginBottom: 8, lineHeight: 1.5 }}>
       <span style={{ flexShrink: 0, width: 18, textAlign: 'center' }}>{icon}</span>
       <span>{children}</span>
     </div>
@@ -753,7 +753,7 @@ function PhotoStrip({ label, labelColor, photos, readonly, uploading, onView, on
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
         {photos.map((url, i) => (
           <img key={`${i}-${url}`} src={url} alt="" onClick={() => onView(url)}
-            style={{ width: 80, height: 60, objectFit: 'cover', borderRadius: 8, cursor: 'zoom-in', border: '1px solid #E2DDD6', flexShrink: 0 }} />
+            style={{ width: 80, height: 60, objectFit: 'cover', borderRadius: 8, cursor: 'zoom-in', border: '1px solid var(--border)', flexShrink: 0 }} />
         ))}
         {!readonly && (
           <button onClick={onAdd} disabled={uploading} style={{
@@ -787,13 +787,13 @@ const s = {
   header: {
     position: 'sticky', top: 0, zIndex: 50,
     display: 'flex', alignItems: 'center', gap: 12,
-    padding: '12px 16px', background: '#fff', borderBottom: '1px solid #E2DDD6',
+    padding: '12px 16px', background: '#fff', borderBottom: '1px solid var(--border)',
     boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
   },
   backBtn:     { background: 'none', border: 'none', fontSize: 24, color: '#4A6741', cursor: 'pointer', padding: '2px 8px 2px 0', lineHeight: 1, flexShrink: 0 },
-  headerTitle: { fontSize: 17, fontWeight: 800, color: '#2C2416' },
+  headerTitle: { fontSize: 17, fontWeight: 800, color: 'var(--ink)' },
   headerSub:   { fontSize: 12, color: '#888', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-  sdBadge:     { fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', background: '#2C2416', color: '#fff', padding: '2px 8px', borderRadius: 10 },
+  sdBadge:     { fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', background: 'var(--ink)', color: '#fff', padding: '2px 8px', borderRadius: 10 },
 
   body:   { padding: '16px', display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 640, margin: '0 auto' },
   card:   { background: '#fff', borderRadius: 12, padding: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' },
@@ -811,16 +811,16 @@ const s = {
 
   taskRow:    { display: 'flex', gap: 12, paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid #F2EFE8' },
   taskBullet: { width: 7, height: 7, borderRadius: '50%', background: '#4A6741', flexShrink: 0, marginTop: 7 },
-  taskTitle:  { fontSize: 15, fontWeight: 600, color: '#2C2416', marginBottom: 4 },
+  taskTitle:  { fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 },
   taskDetail: { fontSize: 13, color: '#666', lineHeight: 1.5 },
   taskCharge: { textAlign: 'right', flexShrink: 0, paddingLeft: 10 },
-  taskChargeTotal: { fontSize: 14, fontWeight: 700, color: '#2C2416', whiteSpace: 'nowrap' },
+  taskChargeTotal: { fontSize: 14, fontWeight: 700, color: 'var(--ink)', whiteSpace: 'nowrap' },
   taskChargeSub: { fontSize: 11, color: '#999', whiteSpace: 'nowrap', marginTop: 2 },
   lineItemPhotos: { marginTop: 14, padding: '12px', background: '#FAF9F7', border: '1px solid #EDEBE7', borderRadius: 10 },
   lineItemHead: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' },
-  lineItemName: { fontSize: 14, fontWeight: 700, color: '#2C2416' },
+  lineItemName: { fontSize: 14, fontWeight: 700, color: 'var(--ink)' },
   descText:   { fontSize: 14, color: '#555', lineHeight: 1.7, whiteSpace: 'pre-wrap' },
-  notesBox:   { marginTop: 14, padding: '12px 14px', background: '#FAF8F4', borderRadius: 8, border: '1px solid #E8E4DC' },
+  notesBox:   { marginTop: 14, padding: '12px 14px', background: 'var(--cream)', borderRadius: 8, border: '1px solid #E8E4DC' },
   notesLabel: { fontSize: 10, fontWeight: 700, color: '#bbb', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 },
   notesText:  { fontSize: 14, color: '#555', lineHeight: 1.6, whiteSpace: 'pre-wrap' },
 
@@ -829,11 +829,11 @@ const s = {
     borderRadius: 8, fontSize: 13, color: '#C0392B', fontWeight: 500, lineHeight: 1.5,
   },
   photoGrid: { display: 'flex', flexWrap: 'wrap', gap: 10 },
-  thumb:     { width: 80, height: 60, objectFit: 'cover', borderRadius: 8, cursor: 'zoom-in', border: '1px solid #E2DDD6' },
+  thumb:     { width: 80, height: 60, objectFit: 'cover', borderRadius: 8, cursor: 'zoom-in', border: '1px solid var(--border)' },
   photoBtn:  {
     padding: '12px 0', background: '#fff', border: '1.5px dashed #D0D9C8',
     borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: 'pointer',
-    fontFamily: 'var(--font)', color: '#2C2416', width: '100%',
+    fontFamily: 'var(--font)', color: 'var(--ink)', width: '100%',
   },
 
   addHint:    { fontSize: 13, color: '#999', marginBottom: 12, lineHeight: 1.5 },
@@ -844,7 +844,7 @@ const s = {
   },
   customInput: {
     flex: 1, padding: '10px 14px', borderRadius: 8, border: '1px solid #D4DDD0',
-    fontSize: 14, fontFamily: 'var(--font)', color: '#2C2416', background: '#FAFAF8', outline: 'none',
+    fontSize: 14, fontFamily: 'var(--font)', color: 'var(--ink)', background: '#FAFAF8', outline: 'none',
   },
   addBtn: {
     padding: '10px 20px', background: 'var(--moss)', color: '#fff', border: 'none',
@@ -868,5 +868,5 @@ const s = {
 
   formBar:      { display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderBottom: '1px solid #E8EDE4', flexShrink: 0 },
   formBack:     { background: 'none', border: '1px solid #D0D9C8', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#4A6741', fontFamily: 'var(--font)', whiteSpace: 'nowrap' },
-  formBarTitle: { fontWeight: 700, fontSize: 15, color: '#2C2416', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  formBarTitle: { fontWeight: 700, fontSize: 15, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
 }
