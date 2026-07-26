@@ -95,9 +95,18 @@ finish" rather than "build from scratch." Confirm current state before starting 
   - ⚠️ **Deploy steps** (see `daily-notifications/README.md`): apply migration 020;
     deploy `send-sms`, `book-quote`, `inbound-lead`, `daily-notifications`; and add a
     daily schedule for `daily-notifications` (`0 18 * * *`).
+  - **Reviewed** (adversarial pass) and fixed the confirmed issues: inbound-lead now
+    guards its auto-reply against mail loops (out-of-office / bounce / no-reply / own
+    address); `sendAndLog` no longer logs a failed row when Twilio is unconfigured
+    (was daily log spam); book-quote falls back to email when the SMS can't send and
+    respects a reused client's opt-out. (The invoice-overdue trigger the review flagged
+    was already removed.)
   - **Residuals / not done:** existing senders (quote-followup, send-job-reminders) were
     left on their own copies rather than refactored onto `_shared` (lower risk); email
-    sends still aren't logged (only SMS are, in `sms_messages`).
+    sends still aren't logged (only SMS are). Remaining low-severity review notes not
+    actioned: `book-quote`'s `.or()` client lookup builds a filter from raw form input
+    (unsanitised); the office-notify email is fire-and-forget (may not flush before the
+    function freezes); and the daily follow-up has no lock against a double concurrent run.
 - **Phase 3+ — time-window booking with geographic clustering.** `BookQuote.jsx` takes
   enquiries but doesn't offer bookable time slots or cluster jobs by area.
 - **Phase 2+ — offline PWA.** Service worker / offline caching for low-signal job

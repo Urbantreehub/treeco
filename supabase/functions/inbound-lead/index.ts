@@ -45,6 +45,29 @@ function b64ToBytes(b64: string): Uint8Array {
   return bytes
 }
 
+function headerVal(headers: any[], name: string): string {
+  const h = (headers ?? []).find((x: any) => (x?.Name ?? '').toLowerCase() === name.toLowerCase())
+  return h?.Value ?? ''
+}
+
+// Guard the auto-acknowledgement against mail loops and backscatter: don't
+// auto-reply to auto-responders (out-of-office), bounces, no-reply/daemon
+// senders, or our own address — any of which could bounce back into this
+// webhook and create an endless lead+ack loop.
+function isAutomatedSender(payload: any, fromEmail: string, subject: string): boolean {
+  const headers = payload?.Headers ?? []
+  const autoSubmitted = headerVal(headers, 'Auto-Submitted').toLowerCase()
+  if (autoSubmitted && autoSubmitted !== 'no') return true
+  const precedence = headerVal(headers, 'Precedence').toLowerCase()
+  if (['bulk', 'list', 'junk', 'auto_reply'].includes(precedence)) return true
+  if (headerVal(headers, 'X-Auto-Response-Suppress') || headerVal(headers, 'X-Autoreply') || headerVal(headers, 'X-Autorespond')) return true
+  const f = (fromEmail ?? '').toLowerCase()
+  if (/mailer-daemon|postmaster|no-?reply|do-?not-?reply|donotreply|bounce/.test(f)) return true
+  if (f === 'office@urbantreeservices.net' || f === 'noreply@urbantreeservices.net') return true
+  if (/^\s*(out of office|automatic reply|auto[- ]?reply|undeliverable|delivery status|returned mail|read:|declined:|accepted:)/i.test(subject ?? '')) return true
+  return false
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
@@ -206,7 +229,7 @@ Deno.serve(async (req) => {
     }
 
     // ── 6b. Acknowledge the enquirer by email (best-effort) ──────────────
-    if (resendKey && email) {
+    if (resendKey && email && !isAutomatedSender(payload, email, Subject)) {
       try {
         await fetch('https://api.resend.com/emails', {
           method: 'POST',

@@ -50,10 +50,12 @@ Deno.serve(async (req: Request) => {
 
     // Find an existing client by phone or email, else create one.
     let clientId: string | null = null
+    let clientOptedOut = false
     if (phone || email) {
       const ors = [phone ? `phone.eq.${phone}` : null, email ? `email.eq.${email}` : null].filter(Boolean).join(',')
-      const { data: existing } = await supabase.from('clients').select('id').or(ors).limit(1).maybeSingle()
+      const { data: existing } = await supabase.from('clients').select('id, sms_opt_out').or(ors).limit(1).maybeSingle()
       clientId = existing?.id ?? null
+      clientOptedOut = !!existing?.sms_opt_out
     }
     if (!clientId) {
       const { data: c, error } = await supabase.from('clients')
@@ -117,14 +119,17 @@ Deno.serve(async (req: Request) => {
       }).catch(() => {})
     }
 
-    // Acknowledge the customer (best-effort): prefer SMS, fall back to email.
+    // Acknowledge the customer (best-effort): prefer SMS, fall back to email if
+    // the SMS couldn't be sent (no Twilio, landline/invalid number) or the
+    // client has opted out of texts.
     try {
-      if (phone) {
-        await sendAndLog(supabase, {
-          to: phone, body: templates.bookingAck(name), kind: 'booking_ack',
-          job_id: job.id, client_id: clientId,
-        })
-      } else if (email && resendKey) {
+      const smsResult = (phone && !clientOptedOut)
+        ? await sendAndLog(supabase, {
+            to: phone, body: templates.bookingAck(name), kind: 'booking_ack',
+            job_id: job.id, client_id: clientId,
+          })
+        : null
+      if ((!smsResult || !smsResult.ok) && email && resendKey) {
         await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },

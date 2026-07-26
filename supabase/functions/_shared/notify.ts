@@ -74,6 +74,10 @@ export async function sendAndLog(
   args: { to: string; body: string; kind: string; quote_id?: string | null; job_id?: string | null; client_id?: string | null },
 ): Promise<SendResult> {
   const result = await sendTwilio(args.to, args.body)
+  // Don't log a "failed" row when Twilio simply isn't set up — otherwise a
+  // scheduled sender records the same failure for every eligible record on
+  // every run. Genuine send failures are still logged.
+  if (result.notConfigured) return result
   await supabase.from('sms_messages').insert({
     to_number: args.to,
     body: args.body,
