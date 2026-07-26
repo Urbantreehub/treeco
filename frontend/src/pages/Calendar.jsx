@@ -407,6 +407,7 @@ function Popover({ info, weekEvent, vehicles, onClose, onUnschedule, onLinkVehic
 function CrewCalendar() {
   const { profile } = useAuth()
   const navigate    = useNavigate()
+  const isMobile    = useIsMobile()
   const resourceId  = profile?.resource_id
   const myResource  = RESOURCES.find(r => r.id === resourceId)
 
@@ -422,7 +423,7 @@ function CrewCalendar() {
       setLoading(true)
       const { data } = await supabase
         .from('schedule')
-        .select('*, jobs(title, job_type, address, client_id, clients(name))')
+        .select('*, jobs(title, job_type, address, client_id, clients(name), quotes(id, status, total, subtotal))')
         .eq('date', todayYMD)
         .eq('resource_id', resourceId)
         .order('start_time')
@@ -434,6 +435,7 @@ function CrewCalendar() {
   }, [resourceId])
 
   const dateLabel = today.toLocaleDateString('en-NZ', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  const dayTotal = events.reduce((s, ev) => s + jobExGst(ev.jobs), 0)
 
   return (
     <div style={cw.shell}>
@@ -494,12 +496,41 @@ function CrewCalendar() {
           </div>
         )}
       </div>
+
+      {/* Crew's own daily total (ex GST) — visible on their iPad in the field.
+          On the mobile layout, clear the fixed bottom tab bar so it isn't hidden. */}
+      {!loading && resourceId && events.length > 0 && (
+        <div style={{ ...cw.totalsBar, paddingBottom: isMobile ? 'calc(14px + var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px))' : cw.totalsBar.paddingBottom }}>
+          <div style={cw.totalsHead}>
+            <span style={cw.totalsTitle}>Day total</span>
+            <span style={cw.totalsScope}>{myResource?.title ?? 'Your crew'} · ex GST</span>
+          </div>
+          <div style={cw.totalsGrand}>
+            <span style={cw.totalsGrandLabel}>{events.length} job{events.length === 1 ? '' : 's'}</span>
+            <span style={cw.totalsGrandVal}>{nzd(dayTotal) ?? '$0'}</span>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
 const cw = {
   shell:  { display: 'flex', flexDirection: 'column', height: '100%', background: '#F5F3F0' },
+  totalsBar: {
+    flexShrink: 0, background: '#fff', borderTop: '1px solid var(--border)',
+    padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    gap: '16px', flexWrap: 'wrap',
+    paddingBottom: 'calc(14px + env(safe-area-inset-bottom, 0px))',
+  },
+  totalsTitle: { fontSize: '15px', fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.01em' },
+  totalsScope: { fontSize: '11px', fontWeight: 600, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: '2px', display: 'block' },
+  totalsGrand: {
+    display: 'inline-flex', alignItems: 'center', gap: '12px',
+    background: 'var(--terra)', borderRadius: 'var(--radius-pill)', padding: '9px 18px',
+  },
+  totalsGrandLabel: { fontSize: '12px', fontWeight: 700, color: 'rgba(255,255,255,0.85)' },
+  totalsGrandVal: { fontSize: '20px', fontWeight: 800, color: '#fff', fontVariantNumeric: 'tabular-nums' },
   header: { padding: '20px 24px 16px', background: '#fff', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
   dayLabel:   { fontSize: '11px', fontWeight: '700', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' },
   dateLabel:  { fontSize: '20px', fontWeight: '800', color: 'var(--ink)' },
