@@ -35,18 +35,27 @@ const CREDENTIALS = {
  *               worker so we log in once, not per test.
  */
 export const test = base.extend({
-  // Per-project option. Set via `use: { tenant: 'empty' }` in playwright.config.
+  // Per-project options. Set via `use: { tenant, role }` in playwright.config.
   tenant: ['seeded', { option: true }],
+  // 'full' | 'office' | 'crew' — which access level the demo tenant assumes.
+  role: ['full', { option: true }],
 
-  context: async ({ context, tenant }, use) => {
-    if (!LIVE && tenant === 'empty') {
-      await context.addInitScript(() => {
-        try {
-          window.localStorage.setItem('treeco:e2e:empty-tenant', '1')
-        } catch {
-          /* localStorage unavailable — nothing to do */
-        }
-      })
+  context: async ({ context, tenant, role }, use) => {
+    // Demo target only: inject the empty-tenant and role flags before any page
+    // script runs, so every navigation sees them. On a live target these are
+    // no-ops — the tenant's data and the account's role are whatever they are.
+    if (!LIVE && (tenant === 'empty' || role !== 'full')) {
+      await context.addInitScript(
+        ({ empty, roleValue }) => {
+          try {
+            if (empty) window.localStorage.setItem('treeco:e2e:empty-tenant', '1')
+            if (roleValue && roleValue !== 'full') window.localStorage.setItem('treeco:e2e:role', roleValue)
+          } catch {
+            /* localStorage unavailable — nothing to do */
+          }
+        },
+        { empty: tenant === 'empty', roleValue: role }
+      )
     }
     await use(context)
   },

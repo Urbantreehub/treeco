@@ -6,11 +6,18 @@ Fast, crash-hunting e2e coverage for the TreeCo PWA.
 
 | Spec | Project(s) | What it does |
 | --- | --- | --- |
-| `smoke.spec.js` | `smoke-seeded`, `smoke-empty` | Visits **every route** in `src/App.jsx` and fails on any **console error**, **uncaught exception**, **failed same-origin request**, or **empty page body**. Runs once as a seeded tenant and once as a tenant with **no data** (to catch null / empty-state crashes). |
-| `pages.spec.js` | `pages` | On each app page, **clicks every visible button and link** and asserts *something happens* (URL change, DOM mutation, dialog, or focus) with no console error / exception. Destructive → demo build only. |
+| `smoke.spec.js` | `smoke-<role>-<tenant>` | Visits **every route** in `src/App.jsx` and fails on any **console error**, **uncaught exception**, **failed same-origin request**, or **empty page body**. |
+| `pages.spec.js` | `pages-<role>` | On each app page, **clicks every visible button and link** and asserts *something happens* (URL change, DOM mutation, dialog, or focus) with no console error / exception. Destructive → demo build only. |
 
-The route list lives in `support/routes.js` — keep it in sync with the `<Route>`
-table in `src/App.jsx`.
+**Every user is covered.** The demo build runs as each access level —
+`full` (owner), `office` (staff), and `crew` — so role guards, redirects, and
+role-specific navigation are all exercised. Smoke additionally runs against a
+**seeded** tenant and a tenant with **no data** (to catch null / empty-state
+crashes), giving `role × tenant` smoke coverage. The interaction sweep skips any
+route a role can't reach (it would just redirect away).
+
+The route list — with each route's minimum access level — lives in
+`support/routes.js`. Keep it in sync with the `<Route>` table in `src/App.jsx`.
 
 ## Two run targets
 

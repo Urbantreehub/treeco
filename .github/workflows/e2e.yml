@@ -67,7 +67,9 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Run smoke against production
         working-directory: frontend
-        run: npx playwright test --project=smoke-seeded --project=smoke-empty
+        # Full-access account, seeded + empty tenants. Role toggling is a demo-only
+        # concept (a live account's role is fixed), so only the full projects run here.
+        run: npx playwright test --project=smoke-full-seeded --project=smoke-full-empty
       - name: Upload report
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4

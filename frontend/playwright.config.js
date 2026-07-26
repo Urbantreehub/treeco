@@ -16,6 +16,11 @@ const LIVE_URL = process.env.E2E_BASE_URL
 const PORT = 4173
 const baseURL = LIVE_URL || `http://localhost:${PORT}`
 
+// The demo build runs as every access level; each smoke run also covers a
+// seeded and an empty tenant.
+const ROLES = ['full', 'office', 'crew']
+const TENANTS = ['seeded', 'empty']
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
@@ -33,27 +38,27 @@ export default defineConfig({
     launchOptions,
   },
 
+  // Run as every access level so role-guarded routes and role-specific
+  // navigation are all exercised.
   projects: [
     // Smoke: visit every route, fail on any console error / uncaught exception /
-    // failed fetch / empty body. Run once per tenant. Safe against production
-    // (loads pages only, no writes).
-    {
-      name: 'smoke-seeded',
-      testMatch: /smoke\.spec\.js/,
-      use: { ...devices['Desktop Chrome'], tenant: 'seeded', launchOptions },
-    },
-    {
-      name: 'smoke-empty',
-      testMatch: /smoke\.spec\.js/,
-      use: { ...devices['Desktop Chrome'], tenant: 'empty', launchOptions },
-    },
+    // failed fetch / empty body. Run once per (role × tenant). Safe against
+    // production (loads pages only, no writes).
+    ...ROLES.flatMap((role) =>
+      TENANTS.map((tenant) => ({
+        name: `smoke-${role}-${tenant}`,
+        testMatch: /smoke\.spec\.js/,
+        use: { ...devices['Desktop Chrome'], role, tenant, launchOptions },
+      }))
+    ),
     // Per-page interaction suite: click every visible button/link, assert
-    // something happens. Destructive → demo build only (skipped when LIVE).
-    {
-      name: 'pages',
+    // something happens. One project per role (seeded tenant — needs data).
+    // Destructive → demo build only (skipped when LIVE).
+    ...ROLES.map((role) => ({
+      name: `pages-${role}`,
       testMatch: /pages\.spec\.js/,
-      use: { ...devices['Desktop Chrome'], tenant: 'seeded', launchOptions },
-    },
+      use: { ...devices['Desktop Chrome'], role, tenant: 'seeded', launchOptions },
+    })),
   ],
 
   // Only stand up a local server for the demo target. Against a live deployment

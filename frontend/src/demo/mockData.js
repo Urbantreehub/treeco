@@ -20,6 +20,28 @@ export function isEmptyTenant() {
 export const seededJobs = () => (isEmptyTenant() ? [] : DEMO_JOBS)
 export const seededClients = () => (isEmptyTenant() ? [] : DEMO_CLIENTS)
 
+// ── Role toggle ──────────────────────────────────────────────────────────────
+// The demo tenant is a 'full'-access owner by default, but the e2e suite runs as
+// every access level ('full' | 'office' | 'crew') so role-guarded routes and
+// role-specific navigation are all exercised. Like the empty-tenant flag, this is
+// read at runtime so one demo build can act as any user.
+const DEMO_ROLES = ['full', 'office', 'crew']
+
+export function demoAccessLevel() {
+  const fromEnv = import.meta.env.VITE_DEMO_ROLE
+  if (DEMO_ROLES.includes(fromEnv)) return fromEnv
+  if (typeof window === 'undefined') return 'full'
+  try {
+    const fromUrl = new URLSearchParams(window.location.search).get('role')
+    if (DEMO_ROLES.includes(fromUrl)) return fromUrl
+    const fromStore = window.localStorage.getItem('treeco:e2e:role')
+    if (DEMO_ROLES.includes(fromStore)) return fromStore
+  } catch {
+    /* ignore */
+  }
+  return 'full'
+}
+
 export const DEMO_PROFILE = {
   id: 'demo',
   name: 'Demo User',
@@ -27,6 +49,10 @@ export const DEMO_PROFILE = {
   access_level: 'full',
   avatar_url: null,
 }
+
+// Profile with the currently-selected demo role applied. A getter so the role
+// toggle is read at mount time, after the e2e harness has set it.
+export const demoProfile = () => ({ ...DEMO_PROFILE, access_level: demoAccessLevel() })
 
 export const DEMO_JOBS = [
   {
