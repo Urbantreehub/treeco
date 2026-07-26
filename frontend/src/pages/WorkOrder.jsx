@@ -31,9 +31,6 @@ const COMMON_ADDITIONS = [
 
 const JOB_FORMS = [
   { id: 'risk_assessment', label: 'SSSP',             url: '/forms/risk-assessment.html', icon: '📋', required: true },
-  { id: 'toolbox_meeting', label: 'Toolbox Meeting',   url: '/forms/toolbox-meeting.html', icon: '🧰', required: true },
-  { id: 'prestart',        label: 'Pre-start Check',  url: '/forms/prestart-daily.html',  icon: '🔧', required: true },
-  { id: 'incident_report', label: 'Incident Report',  url: '/forms/incident-report.html', icon: '🚨', required: false },
 ]
 
 // ── Image processing ──────────────────────────────────────────────────────────
