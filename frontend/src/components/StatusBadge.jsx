@@ -4,21 +4,24 @@ export default function StatusBadge({ status, size = 'sm' }) {
   const s = getStatus(status)
   if (!s) return null
 
-  const pad = size === 'lg' ? '6px 14px' : '3px 10px'
+  const pad = size === 'lg' ? '6px 14px' : '4px 11px'
   const font = size === 'lg' ? '13px' : '11px'
+  const dot  = size === 'lg' ? 8 : 6
 
   return (
     <span style={{
-      display: 'inline-block',
-      background: s.color + '22',
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '6px',
+      background: s.color + '1F',
       color: s.color,
-      border: `1px solid ${s.color}55`,
-      borderRadius: '20px',
+      borderRadius: 'var(--radius-pill)',
       padding: pad,
       fontSize: font,
-      fontWeight: '600',
+      fontWeight: '700',
       whiteSpace: 'nowrap',
     }}>
+      <span style={{ width: dot, height: dot, borderRadius: '50%', background: s.color, flexShrink: 0 }} />
       {s.label}
     </span>
   )

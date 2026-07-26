@@ -1,9 +1,62 @@
 import { Suspense, useState } from 'react'
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { useScheduledChecks } from '../hooks/useScheduledChecks'
 import { usePendingRequests } from '../hooks/usePendingRequests'
+
+// ── Brand mark — the terracotta starburst from the redesign ───────────────────
+function Starburst({ size = 22 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 60 60" aria-hidden="true" style={{ flexShrink: 0 }}>
+      <g stroke="var(--terra)" strokeWidth="6" strokeLinecap="round">
+        <line x1="30" y1="9" x2="30" y2="51" /><line x1="9" y1="30" x2="51" y2="30" />
+        <line x1="15" y1="15" x2="45" y2="45" /><line x1="45" y1="15" x2="15" y2="45" />
+      </g>
+    </svg>
+  )
+}
+
+// Route → section title for the branded page banner. Longest matching prefix wins,
+// so detail routes (e.g. /pipeline/:id) inherit their section's title.
+const ROUTE_TITLES = {
+  '/dashboard': 'Dashboard', '/pipeline': 'Jobs', '/calendar': 'Calendar',
+  '/planner': 'Planner', '/mulch': 'Mulch', '/requests': 'Tools', '/safety': 'Safety',
+  '/staff': 'Team', '/clients': 'Clients', '/settings': 'Settings', '/quotes': 'Quotes',
+  '/quote': 'Quote', '/workorder': 'Work Order', '/jobpack': 'Job Pack',
+}
+function resolveTitle(pathname) {
+  const keys = Object.keys(ROUTE_TITLES).sort((a, b) => b.length - a.length)
+  for (const k of keys) if (pathname === k || pathname.startsWith(k + '/')) return ROUTE_TITLES[k]
+  return ''
+}
+
+// Branded banner header shown at the top of every page.
+function PageBanner({ title }) {
+  return (
+    <div style={bannerStyles.bar}>
+      <Starburst size={22} />
+      <span style={bannerStyles.word}>TreeCo</span>
+      {title && <span style={bannerStyles.section}>{title}</span>}
+    </div>
+  )
+}
+
+const bannerStyles = {
+  bar: {
+    position: 'sticky', top: 0, zIndex: 10,
+    display: 'flex', alignItems: 'center', gap: '9px',
+    padding: '11px 18px',
+    background: 'rgba(252, 245, 236, 0.9)',
+    backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+    borderBottom: '1px solid var(--line)',
+  },
+  word: { fontWeight: 800, fontSize: '17px', color: 'var(--ink)', letterSpacing: '-0.02em' },
+  section: {
+    marginLeft: 'auto', fontSize: '12px', fontWeight: 700, letterSpacing: '0.06em',
+    textTransform: 'uppercase', color: 'var(--terra)',
+  },
+}
 
 const FULL_NAV = [
   { to: '/dashboard', label: 'Dashboard', icon: DashboardIcon },
@@ -48,6 +101,8 @@ export default function Layout() {
   const alertCount = overdue.length + dueSoon.length
   const pendingRequests = usePendingRequests(isStaff)
   const [showMore, setShowMore] = useState(false)
+  const location = useLocation()
+  const pageTitle = resolveTitle(location.pathname)
 
   async function handleSignOut() {
     await signOut()
@@ -83,6 +138,7 @@ export default function Layout() {
     return (
       <div style={m.shell}>
         <main style={m.main}>
+          <PageBanner title={pageTitle} />
           <Suspense fallback={<div style={pageFallback}>Loading…</div>}>
             <Outlet />
           </Suspense>
@@ -143,7 +199,7 @@ export default function Layout() {
       <nav style={d.nav}>
         <div style={d.navTop}>
           <NavLink to={isFullAccess ? '/dashboard' : '/calendar'} style={d.brand}>
-            <span style={{ fontSize: '20px' }}>🌲</span>
+            <Starburst size={22} />
             <span style={d.brandName}>TreeCo</span>
           </NavLink>
           <ul style={d.navList}>
@@ -187,6 +243,7 @@ export default function Layout() {
         </div>
       </nav>
       <main style={d.main}>
+        <PageBanner title={pageTitle} />
         <Suspense fallback={<div style={pageFallback}>Loading…</div>}>
           <Outlet />
         </Suspense>

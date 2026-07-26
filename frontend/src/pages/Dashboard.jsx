@@ -301,20 +301,38 @@ function MiniBar({ months }) {
 }
 
 // ─── Stat card ───────────────────────────────────────────────────────────────
-function StatCard({ label, value, sub, color, onClick }) {
+function StatCard({ label, value, sub, color, onClick, hero }) {
+  if (hero) {
+    return (
+      <div onClick={onClick} style={{
+        background: 'linear-gradient(140deg, var(--terra) 0%, var(--terra-deep) 100%)',
+        borderRadius: 'var(--radius)',
+        padding: '20px 22px',
+        cursor: onClick ? 'pointer' : 'default',
+        flex: 1,
+        minWidth: '160px',
+        boxShadow: '0 8px 22px -12px rgba(162,69,31,0.55)',
+      }}>
+        <div style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(255,255,255,0.82)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>{label}</div>
+        <div style={{ fontSize: '30px', fontWeight: '800', color: '#fff', lineHeight: 1, letterSpacing: '-0.02em' }}>{value}</div>
+        {sub && <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.82)', marginTop: '6px' }}>{sub}</div>}
+      </div>
+    )
+  }
   return (
     <div onClick={onClick} style={{
       background: '#fff',
       border: '1px solid var(--border)',
-      borderRadius: '10px',
+      borderRadius: 'var(--radius)',
       padding: '20px 22px',
       cursor: onClick ? 'pointer' : 'default',
       flex: 1,
       minWidth: '160px',
+      boxShadow: '0 1px 2px rgba(40,25,10,0.05)',
     }}>
-      <div style={{ fontSize: '11px', fontWeight: '600', color: '#999', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>{label}</div>
-      <div style={{ fontSize: '28px', fontWeight: '700', color: color || 'var(--bark)', lineHeight: 1 }}>{value}</div>
-      {sub && <div style={{ fontSize: '12px', color: '#aaa', marginTop: '6px' }}>{sub}</div>}
+      <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>{label}</div>
+      <div style={{ fontSize: '28px', fontWeight: '800', color: color || 'var(--ink)', lineHeight: 1, letterSpacing: '-0.02em' }}>{value}</div>
+      {sub && <div style={{ fontSize: '12px', color: 'var(--ink-3)', marginTop: '6px' }}>{sub}</div>}
     </div>
   )
 }
@@ -457,7 +475,7 @@ export default function Dashboard() {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '24px' }}>
         <div>
-          <h1 style={{ fontSize: '22px', fontWeight: '700', color: 'var(--bark)', margin: 0 }}>Business Health</h1>
+          <h1 style={{ fontSize: '26px', fontWeight: '800', color: 'var(--ink)', margin: 0, letterSpacing: '-0.03em' }}>Business Health</h1>
           <div style={{ fontSize: '13px', color: '#aaa', marginTop: '3px' }}>
             {new Date().toLocaleDateString('en-NZ', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           </div>
@@ -491,10 +509,10 @@ export default function Dashboard() {
         )}
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '16px' }}>
           <StatCard
+            hero
             label="Crew days booked"
             value={crewDays.toFixed(1)}
             sub={`${nzd(treeRevenue)} revenue ÷ $2,500/day`}
-            color={crewDays < 5 ? '#C0392B' : crewDays < 10 ? '#D4851A' : 'var(--moss)'}
             onClick={() => nav('/quotes')}
           />
           <StatCard
