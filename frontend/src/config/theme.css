@@ -29,8 +29,11 @@
   --sky:         #4A7FA5;
   --danger:      #C0392B;
   --cream:       #FCF5EC;
-  --border:      #EFE6DA;
-  --line:        #EFE6DA;
+  /* Card outlines are a defined near-black (warm, not pure #000) so surfaces
+     read crisp against the cream. --line stays soft for internal chrome
+     (nav/banner hairlines, dividers) so the look is defined, not boxy. */
+  --border:      #211C15;
+  --line:        #E6DCCC;
 
   /* ── Shape — the "bubble" language from the redesign mockup ── */
   --radius:      18px;   /* cards & surfaces — big soft bubbles */
