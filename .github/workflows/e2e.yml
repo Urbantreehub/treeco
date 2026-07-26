@@ -39,19 +39,29 @@ jobs:
           path: frontend/playwright-report
           retention-days: 14
 
-  # Live smoke against production. Loads every route as real seeded/empty test
-  # tenants — read-only, so it never mutates prod data. Auth routes are skipped
-  # automatically until the corresponding tenant credentials are added as repo
-  # secrets. The destructive interaction sweep never runs here.
+  # Full suite against the live app. The live deployment is a test environment,
+  # so the destructive interaction sweep runs here too — it writes to the test
+  # database, while controls with real external side effects (send SMS/email,
+  # Xero sync) are skipped. Each project logs in as its own real test account;
+  # any project whose account secret isn't configured skips automatically, so
+  # coverage grows as accounts are added.
   e2e-live:
-    name: E2E (live prod smoke)
+    name: E2E (live app)
     runs-on: ubuntu-latest
     env:
       E2E_BASE_URL: https://app.urbantreeservices.net
+      # full-access owner
       E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
       E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+      # full-access, empty tenant (no jobs/clients)
       E2E_EMPTY_EMAIL: ${{ secrets.E2E_EMPTY_EMAIL }}
       E2E_EMPTY_PASSWORD: ${{ secrets.E2E_EMPTY_PASSWORD }}
+      # office (staff) account
+      E2E_OFFICE_EMAIL: ${{ secrets.E2E_OFFICE_EMAIL }}
+      E2E_OFFICE_PASSWORD: ${{ secrets.E2E_OFFICE_PASSWORD }}
+      # crew account
+      E2E_CREW_EMAIL: ${{ secrets.E2E_CREW_EMAIL }}
+      E2E_CREW_PASSWORD: ${{ secrets.E2E_CREW_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -65,11 +75,9 @@ jobs:
       - name: Install Playwright browser
         working-directory: frontend
         run: npx playwright install --with-deps chromium
-      - name: Run smoke against production
+      - name: Run full suite against the live app
         working-directory: frontend
-        # Full-access account, seeded + empty tenants. Role toggling is a demo-only
-        # concept (a live account's role is fixed), so only the full projects run here.
-        run: npx playwright test --project=smoke-full-seeded --project=smoke-full-empty
+        run: npm run test:e2e
       - name: Upload report
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4

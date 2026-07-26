@@ -2,10 +2,13 @@ import { expect } from '@playwright/test'
 
 const CONTROLS_SELECTOR = 'button, a[href], [role="button"], [role="tab"]'
 
-// Controls we click but don't require a *visible* change from, or skip entirely,
-// because their real effect is a download / print / external navigation / native
-// dialog / clipboard — none observable via the DOM, and some destructive.
-const SKIP_TEXT = /download|\bpdf\b|print|export|sign\s?out|log\s?out|\bdelete\b|\bremove\b|copy|share|\bcall\b|email/i
+// Controls we skip clicking, because their effect is either unobservable via the
+// DOM (download / print / clipboard), destructive to the session (sign out), or —
+// importantly on the live target — a real EXTERNAL side effect that fires to a
+// third party regardless of whether the tenant's *data* is test data: sending an
+// SMS (Twilio) or email, pushing to Xero, etc. Writes to the app's own database
+// (Save / Create) are fine and are exercised.
+const SKIP_TEXT = /download|\bpdf\b|print|export|sign\s?out|log\s?out|\bdelete\b|\bremove\b|copy|share|\bcall\b|email|\bsend\b|\bsms\b|invoice|xero|\bsync\b|notify|resend|reset\s?password/i
 
 /**
  * Enumerate every visible, enabled button/link on the current page and, one at a

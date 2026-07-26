@@ -37,31 +37,43 @@ brand-new account with no data. This is what runs on every push (`e2e-demo` job)
 
 ### Live deployment (real login, real backend)
 
+The live app (`app.urbantreeservices.net`) is a **test environment**, so the full
+suite — smoke *and* the destructive interaction sweep — runs against it:
+
 ```bash
 E2E_BASE_URL=https://app.urbantreeservices.net \
 E2E_EMAIL=... E2E_PASSWORD=... \
-E2E_EMPTY_EMAIL=... E2E_EMPTY_PASSWORD=... \
-npx playwright test --project=smoke-seeded --project=smoke-empty
+npm run test:e2e
 ```
 
-The auth fixture drives the **real login form** as the given test tenants. Only
-the **smoke** projects run against a live target — smoke merely *loads* pages, so
-it never mutates production data. The destructive `pages` sweep is auto-skipped.
-Auth-gated routes are skipped for any tenant whose credentials aren't provided.
+The auth fixture drives the **real login form**. On a live target a role isn't a
+toggle — it's a property of the account you log into — so each `role × tenant`
+project logs in as its **own real test account**, read from env:
+
+| Project(s) | Account env vars |
+| --- | --- |
+| `smoke-full-*`, `pages-full` (seeded) | `E2E_EMAIL` / `E2E_PASSWORD` |
+| `smoke-full-empty` (no data) | `E2E_EMPTY_EMAIL` / `E2E_EMPTY_PASSWORD` |
+| `smoke-office-seeded`, `pages-office` | `E2E_OFFICE_EMAIL` / `E2E_OFFICE_PASSWORD` |
+| `smoke-crew-seeded`, `pages-crew` | `E2E_CREW_EMAIL` / `E2E_CREW_PASSWORD` |
+
+Any project whose account isn't configured **skips automatically**, so you only
+provide the accounts you have. The interaction sweep writes to the test database,
+but controls with real **external** side effects (send SMS/email, Xero sync) are
+skipped (`SKIP_TEXT` in `support/interactions.js`) so nothing leaves the system.
 
 ## CI
 
 `.github/workflows/e2e.yml` runs on every push / PR:
 
 - **`e2e-demo`** — full suite against the demo build (no secrets).
-- **`e2e-live`** — smoke against `https://app.urbantreeservices.net` using repo
-  secrets `E2E_EMAIL`, `E2E_PASSWORD`, `E2E_EMPTY_EMAIL`, `E2E_EMPTY_PASSWORD`.
-  Add these in **Settings → Secrets and variables → Actions**. Until they exist,
-  the live auth routes skip gracefully (public routes still run).
+- **`e2e-live`** — full suite against `https://app.urbantreeservices.net` using
+  the account secrets in the table above. Add them in **Settings → Secrets and
+  variables → Actions**. Any account you don't add just skips.
 
-> ⚠️ Point the live tenants at **isolated test accounts**. The seeded live smoke
-> logs in as `E2E_EMAIL`; if that's a real working account it will see real data
-> (still read-only). The `empty` tenant should be an account with no jobs/clients.
+> ⚠️ The live accounts should be **test accounts** on the test deployment. The
+> interaction sweep creates records; external-comms/integration buttons are
+> skipped, but everything else (Save/Create) writes to that database.
 
 ## Handy commands
 

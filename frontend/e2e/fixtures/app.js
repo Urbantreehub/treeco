@@ -12,10 +12,20 @@ const APP_SHELL_SELECTOR = 'a[href="/calendar"]'
 const LIVE = Boolean(process.env.E2E_BASE_URL)
 
 // Credentials for the live run come from the environment (GitHub Actions
-// secrets) — never hardcoded. Each tenant has its own account.
-const CREDENTIALS = {
-  seeded: { email: process.env.E2E_EMAIL, password: process.env.E2E_PASSWORD },
-  empty: { email: process.env.E2E_EMPTY_EMAIL, password: process.env.E2E_EMPTY_PASSWORD },
+// secrets) — never hardcoded. On a live deployment a role isn't a toggle; it's a
+// property of the account you log into. So each (role × tenant) maps to its own
+// real test account. Combinations with no configured account are skipped, so you
+// only need to provide the accounts you actually have.
+const LIVE_ACCOUNTS = {
+  'full:seeded': ['E2E_EMAIL', 'E2E_PASSWORD'],
+  'full:empty': ['E2E_EMPTY_EMAIL', 'E2E_EMPTY_PASSWORD'],
+  'office:seeded': ['E2E_OFFICE_EMAIL', 'E2E_OFFICE_PASSWORD'],
+  'crew:seeded': ['E2E_CREW_EMAIL', 'E2E_CREW_PASSWORD'],
+}
+
+function liveCredentials(role, tenant) {
+  const [emailVar, passwordVar] = LIVE_ACCOUNTS[`${role}:${tenant}`] ?? []
+  return { email: process.env[emailVar], password: process.env[passwordVar], emailVar }
 }
 
 /**
@@ -65,13 +75,13 @@ export const test = base.extend({
     await use(guard)
   },
 
-  login: async ({ page, tenant }, use) => {
+  login: async ({ page, tenant, role }, use) => {
     let authed = false
 
     async function realLogin() {
-      const { email, password } = CREDENTIALS[tenant]
+      const { email, password, emailVar } = liveCredentials(role, tenant)
       if (!email || !password) {
-        test.skip(true, `Live run needs ${tenant} tenant credentials (E2E_${tenant === 'empty' ? 'EMPTY_' : ''}EMAIL / _PASSWORD)`)
+        test.skip(true, `Live run needs a ${role}/${tenant} test account (${emailVar ?? `${role}:${tenant}`} not configured)`)
       }
       await page.goto('/login')
       await page.getByLabel('Email').fill(email)
