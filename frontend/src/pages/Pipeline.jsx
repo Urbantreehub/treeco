@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
+import { supabase } from '../config/supabase'
 import { JOB_STATUSES, STATUS_ORDER, SPENCERS_COLOR, isSpencersJob } from '../config/statuses'
 import { jobHeading, koCode, kpiCountdown } from '../utils/jobDisplay'
 import { useJobs } from '../hooks/useJobs'
@@ -62,6 +63,19 @@ export default function Pipeline() {
       next.has(key) ? next.delete(key) : next.add(key)
       return next
     })
+  }
+
+  // Change a job's status straight from the list via the status dropdown.
+  const [savingStatus, setSavingStatus] = useState(null) // job id being saved
+  async function changeStatus(jobId, newStatus) {
+    setSavingStatus(jobId)
+    const { error } = await supabase
+      .from('jobs')
+      .update({ status: newStatus, status_changed_at: new Date().toISOString() })
+      .eq('id', jobId)
+    setSavingStatus(null)
+    if (error) { alert('Could not update status: ' + error.message); return }
+    fetchJobs()
   }
 
   const filterActive = statusFilter.size > 0
@@ -197,9 +211,26 @@ export default function Pipeline() {
                   </div>
                   <div style={s.rowRight}>
                     {st && (
-                      <span style={{ ...s.statusBadge, background: st.color + '18', color: st.color }}>
-                        {st.label}
-                      </span>
+                      <div
+                        style={{ ...s.statusChip, background: st.color + '1F', opacity: savingStatus === job.id ? 0.5 : 1 }}
+                        onClick={e => e.stopPropagation()}
+                      >
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: st.color, flexShrink: 0 }} />
+                        <select
+                          value={job.status}
+                          disabled={savingStatus === job.id}
+                          onChange={e => changeStatus(job.id, e.target.value)}
+                          style={{ ...s.statusSelect, color: st.color }}
+                          aria-label={`Status for ${primary} — change`}
+                        >
+                          {Object.keys(JOB_STATUSES).map(key => (
+                            <option key={key} value={key}>{JOB_STATUSES[key].label}</option>
+                          ))}
+                        </select>
+                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke={st.color} strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginLeft: -3, opacity: 0.75 }}>
+                          <path d="M6 9l6 6 6-6" />
+                        </svg>
+                      </div>
                     )}
                     {total && <div style={s.total}>{total}</div>}
                     {date && <div style={s.date}>{date.toLocaleDateString('en-NZ', { day: 'numeric', month: 'short' })}</div>}
@@ -301,7 +332,7 @@ const s = {
   body: { flex: 1, overflowY: 'auto', padding: '16px 20px' },
   list: { display: 'flex', flexDirection: 'column', gap: '8px' },
   row: {
-    background: '#fff', borderRadius: '10px', border: '1px solid var(--border)',
+    background: '#fff', borderRadius: '16px', border: '1px solid var(--border)',
     padding: '14px 18px', display: 'flex', alignItems: 'center',
     justifyContent: 'space-between', gap: '16px', cursor: 'pointer',
     transition: 'box-shadow 0.15s',
@@ -316,6 +347,17 @@ const s = {
   address: { fontSize: '12px', color: '#aaa' },
   rowRight: { display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 },
   statusBadge: { fontSize: '11px', fontWeight: '600', borderRadius: '20px', padding: '3px 10px', whiteSpace: 'nowrap' },
+  statusChip: {
+    display: 'inline-flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap',
+    borderRadius: 'var(--radius-pill)', padding: '3px 9px 3px 10px', cursor: 'pointer',
+    transition: 'opacity 0.15s',
+  },
+  statusSelect: {
+    appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none',
+    background: 'transparent', border: 'none', outline: 'none',
+    fontFamily: 'var(--font)', fontSize: '11px', fontWeight: '700',
+    padding: 0, margin: 0, cursor: 'pointer', maxWidth: '150px',
+  },
   total: { fontSize: '14px', fontWeight: '700', color: 'var(--bark)', minWidth: '70px', textAlign: 'right' },
   date: { fontSize: '11px', color: '#aaa', minWidth: '55px', textAlign: 'right' },
   empty: { textAlign: 'center', color: '#ccc', padding: '60px 0', fontSize: '14px' },
