@@ -163,7 +163,7 @@ export default function QuoteView() {
         <img src="/logo.png" alt="Urban Tree Services" style={{ height: '56px', marginBottom: '16px', opacity: 0.5 }} />
         <div style={{ fontSize: '16px', color: '#888' }}>Quote not found or link has expired.</div>
         <div style={{ fontSize: '13px', color: '#bbb', marginTop: '6px' }}>
-          Contact us: <a href="tel:0272031446" style={{ color: '#4A6741' }}>027 203 1446</a>
+          Contact us: <a href="tel:0272031446" style={{ color: 'var(--ok)' }}>027 203 1446</a>
         </div>
       </div>
     )
@@ -283,7 +283,7 @@ export default function QuoteView() {
                   style={{
                     ...p.itemCard,
                     borderLeft: isOptional
-                      ? `4px solid ${item.selected ? '#4A6741' : 'var(--border)'}`
+                      ? `4px solid ${item.selected ? 'var(--ok)' : 'var(--border)'}`
                       : '4px solid var(--ink)',
                     opacity: isActive ? 1 : 0.55,
                   }}
@@ -316,9 +316,9 @@ export default function QuoteView() {
                           <button
                             style={{
                               ...p.toggleBtn,
-                              background: item.selected ? '#4A6741' : '#fff',
-                              color: item.selected ? '#fff' : '#4A6741',
-                              borderColor: '#4A6741',
+                              background: item.selected ? 'var(--ok)' : '#fff',
+                              color: item.selected ? '#fff' : 'var(--ok)',
+                              borderColor: 'var(--ok)',
                               boxShadow: item.selected ? '0 2px 8px rgba(74,103,65,0.3)' : 'none',
                             }}
                             onClick={() => toggleOptional(item.id)}
@@ -339,7 +339,7 @@ export default function QuoteView() {
                           <span style={{
                             ...p.optTag,
                             background: item.selected ? '#E8F0E6' : '#F5F5F5',
-                            color: item.selected ? '#4A6741' : '#aaa',
+                            color: item.selected ? 'var(--ok)' : '#aaa',
                             borderColor: item.selected ? '#4A674144' : 'var(--border)',
                           }}>
                             Optional
@@ -495,9 +495,9 @@ export default function QuoteView() {
           ) : (
             <div style={{
               ...p.respondedBanner,
-              background: response === 'accepted' ? '#E8F0E6' : '#FFF0EE',
+              background: response === 'accepted' ? '#E8F0E6' : 'var(--danger-pale)',
               borderColor: response === 'accepted' ? '#4A674166' : '#C0392B66',
-              color: response === 'accepted' ? '#2F5233' : '#C0392B',
+              color: response === 'accepted' ? '#2F5233' : 'var(--danger)',
             }}>
               <div style={{ fontSize: '24px', marginBottom: '8px' }}>
                 {response === 'accepted' ? '✓' : '✕'}
@@ -639,7 +639,7 @@ const p = {
   },
   partyName: { fontSize: '15px', fontWeight: '700', color: 'var(--ink)', marginBottom: '6px' },
   partyDetail: { fontSize: '13px', color: '#555', lineHeight: 1.8 },
-  inlineLink: { color: '#4A7FA5', textDecoration: 'none' },
+  inlineLink: { color: 'var(--sky)', textDecoration: 'none' },
 
   // Quote meta bar
   metaBar: {
@@ -683,7 +683,7 @@ const p = {
     color: '#E8A33D', whiteSpace: 'nowrap',
   },
   reviewNum: { fontSize: '18px', fontWeight: '800', color: 'var(--ink)' },
-  reviewLink: { fontSize: '13px', fontWeight: '600', color: '#4A7FA5', textDecoration: 'none' },
+  reviewLink: { fontSize: '13px', fontWeight: '600', color: 'var(--sky)', textDecoration: 'none' },
   reviewQuotes: { display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minWidth: '220px' },
   reviewQuote: { margin: 0, display: 'flex', flexDirection: 'column', gap: '2px' },
   reviewQuoteText: { fontSize: '13px', fontStyle: 'italic', color: '#555', lineHeight: 1.55 },
@@ -740,7 +740,7 @@ const p = {
     background: '#fff', borderRadius: '10px', border: '1px solid var(--border)',
     overflow: 'hidden', marginBottom: '20px', boxShadow: '0 1px 4px rgba(44,36,22,0.06)',
   },
-  optSummary: { padding: '10px 18px', background: '#FDF3E3', fontSize: '12px', color: '#D4851A', fontWeight: '500', borderBottom: '1px solid #FAE8CC' },
+  optSummary: { padding: '10px 18px', background: 'var(--amber-pale)', fontSize: '12px', color: 'var(--amber)', fontWeight: '500', borderBottom: '1px solid #FAE8CC' },
   totalsInner: { padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '10px' },
   tRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   tLabel: { fontSize: '14px', color: '#888' },
@@ -753,7 +753,7 @@ const p = {
 
   // Glossary link + Latin
   glossaryLink: {
-    color: '#4A7FA5', textDecoration: 'underline dotted', textDecorationColor: '#4A7FA577',
+    color: 'var(--sky)', textDecoration: 'underline dotted', textDecorationColor: '#4A7FA577',
     textUnderlineOffset: '3px', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit',
   },
   latinName: {
@@ -798,7 +798,7 @@ const p = {
   },
   tcCheckbox: { width: '18px', height: '18px', accentColor: 'var(--terra)', flexShrink: 0, marginTop: '2px', cursor: 'pointer' },
   tcInlineLink: {
-    background: 'none', border: 'none', color: '#4A7FA5', textDecoration: 'underline',
+    background: 'none', border: 'none', color: 'var(--sky)', textDecoration: 'underline',
     cursor: 'pointer', fontFamily: 'var(--font)', fontSize: 'inherit', padding: '0',
   },
 

@@ -183,13 +183,13 @@ export default function Pipeline() {
                           Spencers
                         </span>
                       )}
-                      {code && <span style={{ ...s.jobType, fontWeight: 700, color: '#4A7FA5', background: '#EBF3FA', textTransform: 'none' }}>{code}</span>}
+                      {code && <span style={{ ...s.jobType, fontWeight: 700, color: 'var(--sky)', background: 'var(--sky-pale)', textTransform: 'none' }}>{code}</span>}
                       {sp ? (secondary && <span style={s.address}>{secondary}</span>)
                           : (job.job_type && <span style={s.jobType}>{job.job_type}</span>)}
                       {!sp && job.address && <span style={s.address}>{job.address}</span>}
                       {kpi && (
                         <span style={{ ...s.jobType, fontWeight: 700, textTransform: 'none', fontVariantNumeric: 'tabular-nums',
-                          background: kpi.expired ? '#FFF0EE' : '#FDF3E3', color: kpi.expired ? '#C0392B' : '#D4851A' }}>
+                          background: kpi.expired ? 'var(--danger-pale)' : 'var(--amber-pale)', color: kpi.expired ? 'var(--danger)' : 'var(--amber)' }}>
                           ⏱ {kpi.text}
                         </span>
                       )}

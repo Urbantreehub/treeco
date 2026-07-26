@@ -43,7 +43,7 @@ function SitesMap({ sites, activeId, onPick }) {
         const active = s.id === activeId
         const marker = L.circleMarker([s.lat, s.lng], {
           radius: active ? 11 : 8, color: '#fff', weight: 2,
-          fillColor: active ? '#8B6238' : '#4A6741', fillOpacity: 1,
+          fillColor: active ? '#8B6238' : 'var(--ok)', fillOpacity: 1,
         }).addTo(group).bindTooltip(s.name)
         marker.on('click', () => onPick(s.id))
         bounds.push([s.lat, s.lng])
@@ -267,9 +267,9 @@ function SiteDetail({ site, dumps, isStaff, onLog, onRetry, onEdit, showToast })
 function InvoicePill({ dump, isStaff, onRetry }) {
   const S = {
     invoiced: { t: `Invoiced ${dump.xero_invoice_number || ''}`.trim(), bg: '#E6F4EC', c: '#2F5233' },
-    pending:  { t: 'Invoice pending', bg: '#FDF3E3', c: '#D4851A' },
+    pending:  { t: 'Invoice pending', bg: 'var(--amber-pale)', c: 'var(--amber)' },
     skipped:  { t: 'No invoice ($0)', bg: '#F0EDE8', c: '#888' },
-    error:    { t: 'Invoice failed', bg: '#FFF0EE', c: '#C0392B' },
+    error:    { t: 'Invoice failed', bg: 'var(--danger-pale)', c: 'var(--danger)' },
   }
   const s = S[dump.invoice_status] || S.pending
   return (

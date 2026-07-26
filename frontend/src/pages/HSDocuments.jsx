@@ -18,12 +18,12 @@ const CATEGORIES = [
 ]
 
 const CAT_COLORS = {
-  policy:      { background: '#E8F0E6', color: '#4A6741' },
+  policy:      { background: '#E8F0E6', color: 'var(--ok)' },
   certificate: { background: '#EBF4FA', color: '#2E6A8E' },
   register:    { background: '#F3F4F6', color: '#6B7280' },
-  plan:        { background: '#FDF3E3', color: '#B5770F' },
+  plan:        { background: 'var(--amber-pale)', color: '#B5770F' },
   swms:        { background: '#F0EBF8', color: '#6B3FA0' },
-  permit:      { background: '#FFF0EE', color: '#C0392B' },
+  permit:      { background: 'var(--danger-pale)', color: 'var(--danger)' },
   training:    { background: '#E8F4F0', color: '#2E7A5E' },
   other:       { background: '#F3F4F6', color: '#6B7280' },
 }
@@ -89,10 +89,10 @@ function daysUntil(date) {
 function expiryBadge(date) {
   const d = daysUntil(date)
   if (d === null) return null
-  if (d < 0)   return { text: `Expired ${-d}d ago`, bg: '#FFF0EE', color: '#C0392B' }
-  if (d <= 30) return { text: `Due in ${d}d`,        bg: '#FDF3E3', color: '#D4851A' }
-  if (d <= 90) return { text: `${d}d`,               bg: '#FDF3E3', color: '#D4851A' }
-  return              { text: fmtDate(date),          bg: '#E8F0E6', color: '#4A6741' }
+  if (d < 0)   return { text: `Expired ${-d}d ago`, bg: 'var(--danger-pale)', color: 'var(--danger)' }
+  if (d <= 30) return { text: `Due in ${d}d`,        bg: 'var(--amber-pale)', color: 'var(--amber)' }
+  if (d <= 90) return { text: `${d}d`,               bg: 'var(--amber-pale)', color: 'var(--amber)' }
+  return              { text: fmtDate(date),          bg: '#E8F0E6', color: 'var(--ok)' }
 }
 function catLabel(cat) { return CATEGORIES.find(([v]) => v === cat)?.[1] ?? cat }
 
@@ -352,7 +352,7 @@ const s = {
   sectionTitle: { fontSize: 13, fontWeight: 700, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.04em' },
   addBtn:  { background: 'var(--terra)', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' },
 
-  alertBanner:  { background: '#FFF0EE', border: '1px solid #F5C5BE', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#C0392B', marginBottom: 12 },
+  alertBanner:  { background: 'var(--danger-pale)', border: '1px solid #F5C5BE', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: 'var(--danger)', marginBottom: 12 },
   suggestBanner: { background: '#FDF8EE', border: '1px solid #E8D5A3', borderRadius: 8, padding: '10px 14px', marginBottom: 14 },
   linkBtn: { background: 'none', border: 'none', color: 'var(--sky)', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 0, fontFamily: 'var(--font)', textDecoration: 'underline' },
   quickBtn:{ background: 'var(--terra)', color: '#fff', border: 'none', borderRadius: 6, padding: '3px 10px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', flexShrink: 0 },

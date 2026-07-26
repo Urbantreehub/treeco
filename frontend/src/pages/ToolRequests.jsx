@@ -12,14 +12,14 @@ const KINDS = {
 const URGENCY = {
   low:    { label: 'Low',    color: '#8AA', bg: '#EEF2F2' },
   normal: { label: 'Normal', color: '#6B9463', bg: '#EAF2E7' },
-  high:   { label: 'High',   color: '#C0392B', bg: '#FBECEA' },
+  high:   { label: 'High',   color: 'var(--danger)', bg: '#FBECEA' },
 }
 const STATUS = {
-  requested: { label: 'Requested', color: '#D4851A', bg: '#FDF3E3' },
-  approved:  { label: 'Approved',  color: '#4A7FA5', bg: '#EBF3FA' },
+  requested: { label: 'Requested', color: 'var(--amber)', bg: 'var(--amber-pale)' },
+  approved:  { label: 'Approved',  color: 'var(--sky)', bg: 'var(--sky-pale)' },
   ordered:   { label: 'Ordered',   color: '#6B9463', bg: '#EAF2E7' },
   done:      { label: 'Done',      color: '#2F5233', bg: '#E6F4EC' },
-  declined:  { label: 'Declined',  color: '#C0392B', bg: '#FFF0EE' },
+  declined:  { label: 'Declined',  color: 'var(--danger)', bg: 'var(--danger-pale)' },
 }
 // Allowed forward transitions the office can apply per current status.
 const NEXT = {
@@ -212,7 +212,7 @@ const s = {
   header: { padding: '16px 20px', borderBottom: '1px solid var(--border)', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 },
   title: { fontSize: '18px', fontWeight: '700', color: 'var(--ink)' },
   sub: { fontSize: '12px', color: '#999', marginTop: '2px' },
-  newBadge: { background: '#D4851A', color: '#fff', fontSize: '12px', fontWeight: '700', borderRadius: '12px', padding: '3px 10px' },
+  newBadge: { background: 'var(--amber)', color: '#fff', fontSize: '12px', fontWeight: '700', borderRadius: '12px', padding: '3px 10px' },
 
   body: { flex: 1, overflowY: 'auto', padding: '16px', maxWidth: '640px', width: '100%', margin: '0 auto', boxSizing: 'border-box' },
 

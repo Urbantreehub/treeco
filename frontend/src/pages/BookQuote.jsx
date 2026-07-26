@@ -173,7 +173,7 @@ const s = {
   chipOn: { background: 'var(--terra-wash)', borderColor: 'var(--terra)', color: 'var(--terra)' },
   photoBtn: { display: 'block', padding: '13px', borderRadius: '9px', border: '1.5px dashed var(--border)', background: '#FAFAF8', color: '#777', fontSize: '14px', fontWeight: '600', cursor: 'pointer', textAlign: 'center' },
   preview: { width: '100%', maxHeight: '200px', objectFit: 'cover', borderRadius: '10px', marginTop: '10px' },
-  err: { background: '#FFF0EE', color: '#C0392B', border: '1px solid #F0C8C2', borderRadius: '8px', padding: '10px 12px', fontSize: '13px', marginTop: '14px' },
+  err: { background: 'var(--danger-pale)', color: 'var(--danger)', border: '1px solid #F0C8C2', borderRadius: '8px', padding: '10px 12px', fontSize: '13px', marginTop: '14px' },
   submit: { marginTop: '18px', padding: '15px', borderRadius: '11px', border: 'none', background: 'var(--terra)', color: '#fff', fontSize: '16px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)', boxShadow: '0 2px 8px rgba(74,103,65,0.3)' },
   small: { fontSize: '12px', color: '#999', textAlign: 'center', marginTop: '12px' },
   link: { color: 'var(--terra)', fontWeight: '600', textDecoration: 'none' },

@@ -32,10 +32,10 @@ function fmtDate(d) {
 
 function risk(l, c) {
   const s = (l||0)*(c||0)
-  if (s >= 17) return { label:'CRITICAL', bg:'#FFF0EE', color:'#C0392B', s }
-  if (s >= 10) return { label:'HIGH',     bg:'#FDF3E3', color:'#D4851A', s }
+  if (s >= 17) return { label:'CRITICAL', bg:'var(--danger-pale)', color:'var(--danger)', s }
+  if (s >= 10) return { label:'HIGH',     bg:'var(--amber-pale)', color:'var(--amber)', s }
   if (s >= 5)  return { label:'MEDIUM',   bg:'#FEFBEA', color:'#B5770F', s }
-  if (s >= 1)  return { label:'LOW',      bg:'#E8F0E6', color:'#4A6741', s }
+  if (s >= 1)  return { label:'LOW',      bg:'#E8F0E6', color:'var(--ok)', s }
   return { label:'—', bg:'#f5f5f5', color:'#aaa', s:0 }
 }
 
@@ -431,10 +431,10 @@ function printPDF(doc) {
 
   <div class="risk-matrix">
     Risk rating = Likelihood (1–5) × Consequence (1–5)&nbsp;&nbsp;
-    <span class="rm-item" style="background:#E8F0E6;color:#4A6741">LOW 1–4</span>
+    <span class="rm-item" style="background:#E8F0E6;color:var(--ok)">LOW 1–4</span>
     <span class="rm-item" style="background:#FEFBEA;color:#B5770F">MEDIUM 5–9</span>
-    <span class="rm-item" style="background:#FDF3E3;color:#D4851A">HIGH 10–16</span>
-    <span class="rm-item" style="background:#FFF0EE;color:#C0392B">CRITICAL 17–25</span>
+    <span class="rm-item" style="background:var(--amber-pale);color:var(--amber)">HIGH 10–16</span>
+    <span class="rm-item" style="background:var(--danger-pale);color:var(--danger)">CRITICAL 17–25</span>
   </div>
 
   <h3>Hazard Identification &amp; Control Measures</h3>
@@ -529,7 +529,7 @@ export default function SWMS() {
       onBack={() => setView(null)} />
   }
 
-  const statusClr = { draft:{ bg:'#F3F4F6',c:'#6B7280' }, active:{ bg:'#E8F0E6',c:'#4A6741' }, archived:{ bg:'#FFF0EE',c:'#9B4040' } }
+  const statusClr = { draft:{ bg:'#F3F4F6',c:'#6B7280' }, active:{ bg:'#E8F0E6',c:'var(--ok)' }, archived:{ bg:'var(--danger-pale)',c:'#9B4040' } }
 
   return (
     <div>

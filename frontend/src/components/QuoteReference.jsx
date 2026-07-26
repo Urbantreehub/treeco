@@ -193,7 +193,7 @@ const styles = {
   title: { fontSize: '16px', fontWeight: '700', color: 'var(--ink)' },
   badge: {
     fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.4px',
-    color: '#B26A00', background: '#FDF3E3', border: '1px solid #E8C98A',
+    color: '#B26A00', background: 'var(--amber-pale)', border: '1px solid #E8C98A',
     borderRadius: '20px', padding: '3px 10px',
   },
   section: {
@@ -241,8 +241,8 @@ const styles = {
   },
   muted: { fontSize: '13px', color: '#aaa', fontStyle: 'italic' },
   error: {
-    marginTop: '12px', fontSize: '13px', color: '#C0392B',
-    background: '#FFF0EE', border: '1px solid #C0392B33',
+    marginTop: '12px', fontSize: '13px', color: 'var(--danger)',
+    background: 'var(--danger-pale)', border: '1px solid #C0392B33',
     borderRadius: '8px', padding: '8px 12px',
   },
   lightboxBackdrop: {

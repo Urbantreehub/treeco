@@ -496,7 +496,7 @@ function printPDF(doc) {
 
   const phaseColors = {
     Preparation: '#EAF2FF', Setup: '#EAF5EA', Execution: '#FFFBEA',
-    Completion: '#F5F0FF', Emergency: '#FFF0EE',
+    Completion: '#F5F0FF', Emergency: 'var(--danger-pale)',
   }
   const phaseTxt = {
     Preparation: '#1a5276', Setup: '#1e6e3e', Execution: '#7d6000',
@@ -507,7 +507,7 @@ function printPDF(doc) {
     const pc = phaseColors[step.phase] ?? '#fafafa'
     const tc = phaseTxt[step.phase] ?? '#333'
     const critBadge = step.critical
-      ? `<span style="background:#FFF0EE;color:#C0392B;font-size:7pt;padding:1px 5px;border-radius:3px;font-weight:bold;border:1px solid #fac;vertical-align:middle;">★ CRITICAL</span> `
+      ? `<span style="background:var(--danger-pale);color:var(--danger);font-size:7pt;padding:1px 5px;border-radius:3px;font-weight:bold;border:1px solid #fac;vertical-align:middle;">★ CRITICAL</span> `
       : ''
     return `
     <tr style="background:${i%2===0?'#fff':'#FAFAF8'}">
@@ -553,7 +553,7 @@ function printPDF(doc) {
     .ps-box { display: flex; gap: 0; margin-bottom: 8px; border: 1px solid #c8d8c0; background: #F0F5EE; }
     .ps-cell { flex: 1; padding: 6px 10px; border-right: 1px solid #c8d8c0; }
     .ps-cell:last-child { border-right: none; }
-    .ps-lbl { font-size: 7pt; font-weight: bold; color: #4A6741; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px; }
+    .ps-lbl { font-size: 7pt; font-weight: bold; color: var(--ok); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px; }
     h3 { font-size: 8.5pt; font-weight: bold; background: #3A5C2E; color: #fff; padding: 5px 8px; margin: 8px 0 0 0; }
     table { width: 100%; border-collapse: collapse; font-size: 8pt; }
     th { background: #3A5C2E; color: #fff; padding: 5px 6px; text-align: left; font-size: 7.5pt; font-weight: bold; border: 1px solid #2a4a20; }
@@ -693,11 +693,11 @@ export default function SOP() {
 
   const statusClr = {
     draft:    { bg:'#F3F4F6', c:'#6B7280' },
-    active:   { bg:'#E8F0E6', c:'#4A6741' },
-    archived: { bg:'#FFF0EE', c:'#9B4040' },
+    active:   { bg:'#E8F0E6', c:'var(--ok)' },
+    archived: { bg:'var(--danger-pale)', c:'#9B4040' },
   }
 
-  const phaseTag = { Preparation:'#EAF2FF', Setup:'#EAF5EA', Execution:'#FFFBEA', Completion:'#F5F0FF', Emergency:'#FFF0EE' }
+  const phaseTag = { Preparation:'#EAF2FF', Setup:'#EAF5EA', Execution:'#FFFBEA', Completion:'#F5F0FF', Emergency:'var(--danger-pale)' }
 
   return (
     <div>
@@ -722,7 +722,7 @@ export default function SOP() {
                     <span style={s.rowTitle}>{doc.title}</span>
                     <span style={{ ...s.badge, background:sc.bg, color:sc.c }}>{doc.status}</span>
                     <span style={s.verBadge}>v{doc.version}</span>
-                    {critCount > 0 && <span style={{ fontSize:10, fontWeight:700, background:'#FFF0EE', color:'#C0392B', borderRadius:5, padding:'2px 7px' }}>★ {critCount} critical</span>}
+                    {critCount > 0 && <span style={{ fontSize:10, fontWeight:700, background:'var(--danger-pale)', color:'var(--danger)', borderRadius:5, padding:'2px 7px' }}>★ {critCount} critical</span>}
                   </div>
                   <div style={s.rowMeta}>
                     {doc.ref} · {(doc.steps??[]).length} steps · {(doc.ppe??[]).length} PPE items
@@ -914,7 +914,7 @@ function StepRow({ step, i, isFirst, isLast, onChange, onDelete, onMove }) {
     Setup:       { bg:'#EAF5EA', c:'#1e6e3e' },
     Execution:   { bg:'#FFFBEA', c:'#7d6000' },
     Completion:  { bg:'#F5F0FF', c:'#5b2d8e' },
-    Emergency:   { bg:'#FFF0EE', c:'#c0392b' },
+    Emergency:   { bg:'var(--danger-pale)', c:'#c0392b' },
   }
   const pc = phaseColors[step.phase] ?? { bg:'#f3f4f6', c:'#555' }
 
@@ -939,7 +939,7 @@ function StepRow({ step, i, isFirst, isLast, onChange, onDelete, onMove }) {
       <td style={{ ...s.td, textAlign:'center' }}>
         <label style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:3, cursor:'pointer' }}>
           <input type="checkbox" checked={!!step.critical} onChange={e => onChange('critical', e.target.checked)} />
-          {step.critical && <span style={{ fontSize:9, color:'#C0392B', fontWeight:700 }}>★</span>}
+          {step.critical && <span style={{ fontSize:9, color:'var(--danger)', fontWeight:700 }}>★</span>}
         </label>
       </td>
       <td style={{ ...s.td, textAlign:'center', verticalAlign:'middle' }}>

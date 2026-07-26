@@ -33,9 +33,9 @@ function daysUntil(date) {
 function expiryBadge(date) {
   const d = daysUntil(date)
   if (d === null) return null
-  if (d < 0)   return { text: `Expired ${-d}d ago`, bg: '#FFF0EE', color: '#C0392B' }
-  if (d <= 30) return { text: `Due in ${d}d`,       bg: '#FDF3E3', color: '#D4851A' }
-  return { text: `${d}d`, bg: '#E8F0E6', color: '#4A6741' }
+  if (d < 0)   return { text: `Expired ${-d}d ago`, bg: 'var(--danger-pale)', color: 'var(--danger)' }
+  if (d <= 30) return { text: `Due in ${d}d`,       bg: 'var(--amber-pale)', color: 'var(--amber)' }
+  return { text: `${d}d`, bg: '#E8F0E6', color: 'var(--ok)' }
 }
 function fmt(d) { return d ? new Date(d).toLocaleDateString('en-NZ', { day: 'numeric', month: 'short', year: 'numeric' }) : '—' }
 
@@ -446,7 +446,7 @@ function HomeNav({ isStaff, checksAlert, flaggedCount, onSelect }) {
               <div style={{ fontSize:15, fontWeight:700, color:'var(--ink)' }}>{item.label}</div>
               <div style={{ fontSize:13, color:'#888', marginTop:2 }}>{item.desc}</div>
             </div>
-            {alert > 0 && <span style={{ background:'#FFF0EE', color:'#C0392B', fontWeight:700, fontSize:12, borderRadius:20, padding:'2px 9px', flexShrink:0 }}>{alert}</span>}
+            {alert > 0 && <span style={{ background:'var(--danger-pale)', color:'var(--danger)', fontWeight:700, fontSize:12, borderRadius:20, padding:'2px 9px', flexShrink:0 }}>{alert}</span>}
             <span style={{ color:'#C0CABB', fontSize:20, flexShrink:0 }}>›</span>
           </button>
         )

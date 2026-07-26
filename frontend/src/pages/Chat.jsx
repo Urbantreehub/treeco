@@ -252,7 +252,7 @@ const s = {
   convBody: { flex: 1, minWidth: 0 },
   convName: { fontSize: '14px', fontWeight: '600', color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   convHint: { fontSize: '12px', color: '#aaa' },
-  dot: { width: '9px', height: '9px', borderRadius: '50%', background: '#D4851A', flexShrink: 0 },
+  dot: { width: '9px', height: '9px', borderRadius: '50%', background: 'var(--amber)', flexShrink: 0 },
 
   thread: { flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0 },
   threadHeader: { display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 20px', borderBottom: '1px solid var(--border)', background: '#fff', flexShrink: 0 },

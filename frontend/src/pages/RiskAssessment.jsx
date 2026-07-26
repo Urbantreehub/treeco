@@ -93,10 +93,10 @@ const CONSEQUENCE_LABELS = ['', 'Negligible', 'Minor', 'Moderate', 'Major', 'Cat
 // Risk matrix: score = L × C
 function riskLevel(l, c) {
   const score = Number(l) * Number(c)
-  if (score >= 15) return { label: 'CRITICAL', color: '#C0392B', bg: '#FFF0EE' }
-  if (score >= 8)  return { label: 'HIGH',     color: '#D4851A', bg: '#FDF3E3' }
+  if (score >= 15) return { label: 'CRITICAL', color: 'var(--danger)', bg: 'var(--danger-pale)' }
+  if (score >= 8)  return { label: 'HIGH',     color: 'var(--amber)', bg: 'var(--amber-pale)' }
   if (score >= 4)  return { label: 'MEDIUM',   color: '#6B7280', bg: '#F3F4F6' }
-  if (score >= 1)  return { label: 'LOW',      color: '#4A6741', bg: '#E8F0E6' }
+  if (score >= 1)  return { label: 'LOW',      color: 'var(--ok)', bg: '#E8F0E6' }
   return { label: '—', color: '#bbb', bg: '#fafafa' }
 }
 
@@ -236,7 +236,7 @@ export default function RiskAssessments() {
                     {a.notifiable_work ? ' · NOTIFIABLE' : ''}
                   </div>
                 </div>
-                <span style={{ ...s.badge, ...(a.status === 'complete' ? { background: '#E8F0E6', color: '#4A6741' } : { background: '#FDF3E3', color: '#D4851A' }) }}>
+                <span style={{ ...s.badge, ...(a.status === 'complete' ? { background: '#E8F0E6', color: 'var(--ok)' } : { background: 'var(--amber-pale)', color: 'var(--amber)' }) }}>
                   {a.status === 'complete' ? 'Signed off' : 'Draft'}
                 </span>
               </div>
@@ -509,10 +509,10 @@ function RiskAssessmentForm({ initial, onSave, onDelete, onCancel }) {
         ) : (
           <>
             <div style={s.riskLegend}>
-              <span style={{ ...s.riskChip, background: '#E8F0E6', color: '#4A6741' }}>LOW</span>
+              <span style={{ ...s.riskChip, background: '#E8F0E6', color: 'var(--ok)' }}>LOW</span>
               <span style={{ ...s.riskChip, background: '#F3F4F6', color: '#6B7280' }}>MEDIUM</span>
-              <span style={{ ...s.riskChip, background: '#FDF3E3', color: '#D4851A' }}>HIGH</span>
-              <span style={{ ...s.riskChip, background: '#FFF0EE', color: '#C0392B' }}>CRITICAL</span>
+              <span style={{ ...s.riskChip, background: 'var(--amber-pale)', color: 'var(--amber)' }}>HIGH</span>
+              <span style={{ ...s.riskChip, background: 'var(--danger-pale)', color: 'var(--danger)' }}>CRITICAL</span>
               <span style={{ fontSize: 11, color: '#aaa', marginLeft: 4 }}>Score = L × C</span>
             </div>
             {form.site_hazards.map(hazard => {
@@ -674,12 +674,12 @@ function RiskAssessmentDetail({ assessment: a, onEdit, onDelete, onBack }) {
       </div>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-        <span style={{ ...s.badge, ...(a.status === 'complete' ? { background: '#E8F0E6', color: '#4A6741' } : { background: '#FDF3E3', color: '#D4851A' }) }}>
+        <span style={{ ...s.badge, ...(a.status === 'complete' ? { background: '#E8F0E6', color: 'var(--ok)' } : { background: 'var(--amber-pale)', color: 'var(--amber)' }) }}>
           {a.status === 'complete' ? 'Signed off' : 'Draft'}
         </span>
         <span style={{ ...s.badge, background: '#f0f0f0', color: '#666' }}>{fmtDate(a.date)}</span>
         {a.supervisor && <span style={{ ...s.badge, background: '#f0f0f0', color: '#666' }}>{a.supervisor}</span>}
-        {a.notifiable_work && <span style={{ ...s.badge, background: '#FFF0EE', color: '#C0392B' }}>NOTIFIABLE WORK</span>}
+        {a.notifiable_work && <span style={{ ...s.badge, background: 'var(--danger-pale)', color: 'var(--danger)' }}>NOTIFIABLE WORK</span>}
       </div>
 
       <ReadSection title="1. Job Information">
@@ -883,7 +883,7 @@ const s = {
 
   // Alerts
   hint:        { fontSize: 12, color: '#888', lineHeight: 1.5, marginBottom: 10 },
-  stopWork:    { background: '#FFF0EE', color: '#C0392B', fontSize: 12, fontWeight: 600, borderRadius: 6, padding: '8px 12px', marginTop: 8 },
+  stopWork:    { background: 'var(--danger-pale)', color: 'var(--danger)', fontSize: 12, fontWeight: 600, borderRadius: 6, padding: '8px 12px', marginTop: 8 },
   alertBox:    { background: 'var(--amber-pale)', border: '1px solid #E8C98A', borderRadius: 8, padding: '12px 14px', marginBottom: 12 },
   signOffBox:  { background: 'var(--terra-wash)', border: '1px solid var(--terra)', borderRadius: 8, padding: '12px 14px', marginBottom: 14 },
   signOffText: { fontSize: 13, color: 'var(--ink)', lineHeight: 1.5 },

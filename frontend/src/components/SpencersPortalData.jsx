@@ -115,7 +115,7 @@ export default function SpencersPortalData({ job }) {
           {actions.map((a, i) => (
             <div key={i} style={s.actRow}>
               <span style={s.actName}>{ACTION_LABEL[a.action] ?? a.action}</span>
-              <span style={{ ...s.actStatus, color: a.status === 'done' ? '#4A6741' : a.status === 'failed' ? '#C0392B' : '#B7791F' }}>
+              <span style={{ ...s.actStatus, color: a.status === 'done' ? 'var(--ok)' : a.status === 'failed' ? 'var(--danger)' : '#B7791F' }}>
                 {a.status === 'done' ? '✓ sent' : a.status === 'failed' ? 'failed' : 'queued'}
               </span>
               <span style={s.actTime}>{fmt(a.processed_at || a.created_at)}</span>

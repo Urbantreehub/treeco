@@ -346,7 +346,7 @@ export default function WorkOrder() {
         {/* Readiness dot */}
         <div title={readyToComplete ? 'Ready to complete' : 'Actions required'} style={{
           width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
-          background: readyToComplete ? '#2e7d32' : '#C0392B',
+          background: readyToComplete ? '#2e7d32' : 'var(--danger)',
           boxShadow: readyToComplete ? '0 0 0 3px #2e7d3222' : '0 0 0 3px #C0392B22',
         }} />
       </div>
@@ -399,7 +399,7 @@ export default function WorkOrder() {
                 }}>
                   <span style={{ fontSize: 22 }}>{f.icon}</span>
                   <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>{f.label}</span>
-                  <span style={{ fontSize: 22, fontWeight: 700, color: done ? '#2e7d32' : f.required ? '#C0392B' : '#C8D4C4' }}>
+                  <span style={{ fontSize: 22, fontWeight: 700, color: done ? '#2e7d32' : f.required ? 'var(--danger)' : '#C8D4C4' }}>
                     {done ? '✓' : f.required ? '✕' : '+'}
                   </span>
                 </button>
@@ -465,7 +465,7 @@ export default function WorkOrder() {
               <span style={s.sectionLabel}>Photo Documentation — per item</span>
               {sdPhotosComplete
                 ? <span style={s.allDone}>✓ During &amp; After uploaded</span>
-                : <span style={{ fontSize: 12, fontWeight: 600, color: '#C0392B' }}>During &amp; After required</span>
+                : <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--danger)' }}>During &amp; After required</span>
               }
             </div>
 
@@ -484,11 +484,11 @@ export default function WorkOrder() {
                     )}
                     <span style={s.lineItemName}>{item.code ? (item.description || '').replace(`${item.code} — `, '') : (item.description || 'Item')}</span>
                   </div>
-                  <PhotoStrip label="Before" labelColor="#4A7FA5"
+                  <PhotoStrip label="Before" labelColor="var(--sky)"
                     photos={[...itemQuoteImgs, ...(lp.before ?? [])]}
                     uploading={uploading === `${item.id}:before`}
                     onView={setLightbox} onAdd={() => openLineUpload(item.id, 'before')} />
-                  <PhotoStrip label="During" labelColor="#D4851A"
+                  <PhotoStrip label="During" labelColor="var(--amber)"
                     photos={lp.during ?? []}
                     uploading={uploading === `${item.id}:during`}
                     onView={setLightbox} onAdd={() => openLineUpload(item.id, 'during')} required />
@@ -539,7 +539,7 @@ export default function WorkOrder() {
           <div style={s.sectionHead}>
             <span style={s.sectionLabel}>Site Additions</span>
             {additions.length > 0 && (
-              <span style={{ fontSize: 12, fontWeight: 600, color: '#4A6741', background: '#E8F0E6', padding: '2px 8px', borderRadius: 10 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ok)', background: '#E8F0E6', padding: '2px 8px', borderRadius: 10 }}>
                 {additions.length} added
               </span>
             )}
@@ -620,7 +620,7 @@ export default function WorkOrder() {
           background: readyToComplete ? '#F0FFF4' : '#FFF8F8',
           border: `1.5px solid ${readyToComplete ? '#2e7d3233' : '#C0392B22'}`,
         }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: readyToComplete ? '#2e7d32' : '#C0392B', marginBottom: 6 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: readyToComplete ? '#2e7d32' : 'var(--danger)', marginBottom: 6 }}>
             {readyToComplete ? '✓ Job ready to mark complete' : 'Complete required items before closing job'}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -652,7 +652,7 @@ const WO_TOOLS = {
   winch: 'Winch', plywood: 'Plywood', cones: 'Cones', signs: 'Signs',
 }
 const DIFF_LABEL = ['','Easy','Moderate','Challenging','Difficult','Extreme']
-const DIFF_COLORS = { 1: '#2e7d32', 2: '#7FA650', 3: '#D4851A', 4: '#E05C33', 5: '#C0392B' }
+const DIFF_COLORS = { 1: '#2e7d32', 2: '#7FA650', 3: 'var(--amber)', 4: '#E05C33', 5: 'var(--danger)' }
 
 function JobPackCard({ pack }) {
   const tools = Object.entries(pack.tools ?? {}).filter(([, v]) => v).map(([k]) => WO_TOOLS[k]).filter(Boolean)
@@ -664,7 +664,7 @@ function JobPackCard({ pack }) {
 
   return (
     <div style={{ background: '#fff', borderRadius: 12, padding: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', border: '1.5px solid #4A674122' }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: '#4A6741', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 14 }}>📋 Job Pack</div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ok)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 14 }}>📋 Job Pack</div>
 
       {/* Top row: time / staff / difficulty */}
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
@@ -706,12 +706,12 @@ function JobPackCard({ pack }) {
 }
 
 const jp = {
-  pill:     { display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 20, border: '1.5px solid #D0E4CC', background: '#F0F7EE', fontSize: 13, fontWeight: 600, color: 'var(--ink)' },
+  pill:     { display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 20, border: '1.5px solid #D0E4CC', background: 'var(--ok-pale)', fontSize: 13, fontWeight: 600, color: 'var(--ink)' },
   pillIcon: { fontSize: 14 },
   row:      { display: 'flex', alignItems: 'baseline', gap: 10, paddingBottom: 10, marginBottom: 10, borderBottom: '1px solid #F2EFE8' },
   rowLabel: { fontSize: 11, fontWeight: 700, color: '#bbb', textTransform: 'uppercase', letterSpacing: '0.05em', flexShrink: 0, width: 72 },
   rowValue: { fontSize: 14, color: 'var(--ink)', fontWeight: 500 },
-  tool:     { fontSize: 12, fontWeight: 600, color: '#4A6741', background: '#E8F0E6', padding: '3px 10px', borderRadius: 12 },
+  tool:     { fontSize: 12, fontWeight: 600, color: 'var(--ok)', background: '#E8F0E6', padding: '3px 10px', borderRadius: 12 },
 }
 
 function MetaRow({ icon, children }) {
@@ -725,7 +725,7 @@ function MetaRow({ icon, children }) {
 
 function CheckItem({ done, label }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: done ? '#2e7d32' : '#C0392B' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: done ? '#2e7d32' : 'var(--danger)' }}>
       <span style={{ fontSize: 16, fontWeight: 700, flexShrink: 0 }}>{done ? '✓' : '✕'}</span>
       <span style={{ fontWeight: done ? 500 : 600 }}>{label}</span>
     </div>
@@ -741,7 +741,7 @@ function PhotoStrip({ label, labelColor, photos, readonly, uploading, onView, on
           color: '#fff', background: labelColor, padding: '3px 10px', borderRadius: 12,
         }}>{label}</span>
         {required && photos.length === 0 && (
-          <span style={{ fontSize: 11, color: '#C0392B', fontWeight: 600 }}>required</span>
+          <span style={{ fontSize: 11, color: 'var(--danger)', fontWeight: 600 }}>required</span>
         )}
         {photos.length > 0 && (
           <span style={{ fontSize: 11, color: '#888' }}>{photos.length} photo{photos.length !== 1 ? 's' : ''}</span>
@@ -787,17 +787,17 @@ const s = {
     padding: '12px 16px', background: '#fff', borderBottom: '1px solid var(--border)',
     boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
   },
-  backBtn:     { background: 'none', border: 'none', fontSize: 24, color: '#4A6741', cursor: 'pointer', padding: '2px 8px 2px 0', lineHeight: 1, flexShrink: 0 },
+  backBtn:     { background: 'none', border: 'none', fontSize: 24, color: 'var(--ok)', cursor: 'pointer', padding: '2px 8px 2px 0', lineHeight: 1, flexShrink: 0 },
   headerTitle: { fontSize: 17, fontWeight: 800, color: 'var(--ink)' },
   headerSub:   { fontSize: 12, color: '#888', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   sdBadge:     { fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', background: 'var(--ink)', color: '#fff', padding: '2px 8px', borderRadius: 10 },
 
   body:   { padding: '16px', display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 640, margin: '0 auto' },
   card:   { background: '#fff', borderRadius: 12, padding: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' },
-  link:   { color: '#4A7FA5', textDecoration: 'none' },
+  link:   { color: 'var(--sky)', textDecoration: 'none' },
 
   downerNotice: {
-    marginTop: 12, padding: '10px 14px', background: '#EBF3FA', border: '1px solid #4A7FA533',
+    marginTop: 12, padding: '10px 14px', background: 'var(--sky-pale)', border: '1px solid #4A7FA533',
     borderRadius: 8, fontSize: 13, color: '#2C5F7A', fontWeight: 500, lineHeight: 1.5,
   },
 
@@ -807,7 +807,7 @@ const s = {
   allDone:      { fontSize: 12, fontWeight: 700, color: '#2e7d32' },
 
   taskRow:    { display: 'flex', gap: 12, paddingBottom: 14, marginBottom: 14, borderBottom: '1px solid #F2EFE8' },
-  taskBullet: { width: 7, height: 7, borderRadius: '50%', background: '#4A6741', flexShrink: 0, marginTop: 7 },
+  taskBullet: { width: 7, height: 7, borderRadius: '50%', background: 'var(--ok)', flexShrink: 0, marginTop: 7 },
   taskTitle:  { fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 },
   taskDetail: { fontSize: 13, color: '#666', lineHeight: 1.5 },
   taskCharge: { textAlign: 'right', flexShrink: 0, paddingLeft: 10 },
@@ -823,7 +823,7 @@ const s = {
 
   photoGate: {
     marginTop: 12, padding: '12px 14px', background: '#FFF8F8', border: '1.5px solid #C0392B33',
-    borderRadius: 8, fontSize: 13, color: '#C0392B', fontWeight: 500, lineHeight: 1.5,
+    borderRadius: 8, fontSize: 13, color: 'var(--danger)', fontWeight: 500, lineHeight: 1.5,
   },
   photoGrid: { display: 'flex', flexWrap: 'wrap', gap: 10 },
   thumb:     { width: 80, height: 60, objectFit: 'cover', borderRadius: 8, cursor: 'zoom-in', border: '1px solid var(--border)' },
@@ -835,7 +835,7 @@ const s = {
 
   addHint:    { fontSize: 13, color: '#999', marginBottom: 12, lineHeight: 1.5 },
   chip: {
-    padding: '8px 14px', background: '#F0F7EE', border: '1.5px solid #D0E4CC',
+    padding: '8px 14px', background: 'var(--ok-pale)', border: '1.5px solid #D0E4CC',
     borderRadius: 20, fontSize: 13, fontWeight: 500, color: '#3A5C2E',
     cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap',
   },
@@ -864,6 +864,6 @@ const s = {
   lightboxClose:  { position: 'absolute', top: 16, right: 20, background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', width: 36, height: 36, borderRadius: '50%', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' },
 
   formBar:      { display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderBottom: '1px solid #E8EDE4', flexShrink: 0 },
-  formBack:     { background: 'none', border: '1px solid #D0D9C8', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#4A6741', fontFamily: 'var(--font)', whiteSpace: 'nowrap' },
+  formBack:     { background: 'none', border: '1px solid #D0D9C8', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: 'var(--ok)', fontFamily: 'var(--font)', whiteSpace: 'nowrap' },
   formBarTitle: { fontWeight: 700, fontSize: 15, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
 }

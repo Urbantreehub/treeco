@@ -19,7 +19,7 @@ export default function TruckProgress({ vehicle, jobLat, jobLng, statusColor }) 
   const arrived = frac >= 0.995 || (remainingKm != null && remainingKm < 0.15)
   const parked = vehicle.ignition === false
 
-  const color = statusColor ?? '#4A7FA5'
+  const color = statusColor ?? 'var(--sky)'
   const label = arrived
     ? 'On site'
     : remainingKm != null

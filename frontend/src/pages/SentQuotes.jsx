@@ -17,10 +17,10 @@ const fnHeaders = {
 // statuses locally rather than misuse those keys.
 const QUOTE_STATUS = {
   draft:    { label: 'Draft',    color: '#7C93A8' },
-  sent:     { label: 'Sent',     color: '#D4851A' },
-  viewed:   { label: 'Opened',   color: '#4A7FA5' },
-  accepted: { label: 'Accepted', color: '#4A6741' },
-  declined: { label: 'Declined', color: '#C0392B' },
+  sent:     { label: 'Sent',     color: 'var(--amber)' },
+  viewed:   { label: 'Opened',   color: 'var(--sky)' },
+  accepted: { label: 'Accepted', color: 'var(--ok)' },
+  declined: { label: 'Declined', color: 'var(--danger)' },
 }
 function qStatusColor(k) { return QUOTE_STATUS[k]?.color ?? '#7C93A8' }
 function qStatusLabel(k) { return QUOTE_STATUS[k]?.label ?? (k || '—') }

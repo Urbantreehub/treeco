@@ -67,19 +67,19 @@ const RESOURCES = [
 ]
 
 const RESOURCE_COLOR = {
-  josh:       '#4A6741',
-  isuzu:      '#4A7FA5',
+  josh:       'var(--ok)',
+  isuzu:      'var(--sky)',
   nissan:     '#6B5EA8',
   stump:      '#8B4513',
   unassigned: '#C8C2BC',
 }
 
 const JOB_TYPE_COLOR = {
-  removal:  '#C0392B',
-  pruning:  '#4A6741',
+  removal:  'var(--danger)',
+  pruning:  'var(--ok)',
   grinding: '#8B4513',
   planting: '#2E7D52',
-  consult:  '#4A7FA5',
+  consult:  'var(--sky)',
 }
 
 function jobColor(job) {
@@ -88,7 +88,7 @@ function jobColor(job) {
   for (const [key, color] of Object.entries(JOB_TYPE_COLOR)) {
     if (t.includes(key)) return color
   }
-  return '#4A7FA5'
+  return 'var(--sky)'
 }
 
 // Get Monday of a week containing `date`
@@ -127,7 +127,7 @@ function SortableResourceRow({ resource, visible, onToggle }) {
       <div style={{ width: '9px', height: '9px', borderRadius: '50%', background: RESOURCE_COLOR[resource.id], flexShrink: 0 }} />
       <span style={fp.name}>{resource.title}</span>
       <button
-        style={{ ...fp.toggle, background: visible ? '#4A6741' : 'var(--border)', color: visible ? '#fff' : '#999' }}
+        style={{ ...fp.toggle, background: visible ? 'var(--ok)' : 'var(--border)', color: visible ? '#fff' : '#999' }}
         onClick={() => onToggle(resource.id)}
       >
         {visible ? 'On' : 'Off'}
@@ -204,7 +204,7 @@ function SortableWeekRow({ res, ri, days, today, events, onEventClick, cols }) {
             {cellEvents.map(ev => (
               <div
                 key={ev.id}
-                style={{ ...wg.pill, background: ev.color ?? '#4A7FA5' }}
+                style={{ ...wg.pill, background: ev.color ?? 'var(--sky)' }}
                 onClick={() => onEventClick(ev)}
               >
                 <span style={wg.pillTitle}>{ev.title}</span>
@@ -308,8 +308,8 @@ function TrayCard({ job, onOpen }) {
         {secondaryLabel ? <div style={tr.meta}>{secondaryLabel}</div> : null}
         <div style={tr.stats}>
           <span style={{ ...tr.stat, background: statusColor + '18', color: statusColor }}>{getStatusLabel(job.status)}</span>
-          {code && <span style={{ ...tr.stat, background: '#EBF3FA', color: '#4A7FA5' }}>{code}</span>}
-          {kpi && <span style={{ ...tr.stat, background: kpi.expired ? '#FFF0EE' : '#FDF3E3', color: kpi.expired ? '#C0392B' : '#D4851A' }}>⏱ {kpi.text}</span>}
+          {code && <span style={{ ...tr.stat, background: 'var(--sky-pale)', color: 'var(--sky)' }}>{code}</span>}
+          {kpi && <span style={{ ...tr.stat, background: kpi.expired ? 'var(--danger-pale)' : 'var(--amber-pale)', color: kpi.expired ? 'var(--danger)' : 'var(--amber)' }}>⏱ {kpi.text}</span>}
           {timeOnSite && <span style={tr.stat}>⏱ {timeOnSite}</span>}
           {price && <span style={tr.stat}>{price}</span>}
         </div>
@@ -369,7 +369,7 @@ function Popover({ info, weekEvent, vehicles, onClose, onUnschedule, onLinkVehic
             background: (JOB_STATUSES[job.status]?.color ?? '#888') + '18', color: JOB_STATUSES[job.status]?.color ?? '#888' }}>
             {getStatusLabel(job.status)}
           </span>
-          {koCode(job) && <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 5, padding: '2px 7px', marginLeft: 6, background: '#EBF3FA', color: '#4A7FA5' }}>{koCode(job)}</span>}
+          {koCode(job) && <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 5, padding: '2px 7px', marginLeft: 6, background: 'var(--sky-pale)', color: 'var(--sky)' }}>{koCode(job)}</span>}
         </div>
         {isSpencersJob(job) && jobHeading(job).secondary && <div style={po.row}><span style={po.icon}>👤</span>{jobHeading(job).secondary}</div>}
         {job.job_type  && <div style={po.row}><span style={po.icon}>🌲</span>{job.job_type}</div>}
@@ -503,11 +503,11 @@ const cw = {
   jobTime:  { fontSize: '11px', fontWeight: '700', color: '#aaa', letterSpacing: '0.04em', marginBottom: '4px' },
   jobTitle: { fontSize: '16px', fontWeight: '800', color: 'var(--ink)', marginBottom: '4px' },
   jobClient:{ fontSize: '13px', color: '#666', marginBottom: '4px' },
-  jobAddr:  { display: 'block', fontSize: '13px', color: '#4A7FA5', textDecoration: 'none', marginBottom: '4px' },
+  jobAddr:  { display: 'block', fontSize: '13px', color: 'var(--sky)', textDecoration: 'none', marginBottom: '4px' },
   jobNotes: { fontSize: '12px', color: '#888', marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #F0EDE8', lineHeight: 1.5 },
   woBtn: {
     display: 'block', width: '100%', marginTop: '12px', padding: '10px 0',
-    background: '#F0F7EE', border: '1.5px solid #D0E4CC', borderRadius: '8px',
+    background: 'var(--ok-pale)', border: '1.5px solid #D0E4CC', borderRadius: '8px',
     fontSize: '14px', fontWeight: '700', color: '#3A5C2E', cursor: 'pointer',
     fontFamily: 'var(--font)', textAlign: 'center',
   },
@@ -917,7 +917,7 @@ function FullCalendar_() {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <button
-              style={{ ...s.filterBtn, background: '#FDF3E3', borderColor: '#E9CF9E', color: '#B26B0E' }}
+              style={{ ...s.filterBtn, background: 'var(--amber-pale)', borderColor: '#E9CF9E', color: '#B26B0E' }}
               onClick={openDayAlert}
               title="Text every client scheduled on the shown day"
             >
@@ -1112,7 +1112,7 @@ function FullCalendar_() {
       )}
 
       {toast && (
-        <div style={{ ...s.toast, background: toast.err ? '#C0392B' : 'var(--ink)' }}>
+        <div style={{ ...s.toast, background: toast.err ? 'var(--danger)' : 'var(--ink)' }}>
           {toast.msg}
         </div>
       )}
@@ -1197,8 +1197,8 @@ const FC_CSS = `
   .fc-resource-timeline .fc-datagrid-cell-frame { height: 56px !important; display: flex !important; align-items: center !important; }
   .fc-timeline-lane:nth-child(even) { background: #FAFAF8; }
   .fc-non-business { background: rgba(44, 36, 22, 0.04) !important; }
-  .fc-timeline-now-indicator-line { border-color: #C0392B; border-width: 2px; }
-  .fc-timeline-now-indicator-arrow { border-top-color: #C0392B; }
+  .fc-timeline-now-indicator-line { border-color: var(--danger); border-width: 2px; }
+  .fc-timeline-now-indicator-arrow { border-top-color: var(--danger); }
   .fc-event { border: none !important; border-radius: 4px !important; box-shadow: 0 1px 3px rgba(0,0,0,0.15) !important; cursor: pointer; }
   .fc-timeline-slot { border-color: #EDEBE7 !important; }
   .fc-timeline-slot.fc-timeline-slot-minor { border-color: #F5F3F0 !important; }
@@ -1221,7 +1221,7 @@ const s = {
   trayTop:  { flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: '14px 0 0' },
   trayHead: { display: 'flex', alignItems: 'center', gap: '7px', padding: '0 14px 6px' },
   trayLabel:{ fontSize: '11px', fontWeight: '700', color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.05em' },
-  trayBadge:{ fontSize: '10px', fontWeight: '700', background: '#D4851A', color: '#fff', borderRadius: '20px', padding: '1px 7px', lineHeight: 1.6 },
+  trayBadge:{ fontSize: '10px', fontWeight: '700', background: 'var(--amber)', color: '#fff', borderRadius: '20px', padding: '1px 7px', lineHeight: 1.6 },
   trayTabs: { display: 'flex', gap: '4px', padding: '0 10px 8px' },
   trayTab: {
     flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
@@ -1261,7 +1261,7 @@ const s = {
     padding: '10px 16px', background: 'none', border: 'none', cursor: 'pointer',
     fontFamily: 'var(--font)', fontSize: '13px', fontWeight: '600', color: 'var(--ink)',
   },
-  trackerChevron: { fontSize: '22px', color: '#4A6741', lineHeight: 1, display: 'inline-block' },
+  trackerChevron: { fontSize: '22px', color: 'var(--ok)', lineHeight: 1, display: 'inline-block' },
   trackerBody: { padding: '0 16px 16px' },
   toolbar: {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -1294,7 +1294,7 @@ const s = {
   },
   filterBtnOn: { background: 'var(--ink)', color: '#fff', borderColor: 'var(--ink)' },
   filterBadge: {
-    background: '#D4851A', color: '#fff', fontSize: '10px', fontWeight: '700',
+    background: 'var(--amber)', color: '#fff', fontSize: '10px', fontWeight: '700',
     borderRadius: '20px', padding: '1px 6px', lineHeight: 1.6,
   },
   crewStrip: {
@@ -1340,7 +1340,7 @@ const tr = {
   name: { fontSize: '12px', fontWeight: '600', color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.3 },
   meta: { fontSize: '10px', color: '#aaa', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: '2px' },
   stats: { display: 'flex', gap: '8px', marginTop: '3px', flexWrap: 'wrap' },
-  stat:  { fontSize: '10px', fontWeight: '700', color: '#4A6741', background: '#EEF3EC', borderRadius: '4px', padding: '1px 5px', whiteSpace: 'nowrap' },
+  stat:  { fontSize: '10px', fontWeight: '700', color: 'var(--ok)', background: '#EEF3EC', borderRadius: '4px', padding: '1px 5px', whiteSpace: 'nowrap' },
   grip: { color: '#D0CBC4', fontSize: '13px', flexShrink: 0 },
 }
 
@@ -1357,9 +1357,9 @@ const po = {
     border: '1px solid var(--border)', background: 'var(--cream)', color: 'var(--ink)',
     fontFamily: 'var(--font)', cursor: 'pointer', outline: 'none',
   },
-  openBtn:  { display: 'block', width: 'calc(100% - 28px)', margin: '10px 14px 0', background: '#4A6741', border: 'none', borderRadius: '6px', padding: '9px', fontSize: '12px', fontWeight: '700', color: '#fff', cursor: 'pointer', fontFamily: 'var(--font)' },
+  openBtn:  { display: 'block', width: 'calc(100% - 28px)', margin: '10px 14px 0', background: 'var(--ok)', border: 'none', borderRadius: '6px', padding: '9px', fontSize: '12px', fontWeight: '700', color: '#fff', cursor: 'pointer', fontFamily: 'var(--font)' },
   btns:     { display: 'flex', gap: '8px', padding: '12px 14px', borderTop: '1px solid var(--border)', marginTop: '8px' },
-  backBtn:  { flex: 1, background: '#FDF3E3', border: '1px solid #FADFAA', borderRadius: '6px', padding: '7px', fontSize: '11px', fontWeight: '600', color: '#B8860B', cursor: 'pointer', fontFamily: 'var(--font)' },
+  backBtn:  { flex: 1, background: 'var(--amber-pale)', border: '1px solid #FADFAA', borderRadius: '6px', padding: '7px', fontSize: '11px', fontWeight: '600', color: '#B8860B', cursor: 'pointer', fontFamily: 'var(--font)' },
   closeBtn: { background: 'var(--ink)', border: 'none', borderRadius: '6px', padding: '7px 14px', fontSize: '11px', fontWeight: '600', color: '#fff', cursor: 'pointer', fontFamily: 'var(--font)' },
 }
 
@@ -1388,7 +1388,7 @@ const wg = {
   dayHeaderToday: { background: '#FFFDF5' },
   dayName: { fontSize: '10px', fontWeight: '700', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.06em' },
   dayNum:  { fontSize: '12px', fontWeight: '600', color: '#555' },
-  dayNumToday: { color: '#C0392B', fontWeight: '800' },
+  dayNumToday: { color: 'var(--danger)', fontWeight: '800' },
   body: { flex: 1, overflowY: 'auto' },
   row: {
     display: 'grid',

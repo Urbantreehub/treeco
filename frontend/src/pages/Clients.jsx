@@ -17,7 +17,7 @@ function initials(name = '') {
 }
 
 function avatarColor(name = '') {
-  const COLORS = ['#4A6741','#4A7FA5','#6B5EA8','#8B4513','#C0392B','#2E7D52','#B8860B','#5D6D7E']
+  const COLORS = ['var(--ok)','var(--sky)','#6B5EA8','#8B4513','var(--danger)','#2E7D52','#B8860B','#5D6D7E']
   let h = 0
   for (const c of name) h = (h * 31 + c.charCodeAt(0)) & 0xffffffff
   return COLORS[Math.abs(h) % COLORS.length]
@@ -179,7 +179,7 @@ function XeroImportModal({ contacts, existingXeroIds, onImport, onClose }) {
                     type="checkbox"
                     checked={selected.has(c.xero_contact_id)}
                     onChange={() => toggle(c.xero_contact_id)}
-                    style={{ accentColor: '#4A6741', width: '15px', height: '15px', flexShrink: 0 }}
+                    style={{ accentColor: 'var(--ok)', width: '15px', height: '15px', flexShrink: 0 }}
                   />
                   <div style={{ ...xi.avatar, background: avatarColor(c.name) }}>{initials(c.name)}</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -247,7 +247,7 @@ function ClientPanel({ client, jobs, onEdit, onDelete, onClose }) {
       <div style={p.footer}>
         {confirmDelete ? (
           <>
-            <span style={{ fontSize: '12px', color: '#C0392B', flex: 1 }}>
+            <span style={{ fontSize: '12px', color: 'var(--danger)', flex: 1 }}>
               {jobs.length > 0 ? `Delete? ${jobs.length} job${jobs.length !== 1 ? 's' : ''} will lose this client.` : 'Delete this client?'}
             </span>
             <button style={p.cancelSmall} onClick={() => setConfirmDelete(false)}>Cancel</button>
@@ -271,7 +271,7 @@ function InfoRow({ icon, label, value, href }) {
       <div>
         <div style={p.infoLabel}>{label}</div>
         {href
-          ? <a href={href} target="_blank" rel="noreferrer" style={{ ...p.infoValue, color: '#4A7FA5', textDecoration: 'none' }}>{value}</a>
+          ? <a href={href} target="_blank" rel="noreferrer" style={{ ...p.infoValue, color: 'var(--sky)', textDecoration: 'none' }}>{value}</a>
           : <div style={p.infoValue}>{value}</div>}
       </div>
     </div>
@@ -500,7 +500,7 @@ export default function Clients() {
 
 
       {toast && (
-        <div style={{ ...s.toast, background: toast.err ? '#C0392B' : 'var(--ink)' }}>
+        <div style={{ ...s.toast, background: toast.err ? 'var(--danger)' : 'var(--ink)' }}>
           {toast.msg}
         </div>
       )}
@@ -565,7 +565,7 @@ const s = {
     border: '1.5px solid var(--border)', cursor: 'pointer',
     transition: 'all 0.12s', boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
   },
-  cardActive: { borderColor: '#4A6741', boxShadow: '0 0 0 3px rgba(74,103,65,0.12)' },
+  cardActive: { borderColor: 'var(--ok)', boxShadow: '0 0 0 3px rgba(74,103,65,0.12)' },
   cardAvatar: {
     width: '40px', height: '40px', borderRadius: '50%', flexShrink: 0,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -603,7 +603,7 @@ const m = {
     boxSizing: 'border-box',
   },
   row2:   { display: 'flex', gap: '12px' },
-  error:  { background: '#FFF0EE', border: '1px solid #FCC', borderRadius: '6px', padding: '8px 12px', fontSize: '13px', color: '#C0392B', marginTop: '4px' },
+  error:  { background: 'var(--danger-pale)', border: '1px solid #FCC', borderRadius: '6px', padding: '8px 12px', fontSize: '13px', color: 'var(--danger)', marginTop: '4px' },
   footer: { display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '16px' },
   cancelBtn: { padding: '9px 18px', borderRadius: '7px', border: '1.5px solid var(--border)', background: '#fff', color: '#666', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
   saveBtn:   { padding: '9px 20px', borderRadius: '7px', border: 'none', background: 'var(--ink)', color: '#fff', fontSize: '13px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)' },
@@ -627,7 +627,7 @@ const p = {
   infoIcon:  { fontSize: '14px', flexShrink: 0, marginTop: '2px' },
   infoLabel: { fontSize: '10px', fontWeight: '700', color: '#bbb', textTransform: 'uppercase', letterSpacing: '0.05em' },
   infoValue: { fontSize: '13px', color: 'var(--ink)', marginTop: '2px', lineHeight: 1.5 },
-  link: { color: '#4A7FA5', textDecoration: 'none', fontSize: '13px' },
+  link: { color: 'var(--sky)', textDecoration: 'none', fontSize: '13px' },
   section:      { marginTop: '16px' },
   sectionTitle: { fontSize: '11px', fontWeight: '700', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' },
   empty:    { fontSize: '13px', color: '#ccc', padding: '8px 0' },
@@ -636,8 +636,8 @@ const p = {
   jobTitle: { fontSize: '13px', fontWeight: '600', color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   jobMeta:  { fontSize: '11px', color: '#aaa', marginTop: '1px', textTransform: 'capitalize' },
   footer:   { display: 'flex', gap: '8px', padding: '14px 16px', borderTop: '1px solid var(--border)', alignItems: 'center' },
-  deleteBtn:     { padding: '8px 14px', borderRadius: '7px', border: '1.5px solid #FCC', background: '#FFF0EE', color: '#C0392B', fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
-  deleteConfirm: { padding: '8px 14px', borderRadius: '7px', border: 'none', background: '#C0392B', color: '#fff', fontSize: '12px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)' },
+  deleteBtn:     { padding: '8px 14px', borderRadius: '7px', border: '1.5px solid #FCC', background: 'var(--danger-pale)', color: 'var(--danger)', fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
+  deleteConfirm: { padding: '8px 14px', borderRadius: '7px', border: 'none', background: 'var(--danger)', color: '#fff', fontSize: '12px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)' },
   cancelSmall:   { padding: '8px 12px', borderRadius: '7px', border: '1.5px solid var(--border)', background: '#fff', color: '#666', fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
   editBtn:  { flex: 1, padding: '8px', borderRadius: '7px', border: 'none', background: 'var(--ink)', color: '#fff', fontSize: '13px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)', textAlign: 'center' },
 }

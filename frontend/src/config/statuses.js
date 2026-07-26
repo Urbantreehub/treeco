@@ -12,13 +12,13 @@ export const JOB_STATUSES = {
   quote_scheduled: {
     key: 'quote_scheduled',
     label: 'Quote Scheduled',
-    color: '#4A7FA5',
+    color: 'var(--sky)',
     description: 'Site visit booked to quote',
   },
   quote_sent: {
     key: 'quote_sent',
     label: 'Quote Sent',
-    color: '#D4851A',
+    color: 'var(--amber)',
     description: 'Quote sent, awaiting client response',
   },
   accepted_to_schedule: {
@@ -30,7 +30,7 @@ export const JOB_STATUSES = {
   scheduled: {
     key: 'scheduled',
     label: 'Scheduled',
-    color: '#4A6741',
+    color: 'var(--ok)',
     description: 'Has a confirmed date/crew on the calendar',
   },
   stump_grinding: {

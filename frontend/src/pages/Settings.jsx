@@ -150,7 +150,7 @@ function TeamTab({ toast }) {
                   : "They'll receive an email with a link to set up their password and log in to TreeCo. The link expires after 24 hours."}
               </div>
               {inviteLink && (
-                <div style={{ margin: '12px 0', background: '#F4F7F2', borderRadius: 8, padding: '10px 14px', wordBreak: 'break-all', fontSize: 12, color: '#4A6741', cursor: 'pointer', border: '1px solid #D0D9C8' }}
+                <div style={{ margin: '12px 0', background: '#F4F7F2', borderRadius: 8, padding: '10px 14px', wordBreak: 'break-all', fontSize: 12, color: 'var(--ok)', cursor: 'pointer', border: '1px solid #D0D9C8' }}
                   onClick={() => { navigator.clipboard.writeText(inviteLink); toast('Link copied!') }}>
                   {inviteLink}
                 </div>
@@ -225,7 +225,7 @@ function TeamTab({ toast }) {
             readOnly
             value={resetLink.url}
             onFocus={e => e.target.select()}
-            style={{ ...t.input, fontSize: 11, color: '#4A6741', background: '#fff', cursor: 'text' }}
+            style={{ ...t.input, fontSize: 11, color: 'var(--ok)', background: '#fff', cursor: 'text' }}
           />
           <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
             <button style={t.saveBtn} onClick={() => { navigator.clipboard.writeText(resetLink.url).catch(() => {}); toast('Link copied!') }}>Copy</button>
@@ -268,7 +268,7 @@ function TeamTab({ toast }) {
                   onClick={() => resetPassword(u)}
                   title="Copy password reset link"
                   disabled={resetting === u.id}
-                  style={{ background: 'none', border: '1px solid #D0D9C8', borderRadius: '6px', color: '#4A6741', fontSize: '12px', padding: '6px 10px', cursor: 'pointer', flexShrink: 0, fontFamily: 'var(--font)', fontWeight: 600 }}
+                  style={{ background: 'none', border: '1px solid #D0D9C8', borderRadius: '6px', color: 'var(--ok)', fontSize: '12px', padding: '6px 10px', cursor: 'pointer', flexShrink: 0, fontFamily: 'var(--font)', fontWeight: 600 }}
                 >{resetting === u.id ? '…' : '🔑'}</button>
                 <button
                   onClick={() => deleteUser(u)}
@@ -285,7 +285,7 @@ function TeamTab({ toast }) {
 }
 
 function avatarColor(name = '') {
-  const COLORS = ['#4A6741','#4A7FA5','#6B5EA8','#8B4513','#C0392B','#2E7D52']
+  const COLORS = ['var(--ok)','var(--sky)','#6B5EA8','#8B4513','var(--danger)','#2E7D52']
   let h = 0
   for (const c of name) h = (h * 31 + c.charCodeAt(0)) & 0xffffffff
   return COLORS[Math.abs(h) % COLORS.length]
@@ -361,7 +361,7 @@ function XeroImportModal({ contacts, onClose, onDone, toast }) {
               <div style={{ flex: 1, overflowY: 'auto', maxHeight: '340px' }}>
                 {filtered.map(c => (
                   <label key={c.xero_contact_id} style={xi.row}>
-                    <input type="checkbox" checked={selected.has(c.xero_contact_id)} onChange={() => toggle(c.xero_contact_id)} style={{ accentColor: '#4A6741', width: '14px', height: '14px', flexShrink: 0 }} />
+                    <input type="checkbox" checked={selected.has(c.xero_contact_id)} onChange={() => toggle(c.xero_contact_id)} style={{ accentColor: 'var(--ok)', width: '14px', height: '14px', flexShrink: 0 }} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={xi.name}>{c.name}</div>
                       <div style={xi.meta}>{[c.email, c.phone].filter(Boolean).join(' · ') || '—'}</div>
@@ -444,7 +444,7 @@ function DbsCard({ toast }) {
         <div style={t.intName}>
           DBS Portal (Spencer Henshaw)
           <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20,
-            background: enabled ? '#E8F0E6' : '#FDECEA', color: enabled ? '#3A5C2E' : '#C0392B' }}>
+            background: enabled ? '#E8F0E6' : '#FDECEA', color: enabled ? '#3A5C2E' : 'var(--danger)' }}>
             {enabled ? 'Sync active' : 'Sync paused'}
           </span>
         </div>
@@ -518,7 +518,7 @@ function SmsCard({ toast }) {
     <div style={t.integrationCard}>
       <div style={t.intLogo}>
         <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-          <rect width="32" height="32" rx="6" fill="#4A6741"/>
+          <rect width="32" height="32" rx="6" fill="var(--ok)"/>
           <path d="M8 11a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-8l-4 3v-3h-0a2 2 0 0 1-2-2z" fill="#fff"/>
         </svg>
       </div>
@@ -677,7 +677,7 @@ function IntegrationsTab({ toast }) {
           Deploy the Xero auth and sync functions to Supabase using the CLI once you have your access token:
           <pre style={t.code}>{`supabase login --token YOUR_TOKEN\nsupabase link --project-ref zagwhnnxjtimzvvjaujm\nsupabase functions deploy xero-auth\nsupabase functions deploy xero-sync`}</pre>
           Set secrets in{' '}
-          <a href="https://supabase.com/dashboard/project/zagwhnnxjtimzvvjaujm/settings/functions" target="_blank" rel="noreferrer" style={{ color: '#4A6741' }}>
+          <a href="https://supabase.com/dashboard/project/zagwhnnxjtimzvvjaujm/settings/functions" target="_blank" rel="noreferrer" style={{ color: 'var(--ok)' }}>
             Supabase → Edge Functions → Secrets
           </a>:
           <pre style={t.code}>{`XERO_CLIENT_ID=...\nXERO_CLIENT_SECRET=...\nXERO_REDIRECT_URI=https://zagwhnnxjtimzvvjaujm.supabase.co/functions/v1/xero-auth\nAPP_URL=https://your-app-url.com`}</pre>
@@ -806,7 +806,7 @@ export default function Settings() {
       </div>
 
       {toast && (
-        <div style={{ ...s.toast, background: toast.err ? '#C0392B' : 'var(--ink)' }}>
+        <div style={{ ...s.toast, background: toast.err ? 'var(--danger)' : 'var(--ink)' }}>
           {toast.msg}
         </div>
       )}
@@ -840,7 +840,7 @@ const t = {
   deployHint:     { fontSize: '11px', color: '#aaa', lineHeight: 1.6, padding: '0 2px' },
   fieldGroup:     { display: 'flex', flexDirection: 'column', gap: '5px', flex: 1 },
   fieldLabel:     { fontSize: '11px', fontWeight: '700', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.05em' },
-  fieldErr:       { fontSize: '12px', color: '#C0392B', padding: '6px 10px', background: '#FFF0EE', borderRadius: '6px', border: '1px solid #FCC' },
+  fieldErr:       { fontSize: '12px', color: 'var(--danger)', padding: '6px 10px', background: 'var(--danger-pale)', borderRadius: '6px', border: '1px solid #FCC' },
   row2:           { display: 'flex', gap: '12px' },
   cancelBtn:      { padding: '8px 16px', borderRadius: '7px', border: '1.5px solid var(--border)', background: '#fff', color: '#666', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
   sentBox:        { padding: '32px 24px', textAlign: 'center' },
@@ -849,7 +849,7 @@ const t = {
   sentBody:       { fontSize: '13px', color: '#666', lineHeight: 1.6, maxWidth: '360px', margin: '0 auto' },
   input:  { padding: '9px 12px', borderRadius: '7px', border: '1.5px solid var(--border)', fontSize: '13px', color: 'var(--ink)', fontFamily: 'var(--font)', outline: 'none', width: '100%', boxSizing: 'border-box' },
   select: { padding: '9px 10px', borderRadius: '7px', border: '1.5px solid var(--border)', fontSize: '13px', color: 'var(--ink)', fontFamily: 'var(--font)', background: '#fff', cursor: 'pointer', outline: 'none', width: '100%' },
-  saveBtn:{ padding: '9px 18px', borderRadius: '7px', border: 'none', background: '#4A6741', color: '#fff', fontSize: '13px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)' },
+  saveBtn:{ padding: '9px 18px', borderRadius: '7px', border: 'none', background: 'var(--ok)', color: '#fff', fontSize: '13px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)' },
   empty:  { color: '#bbb', fontSize: '13px', padding: '20px 0' },
   userList:  { display: 'flex', flexDirection: 'column', gap: '4px' },
   userRow:   { display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', background: '#fff', borderRadius: '8px', border: '1px solid var(--border)' },
