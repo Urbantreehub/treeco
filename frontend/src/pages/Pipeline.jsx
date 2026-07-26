@@ -222,20 +222,23 @@ export default function Pipeline() {
                         onClick={e => e.stopPropagation()}
                       >
                         <span style={{ width: 6, height: 6, borderRadius: '50%', background: st.color, flexShrink: 0 }} />
+                        <span style={{ fontSize: '11px', fontWeight: 700, color: st.color, whiteSpace: 'nowrap' }}>{st.label}</span>
+                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke={st.color} strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, opacity: 0.75 }}>
+                          <path d="M6 9l6 6 6-6" />
+                        </svg>
+                        {/* Real dropdown, laid transparently over the chip so the pill keeps its
+                            natural width (native selects otherwise size to their widest option). */}
                         <select
                           value={job.status}
                           disabled={savingStatus === job.id}
                           onChange={e => changeStatus(job.id, e.target.value)}
-                          style={{ ...s.statusSelect, color: st.color }}
+                          style={s.statusSelectOverlay}
                           aria-label={`Status for ${primary} — change`}
                         >
                           {Object.keys(JOB_STATUSES).map(key => (
                             <option key={key} value={key}>{JOB_STATUSES[key].label}</option>
                           ))}
                         </select>
-                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke={st.color} strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginLeft: -3, opacity: 0.75 }}>
-                          <path d="M6 9l6 6 6-6" />
-                        </svg>
                       </div>
                     )}
                     {total && <div style={s.total}>{total}</div>}
@@ -346,7 +349,7 @@ const s = {
   // On phones the row stacks: client + meta on top, then the status dropdown,
   // price and date on their own line so nothing overlaps on a narrow screen.
   rowMobile: { flexDirection: 'column', alignItems: 'stretch', gap: '12px' },
-  rowRightMobile: { width: '100%', justifyContent: 'flex-start', gap: '12px' },
+  rowRightMobile: { width: '100%', justifyContent: 'flex-start', gap: '10px 12px', flexWrap: 'wrap' },
   rowMain: { flex: 1, minWidth: 0 },
   client: { fontSize: '14px', fontWeight: '600', color: 'var(--bark)', marginBottom: '3px' },
   meta: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
@@ -358,15 +361,14 @@ const s = {
   rowRight: { display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 },
   statusBadge: { fontSize: '11px', fontWeight: '600', borderRadius: '20px', padding: '3px 10px', whiteSpace: 'nowrap' },
   statusChip: {
-    display: 'inline-flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap',
-    borderRadius: 'var(--radius-pill)', padding: '3px 9px 3px 10px', cursor: 'pointer',
-    transition: 'opacity 0.15s',
+    position: 'relative', display: 'inline-flex', alignItems: 'center', gap: '5px',
+    whiteSpace: 'nowrap', borderRadius: 'var(--radius-pill)', padding: '4px 9px 4px 10px',
+    cursor: 'pointer', transition: 'opacity 0.15s', flexShrink: 0,
   },
-  statusSelect: {
-    appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none',
-    background: 'transparent', border: 'none', outline: 'none',
-    fontFamily: 'var(--font)', fontSize: '11px', fontWeight: '700',
-    padding: 0, margin: 0, cursor: 'pointer', maxWidth: '200px',
+  statusSelectOverlay: {
+    position: 'absolute', inset: 0, width: '100%', height: '100%',
+    opacity: 0, cursor: 'pointer', border: 'none', outline: 'none',
+    appearance: 'none', WebkitAppearance: 'none', fontFamily: 'var(--font)',
   },
   total: { fontSize: '14px', fontWeight: '700', color: 'var(--bark)', minWidth: '70px', textAlign: 'right' },
   date: { fontSize: '11px', color: '#aaa', minWidth: '55px', textAlign: 'right' },
