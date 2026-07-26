@@ -319,8 +319,9 @@ function SiteEditor({ site, meId, onClose, onSaved, showToast }) {
       if (error) { showToast('Save failed'); setSaving(false); return }
       siteId = data.id
     }
-    // Geocode the address (best-effort, cached on the row).
-    if (payload.address && siteId) {
+    // Geocode the address (best-effort, cached on the row). Skipped without a
+    // backend (demo mode) so we never fetch `undefined/functions/v1/geocode`.
+    if (payload.address && siteId && SUPABASE_URL) {
       fetch(`${SUPABASE_URL}/functions/v1/geocode`, { method: 'POST', headers: fnHeaders, body: JSON.stringify({ address: payload.address }) })
         .then(r => r.json()).then(g => { if (g.ok) supabase.from('mulch_sites').update({ lat: g.lat, lng: g.lng }).eq('id', siteId) }).catch(() => {})
     }

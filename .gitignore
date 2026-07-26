@@ -11,3 +11,7 @@ scripts/.env*
 # Quotient import data (contains client PII)
 scripts/quotient_quotes.json
 scripts/*_dryrun.json
+
+# Playwright (belt-and-suspenders; frontend/.gitignore also covers these)
+test-results/
+playwright-report/

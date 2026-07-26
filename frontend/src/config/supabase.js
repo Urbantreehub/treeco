@@ -8,26 +8,28 @@ if (!IS_DEMO && (!supabaseUrl || !supabaseAnonKey)) {
   throw new Error('Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY in .env')
 }
 
+// A Proxy-based query stub: every PostgREST builder method (select, eq, order,
+// match, or, not, filter, …) returns the same chain, so any query composes to
+// any depth, and the terminal resolvers (single/maybeSingle/then/catch/finally)
+// resolve to an empty result. Using a Proxy instead of a fixed method list keeps
+// demo mode from crashing when a page reaches for a builder method we didn't
+// hand-enumerate — exactly the class of bug the e2e smoke suite guards against.
 function mockChain(result = { data: null, error: null }) {
-  const c = {
-    select: () => mockChain(result),
-    insert: () => mockChain(result),
-    update: () => mockChain(result),
-    delete: () => mockChain(result),
-    upsert: () => mockChain(result),
-    eq:     () => mockChain(result),
-    neq:    () => mockChain(result),
-    ilike:  () => mockChain(result),
-    in:     () => mockChain(result),
-    is:     () => mockChain(result),
-    order:  () => mockChain(result),
-    limit:  () => mockChain(result),
-    single: () => Promise.resolve({ data: null, error: null }),
-    then:   (res, rej) => Promise.resolve(result).then(res, rej),
-    catch:  (rej) => Promise.resolve(result).catch(rej),
-    finally:(fn)  => Promise.resolve(result).finally(fn),
-  }
-  return c
+  const chain = new Proxy(function () {}, {
+    get(_target, prop) {
+      if (prop === 'then')    return (res, rej) => Promise.resolve(result).then(res, rej)
+      if (prop === 'catch')   return (rej) => Promise.resolve(result).catch(rej)
+      if (prop === 'finally') return (fn) => Promise.resolve(result).finally(fn)
+      if (typeof prop === 'symbol') return undefined
+      // Row-returning terminals resolve to a single null row.
+      if (prop === 'single' || prop === 'maybeSingle') {
+        return () => Promise.resolve({ data: null, error: null })
+      }
+      // Every other builder method is chainable.
+      return () => chain
+    },
+  })
+  return chain
 }
 
 const mockClient = {

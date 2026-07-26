@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../config/supabase'
 import { getStatusColor, getStatusLabel } from '../config/statuses'
-import { DEMO_CLIENTS, DEMO_JOBS } from '../demo/mockData'
+import { seededClients, seededJobs } from '../demo/mockData'
 import AddressInput from '../components/AddressInput'
 import { mapsHref } from '../utils/geo'
 
@@ -281,8 +281,8 @@ function InfoRow({ icon, label, value, href }) {
 
 // ── Main page ──────────────────────────────────────────────────────────────
 export default function Clients() {
-  const [clients,    setClients]    = useState(IS_PURE_DEMO ? DEMO_CLIENTS : [])
-  const [jobs,       setJobs]       = useState(IS_PURE_DEMO ? DEMO_JOBS : [])
+  const [clients,    setClients]    = useState(IS_PURE_DEMO ? seededClients() : [])
+  const [jobs,       setJobs]       = useState(IS_PURE_DEMO ? seededJobs() : [])
   const [loading,    setLoading]    = useState(!IS_PURE_DEMO)
   const [search,     setSearch]     = useState('')
   const [modal,      setModal]      = useState(null)   // null | 'new' | { client }

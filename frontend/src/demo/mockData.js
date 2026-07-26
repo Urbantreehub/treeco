@@ -1,3 +1,25 @@
+// ── Empty-tenant toggle ──────────────────────────────────────────────────────
+// A single demo build can act as either a *seeded* tenant (has jobs/clients) or
+// an *empty* tenant (a brand-new account with no data). The e2e smoke suite runs
+// twice — once per tenant — to catch null / empty-state crashes. The flag is
+// evaluated at runtime (not baked at build time) so the Playwright suite can flip
+// it per project via localStorage/URL against one running server.
+export function isEmptyTenant() {
+  if (import.meta.env.VITE_DEMO_EMPTY === 'true') return true
+  if (typeof window === 'undefined') return false
+  try {
+    if (new URLSearchParams(window.location.search).get('tenant') === 'empty') return true
+    return window.localStorage.getItem('treeco:e2e:empty-tenant') === '1'
+  } catch {
+    return false
+  }
+}
+
+// Getters (not constants) so the toggle above is read at component-mount time,
+// after the e2e harness has had a chance to set it.
+export const seededJobs = () => (isEmptyTenant() ? [] : DEMO_JOBS)
+export const seededClients = () => (isEmptyTenant() ? [] : DEMO_CLIENTS)
+
 export const DEMO_PROFILE = {
   id: 'demo',
   name: 'Demo User',

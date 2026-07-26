@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../config/supabase'
-import { DEMO_JOBS } from '../demo/mockData'
+import { seededJobs } from '../demo/mockData'
 
 const IS_DEMO = import.meta.env.VITE_DEMO === 'true'
 const IS_PURE_DEMO = IS_DEMO && !import.meta.env.VITE_SUPABASE_URL
 
 export function useJobs() {
-  const [jobs, setJobs] = useState(IS_PURE_DEMO ? DEMO_JOBS : [])
+  const [jobs, setJobs] = useState(IS_PURE_DEMO ? seededJobs() : [])
   const [loading, setLoading] = useState(!IS_PURE_DEMO)
   const [error, setError] = useState(null)
 

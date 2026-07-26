@@ -1,0 +1,77 @@
+name: E2E
+
+# Playwright end-to-end tests on every push and PR.
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  # Safe, secret-free gate: build the app in demo mode (mock backend, no real
+  # writes) and run the full suite — route smoke against the seeded AND empty
+  # tenants, plus the destructive per-page interaction sweep.
+  e2e-demo:
+    name: E2E (demo build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        working-directory: frontend
+        # --legacy-peer-deps matches how the project installs locally
+        # (react-leaflet's peer range lags the pinned React version).
+        run: npm ci --legacy-peer-deps
+      - name: Install Playwright browser
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+      - name: Run e2e (demo)
+        working-directory: frontend
+        run: npm run test:e2e
+      - name: Upload report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-demo
+          path: frontend/playwright-report
+          retention-days: 14
+
+  # Live smoke against production. Loads every route as real seeded/empty test
+  # tenants — read-only, so it never mutates prod data. Auth routes are skipped
+  # automatically until the corresponding tenant credentials are added as repo
+  # secrets. The destructive interaction sweep never runs here.
+  e2e-live:
+    name: E2E (live prod smoke)
+    runs-on: ubuntu-latest
+    env:
+      E2E_BASE_URL: https://app.urbantreeservices.net
+      E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
+      E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+      E2E_EMPTY_EMAIL: ${{ secrets.E2E_EMPTY_EMAIL }}
+      E2E_EMPTY_PASSWORD: ${{ secrets.E2E_EMPTY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci --legacy-peer-deps
+      - name: Install Playwright browser
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+      - name: Run smoke against production
+        working-directory: frontend
+        run: npx playwright test --project=smoke-seeded --project=smoke-empty
+      - name: Upload report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-live
+          path: frontend/playwright-report
+          retention-days: 14
