@@ -122,13 +122,14 @@ export default function JobCard({ job, onClick, showStatus = true }) {
         {showStatus && status && (
           <div style={{ marginTop: '8px' }}>
             <span style={{
-              fontSize: '11px', fontWeight: '600',
+              display: 'inline-flex', alignItems: 'center', gap: '5px',
+              fontSize: '11px', fontWeight: '700',
               color: color,
-              background: color + '18',
-              border: `1px solid ${color}44`,
-              borderRadius: '20px',
-              padding: '2px 8px',
+              background: color + '1F',
+              borderRadius: 'var(--radius-pill)',
+              padding: '3px 9px',
             }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0 }} />
               {status.label}
             </span>
           </div>
@@ -141,9 +142,9 @@ export default function JobCard({ job, onClick, showStatus = true }) {
 const styles = {
   card: {
     background: '#fff',
-    borderRadius: '8px',
+    borderRadius: '16px',
     border: '1px solid var(--border)',
-    boxShadow: '0 1px 3px rgba(44,36,22,0.06)',
+    boxShadow: '0 1px 3px rgba(40,25,10,0.06)',
     cursor: 'grab',
     userSelect: 'none',
     overflow: 'hidden',
@@ -169,8 +170,8 @@ const styles = {
   daysBadge: {
     fontSize: '10px',
     fontWeight: '600',
-    borderRadius: '10px',
-    padding: '2px 7px',
+    borderRadius: 'var(--radius-pill)',
+    padding: '2px 8px',
     whiteSpace: 'nowrap',
     flexShrink: 0,
   },
@@ -192,9 +193,9 @@ const styles = {
     fontSize: '10px',
     background: 'var(--moss-pale)',
     color: 'var(--moss)',
-    borderRadius: '4px',
-    padding: '2px 6px',
-    fontWeight: '500',
+    borderRadius: 'var(--radius-pill)',
+    padding: '2px 8px',
+    fontWeight: '600',
     textTransform: 'capitalize',
   },
   value: {

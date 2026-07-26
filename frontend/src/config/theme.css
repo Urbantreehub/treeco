@@ -31,11 +31,16 @@
   --cream:       #FCF5EC;
   --border:      #EFE6DA;
   --line:        #EFE6DA;
-  --radius:      12px;
-  --shadow:      0 2px 10px rgba(40, 25, 10, 0.08);
 
-  /* Typography */
-  --font: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+  /* ── Shape — the "bubble" language from the redesign mockup ── */
+  --radius:      18px;   /* cards & surfaces — big soft bubbles */
+  --radius-ctrl: 14px;   /* inputs & buttons */
+  --radius-pill: 999px;  /* chips, segmented controls, status dots */
+  --shadow:      0 2px 10px rgba(40, 25, 10, 0.06);
+
+  /* Typography — SF Pro Rounded first for the soft, friendly iOS feel from the
+     mockup (falls back to the standard system face off Apple devices). */
+  --font: ui-rounded, 'SF Pro Rounded', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
   /* Spacing */
   --nav-width: 220px;
