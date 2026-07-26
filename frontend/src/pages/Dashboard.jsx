@@ -278,22 +278,37 @@ function SafetyActionsWidget({ onNavigate }) {
   )
 }
 
+// Compact $ for tight spaces (bar labels): $4.9k, $312k, $0
+function nzdCompact(v) {
+  if (v == null) return '—'
+  const n = Number(v)
+  if (n === 0) return '$0'
+  if (Math.abs(n) >= 1000) {
+    const k = n / 1000
+    return '$' + (Math.abs(k) >= 100 ? Math.round(k) : k.toFixed(1)) + 'k'
+  }
+  return '$' + Math.round(n)
+}
+
 // ─── Mini bar chart ──────────────────────────────────────────────────────────
 function MiniBar({ months }) {
   if (!months.length) return null
   const max = Math.max(...months.map(m => m.revenue), 1)
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '6px', height: '64px' }}>
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '6px', height: '104px' }}>
       {months.map((m, i) => (
-        <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+        <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', minWidth: 0 }}>
+          <span style={{ fontSize: '9.5px', fontWeight: 700, color: 'var(--ink)', textAlign: 'center', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+            {m.revenue ? nzdCompact(m.revenue) : ''}
+          </span>
           <div style={{
             width: '100%',
-            height: `${Math.max(4, (m.revenue / max) * 56)}px`,
-            background: i === months.length - 1 ? 'var(--moss)' : 'var(--border)',
-            borderRadius: '3px 3px 0 0',
+            height: `${Math.max(3, (m.revenue / max) * 56)}px`,
+            background: i === months.length - 1 ? 'var(--terra)' : 'var(--terra-soft)',
+            borderRadius: '5px 5px 0 0',
             transition: 'height 0.4s',
           }} />
-          <span style={{ fontSize: '9px', color: '#aaa', textAlign: 'center' }}>{m.label}</span>
+          <span style={{ fontSize: '9px', color: 'var(--ink-3)', textAlign: 'center' }}>{m.label}</span>
         </div>
       ))}
     </div>
@@ -355,6 +370,7 @@ export default function Dashboard() {
   const [vehicles, setVehicles] = useState([])
   const [xeroPnl,  setXeroPnl]  = useState(null)   // { revenue, expenses, netProfit, months, source }
   const [editVeh,  setEditVeh]  = useState(null)
+  const [revenueRange, setRevenueRange] = useState('last6') // 'last6' | 'thisYear' | 'lastYear'
   const [savingVeh, setSavingVeh] = useState(false)
   const [loading,  setLoading]  = useState(true)
 
@@ -400,20 +416,31 @@ export default function Dashboard() {
   const usingXero   = !!xeroPnl
   const treeRevenue = usingXero ? xeroPnl.revenue : quotesTreeRevenue
   const crewDays    = treeRevenue / CREW_DAY_RATE
-  const monthlyData = usingXero
-    ? xeroPnl.months
-    : (() => {
-        const now = new Date()
-        return Array.from({ length: 6 }, (_, i) => {
-          const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1)
-          const next = new Date(d.getFullYear(), d.getMonth() + 1, 1)
-          const label = d.toLocaleString('en-NZ', { month: 'short' })
-          const revenue = acceptedTree
-            .filter(q => { const c = new Date(q.created_at); return c >= d && c < next })
-            .reduce((s, q) => s + (Number(q.subtotal) || 0), 0)
-          return { label, revenue }
-        })
-      })()
+
+  // ── Monthly revenue for the chart, honouring the selected range ────────────
+  // Accepted-quote revenue by month (used for the calendar-year ranges, and as
+  // the fallback when Xero isn't connected).
+  function monthsFromQuotes(startYear, startMonth, count) {
+    return Array.from({ length: count }, (_, i) => {
+      const d = new Date(startYear, startMonth + i, 1)
+      const next = new Date(d.getFullYear(), d.getMonth() + 1, 1)
+      const revenue = acceptedTree
+        .filter(q => { const c = new Date(q.created_at); return c >= d && c < next })
+        .reduce((s, q) => s + (Number(q.subtotal) || 0), 0)
+      return { label: d.toLocaleString('en-NZ', { month: 'short' }), revenue }
+    })
+  }
+  const nowY = new Date().getFullYear()
+  const monthlyData = (() => {
+    if (revenueRange === 'thisYear') return monthsFromQuotes(nowY, 0, 12)
+    if (revenueRange === 'lastYear') return monthsFromQuotes(nowY - 1, 0, 12)
+    // last 6 months — prefer Xero's actual P&L when connected
+    if (usingXero) return xeroPnl.months
+    const now = new Date()
+    return monthsFromQuotes(now.getFullYear(), now.getMonth() - 5, 6)
+  })()
+  const periodTotal = monthlyData.reduce((s, m) => s + (Number(m.revenue) || 0), 0)
+  const usingXeroChart = usingXero && revenueRange === 'last6'
 
   // ── Quote success rate ───────────────────────────────────────────────────
   const sent        = quotes.filter(q => ['sent', 'viewed', 'accepted', 'declined', 'complete', 'invoiced'].includes(q.status))
@@ -552,15 +579,51 @@ export default function Dashboard() {
 
       <Section title="Revenue">
         {/* Monthly trend */}
-        <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: '10px', padding: '18px 22px' }}>
-          <div style={{ fontSize: '12px', color: '#aaa', fontWeight: '600', marginBottom: '12px' }}>
-            {usingXero ? 'Monthly revenue — Xero P&L (this financial year)' : 'Tree work — monthly revenue (last 6 months, accepted quotes)'}
+        <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '18px 22px' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', marginBottom: '14px' }}>
+            <div>
+              <div style={{ fontSize: '11px', color: 'var(--ink-3)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                {usingXeroChart ? 'Monthly revenue · Xero P&L' : 'Tree work · accepted quotes'}
+              </div>
+              <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--ink)', letterSpacing: '-0.02em', marginTop: '4px', fontVariantNumeric: 'tabular-nums' }}>
+                {nzd(periodTotal)}
+                <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--ink-3)', marginLeft: '8px' }}>
+                  {revenueRange === 'thisYear' ? `${nowY} to date` : revenueRange === 'lastYear' ? `${nowY - 1} total` : 'last 6 months'}
+                </span>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              {[
+                { key: 'last6',    label: '6 mo' },
+                { key: 'thisYear', label: 'This year' },
+                { key: 'lastYear', label: 'Last year' },
+              ].map(opt => {
+                const on = revenueRange === opt.key
+                return (
+                  <button key={opt.key} onClick={() => setRevenueRange(opt.key)}
+                    style={{
+                      fontSize: '12px', fontWeight: '700', fontFamily: 'var(--font)', cursor: 'pointer',
+                      padding: '6px 12px', borderRadius: 'var(--radius-pill)',
+                      border: on ? '1px solid var(--terra)' : '1px solid var(--border)',
+                      background: on ? 'var(--terra)' : '#fff',
+                      color: on ? '#fff' : 'var(--ink-2)',
+                    }}>
+                    {opt.label}
+                  </button>
+                )
+              })}
+            </div>
           </div>
           <MiniBar months={monthlyData} />
           {!usingXero && (
-            <div style={{ marginTop: '12px', fontSize: '11px', color: '#bbb', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{ marginTop: '14px', fontSize: '11px', color: 'var(--ink-3)', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span>💼</span>
-              <span>Connect Xero in <button onClick={() => nav('/settings')} style={{ background: 'none', border: 'none', color: '#4A7FA5', fontSize: '11px', cursor: 'pointer', padding: 0, textDecoration: 'underline', fontFamily: 'var(--font)' }}>Settings → Integrations</button> to pull live P&L data instead.</span>
+              <span>Connect Xero in <button onClick={() => nav('/settings')} style={{ background: 'none', border: 'none', color: 'var(--sky)', fontSize: '11px', cursor: 'pointer', padding: 0, textDecoration: 'underline', fontFamily: 'var(--font)' }}>Settings → Integrations</button> to pull live P&L data instead.</span>
+            </div>
+          )}
+          {usingXero && !usingXeroChart && (
+            <div style={{ marginTop: '14px', fontSize: '11px', color: 'var(--ink-3)' }}>
+              Showing accepted-quote revenue for this range. Xero P&L covers the current financial year — switch to “6 mo” for live P&L.
             </div>
           )}
         </div>
