@@ -40,13 +40,13 @@ function formatCountdown(ms) {
 }
 
 const PRIORITY_COLORS = {
-  URG: { bg: '#FFF0EE', color: '#C0392B' },
-  URS: { bg: '#FDF3E3', color: '#D4851A' },
-  EPS: { bg: '#FFF0EE', color: '#C0392B' },
-  GNL: { bg: '#EBF3FA', color: '#4A7FA5' },
-  RSC: { bg: '#EBF3FA', color: '#4A7FA5' },
-  VSC: { bg: '#EBF3FA', color: '#4A7FA5' },
-  RM:  { bg: '#EBF3FA', color: '#4A7FA5' },
+  URG: { bg: 'var(--danger-pale)', color: 'var(--danger)' },
+  URS: { bg: 'var(--amber-pale)', color: 'var(--amber)' },
+  EPS: { bg: 'var(--danger-pale)', color: 'var(--danger)' },
+  GNL: { bg: 'var(--sky-pale)', color: 'var(--sky)' },
+  RSC: { bg: 'var(--sky-pale)', color: 'var(--sky)' },
+  VSC: { bg: 'var(--sky-pale)', color: 'var(--sky)' },
+  RM:  { bg: 'var(--sky-pale)', color: 'var(--sky)' },
   PM:  { bg: '#F5F5F5', color: '#7A7A7A' },
 }
 
@@ -90,7 +90,7 @@ export default function JobCard({ job, onClick, showStatus = true }) {
       <div style={styles.body}>
         <div style={styles.topRow}>
           <div style={styles.clientName}>{job.clients?.name ?? '—'}</div>
-          <span style={{ ...styles.daysBadge, background: overdue ? '#FFF0EE' : 'var(--border)', color: overdue ? 'var(--danger)' : '#888' }}>
+          <span style={{ ...styles.daysBadge, background: overdue ? 'var(--danger-pale)' : 'var(--border)', color: overdue ? 'var(--danger)' : '#888' }}>
             {days === 0 ? 'Today' : `${days}d`}
           </span>
         </div>
@@ -109,8 +109,8 @@ export default function JobCard({ job, onClick, showStatus = true }) {
           {countdown && (
             <span style={{
               ...styles.typeTag,
-              background: countdown.expired ? '#FFF0EE' : countdownMs < 86400000 ? '#FDF3E3' : '#F0F7EE',
-              color: countdown.expired ? '#C0392B' : countdownMs < 86400000 ? '#D4851A' : '#4A6741',
+              background: countdown.expired ? 'var(--danger-pale)' : countdownMs < 86400000 ? 'var(--amber-pale)' : 'var(--ok-pale)',
+              color: countdown.expired ? 'var(--danger)' : countdownMs < 86400000 ? 'var(--amber)' : 'var(--ok)',
               fontWeight: '600',
               fontVariantNumeric: 'tabular-nums',
             }}>

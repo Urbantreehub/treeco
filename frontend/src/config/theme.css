@@ -18,11 +18,19 @@
   --peach:       #F7DFC7;   /* gradient stop */
   --tab-inactive:#A79683;   /* warm grey — inactive bottom-tab icon/label */
 
-  /* ── Semantic + ground tokens ── */
-  --amber:       #D4851A;
+  /* ── Semantic status tokens (strong text/border + pale tint bg) ──
+     Used for job/quote state and alerts only — never for brand. Each -pale is
+     the tint background that pairs with its strong colour. */
+  --ok:          #4A6741;   /* healthy / accepted / complete (green) */
+  --ok-pale:     #F0F7EE;
+  --amber:       #D4851A;   /* warning / due soon */
   --amber-pale:  #FDF3E3;
-  --sky:         #4A7FA5;
-  --danger:      #C0392B;
+  --sky:         #4A7FA5;   /* info / scheduled */
+  --sky-pale:    #EBF3FA;
+  --danger:      #C0392B;   /* critical / overdue / declined */
+  --danger-pale: #FFF0EE;
+
+  /* ── Ground tokens ── */
   --cream:       #FCF5EC;
   --border:      #EFE6DA;
   --line:        #EFE6DA;

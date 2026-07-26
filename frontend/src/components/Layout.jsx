@@ -68,7 +68,7 @@ export default function Layout() {
     const overflow = useMore ? [...mobileItems.slice(MAX - 1), ...moreNav] : []
 
     const badgeCount = (to) => (to === '/safety' ? alertCount : to === '/requests' ? pendingRequests : 0)
-    const badgeColor = (to) => (to === '/safety' ? '#e53935' : '#D4851A')
+    const badgeColor = (to) => (to === '/safety' ? '#e53935' : 'var(--amber)')
     const overflowBadge = overflow.reduce((n, it) => n + badgeCount(it.to), 0)
 
     const iconWithBadge = (to, Icon, active) => (
@@ -126,7 +126,7 @@ export default function Layout() {
               <div style={{ position: 'relative', display: 'inline-flex' }}>
                 <MoreIcon active={showMore} />
                 {overflowBadge > 0 && !showMore && (
-                  <span style={{ ...m.badge, background: '#D4851A' }}>{overflowBadge > 9 ? '9+' : overflowBadge}</span>
+                  <span style={{ ...m.badge, background: 'var(--amber)' }}>{overflowBadge > 9 ? '9+' : overflowBadge}</span>
                 )}
               </div>
               <span style={m.tabLabel}>More</span>
@@ -156,7 +156,7 @@ export default function Layout() {
                     <span style={{ marginLeft: 'auto', background: '#e53935', color: '#fff', borderRadius: 10, padding: '1px 6px', fontSize: 10, fontWeight: 700 }}>{alertCount > 9 ? '9+' : alertCount}</span>
                   )}
                   {to === '/requests' && pendingRequests > 0 && (
-                    <span style={{ marginLeft: 'auto', background: '#D4851A', color: '#fff', borderRadius: 10, padding: '1px 6px', fontSize: 10, fontWeight: 700 }}>{pendingRequests > 9 ? '9+' : pendingRequests}</span>
+                    <span style={{ marginLeft: 'auto', background: 'var(--amber)', color: '#fff', borderRadius: 10, padding: '1px 6px', fontSize: 10, fontWeight: 700 }}>{pendingRequests > 9 ? '9+' : pendingRequests}</span>
                   )}
                 </NavLink>
               </li>

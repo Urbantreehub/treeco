@@ -27,18 +27,18 @@ function daysUntil(dateStr) {
 
 function cofColor(days) {
   if (days == null) return '#888'
-  if (days < 0)  return '#C0392B'
-  if (days < 30) return '#D4851A'
-  if (days < 60) return '#4A7FA5'
-  return '#4A6741'
+  if (days < 0)  return 'var(--danger)'
+  if (days < 30) return 'var(--amber)'
+  if (days < 60) return 'var(--sky)'
+  return 'var(--ok)'
 }
 
 function rucColor(km) {
   if (km == null) return '#888'
-  if (km < 0)    return '#C0392B'
-  if (km < 500)  return '#D4851A'
-  if (km < 2000) return '#4A7FA5'
-  return '#4A6741'
+  if (km < 0)    return 'var(--danger)'
+  if (km < 500)  return 'var(--amber)'
+  if (km < 2000) return 'var(--sky)'
+  return 'var(--ok)'
 }
 
 // ─── Add event to app schedule ───────────────────────────────────────────────
@@ -165,9 +165,9 @@ function SafetyActionsWidget({ onNavigate }) {
   }, [])
 
   const urgCfg = {
-    overdue:  { dot:'#C0392B', bg:'#FFF0EE', color:'#C0392B' },
-    soon:     { dot:'#D4851A', bg:'#FDF3E3', color:'#D4851A' },
-    upcoming: { dot:'#4A7FA5', bg:'#EEF4FA', color:'#4A7FA5' },
+    overdue:  { dot:'var(--danger)', bg:'var(--danger-pale)', color:'var(--danger)' },
+    soon:     { dot:'var(--amber)', bg:'var(--amber-pale)', color:'var(--amber)' },
+    upcoming: { dot:'var(--sky)', bg:'#EEF4FA', color:'var(--sky)' },
   }
   function urg(dateStr) {
     const d = daysUntil(dateStr)
@@ -203,21 +203,21 @@ function SafetyActionsWidget({ onNavigate }) {
         <span style={{ fontSize:18 }}>🦺</span>
         <span style={{ fontSize:14, fontWeight:700, color:'var(--ink)', flex:1 }}>
           Safety Actions
-          {items.length > 0 && <span style={{ marginLeft:8, fontSize:11, fontWeight:700, background: overdueCount > 0 ? '#FFF0EE':'#FDF3E3', color: overdueCount > 0 ? '#C0392B':'#D4851A', borderRadius:20, padding:'2px 8px' }}>{items.length} need attention</span>}
+          {items.length > 0 && <span style={{ marginLeft:8, fontSize:11, fontWeight:700, background: overdueCount > 0 ? 'var(--danger-pale)':'var(--amber-pale)', color: overdueCount > 0 ? 'var(--danger)':'var(--amber)', borderRadius:20, padding:'2px 8px' }}>{items.length} need attention</span>}
         </span>
         <button onClick={() => onNavigate('/safety')} style={{ fontSize:12, color:'var(--terra)', background:'none', border:'1px solid var(--terra)', borderRadius:6, padding:'5px 10px', cursor:'pointer', fontWeight:600, fontFamily:'var(--font)' }}>Safety →</button>
       </div>
 
       <div style={{ padding:'12px 16px', display:'flex', flexDirection:'column', gap:7 }}>
         {toast && (
-          <div style={{ background:'#E8F0E6', color:'#4A6741', fontSize:13, fontWeight:600, padding:'8px 12px', borderRadius:8, border:'1px solid #C8D8C0' }}>
+          <div style={{ background:'#E8F0E6', color:'var(--ok)', fontSize:13, fontWeight:600, padding:'8px 12px', borderRadius:8, border:'1px solid #C8D8C0' }}>
             ✓ {toast}
           </div>
         )}
         {safetyLoading ? (
           <div style={{ color:'#bbb', fontSize:13, padding:'8px 0' }}>Loading safety data…</div>
         ) : items.length === 0 ? (
-          <div style={{ color:'#4A6741', fontSize:13, padding:'8px 0', display:'flex', alignItems:'center', gap:8 }}>
+          <div style={{ color:'var(--ok)', fontSize:13, padding:'8px 0', display:'flex', alignItems:'center', gap:8 }}>
             <span>✓</span><span>All clear — no outstanding safety actions</span>
           </div>
         ) : items.map(item => {
@@ -249,7 +249,7 @@ function SafetyActionsWidget({ onNavigate }) {
             <div style={{ fontSize:13, fontWeight:600, color:'var(--ink)' }}>Schedule Toolbox Meeting</div>
             <div style={{ fontSize:11, color:'#777', marginTop:1 }}>
               Monthly H&S briefing — SWMS review, hazard debrief &amp; crew sign-off
-              <span style={{ marginLeft:6, color:'#4A6741', fontWeight:600 }}>Suggested: {nextToolbox.toLocaleDateString('en-NZ',{weekday:'short',day:'numeric',month:'short'})}</span>
+              <span style={{ marginLeft:6, color:'var(--ok)', fontWeight:600 }}>Suggested: {nextToolbox.toLocaleDateString('en-NZ',{weekday:'short',day:'numeric',month:'short'})}</span>
             </div>
           </div>
           <button
@@ -415,19 +415,19 @@ export default function Dashboard() {
       level: 'urgent',
       icon: '📢',
       text: `Pipeline thin — only ${crewDays.toFixed(1)} crew days booked. Push advertising now to fill the schedule.`,
-      color: '#C0392B', bg: '#FFF0EE',
+      color: 'var(--danger)', bg: 'var(--danger-pale)',
     }
     if (crewDays < 10) return {
       level: 'warn',
       icon: '📣',
       text: `${crewDays.toFixed(1)} crew days booked. Consider a social post or letterbox drop to top up work for the coming fortnight.`,
-      color: '#D4851A', bg: '#FDF3E3',
+      color: 'var(--amber)', bg: 'var(--amber-pale)',
     }
     return {
       level: 'ok',
       icon: '✅',
       text: `${crewDays.toFixed(1)} crew days booked. Pipeline healthy — no advertising urgency.`,
-      color: '#4A6741', bg: '#F0F7EE',
+      color: 'var(--ok)', bg: 'var(--ok-pale)',
     }
   })()
 
@@ -484,9 +484,9 @@ export default function Dashboard() {
         {usingXero && (
           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '12px' }}>
             <StatCard label="Total revenue (FY)" value={nzd(xeroPnl.revenue)} sub="This financial year · Xero" color="var(--terra)" />
-            <StatCard label="Total expenses (FY)" value={nzd(xeroPnl.expenses)} sub="This financial year · Xero" color="#D4851A" />
+            <StatCard label="Total expenses (FY)" value={nzd(xeroPnl.expenses)} sub="This financial year · Xero" color="var(--amber)" />
             <StatCard label="Net profit (FY)" value={nzd(xeroPnl.netProfit)} sub="Revenue minus expenses · Xero"
-              color={xeroPnl.netProfit >= 0 ? 'var(--terra)' : '#C0392B'} />
+              color={xeroPnl.netProfit >= 0 ? 'var(--terra)' : 'var(--danger)'} />
           </div>
         )}
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '16px' }}>
@@ -494,14 +494,14 @@ export default function Dashboard() {
             label="Crew days booked"
             value={crewDays.toFixed(1)}
             sub={`${nzd(treeRevenue)} revenue ÷ $2,500/day`}
-            color={crewDays < 5 ? '#C0392B' : crewDays < 10 ? '#D4851A' : 'var(--terra)'}
+            color={crewDays < 5 ? 'var(--danger)' : crewDays < 10 ? 'var(--amber)' : 'var(--terra)'}
             onClick={() => nav('/quotes')}
           />
           <StatCard
             label="Quote success rate"
             value={successRate != null ? `${successRate}%` : '—'}
             sub={`${accepted.length} accepted of ${sent.length} sent`}
-            color={successRate != null && successRate < 40 ? '#D4851A' : 'var(--ink)'}
+            color={successRate != null && successRate < 40 ? 'var(--amber)' : 'var(--ink)'}
             onClick={() => nav('/quotes')}
           />
           {!usingXero && (
@@ -542,7 +542,7 @@ export default function Dashboard() {
           {!usingXero && (
             <div style={{ marginTop: '12px', fontSize: '11px', color: '#bbb', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span>💼</span>
-              <span>Connect Xero in <button onClick={() => nav('/settings')} style={{ background: 'none', border: 'none', color: '#4A7FA5', fontSize: '11px', cursor: 'pointer', padding: 0, textDecoration: 'underline', fontFamily: 'var(--font)' }}>Settings → Integrations</button> to pull live P&L data instead.</span>
+              <span>Connect Xero in <button onClick={() => nav('/settings')} style={{ background: 'none', border: 'none', color: 'var(--sky)', fontSize: '11px', cursor: 'pointer', padding: 0, textDecoration: 'underline', fontFamily: 'var(--font)' }}>Settings → Integrations</button> to pull live P&L data instead.</span>
             </div>
           )}
         </div>

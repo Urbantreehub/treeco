@@ -41,8 +41,8 @@ function timeAgo(dateStr) {
   return new Date(dateStr).toLocaleDateString('en-NZ', { day: 'numeric', month: 'short' })
 }
 
-const QUOTE_STATUS_BG = { draft: '#F5F5F5', sent: '#FDF3E3', viewed: '#EBF3FA', accepted: '#E8F0E6', declined: '#FFF0EE' }
-const QUOTE_STATUS_COLOR = { draft: '#888', sent: '#D4851A', viewed: '#4A7FA5', accepted: '#4A6741', declined: '#C0392B' }
+const QUOTE_STATUS_BG = { draft: '#F5F5F5', sent: 'var(--amber-pale)', viewed: 'var(--sky-pale)', accepted: '#E8F0E6', declined: 'var(--danger-pale)' }
+const QUOTE_STATUS_COLOR = { draft: '#888', sent: 'var(--amber)', viewed: 'var(--sky)', accepted: 'var(--ok)', declined: 'var(--danger)' }
 
 const JOB_FORMS = [
   { id: 'risk_assessment', label: 'SSSP', url: '/forms/risk-assessment.html', icon: '📋', required: true },
@@ -50,13 +50,13 @@ const JOB_FORMS = [
 
 // Kāinga Ora SLA timeframes by priority code
 const KO_SLA = {
-  URG: { label: 'URG — Urgent', respond: 'Respond & complete within 4 hours', color: '#C0392B', bg: '#FFF0EE' },
-  URS: { label: 'URS — Urgent Response', respond: 'Respond within 12 hours, complete within 48 hours', color: '#D4851A', bg: '#FDF3E3' },
-  EPS: { label: 'EPS — Emergency', respond: 'Respond & complete within 4 hours', color: '#C0392B', bg: '#FFF0EE' },
-  GNL: { label: 'GNL — General', respond: 'Respond within 48 hours, complete within 10 days', color: '#4A7FA5', bg: '#EBF3FA' },
-  RSC: { label: 'RSC — Responsive', respond: 'Respond within 48 hours, complete within 10 days', color: '#4A7FA5', bg: '#EBF3FA' },
-  VSC: { label: 'VSC — Void', respond: 'Respond within 48 hours, complete within 10 days', color: '#4A7FA5', bg: '#EBF3FA' },
-  RM:  { label: 'RM — Responsive Maintenance', respond: 'Respond within 48 hours, complete within 10 days', color: '#4A7FA5', bg: '#EBF3FA' },
+  URG: { label: 'URG — Urgent', respond: 'Respond & complete within 4 hours', color: 'var(--danger)', bg: 'var(--danger-pale)' },
+  URS: { label: 'URS — Urgent Response', respond: 'Respond within 12 hours, complete within 48 hours', color: 'var(--amber)', bg: 'var(--amber-pale)' },
+  EPS: { label: 'EPS — Emergency', respond: 'Respond & complete within 4 hours', color: 'var(--danger)', bg: 'var(--danger-pale)' },
+  GNL: { label: 'GNL — General', respond: 'Respond within 48 hours, complete within 10 days', color: 'var(--sky)', bg: 'var(--sky-pale)' },
+  RSC: { label: 'RSC — Responsive', respond: 'Respond within 48 hours, complete within 10 days', color: 'var(--sky)', bg: 'var(--sky-pale)' },
+  VSC: { label: 'VSC — Void', respond: 'Respond within 48 hours, complete within 10 days', color: 'var(--sky)', bg: 'var(--sky-pale)' },
+  RM:  { label: 'RM — Responsive Maintenance', respond: 'Respond within 48 hours, complete within 10 days', color: 'var(--sky)', bg: 'var(--sky-pale)' },
   PM:  { label: 'PM — Planned Maintenance', respond: 'Respond within 48 hours, complete within 10 days', color: '#7A7A7A', bg: '#F5F5F5' },
 }
 
@@ -260,7 +260,7 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderBottom: '1px solid #E8EDE4', flexShrink: 0, background: '#fff' }}>
             <button
               onClick={() => setActiveForm(null)}
-              style={{ background: 'none', border: '1px solid #D0D9C8', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#4A6741', fontFamily: 'var(--font)' }}
+              style={{ background: 'none', border: '1px solid #D0D9C8', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: 'var(--ok)', fontFamily: 'var(--font)' }}
             >
               ← Back to Job
             </button>
@@ -372,7 +372,7 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
                 {quoteFollowUp.sent_at && <span style={{ color: '#aaa', marginLeft: '8px' }}>· sent {timeAgo(quoteFollowUp.sent_at)}</span>}
               </div>
               {(quoteFollowUp.followup_count ?? 0) > 0 && (
-                <div style={{ fontSize: '12px', color: '#4A7FA5', marginBottom: '10px' }}>
+                <div style={{ fontSize: '12px', color: 'var(--sky)', marginBottom: '10px' }}>
                   Followed up {quoteFollowUp.followup_count}× · last {timeAgo(quoteFollowUp.last_followup_at)}
                 </div>
               )}
@@ -520,7 +520,7 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 width: '100%', padding: '12px 16px', borderRadius: '10px',
-                background: '#F0F7EE', border: '1.5px solid #D0E4CC',
+                background: 'var(--ok-pale)', border: '1.5px solid #D0E4CC',
                 cursor: 'pointer', fontFamily: 'var(--font)',
               }}
             >
@@ -528,7 +528,7 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
                 <div style={{ fontSize: '14px', fontWeight: '700', color: '#3A5C2E' }}>Work Order</div>
                 <div style={{ fontSize: '12px', color: '#6A8C61', marginTop: '2px' }}>Scope · Forms · Additions · Photos</div>
               </div>
-              <span style={{ fontSize: '18px', color: '#4A6741' }}>→</span>
+              <span style={{ fontSize: '18px', color: 'var(--ok)' }}>→</span>
             </button>
             <button
               onClick={() => { onClose(); navigate(`/jobpack/${job.id}`) }}
@@ -570,7 +570,7 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
                     <div style={{ fontSize: '14px', fontWeight: '700', color: '#3A5C2E' }}>💬 Text {job.clients?.name?.split(' ')[0] || 'client'}</div>
                     <div style={{ fontSize: '12px', color: '#6A8C61', marginTop: '2px' }}>{job.clients.phone}</div>
                   </div>
-                  <span style={{ fontSize: '16px', color: '#4A6741' }}>→</span>
+                  <span style={{ fontSize: '16px', color: 'var(--ok)' }}>→</span>
                 </button>
               ) : (
                 <div style={{ border: '1.5px solid #CFE6C9', borderRadius: '10px', padding: '12px', background: '#F7FBF6' }}>
@@ -619,7 +619,7 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
                     {done
                       ? <span style={{ color: '#2e7d32', fontSize: '17px', fontWeight: '700' }}>✓</span>
                       : f.required
-                        ? <span style={{ color: '#C0392B', fontSize: '17px', fontWeight: '700' }}>✕</span>
+                        ? <span style={{ color: 'var(--danger)', fontSize: '17px', fontWeight: '700' }}>✕</span>
                         : <span style={{ color: '#aaa', fontSize: '12px', fontWeight: '600' }}>+ add</span>
                     }
                   </button>
@@ -689,7 +689,7 @@ const styles = {
   sectionTitle: { fontSize: '12px', fontWeight: '600', color: '#888', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' },
   rowLabel: { fontSize: '11px', color: '#aaa', fontWeight: '500', marginBottom: '1px' },
   rowValue: { fontSize: '14px', color: 'var(--ink)' },
-  mapLink: { fontSize: '14px', color: '#4A7FA5', textDecoration: 'none' },
+  mapLink: { fontSize: '14px', color: 'var(--sky)', textDecoration: 'none' },
   description: { fontSize: '14px', color: 'var(--ink)', lineHeight: 1.5, whiteSpace: 'pre-wrap' },
   statusSelect: {
     padding: '8px 12px', borderRadius: '8px', border: '1.5px solid var(--border)',
@@ -725,7 +725,7 @@ const styles = {
   },
   quoteOpenBtn: {
     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    background: '#F0F7EE', border: '1.5px solid #4A6741',
+    background: 'var(--ok-pale)', border: '1.5px solid var(--ok)',
     borderRadius: '10px', padding: '12px 14px', fontSize: '14px',
     color: 'var(--ink)', cursor: 'pointer', fontFamily: 'var(--font)', width: '100%',
   },
