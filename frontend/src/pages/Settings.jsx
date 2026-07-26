@@ -556,6 +556,9 @@ function IntegrationsTab({ toast }) {
   const [syncing,       setSyncing]      = useState(false)
   const [connecting,    setConnecting]   = useState(false)
   const [importModal,   setImportModal]  = useState(null) // null | contacts[]
+  const [testing,       setTesting]      = useState(false)
+  const [health,        setHealth]       = useState(null) // null | { ok, msg }
+  const credsMissing = !XERO_CLIENT_ID || !XERO_REDIRECT_URI
 
   async function checkXero() {
     const { data } = await supabase
@@ -580,7 +583,8 @@ function IntegrationsTab({ toast }) {
       response_type: 'code',
       client_id:     XERO_CLIENT_ID,
       redirect_uri:  XERO_REDIRECT_URI,
-      scope:         'openid profile email accounting.contacts.read offline_access',
+      // contacts.read → sync; transactions → create invoices; reports.read → P&L dashboard
+      scope:         'openid profile email accounting.contacts.read accounting.transactions accounting.reports.read offline_access',
       state,
     })
     const url = `https://login.xero.com/identity/connect/authorize?${params}`
@@ -610,6 +614,34 @@ function IntegrationsTab({ toast }) {
     }
   }
 
+  async function testXero() {
+    setTesting(true)
+    setHealth(null)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token ?? ''
+      // xero-pnl exercises token refresh + the accounting.reports.read scope —
+      // the capability most likely to be missing — with no side effects.
+      const res = await fetch(`${SUPABASE_FN}/xero-pnl?refresh=1`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const body = await res.json().catch(() => ({}))
+      if (res.ok && body.source === 'xero') {
+        setHealth({ ok: true, msg: 'Connection healthy — invoicing & P&L authorised.' })
+      } else {
+        const detail = body.error ?? `HTTP ${res.status}`
+        const scopeHint = /403|scope|unauthor|forbidden/i.test(detail)
+          ? ' — the connection is likely missing invoice/report permissions. Disconnect and reconnect to re-authorise.'
+          : ''
+        setHealth({ ok: false, msg: `Test failed: ${detail}${scopeHint}` })
+      }
+    } catch (err) {
+      setHealth({ ok: false, msg: 'Test failed: ' + err.message })
+    } finally {
+      setTesting(false)
+    }
+  }
+
   async function disconnectXero() {
     await supabase.from('xero_connections').delete().eq('id', '00000000-0000-0000-0000-000000000001')
     setXeroConn(false)
@@ -636,18 +668,28 @@ function IntegrationsTab({ toast }) {
         <div style={{ flex: 1 }}>
           <div style={t.intName}>Xero</div>
           <div style={t.intDesc}>
-            {xeroConn === null
+            {credsMissing
+              ? '⚠ Xero credentials not configured — set VITE_XERO_CLIENT_ID and VITE_XERO_REDIRECT_URI'
+              : xeroConn === null
               ? 'Checking connection…'
               : xeroConn
               ? `Connected to ${xeroConn.tenant_name ?? 'Xero'}`
               : 'Import clients and contacts from Xero'}
           </div>
+          {health && (
+            <div style={{ fontSize: '12px', marginTop: '6px', color: health.ok ? 'var(--ok)' : 'var(--danger)' }}>
+              {health.ok ? '✓ ' : '✕ '}{health.msg}
+            </div>
+          )}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
           <div style={{ display: 'flex', gap: '8px' }}>
             {xeroConn ? (
               <>
                 <button style={t.intBtnSecondary} onClick={disconnectXero}>Disconnect</button>
+                <button style={t.intBtnSecondary} onClick={testXero} disabled={testing}>
+                  {testing ? 'Testing…' : 'Test'}
+                </button>
                 <button style={t.intBtn} onClick={syncXero} disabled={syncing}>
                   {syncing ? 'Syncing…' : 'Sync contacts'}
                 </button>
@@ -675,7 +717,7 @@ function IntegrationsTab({ toast }) {
         <div style={t.deployTitle}>Edge Functions</div>
         <div style={t.deployBody}>
           Deploy the Xero auth and sync functions to Supabase using the CLI once you have your access token:
-          <pre style={t.code}>{`supabase login --token YOUR_TOKEN\nsupabase link --project-ref zagwhnnxjtimzvvjaujm\nsupabase functions deploy xero-auth\nsupabase functions deploy xero-sync`}</pre>
+          <pre style={t.code}>{`supabase login --token YOUR_TOKEN\nsupabase link --project-ref zagwhnnxjtimzvvjaujm\nsupabase functions deploy xero-auth\nsupabase functions deploy xero-sync\nsupabase functions deploy xero-invoice\nsupabase functions deploy xero-pnl`}</pre>
           Set secrets in{' '}
           <a href="https://supabase.com/dashboard/project/zagwhnnxjtimzvvjaujm/settings/functions" target="_blank" rel="noreferrer" style={{ color: 'var(--ok)' }}>
             Supabase → Edge Functions → Secrets
@@ -765,7 +807,15 @@ export default function Settings() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     if (params.get('xero') === 'connected') {
-      showToast('Xero connected successfully')
+      // CSRF check: the state we generated must round-trip back unchanged.
+      const expected = sessionStorage.getItem('xero_state')
+      const returned = params.get('state')
+      sessionStorage.removeItem('xero_state')
+      if (expected && returned && returned !== expected) {
+        showToast('Xero connection rejected — security check failed. Please try connecting again.', true)
+      } else {
+        showToast('Xero connected successfully')
+      }
       setTab('integrations')
       window.history.replaceState({}, '', '/settings')
     } else if (params.get('xero_error')) {

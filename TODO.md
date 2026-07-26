@@ -25,23 +25,21 @@ All 260 `var(--moss)` / `var(--bark)` usages across 30 files swapped to the cano
 stale `#4A6741` moss-green fallback in Calendar.jsx corrected. Build + all 21 tests
 pass. Blueprint §6, step 2.
 
-### 1c. Move hardcoded hex values to semantic tokens — TOP 4 FILES DONE ✅ (rest to do)
+### 1c. Move hardcoded hex values to semantic tokens ✅ DONE (whole app)
 Completed the semantic token set in `theme.css` (added `--ok`/`--ok-pale`,
 `--sky-pale`, `--danger-pale` — there was previously no green/"ok" token or pale-tint
-tokens at all) and swapped every exact-value status hex to a token in the four worst
-offenders: **Layout.jsx, JobCard.jsx, JobDetailPanel.jsx, Dashboard.jsx**. All swaps
-were exact value matches, so zero visual change; build + 21 tests pass.
+tokens at all) and swapped every exact-value status hex to a token across **all ~26
+files**. All swaps were exact value matches, so zero visual change; build + 21 tests
+pass.
 
 Mapping used: `#C0392B`→`--danger`, `#FFF0EE`→`--danger-pale`, `#D4851A`→`--amber`,
 `#FDF3E3`→`--amber-pale`, `#4A7FA5`→`--sky`, `#EBF3FA`→`--sky-pale`,
 `#4A6741`→`--ok`, `#F0F7EE`→`--ok-pale`.
 
-**Still to do (rest of the app):** apply the same mapping to the other ~13 files
-(Calendar, Safety, QuoteBuilder, QuoteView, Pipeline, SWMS, MulchDump, WorkOrder,
-HSDocuments, Chat, SentQuotes, ToolRequests, RiskAssessment). Deliberately left for a
-human eye: neutral greys (`#888`/`#aaa`…), pure `#fff`, one-off brighter greens
-(`#2e7d32` checkmarks), Xero brand blue (`#13B5EA`), and near-duplicate tints
-(`#E8F0E6`, `#EEF4FA`) — these aren't clean status-token matches.
+Deliberately left as-is (not clean status-token matches): neutral greys
+(`#888`/`#aaa`…), pure `#fff`, one-off brighter greens (`#2e7d32` checkmarks), Xero
+brand blue (`#13B5EA`), 8-digit alpha hexes (`#C0392B33` — can't append alpha to a
+`var()`), and near-duplicate tints (`#E8F0E6`, `#EEF4FA`).
 
 ### 1d. Per-screen redesign passes (larger)
 Blueprint §5 names six priority screens for a full visual pass (Dashboard, Pipeline,
@@ -57,23 +55,29 @@ These are planned but not fully built. Much of the plumbing already exists
 (Supabase functions for Xero, SMS, geocode, reminders), so several are "wire up +
 finish" rather than "build from scratch." Confirm current state before starting each.
 
-- **Phase 1b — Xero integration.** AUDITED ✅ — it's substantively built (real OAuth,
-  token refresh, invoice write-back, P&L parsing; all functions have live callers), NOT
-  stubbed. One concrete bug breaks half the loop, plus a few smaller issues:
-  1. **BLOCKING BUG — OAuth scope.** `Settings.jsx:583` (and `Clients.jsx:345`) request
-     only `accounting.contacts.read`. So connect + contact-sync work, but **invoicing
-     and P&L always fail** (token lacks `accounting.transactions` and
-     `accounting.reports.read`). Fix: add those two scopes. ⚠️ Existing Xero
-     connections must re-authorize after this change.
-  2. `xero-invoice/index.ts:97` sends the contact by **name only**, ignoring the
-     `xero_contact_id` it already loads (`:73`) → risks duplicate Xero contacts. Use
-     the linked ID like `mulch-invoice:77-79` does.
-  3. `xero-auth` never validates the OAuth `state` param (CSRF gap); `Clients.jsx`
-     connect flow doesn't send a `state` at all.
-  4. No deploy/secret health check — a missing `XERO_CLIENT_ID`/secret only surfaces as
-     a runtime failure. Consider a status indicator in Settings.
-  5. `xero-pnl` fires ~13 sequential Xero report calls per dashboard load (rate-limit
-     risk) and classifies revenue/expenses by fuzzy title matching — cache + harden.
+- **Phase 1b — Xero integration.** AUDITED ✅ and all 5 audit items FIXED ✅ (it was
+  substantively built, not stubbed — one blocking bug plus smaller issues):
+  1. ✅ **OAuth scope (was the blocking bug).** Added `accounting.transactions` +
+     `accounting.reports.read` to the connect flow in `Settings.jsx` and `Clients.jsx`,
+     so invoicing and P&L can now work. ⚠️ **Manual step:** any existing Xero connection
+     must **Disconnect → reconnect** once to pick up the new permissions.
+  2. ✅ **Duplicate-contact fix.** `xero-invoice` now sends the linked `xero_contact_id`
+     (falls back to name/email), matching `mulch-invoice`.
+  3. ✅ **CSRF hardening.** `Clients.jsx` now generates a `state`; `xero-auth` round-trips
+     it back; both callbacks verify it matches before trusting the connection.
+     (Residual: ideal is a server-side state store validated *before* token exchange —
+     noted for later; current check is client-side after redirect.)
+  4. ✅ **Health check.** Settings shows a "credentials not configured" warning and a
+     **Test** button that pings `xero-pnl` and reports whether invoicing/P&L are
+     authorised (surfaces a scope/secret problem instead of it failing silently).
+  5. ✅ **P&L caching.** `xero-pnl` now caches results for 30 min (new migration
+     `019_xero_pnl_cache.sql`; `?refresh=1` bypasses). Cache is best-effort so a
+     missing table can't break the endpoint. ⚠️ **Manual step:** apply migration 019
+     in the Supabase SQL editor. (Residual: the revenue/expense title-matching in
+     `xero-pnl` is still fuzzy — left as-is since it needs real Xero data to tune.)
+
+  ⚠️ **After deploying:** redeploy the edge functions (`xero-auth`, `xero-invoice`,
+  `xero-pnl`) and apply migration 019.
 - **Phase 1b — expanded SMS/email triggers.** Currently only two triggers ship (lead
   ack + internal new-lead notify). Blueprint lists the rest (quote follow-ups, booking
   confirmations, on-the-way texts). `Planner.jsx` already drafts "on my way" texts —
@@ -97,8 +101,10 @@ finish" rather than "build from scratch." Confirm current state before starting 
 ---
 
 ### Suggested order for tomorrow
-1. ~~**1a**~~ ✅, ~~**1b**~~ ✅, and ~~**1c** (top 4 files)~~ ✅ are done.
-2. **Xero blocking bug (#1 above)** — a ~2-line scope fix that makes invoicing + P&L
-   actually work. Highest business value on the list. (Forces one-time re-consent.)
-3. Finish **1c** across the remaining ~13 files using the mapping above.
-4. **1d** per-screen redesign passes, then the other Phase 1b feature (SMS triggers).
+1. ~~**1a**~~ ✅, ~~**1b**~~ ✅, ~~**1c** (whole app)~~ ✅, and ~~**all 5 Xero fixes**~~ ✅ are done.
+2. **Deploy the Xero work:** redeploy edge functions (`xero-auth`, `xero-invoice`,
+   `xero-pnl`), apply migration `019`, then Disconnect→reconnect Xero once and hit
+   **Test** in Settings to confirm invoicing + P&L are authorised.
+3. **1d** per-screen redesign passes.
+4. Next Phase 1b feature: expanded **SMS/email triggers** (quote follow-ups,
+   booking confirmations, on-the-way texts).

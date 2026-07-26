@@ -39,6 +39,30 @@ async function refreshIfNeeded(conn: any, clientId: string, clientSecret: string
   return tok.access_token
 }
 
+const PNL_TTL_MS = 30 * 60_000 // 30 minutes
+
+// Cache helpers are best-effort: any failure (including the cache table not
+// existing yet because migration 019 hasn't been applied) is treated as a
+// cache miss so the P&L endpoint keeps working regardless.
+async function readCache(supabase: any, key: string) {
+  try {
+    const { data } = await supabase
+      .from('xero_pnl_cache').select('payload, computed_at').eq('cache_key', key).single()
+    if (!data) return null
+    if (Date.now() - new Date(data.computed_at).getTime() > PNL_TTL_MS) return null
+    return data.payload
+  } catch { return null }
+}
+
+async function writeCache(supabase: any, key: string, payload: unknown) {
+  try {
+    await supabase.from('xero_pnl_cache').upsert(
+      { cache_key: key, payload, computed_at: new Date().toISOString() },
+      { onConflict: 'cache_key' },
+    )
+  } catch { /* best-effort */ }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
@@ -57,15 +81,24 @@ Deno.serve(async (req) => {
 
     if (!conn) return json({ error: 'Xero not connected. Connect in Settings → Integrations.' }, 400)
 
-    const clientId     = Deno.env.get('XERO_CLIENT_ID')!
-    const clientSecret = Deno.env.get('XERO_CLIENT_SECRET')!
-    const accessToken  = await refreshIfNeeded(conn, clientId, clientSecret, supabase)
-
     // Current NZ financial year: Apr 1 – Mar 31
     const now    = new Date()
     const fyYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1
     const fyFrom = `${fyYear}-04-01`
     const fyTo   = `${fyYear + 1}-03-31`
+
+    // Serve from cache (30-min TTL) unless ?refresh=1, to avoid the ~13
+    // sequential Xero report calls on every dashboard load.
+    const refresh  = new URL(req.url).searchParams.get('refresh') === '1'
+    const cacheKey = `pnl:${conn.tenant_id}:${fyFrom}`
+    if (!refresh) {
+      const cached = await readCache(supabase, cacheKey)
+      if (cached) return json({ ...cached, cached: true })
+    }
+
+    const clientId     = Deno.env.get('XERO_CLIENT_ID')!
+    const clientSecret = Deno.env.get('XERO_CLIENT_SECRET')!
+    const accessToken  = await refreshIfNeeded(conn, clientId, clientSecret, supabase)
 
     const headers = {
       Authorization: `Bearer ${accessToken}`,
@@ -132,7 +165,7 @@ Deno.serve(async (req) => {
       months.push({ label, revenue: mRevenue })
     }
 
-    return json({
+    const result = {
       revenue,
       expenses,
       netProfit: revenue - expenses,
@@ -140,7 +173,9 @@ Deno.serve(async (req) => {
       fyTo,
       months,
       source: 'xero',
-    })
+    }
+    await writeCache(supabase, cacheKey, result)
+    return json(result)
   } catch (err) {
     return json({ error: String(err) }, 500)
   }

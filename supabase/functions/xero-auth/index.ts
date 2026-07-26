@@ -17,6 +17,10 @@ Deno.serve(async (req: Request) => {
   const url = new URL(req.url)
   const code = url.searchParams.get('code')
   const error = url.searchParams.get('error')
+  // Round-trip the CSRF state param back to the app so the browser that
+  // started the flow can verify it matches what it stored (see Settings.jsx).
+  const state = url.searchParams.get('state')
+  const stateQs = state ? `&state=${encodeURIComponent(state)}` : ''
 
   if (error) {
     return Response.redirect(`${APP_URL}/settings?xero_error=${encodeURIComponent(error)}`, 302)
@@ -87,5 +91,5 @@ Deno.serve(async (req: Request) => {
     return Response.redirect(`${APP_URL}/settings?xero_error=db_error`, 302)
   }
 
-  return Response.redirect(`${APP_URL}/settings?xero=connected`, 302)
+  return Response.redirect(`${APP_URL}/settings?xero=connected${stateQs}`, 302)
 })

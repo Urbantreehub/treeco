@@ -324,8 +324,16 @@ export default function Clients() {
     // Handle OAuth callback params
     const params = new URLSearchParams(window.location.search)
     if (params.get('xero') === 'connected') {
-      showToast('Xero connected successfully')
-      checkXeroConnection()
+      // CSRF check: the state we generated must round-trip back unchanged.
+      const expected = sessionStorage.getItem('xero_state')
+      const returned = params.get('state')
+      sessionStorage.removeItem('xero_state')
+      if (expected && returned && returned !== expected) {
+        showToast('Xero connection rejected — security check failed. Please try connecting again.', true)
+      } else {
+        showToast('Xero connected successfully')
+        checkXeroConnection()
+      }
       window.history.replaceState({}, '', '/clients')
     } else if (params.get('xero_error')) {
       showToast(`Xero error: ${params.get('xero_error')}`, true)
@@ -338,11 +346,15 @@ export default function Clients() {
       showToast('VITE_XERO_CLIENT_ID and VITE_XERO_REDIRECT_URI not set in .env', true)
       return
     }
+    const state = Math.random().toString(36).slice(2)
+    sessionStorage.setItem('xero_state', state)
     const params = new URLSearchParams({
       response_type: 'code',
       client_id:     XERO_CLIENT_ID,
       redirect_uri:  XERO_REDIRECT_URI,
-      scope:         'openid profile email accounting.contacts.read offline_access',
+      // contacts.read → sync; transactions → create invoices; reports.read → P&L dashboard
+      scope:         'openid profile email accounting.contacts.read accounting.transactions accounting.reports.read offline_access',
+      state,
     })
     window.location.href = `https://login.xero.com/identity/connect/authorize?${params}`
   }

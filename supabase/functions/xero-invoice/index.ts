@@ -78,7 +78,13 @@ Deno.serve(async (req: Request) => {
 
     const { accessToken, tenantId } = await getAccessToken(supabase)
 
-    const clientName = quote.jobs?.clients?.name ?? 'Unknown client'
+    const client     = quote.jobs?.clients
+    const clientName = client?.name ?? 'Unknown client'
+    // Prefer the linked Xero contact so we don't create a duplicate contact in
+    // Xero on every invoice; fall back to name/email only if not yet linked.
+    const contact: Record<string, unknown> = client?.xero_contact_id
+      ? { ContactID: client.xero_contact_id }
+      : { Name: clientName, ...(client?.email ? { EmailAddress: client.email } : {}) }
     const lineItems  = (quote.line_items ?? [])
       .filter((i: any) => !i.optional || i.selected)
       .map((i: any) => ({
@@ -94,7 +100,7 @@ Deno.serve(async (req: Request) => {
       Invoices: [{
         Type:            'ACCREC',
         Status:          'SUBMITTED',
-        Contact:         { Name: clientName },
+        Contact:         contact,
         LineAmountTypes: 'EXCLUSIVE',
         CurrencyCode:    'NZD',
         Reference:       `TreeCo quote — ${quote.jobs?.address ?? ''}`,
