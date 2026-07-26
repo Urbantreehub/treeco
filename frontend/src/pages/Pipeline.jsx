@@ -4,6 +4,7 @@ import { JOB_STATUSES, STATUS_ORDER, SPENCERS_COLOR, isSpencersJob } from '../co
 import { jobHeading, koCode, kpiCountdown } from '../utils/jobDisplay'
 import { useJobs } from '../hooks/useJobs'
 import { useAuth } from '../context/AuthContext'
+import { useIsMobile } from '../hooks/useIsMobile'
 import JobDetailPanel from '../components/JobDetailPanel'
 import NewJobModal from '../components/NewJobModal'
 
@@ -26,6 +27,7 @@ function bestQuote(job) {
 export default function Pipeline() {
   const { jobs, loading, fetchJobs } = useJobs()
   const { isStaff } = useAuth()
+  const isMobile = useIsMobile()
   // Deep-link support: /pipeline?job=<id> (e.g. opened from the calendar) auto-opens that job.
   const [selectedJobId, setSelectedJobId] = useState(() => new URLSearchParams(window.location.search).get('job'))
   const selectedJob = useMemo(() => jobs.find(j => j.id === selectedJobId) ?? null, [jobs, selectedJobId])
@@ -186,10 +188,14 @@ export default function Pipeline() {
               return (
                 <div
                   key={job.id}
-                  style={sp ? { ...s.row, borderLeft: `4px solid ${SPENCERS_COLOR}`, paddingLeft: 12 } : s.row}
+                  style={{
+                    ...s.row,
+                    ...(isMobile ? s.rowMobile : {}),
+                    ...(sp ? { borderLeft: `4px solid ${SPENCERS_COLOR}`, paddingLeft: 12 } : {}),
+                  }}
                   onClick={() => setSelectedJobId(job.id)}
                 >
-                  <div style={s.rowMain}>
+                  <div style={{ ...s.rowMain, ...(isMobile ? { width: '100%' } : {}) }}>
                     <div style={s.client}>{primary}</div>
                     <div style={s.meta}>
                       {sp && (
@@ -209,7 +215,7 @@ export default function Pipeline() {
                       )}
                     </div>
                   </div>
-                  <div style={s.rowRight}>
+                  <div style={{ ...s.rowRight, ...(isMobile ? s.rowRightMobile : {}) }}>
                     {st && (
                       <div
                         style={{ ...s.statusChip, background: st.color + '1F', opacity: savingStatus === job.id ? 0.5 : 1 }}
@@ -337,6 +343,10 @@ const s = {
     justifyContent: 'space-between', gap: '16px', cursor: 'pointer',
     transition: 'box-shadow 0.15s',
   },
+  // On phones the row stacks: client + meta on top, then the status dropdown,
+  // price and date on their own line so nothing overlaps on a narrow screen.
+  rowMobile: { flexDirection: 'column', alignItems: 'stretch', gap: '12px' },
+  rowRightMobile: { width: '100%', justifyContent: 'flex-start', gap: '12px' },
   rowMain: { flex: 1, minWidth: 0 },
   client: { fontSize: '14px', fontWeight: '600', color: 'var(--bark)', marginBottom: '3px' },
   meta: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
@@ -356,7 +366,7 @@ const s = {
     appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none',
     background: 'transparent', border: 'none', outline: 'none',
     fontFamily: 'var(--font)', fontSize: '11px', fontWeight: '700',
-    padding: 0, margin: 0, cursor: 'pointer', maxWidth: '150px',
+    padding: 0, margin: 0, cursor: 'pointer', maxWidth: '200px',
   },
   total: { fontSize: '14px', fontWeight: '700', color: 'var(--bark)', minWidth: '70px', textAlign: 'right' },
   date: { fontSize: '11px', color: '#aaa', minWidth: '55px', textAlign: 'right' },
