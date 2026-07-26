@@ -1,10 +1,7 @@
-export const DEMO_PROFILE = {
-  id: 'demo',
-  name: 'Demo User',
-  email: 'demo@treeco.app',
-  access_level: 'full',
-  avatar_url: null,
-}
+// Canonical demo profile lives in seed.js (its id matches a seeded users row so
+// "me"-based features — Chat, Tool Requests — resolve correctly). Re-exported
+// here for the auth context that still imports it from this module.
+export { DEMO_PROFILE } from './seed'
 
 export const DEMO_JOBS = [
   {

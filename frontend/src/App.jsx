@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import Layout from './components/Layout'
 import Login from './pages/Login'
+import DemoBadge from './demo/DemoBadge'
 
 const IS_DEMO = import.meta.env.VITE_DEMO === 'true'
 const AUTO_LOGIN = !!import.meta.env.VITE_DEMO_EMAIL
@@ -69,6 +70,7 @@ export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <DemoBadge />
         <Suspense fallback={<PageFallback />}>
         <Routes>
           <Route path="/login" element={(IS_DEMO || AUTO_LOGIN) ? <Navigate to="/pipeline" replace /> : <Login />} />
