@@ -74,8 +74,10 @@ Deno.serve(async (req: Request) => {
     const payload = await req.json()
     let { to, message } = payload
     const { quote_id, kind = 'manual' } = payload
-    let job_id: string | null = null
-    let client_id: string | null = null
+    // Callers (e.g. the job panel's one-tap texts) may pass these directly so
+    // the send is logged against the job/client even when there's no quote_id.
+    let job_id: string | null = payload.job_id ?? null
+    let client_id: string | null = payload.client_id ?? null
 
     // Resolve quote-linked sends (number + default message).
     if (quote_id) {

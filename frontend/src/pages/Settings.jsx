@@ -723,6 +723,9 @@ function IntegrationsTab({ toast }) {
             Supabase → Edge Functions → Secrets
           </a>:
           <pre style={t.code}>{`XERO_CLIENT_ID=...\nXERO_CLIENT_SECRET=...\nXERO_REDIRECT_URI=https://zagwhnnxjtimzvvjaujm.supabase.co/functions/v1/xero-auth\nAPP_URL=https://your-app-url.com`}</pre>
+
+          <div style={{ marginTop: '14px' }}>Automated client texts — deploy the messaging functions, then schedule the daily one:</div>
+          <pre style={t.code}>{`supabase functions deploy send-sms\nsupabase functions deploy daily-notifications\n# schedule the daily run (Supabase Dashboard → Edge Functions →\n# daily-notifications → Schedules, e.g. 0 18 * * * for 6am NZ), or via SQL:\nselect cron.schedule('daily-notifications','0 18 * * *',$$\n  select net.http_post('https://zagwhnnxjtimzvvjaujm.supabase.co/functions/v1/daily-notifications')$$);`}</pre>
         </div>
       </div>
     </div>

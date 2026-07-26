@@ -8,6 +8,7 @@
 // Required secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, RESEND_API_KEY (optional)
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { sendAndLog, templates, firstName } from '../_shared/notify.ts'
 
 const CORS = {
   'Access-Control-Allow-Origin':  '*',
@@ -115,6 +116,33 @@ Deno.serve(async (req: Request) => {
         body: JSON.stringify({ from: 'TreeCo <noreply@urbantreeservices.net>', to: 'josh@urbantreeservices.net', subject: `New enquiry: ${name}${preferred ? ` — ${preferred}` : ''}`, html }),
       }).catch(() => {})
     }
+
+    // Acknowledge the customer (best-effort): prefer SMS, fall back to email.
+    try {
+      if (phone) {
+        await sendAndLog(supabase, {
+          to: phone, body: templates.bookingAck(name), kind: 'booking_ack',
+          job_id: job.id, client_id: clientId,
+        })
+      } else if (email && resendKey) {
+        await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            from: 'Urban Tree Services <office@urbantreeservices.net>',
+            to: email,
+            reply_to: 'office@urbantreeservices.net',
+            subject: 'We\'ve received your enquiry — Urban Tree Services',
+            html: `<div style="font-family:-apple-system,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#22384F">
+              <p style="font-size:15px">Hi ${esc(firstName(name))},</p>
+              <p style="font-size:15px;line-height:1.5">Thanks for your enquiry to Urban Tree Services — we've received it and will be in touch within 1 business day to confirm a time.</p>
+              ${preferred ? `<p style="font-size:14px;color:#555">You asked about: <strong>${esc(preferred)}</strong></p>` : ''}
+              <p style="font-size:14px;color:#555">Ngā mihi,<br>The Urban Tree Services team</p>
+            </div>`,
+          }),
+        }).catch(() => {})
+      }
+    } catch { /* acknowledgement is best-effort — never fail the booking */ }
 
     return json({ ok: true })
   } catch (err: any) {

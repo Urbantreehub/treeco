@@ -9,6 +9,7 @@ import SpencersPortalData from './SpencersPortalData'
 import AddressInput from './AddressInput'
 import { JOB_STATUSES, STATUS_ORDER, isSpencersJob } from '../config/statuses'
 import { mapsHref } from '../utils/geo'
+import { STAGE_TEXTS, firstName } from '../utils/smsTemplates'
 
 // Contextual forward-only transitions per status.
 // Legacy statuses (quote_scheduled, accepted_to_schedule, stump_grinding) are
@@ -80,8 +81,11 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
   const [followingUp, setFollowingUp] = useState(false)
   const [smsOpen, setSmsOpen] = useState(false)
   const [smsText, setSmsText] = useState('')
+  const [smsKind, setSmsKind] = useState('manual')
   const [smsSending, setSmsSending] = useState(false)
   const [smsNote, setSmsNote] = useState(null)
+  const [optOut, setOptOut] = useState(false)
+  const [schedDate, setSchedDate] = useState(null) // formatted next scheduled date, for the "confirm booking" text
   const [formStatus, setFormStatus] = useState(() => {
     try { return JSON.parse(localStorage.getItem(`treeco_job_forms_${job.id}`) ?? '{}') } catch { return {} }
   })
@@ -115,6 +119,40 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
       .maybeSingle()
       .then(({ data }) => { if (data) setQuoteFollowUp(data) })
   }, [job.id, job.status])
+
+  // Load client opt-out + the next scheduled date, for the notify buttons.
+  useEffect(() => {
+    let cancel = false
+    const clientId = job.client_id ?? job.clients?.id
+    if (clientId) {
+      supabase.from('clients').select('sms_opt_out').eq('id', clientId).maybeSingle()
+        .then(({ data }) => { if (!cancel && data) setOptOut(!!data.sms_opt_out) })
+    }
+    supabase.from('schedule').select('date').eq('job_id', job.id)
+      .gte('date', new Date().toISOString().slice(0, 10))
+      .order('date', { ascending: true }).limit(1).maybeSingle()
+      .then(({ data }) => {
+        if (!cancel && data?.date) {
+          setSchedDate(new Date(data.date + 'T00:00:00').toLocaleDateString('en-NZ', { weekday: 'long', day: 'numeric', month: 'long' }))
+        }
+      })
+    return () => { cancel = true }
+  }, [job.id, job.client_id])
+
+  function prefillStage(t) {
+    setSmsText(t.build(firstName(job.clients?.name), { date: schedDate }))
+    setSmsKind(t.kind)
+    setSmsOpen(true)
+    setSmsNote(null)
+  }
+
+  async function toggleOptOut() {
+    const clientId = job.client_id ?? job.clients?.id
+    if (!clientId) return
+    const next = !optOut
+    setOptOut(next)
+    await supabase.from('clients').update({ sms_opt_out: next }).eq('id', clientId)
+  }
 
   async function sendFollowUp(channel) {
     if (!quoteFollowUp?.id) return
@@ -154,11 +192,11 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
       const res = await fetch(`${SUPABASE_URL}/functions/v1/send-sms`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` },
-        body: JSON.stringify({ to: phone, message: smsText.trim(), job_id: job.id, kind: 'manual' }),
+        body: JSON.stringify({ to: phone, message: smsText.trim(), job_id: job.id, client_id: job.client_id ?? job.clients?.id ?? null, kind: smsKind }),
       })
       const b = await res.json()
       if (!res.ok) { setSmsNote({ err: true, msg: b.notConfigured ? 'SMS not live yet — Twilio account upgrade pending' : (b.error || 'Send failed') }); return }
-      setSmsNote({ err: false, msg: `Sent to ${b.to} ✓` }); setSmsText(''); setSmsOpen(false)
+      setSmsNote({ err: false, msg: `Sent to ${b.to} ✓` }); setSmsText(''); setSmsOpen(false); setSmsKind('manual')
     } catch (e) {
       setSmsNote({ err: true, msg: 'Send failed' })
     } finally {
@@ -553,12 +591,32 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
           {/* Spencers invoice — non-SOR quotable items + pre-approval + upload */}
           {isSpencersJob(job) && <SpencersInvoice job={job} />}
 
-          {/* Text the client */}
+          {/* Notify the client */}
           {job.clients?.phone && (
             <div style={styles.section}>
+              <div style={styles.sectionTitle}>Notify {job.clients?.name?.split(' ')[0] || 'client'}</div>
+
+              {/* One-tap stage templates — pre-fill the composer to review & send */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '10px' }}>
+                {STAGE_TEXTS.map(t => (
+                  <button
+                    key={t.key}
+                    onClick={() => prefillStage(t)}
+                    style={{
+                      padding: '6px 11px', borderRadius: '999px',
+                      border: '1px solid var(--terra-soft)', background: 'var(--terra-wash)',
+                      color: 'var(--terra-deep)', fontSize: '12px', fontWeight: '600',
+                      cursor: 'pointer', fontFamily: 'var(--font)',
+                    }}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+
               {!smsOpen ? (
                 <button
-                  onClick={() => { setSmsOpen(true); setSmsNote(null) }}
+                  onClick={() => { setSmsKind('manual'); setSmsText(''); setSmsOpen(true); setSmsNote(null) }}
                   style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                     width: '100%', padding: '12px 16px', borderRadius: '10px',
@@ -567,7 +625,7 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
                   }}
                 >
                   <div style={{ textAlign: 'left' }}>
-                    <div style={{ fontSize: '14px', fontWeight: '700', color: '#3A5C2E' }}>💬 Text {job.clients?.name?.split(' ')[0] || 'client'}</div>
+                    <div style={{ fontSize: '14px', fontWeight: '700', color: '#3A5C2E' }}>💬 Custom text</div>
                     <div style={{ fontSize: '12px', color: '#6A8C61', marginTop: '2px' }}>{job.clients.phone}</div>
                   </div>
                   <span style={{ fontSize: '16px', color: 'var(--ok)' }}>→</span>
@@ -592,6 +650,15 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
                   </div>
                 </div>
               )}
+              {optOut && (
+                <div style={{ fontSize: '11px', color: 'var(--amber)', marginTop: '8px' }}>
+                  ⚠ Opted out of automated texts (follow-ups &amp; reminders). One-tap texts above still send.
+                </div>
+              )}
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px', fontSize: '11px', color: '#888', cursor: 'pointer' }}>
+                <input type="checkbox" checked={optOut} onChange={toggleOptOut} />
+                Don&apos;t send this client automated texts
+              </label>
               {smsNote && <div style={{ fontSize: '12px', marginTop: '6px', color: smsNote.err ? 'var(--danger)' : 'var(--terra)' }}>{smsNote.msg}</div>}
             </div>
           )}

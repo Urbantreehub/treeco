@@ -11,6 +11,7 @@
 // Optional secrets: RESEND_API_KEY, APP_URL
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { firstName } from '../_shared/notify.ts'
 
 const CORS = {
   'Access-Control-Allow-Origin':  '*',
@@ -201,6 +202,29 @@ Deno.serve(async (req) => {
         })
       } catch (mailErr) {
         console.error('office notification failed', mailErr)
+      }
+    }
+
+    // ── 6b. Acknowledge the enquirer by email (best-effort) ──────────────
+    if (resendKey && email) {
+      try {
+        await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            from: 'Urban Tree Services <office@urbantreeservices.net>',
+            to: email,
+            reply_to: 'office@urbantreeservices.net',
+            subject: 'We\'ve received your enquiry — Urban Tree Services',
+            html: `<div style="font-family:-apple-system,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#22384F">
+              <p style="font-size:15px">Hi ${firstName(name)},</p>
+              <p style="font-size:15px;line-height:1.5">Thanks for getting in touch with Urban Tree Services — we've received your enquiry and will be in touch within 1 business day to confirm a time.</p>
+              <p style="font-size:14px;color:#555">Ngā mihi,<br>The Urban Tree Services team</p>
+            </div>`,
+          }),
+        })
+      } catch (ackErr) {
+        console.error('enquirer acknowledgement failed', ackErr)
       }
     }
 

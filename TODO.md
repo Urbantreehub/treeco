@@ -78,10 +78,26 @@ finish" rather than "build from scratch." Confirm current state before starting 
 
   ⚠️ **After deploying:** redeploy the edge functions (`xero-auth`, `xero-invoice`,
   `xero-pnl`) and apply migration 019.
-- **Phase 1b — expanded SMS/email triggers.** Currently only two triggers ship (lead
-  ack + internal new-lead notify). Blueprint lists the rest (quote follow-ups, booking
-  confirmations, on-the-way texts). `Planner.jsx` already drafts "on my way" texts —
-  automate them. (Blueprint §"Expanded SMS/Email Automation Triggers".)
+- **Phase 1b — expanded SMS/email triggers.** BUILT ✅ (hybrid model — one-tap for
+  crew/stage events, automated for the time-based ones):
+  - **One-tap stage texts** on the job panel (JobDetailPanel): Confirm booking / On the
+    way / Arrived / Running late / All done — pre-fill the SMS composer to review & send.
+    Templates in `frontend/src/utils/smsTemplates.js`; logged with per-stage `kind`.
+  - **Automated day-3 quote follow-up** and **7-day invoice-overdue** reminder — new
+    scheduled function `supabase/functions/daily-notifications`. Idempotent, opt-out-aware.
+  - **Booking acknowledgement** — `book-quote` (SMS, falls back to email) and
+    `inbound-lead` (email) now reply to the enquirer, not just the office.
+  - **Opt-out**: new `clients.sms_opt_out` (migration `020`), gates the automated sends;
+    toggle + status shown on the job panel.
+  - Shared edge helper `supabase/functions/_shared/notify.ts` (E.164, sendTwilio, log,
+    templates) replaces the copy-pasted versions for the new senders.
+  - ⚠️ **Deploy steps** (see `daily-notifications/README.md`): apply migration 020;
+    deploy `send-sms`, `book-quote`, `inbound-lead`, `daily-notifications`; and add a
+    daily schedule for `daily-notifications` (`0 18 * * *`).
+  - **Residuals / not done:** existing senders (quote-followup, send-job-reminders) were
+    left on their own copies rather than refactored onto `_shared` (lower risk); the
+    overdue check assumes 7 days after `invoiced` since Xero due-dates aren't synced
+    locally; email sends still aren't logged (only SMS are, in `sms_messages`).
 - **Phase 3+ — time-window booking with geographic clustering.** `BookQuote.jsx` takes
   enquiries but doesn't offer bookable time slots or cluster jobs by area.
 - **Phase 2+ — offline PWA.** Service worker / offline caching for low-signal job
@@ -105,6 +121,6 @@ finish" rather than "build from scratch." Confirm current state before starting 
 2. **Deploy the Xero work:** redeploy edge functions (`xero-auth`, `xero-invoice`,
    `xero-pnl`), apply migration `019`, then Disconnect→reconnect Xero once and hit
    **Test** in Settings to confirm invoicing + P&L are authorised.
-3. **1d** per-screen redesign passes.
-4. Next Phase 1b feature: expanded **SMS/email triggers** (quote follow-ups,
-   booking confirmations, on-the-way texts).
+3. **Deploy the SMS/email triggers:** apply migration 020, deploy the messaging
+   functions, and schedule `daily-notifications` (see its README).
+4. **1d** per-screen redesign passes.
