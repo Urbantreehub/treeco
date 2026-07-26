@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../config/supabase'
 import { useAuth } from '../context/AuthContext'
+import { addHsDocument, formCategory } from '../utils/hsDocs'
 import StatusBadge from './StatusBadge'
 import QuoteReference from './QuoteReference'
 import SpencersInvoice from './SpencersInvoice'
@@ -71,7 +72,7 @@ function extractPriority(job) {
 }
 
 export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }) {
-  const { isStaff } = useAuth()
+  const { isStaff, profile } = useAuth()
   const navigate = useNavigate()
   const [changingStatus, setChangingStatus] = useState(false)
   const [editing, setEditing] = useState(false)
@@ -86,6 +87,32 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
     try { return JSON.parse(localStorage.getItem(`treeco_job_forms_${job.id}`) ?? '{}') } catch { return {} }
   })
   const [activeForm, setActiveForm] = useState(null)
+  const [formUploading, setFormUploading] = useState(null)
+
+  // Upload a completed / signed copy of a job form — saved to BOTH the job
+  // (job_photos) and the central H&S Documents list (safety_documents).
+  async function uploadJobForm(form, file) {
+    if (!file) return
+    setFormUploading(form.id)
+    const path = `site/${job.id}/forms/${form.id}/${Date.now()}_${file.name.replace(/[^\w.\-]/g, '_')}`
+    const { error: upErr } = await supabase.storage.from('safety').upload(path, file)
+    if (upErr) { alert('Upload failed: ' + upErr.message); setFormUploading(null); return }
+    const { data: pub } = supabase.storage.from('safety').getPublicUrl(path)
+    const fileUrl = pub?.publicUrl || path
+    await supabase.from('job_photos').insert({ job_id: job.id, url: fileUrl, caption: `${form.label} (completed form)`, kind: 'safety_form', uploaded_by: profile?.id ?? null })
+    await addHsDocument({
+      name: `${form.label} — ${job.clients?.name || job.title || 'job'} — ${new Date().toLocaleDateString('en-NZ', { day: 'numeric', month: 'short', year: 'numeric' })}`,
+      category: formCategory(form.id),
+      file,
+      notes: `Completed on job ${job.title || job.id}.`,
+    })
+    setFormStatus(prev => {
+      const next = { ...prev, [form.id]: { completed: true, at: new Date().toISOString(), file_url: fileUrl, uploaded: true } }
+      localStorage.setItem(`treeco_job_forms_${job.id}`, JSON.stringify(next))
+      return next
+    })
+    setFormUploading(null)
+  }
 
   useEffect(() => {
     function handleMsg(e) {
@@ -601,28 +628,39 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
             <div style={styles.sectionTitle}>Job Forms</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {JOB_FORMS.map(f => {
-                const done = formStatus[f.id]?.completed
+                const status = formStatus[f.id]
+                const done = status?.completed
+                const busy = formUploading === f.id
                 return (
-                  <button
+                  <div
                     key={f.id}
-                    onClick={() => setActiveForm(f)}
                     style={{
-                      display: 'flex', alignItems: 'center', gap: '10px',
-                      padding: '10px 12px', borderRadius: '8px', width: '100%', textAlign: 'left',
+                      display: 'flex', alignItems: 'center', gap: '8px',
+                      padding: '8px 10px', borderRadius: '8px', width: '100%',
                       border: done ? '1.5px solid #2e7d3244' : f.required ? '1.5px solid #C0392B33' : '1.5px dashed #D0D9C8',
                       background: done ? '#F0FFF4' : f.required ? '#FFF8F8' : '#FAFAFA',
-                      cursor: 'pointer', fontFamily: 'var(--font)',
+                      fontFamily: 'var(--font)',
                     }}
                   >
-                    <span style={{ fontSize: '15px' }}>{f.icon}</span>
-                    <span style={{ flex: 1, fontSize: '13px', fontWeight: '600', color: 'var(--ink)' }}>{f.label}</span>
-                    {done
-                      ? <span style={{ color: '#2e7d32', fontSize: '17px', fontWeight: '700' }}>✓</span>
-                      : f.required
-                        ? <span style={{ color: '#C0392B', fontSize: '17px', fontWeight: '700' }}>✕</span>
-                        : <span style={{ color: '#aaa', fontSize: '12px', fontWeight: '600' }}>+ add</span>
-                    }
-                  </button>
+                    <button onClick={() => setActiveForm(f)} style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0, textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font)', padding: '2px 0' }}>
+                      <span style={{ fontSize: '15px' }}>{f.icon}</span>
+                      <span style={{ flex: 1, fontSize: '13px', fontWeight: '600', color: 'var(--ink)' }}>
+                        {f.label}
+                        {status?.uploaded && <span style={{ fontSize: '11px', fontWeight: 600, color: '#2e7d32', marginLeft: 6 }}>· copy on file</span>}
+                      </span>
+                      {done
+                        ? <span style={{ color: '#2e7d32', fontSize: '17px', fontWeight: '700' }}>✓</span>
+                        : f.required
+                          ? <span style={{ color: '#C0392B', fontSize: '17px', fontWeight: '700' }}>✕</span>
+                          : <span style={{ color: '#aaa', fontSize: '12px', fontWeight: '600' }}>+ add</span>
+                      }
+                    </button>
+                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: '#fff', border: '1px solid #D0D9C8', borderRadius: 7, padding: '6px 9px', fontSize: '11.5px', fontWeight: 600, color: 'var(--terra)', cursor: busy ? 'default' : 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                      {busy ? '…' : '⬆ Upload'}
+                      <input type="file" style={{ display: 'none' }} disabled={busy}
+                        onChange={e => { const file = e.target.files[0]; e.target.value = ''; uploadJobForm(f, file) }} />
+                    </label>
+                  </div>
                 )
               })}
             </div>

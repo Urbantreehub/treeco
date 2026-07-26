@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useScheduledChecks } from '../hooks/useScheduledChecks'
 import { supabase } from '../config/supabase'
 import { useAuth } from '../context/AuthContext'
+import { addHsDocument, formCategory, openHsDoc } from '../utils/hsDocs'
 import RiskAssessments from './RiskAssessment'
 import HSDocuments from './HSDocuments'
 import SWMS from './SWMS'
@@ -118,7 +119,7 @@ export default function Safety() {
             <span style={s.secNavTitle}>{SECTION_LABELS[tab] ?? tab}</span>
           </div>
 
-          {tab === 'forms'       && <FormsPanel onSelect={setActiveForm} />}
+          {tab === 'forms'       && <FormsPanel onSelect={setActiveForm} createdBy={profile?.id} onUploaded={load} />}
           {tab === 'checks'      && <ScheduledChecksPanel overdue={overdue} dueSoon={dueSoon} upcoming={upcoming} onDone={markDone} />}
           {tab === 'assessments' && <RiskAssessments />}
           {tab === 'swms'        && <SWMS />}
@@ -493,27 +494,68 @@ const FORM_GROUPS = [
   },
 ]
 
-function FormsPanel({ onSelect }) {
+function FormsPanel({ onSelect, createdBy, onUploaded }) {
+  const [uploading, setUploading] = useState(null)   // form.id being uploaded
+  const [uploaded, setUploaded]   = useState({})      // { [form.id]: { view } }
+  const [error, setError]         = useState(null)
+
+  async function uploadCompleted(form, file) {
+    if (!file) return
+    setError(null)
+    setUploading(form.id)
+    try {
+      const doc = await addHsDocument({
+        name: `${form.title} — completed ${new Date().toLocaleDateString('en-NZ', { day: 'numeric', month: 'short', year: 'numeric' })}`,
+        category: formCategory(form.id),
+        file,
+        notes: 'Completed / signed copy uploaded from Safety → Forms.',
+      })
+      setUploaded(u => ({ ...u, [form.id]: doc }))
+      onUploaded?.()
+    } catch (e) {
+      setError(String(e?.message || e))
+    } finally {
+      setUploading(null)
+    }
+  }
+
   return (
     <div style={{ maxWidth: 680 }}>
-      <p style={{ fontSize: 14, color: '#888', marginBottom: 24 }}>Fill in, sign &amp; export as PDF — uploads automatically to Google Drive.</p>
+      <p style={{ fontSize: 14, color: '#888', marginBottom: 24 }}>Fill in on screen &amp; export as a PDF — or <strong>upload a completed / signed copy</strong>. Uploaded forms are saved to your H&amp;S Documents.</p>
+      {error && <div style={{ background: '#FFF0EE', color: '#C0392B', borderRadius: 8, padding: '10px 14px', fontSize: 13, marginBottom: 16 }}>Upload failed: {error}</div>}
       {FORM_GROUPS.map(({ group, forms }) => (
         <div key={group} style={{ marginBottom: 28 }}>
           <div style={{ fontSize: 10, fontWeight: 800, color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>{group}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {forms.map(form => (
-              <button key={form.id} onClick={() => onSelect(form)} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px', background: '#fff', border: '1.5px solid #E0E8D8', borderRadius: 12, cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)' }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--terra)'; e.currentTarget.style.boxShadow = '0 2px 12px rgba(74,103,65,0.1)' }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = '#E0E8D8'; e.currentTarget.style.boxShadow = 'none' }}
-              >
-                <span style={{ fontSize: 28, flexShrink: 0 }}>{form.icon}</span>
-                <div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 3 }}>{form.title}</div>
-                  <div style={{ fontSize: 13, color: '#777', lineHeight: 1.4 }}>{form.description}</div>
+            {forms.map(form => {
+              const done = uploaded[form.id]
+              const busy = uploading === form.id
+              return (
+                <div key={form.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', background: '#fff', border: '1.5px solid #E0E8D8', borderRadius: 12, fontFamily: 'var(--font)' }}>
+                  <button onClick={() => onSelect(form)} style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1, minWidth: 0, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)', padding: 0 }}>
+                    <span style={{ fontSize: 28, flexShrink: 0 }}>{form.icon}</span>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 3 }}>{form.title}</div>
+                      <div style={{ fontSize: 13, color: '#777', lineHeight: 1.4 }}>{form.description}</div>
+                    </div>
+                  </button>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+                    {done ? (
+                      <>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: '#2e7d32' }}>Uploaded ✓</span>
+                        <button onClick={() => openHsDoc(done.view)} style={s.linkBtn}>View</button>
+                      </>
+                    ) : (
+                      <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#F4F1EA', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 12px', fontSize: 12.5, fontWeight: 600, color: 'var(--terra)', cursor: busy ? 'default' : 'pointer', whiteSpace: 'nowrap' }}>
+                        {busy ? 'Uploading…' : '⬆ Upload copy'}
+                        <input type="file" style={{ display: 'none' }} disabled={busy}
+                          onChange={e => { const f = e.target.files[0]; e.target.value = ''; uploadCompleted(form, f) }} />
+                      </label>
+                    )}
+                  </div>
                 </div>
-                <span style={{ marginLeft: 'auto', color: '#C0CABB', fontSize: 20 }}>›</span>
-              </button>
-            ))}
+              )
+            })}
           </div>
         </div>
       ))}

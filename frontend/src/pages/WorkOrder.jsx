@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../config/supabase'
+import { useAuth } from '../context/AuthContext'
 import { v4 as uuid } from 'uuid'
 import { mapsHref } from '../utils/geo'
+import { addHsDocument, formCategory } from '../utils/hsDocs'
 
 const GST = 0.15
 function nzd(v) { return '$' + Number(v || 0).toLocaleString('en-NZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
@@ -86,6 +88,7 @@ function processImage(file, stamp = null) {
 export default function WorkOrder() {
   const { jobId } = useParams()
   const navigate  = useNavigate()
+  const { profile } = useAuth()
 
   const [job,        setJob]        = useState(null)
   const [items,      setItems]      = useState([])
@@ -98,6 +101,36 @@ export default function WorkOrder() {
     try { return JSON.parse(localStorage.getItem(`treeco_job_forms_${jobId}`) ?? '{}') } catch { return {} }
   })
   const [activeForm, setActiveForm] = useState(null)
+  const [formUploading, setFormUploading] = useState(null) // form.id currently uploading
+
+  // Upload a completed / signed copy of a job form. Saved in BOTH places:
+  // attached to this job (job_photos) and to the central H&S Documents list
+  // (safety_documents). Also marks the form complete so the work order gate passes.
+  async function uploadJobForm(form, file) {
+    if (!file) return
+    setFormUploading(form.id)
+    const path = `site/${jobId}/forms/${form.id}/${Date.now()}_${file.name.replace(/[^\w.\-]/g, '_')}`
+    const { error: upErr } = await supabase.storage.from('safety').upload(path, file)
+    if (upErr) { alert('Upload failed: ' + upErr.message); setFormUploading(null); return }
+    const { data: pub } = supabase.storage.from('safety').getPublicUrl(path)
+    const fileUrl = pub?.publicUrl || path
+    // 1) Attach to the job
+    await supabase.from('job_photos').insert({ job_id: jobId, url: fileUrl, caption: `${form.label} (completed form)`, kind: 'safety_form', uploaded_by: profile?.id ?? null })
+    // 2) Central H&S Documents list
+    await addHsDocument({
+      name: `${form.label} — ${clientName || jobTitle || 'job'} — ${new Date().toLocaleDateString('en-NZ', { day: 'numeric', month: 'short', year: 'numeric' })}`,
+      category: formCategory(form.id),
+      file,
+      notes: `Completed on job ${jobTitle || jobId}.`,
+    })
+    // 3) Mark complete locally (satisfies the required-forms gate)
+    setFormStatus(prev => {
+      const next = { ...prev, [form.id]: { completed: true, at: new Date().toISOString(), file_url: fileUrl, uploaded: true } }
+      localStorage.setItem(`treeco_job_forms_${jobId}`, JSON.stringify(next))
+      return next
+    })
+    setFormUploading(null)
+  }
 
   // Additions
   const [additions,    setAdditions]    = useState(() => {
@@ -389,20 +422,32 @@ export default function WorkOrder() {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {JOB_FORMS.map(f => {
-              const done = formStatus[f.id]?.completed
+              const status = formStatus[f.id]
+              const done = status?.completed
+              const busy = formUploading === f.id
               return (
-                <button key={f.id} onClick={() => setActiveForm(f)} style={{
-                  display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px',
-                  borderRadius: 10, cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)',
+                <div key={f.id} style={{
+                  display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
+                  borderRadius: 10, fontFamily: 'var(--font)',
                   border: done ? '1.5px solid #2e7d3244' : f.required ? '1.5px solid #C0392B44' : '1.5px dashed #D0D9C8',
                   background: done ? '#F0FFF4' : f.required ? '#FFF8F8' : '#FAFAFA',
                 }}>
-                  <span style={{ fontSize: 22 }}>{f.icon}</span>
-                  <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>{f.label}</span>
-                  <span style={{ fontSize: 22, fontWeight: 700, color: done ? '#2e7d32' : f.required ? '#C0392B' : '#C8D4C4' }}>
-                    {done ? '✓' : f.required ? '✕' : '+'}
-                  </span>
-                </button>
+                  <button onClick={() => setActiveForm(f)} style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)', padding: '4px 0' }}>
+                    <span style={{ fontSize: 22 }}>{f.icon}</span>
+                    <span style={{ flex: 1, fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>
+                      {f.label}
+                      {status?.uploaded && <span style={{ fontSize: 12, fontWeight: 600, color: '#2e7d32', marginLeft: 8 }}>· uploaded copy</span>}
+                    </span>
+                    <span style={{ fontSize: 20, fontWeight: 700, color: done ? '#2e7d32' : f.required ? '#C0392B' : '#C8D4C4' }}>
+                      {done ? '✓' : f.required ? '✕' : '+'}
+                    </span>
+                  </button>
+                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#fff', border: '1px solid #D0D9C8', borderRadius: 8, padding: '7px 11px', fontSize: 12.5, fontWeight: 600, color: 'var(--terra)', cursor: busy ? 'default' : 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                    {busy ? 'Uploading…' : '⬆ Upload'}
+                    <input type="file" style={{ display: 'none' }} disabled={busy}
+                      onChange={e => { const file = e.target.files[0]; e.target.value = ''; uploadJobForm(f, file) }} />
+                  </label>
+                </div>
               )
             })}
           </div>
