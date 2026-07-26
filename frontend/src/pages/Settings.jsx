@@ -9,6 +9,13 @@ const XERO_CLIENT_ID   = import.meta.env.VITE_XERO_CLIENT_ID   ?? ''
 const XERO_REDIRECT_URI = import.meta.env.VITE_XERO_REDIRECT_URI ?? ''
 const SUPABASE_FN      = SUPABASE_URL + '/functions/v1'
 
+// Social OAuth client IDs (public) + the shared redirect URI (the social-auth
+// function's URL, registered with every provider). Set these as VITE_* build vars.
+const META_APP_ID          = import.meta.env.VITE_META_APP_ID ?? ''
+const GOOGLE_CLIENT_ID     = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? ''
+const LINKEDIN_CLIENT_ID   = import.meta.env.VITE_LINKEDIN_CLIENT_ID ?? ''
+const SOCIAL_REDIRECT_URI  = import.meta.env.VITE_SOCIAL_REDIRECT_URI ?? (SUPABASE_FN + '/social-auth')
+
 const RESOURCES = [
   { id: '',           label: '— None —' },
   { id: 'josh',       label: 'Josh Micallef' },
@@ -550,6 +557,127 @@ function SmsCard({ toast }) {
   )
 }
 
+// ── Social channels + auto-posting ───────────────────────────────────────────
+// One card lists every social channel with connect/disconnect, plus an
+// auto-post on/off switch (paused by default, mirroring the DBS sync card).
+const SOCIAL_CHANNELS = [
+  { key: 'facebook',        label: 'Facebook Page',            color: '#1877F2',
+    build: () => authorizeMeta('facebook') },
+  { key: 'instagram',       label: 'Instagram',                color: '#E1306C',
+    build: () => authorizeMeta('instagram'), note: 'Connected together with your Facebook Page' },
+  { key: 'google_business', label: 'Google Business Profile',  color: '#4285F4',
+    build: () => authorizeGoogle() },
+  { key: 'linkedin',        label: 'LinkedIn',                 color: '#0A66C2',
+    build: () => authorizeLinkedIn() },
+]
+
+function makeState(provider) {
+  const nonce = Math.random().toString(36).slice(2)
+  sessionStorage.setItem('social_state', `${provider}:${nonce}`)
+  return `${provider}:${nonce}`
+}
+function authorizeMeta(provider) {
+  const scope = ['pages_show_list', 'pages_read_engagement', 'pages_manage_posts',
+    'instagram_basic', 'instagram_content_publish', 'business_management'].join(',')
+  return 'https://www.facebook.com/v21.0/dialog/oauth?' + new URLSearchParams({
+    client_id: META_APP_ID, redirect_uri: SOCIAL_REDIRECT_URI, state: makeState(provider),
+    response_type: 'code', scope,
+  })
+}
+function authorizeGoogle() {
+  return 'https://accounts.google.com/o/oauth2/v2/auth?' + new URLSearchParams({
+    client_id: GOOGLE_CLIENT_ID, redirect_uri: SOCIAL_REDIRECT_URI, response_type: 'code',
+    access_type: 'offline', prompt: 'consent', state: makeState('google_business'),
+    scope: 'https://www.googleapis.com/auth/business.manage',
+  })
+}
+function authorizeLinkedIn() {
+  return 'https://www.linkedin.com/oauth/v2/authorization?' + new URLSearchParams({
+    response_type: 'code', client_id: LINKEDIN_CLIENT_ID, redirect_uri: SOCIAL_REDIRECT_URI,
+    state: makeState('linkedin'), scope: 'openid profile w_member_social',
+  })
+}
+const CLIENT_IDS = { facebook: META_APP_ID, instagram: META_APP_ID, google_business: GOOGLE_CLIENT_ID, linkedin: LINKEDIN_CLIENT_ID }
+
+function SocialCard({ toast }) {
+  const [conns, setConns]     = useState(null) // { platform: {account_name, expires_at} }
+  const [enabled, setEnabled] = useState(false)
+  const [savingToggle, setSavingToggle] = useState(false)
+
+  async function loadConns() {
+    const { data } = await supabase.from('social_connections').select('platform, account_name, expires_at')
+    const map = {}
+    for (const r of data ?? []) map[r.platform] = r
+    setConns(map)
+  }
+  useEffect(() => {
+    loadConns()
+    supabase.from('app_settings').select('value').eq('key', 'marketing_autopost_enabled').maybeSingle()
+      .then(({ data }) => setEnabled(data?.value === true)).catch(() => setEnabled(false))
+  }, [])
+
+  async function toggleAutopost(next) {
+    setSavingToggle(true)
+    const { error } = await supabase.from('app_settings')
+      .upsert({ key: 'marketing_autopost_enabled', value: next, updated_at: new Date().toISOString() }, { onConflict: 'key' })
+    setSavingToggle(false)
+    if (error) { toast(`Couldn't update: ${error.message}`, true); return }
+    setEnabled(next)
+    toast(next ? 'Auto-posting enabled — scheduled posts will go out' : 'Auto-posting paused')
+  }
+
+  function connect(ch) {
+    if (!CLIENT_IDS[ch.key]) { toast(`${ch.label}: OAuth client ID not set (see setup below)`, true); return }
+    window.location.href = ch.build().toString()
+  }
+  async function disconnect(key) {
+    await supabase.from('social_connections').delete().eq('platform', key)
+    toast('Disconnected')
+    loadConns()
+  }
+
+  return (
+    <div style={{ ...t.integrationCard, flexDirection: 'column', alignItems: 'stretch', gap: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 12, borderBottom: '1px solid #F0EDE8' }}>
+        <div>
+          <div style={t.intName}>Social channels</div>
+          <div style={t.intDesc}>Connect the accounts your posts &amp; blogs publish to</div>
+        </div>
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: savingToggle ? 'wait' : 'pointer', fontSize: 12, fontWeight: 600, color: '#555' }}>
+          Auto-post {enabled ? 'On' : 'Off'}
+          <span onClick={() => !savingToggle && toggleAutopost(!enabled)}
+            style={{ width: 40, height: 22, borderRadius: 22, background: enabled ? 'var(--moss)' : '#ccc', position: 'relative', transition: 'background .15s', flexShrink: 0 }}>
+            <span style={{ position: 'absolute', top: 2, left: enabled ? 20 : 2, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left .15s' }} />
+          </span>
+        </label>
+      </div>
+
+      {SOCIAL_CHANNELS.map(ch => {
+        const conn = conns?.[ch.key]
+        const expired = conn?.expires_at && new Date(conn.expires_at).getTime() < Date.now()
+        return (
+          <div key={ch.key} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid #F7F4EF' }}>
+            <span style={{ width: 30, height: 30, borderRadius: 7, background: ch.color, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 12, flexShrink: 0 }}>
+              {ch.label[0]}
+            </span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{ch.label}</div>
+              <div style={{ fontSize: 11.5, color: expired ? '#C0392B' : '#888', marginTop: 1 }}>
+                {conns == null ? 'Checking…'
+                  : conn ? (expired ? 'Token expired — reconnect' : `Connected${conn.account_name ? ` · ${conn.account_name}` : ''}`)
+                  : (ch.note ?? 'Not connected')}
+              </div>
+            </div>
+            {conn
+              ? <button style={t.intBtnSecondary} onClick={() => disconnect(ch.key)}>Disconnect</button>
+              : <button style={{ ...t.intBtn, borderColor: ch.color, background: ch.color }} onClick={() => connect(ch)}>Connect</button>}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 // ── Integrations tab ───────────────────────────────────────────────────────
 function IntegrationsTab({ toast }) {
   const [xeroConn,      setXeroConn]     = useState(null)
@@ -670,6 +798,25 @@ function IntegrationsTab({ toast }) {
       {/* SMS (Twilio) */}
       <SmsCard toast={toast} />
 
+      {/* Social media & marketing */}
+      <SocialCard toast={toast} />
+
+      {/* Social setup note */}
+      <div style={t.deployNote}>
+        <div style={t.deployTitle}>Social media setup</div>
+        <div style={t.deployBody}>
+          Deploy the social functions and set the secrets, then connect each channel above. Full step-by-step
+          in <code style={{ background: '#f0ede8', padding: '1px 4px', borderRadius: '3px' }}>MARKETING-SETUP.md</code>.
+          <pre style={t.code}>{`supabase functions deploy social-auth
+supabase functions deploy social-publish
+supabase functions deploy social-scheduler`}</pre>
+          Build-time vars (frontend): <code style={{ background: '#f0ede8', padding: '1px 4px', borderRadius: '3px' }}>VITE_META_APP_ID</code>,{' '}
+          <code style={{ background: '#f0ede8', padding: '1px 4px', borderRadius: '3px' }}>VITE_GOOGLE_CLIENT_ID</code>,{' '}
+          <code style={{ background: '#f0ede8', padding: '1px 4px', borderRadius: '3px' }}>VITE_LINKEDIN_CLIENT_ID</code>.
+          Schedule <code style={{ background: '#f0ede8', padding: '1px 4px', borderRadius: '3px' }}>social-scheduler</code> to run every ~5 min to publish scheduled posts.
+        </div>
+      </div>
+
       {/* Edge Functions deployment note */}
       <div style={t.deployNote}>
         <div style={t.deployTitle}>Edge Functions</div>
@@ -770,6 +917,17 @@ export default function Settings() {
       window.history.replaceState({}, '', '/settings')
     } else if (params.get('xero_error')) {
       showToast(`Xero error: ${params.get('xero_error')}`, true)
+      setTab('integrations')
+      window.history.replaceState({}, '', '/settings')
+    } else if (params.get('social') === 'connected') {
+      const p = params.get('platform')
+      showToast(p === 'google_business_nolocation'
+        ? 'Google connected — but no Business location found. Check your Business Profile access.'
+        : 'Social channel connected ✓')
+      setTab('integrations')
+      window.history.replaceState({}, '', '/settings')
+    } else if (params.get('social_error')) {
+      showToast(`Couldn't connect: ${params.get('social_error')}`, true)
       setTab('integrations')
       window.history.replaceState({}, '', '/settings')
     } else if (params.get('tab') === 'account') {
