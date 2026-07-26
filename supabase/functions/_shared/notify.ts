@@ -96,9 +96,6 @@ export const templates = {
   quoteFollowup: (name: unknown, link: string) =>
     `Hi ${firstName(name)}, just checking you received your tree quote from ${COMPANY}? View or accept it here: ${link}`,
 
-  invoiceOverdue: (name: unknown, invoiceNo: string, amount: number) =>
-    `Hi ${firstName(name)}, a friendly reminder that invoice ${invoiceNo || ''} for ${nzd(amount)} from ${COMPANY} is now overdue. If you've already paid, please ignore this. Thank you.`,
-
   bookingAck: (name: unknown) =>
     `Hi ${firstName(name)}, thanks for your enquiry to ${COMPANY} — we've received it and will be in touch within 1 business day to confirm a time.`,
 }

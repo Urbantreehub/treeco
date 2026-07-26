@@ -83,8 +83,9 @@ finish" rather than "build from scratch." Confirm current state before starting 
   - **One-tap stage texts** on the job panel (JobDetailPanel): Confirm booking / On the
     way / Arrived / Running late / All done — pre-fill the SMS composer to review & send.
     Templates in `frontend/src/utils/smsTemplates.js`; logged with per-stage `kind`.
-  - **Automated day-3 quote follow-up** and **7-day invoice-overdue** reminder — new
-    scheduled function `supabase/functions/daily-notifications`. Idempotent, opt-out-aware.
+  - **Automated day-3 quote follow-up** — new scheduled function
+    `supabase/functions/daily-notifications`. Idempotent, opt-out-aware. (Invoice/payment
+    reminders are deliberately left to Xero, not sent from here.)
   - **Booking acknowledgement** — `book-quote` (SMS, falls back to email) and
     `inbound-lead` (email) now reply to the enquirer, not just the office.
   - **Opt-out**: new `clients.sms_opt_out` (migration `020`), gates the automated sends;
@@ -95,9 +96,8 @@ finish" rather than "build from scratch." Confirm current state before starting 
     deploy `send-sms`, `book-quote`, `inbound-lead`, `daily-notifications`; and add a
     daily schedule for `daily-notifications` (`0 18 * * *`).
   - **Residuals / not done:** existing senders (quote-followup, send-job-reminders) were
-    left on their own copies rather than refactored onto `_shared` (lower risk); the
-    overdue check assumes 7 days after `invoiced` since Xero due-dates aren't synced
-    locally; email sends still aren't logged (only SMS are, in `sms_messages`).
+    left on their own copies rather than refactored onto `_shared` (lower risk); email
+    sends still aren't logged (only SMS are, in `sms_messages`).
 - **Phase 3+ — time-window booking with geographic clustering.** `BookQuote.jsx` takes
   enquiries but doesn't offer bookable time slots or cluster jobs by area.
 - **Phase 2+ — offline PWA.** Service worker / offline caching for low-signal job

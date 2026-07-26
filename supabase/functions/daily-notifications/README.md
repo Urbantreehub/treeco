@@ -14,8 +14,9 @@ This documents the Phase-1b SMS/email triggers. There are two kinds: **one-tap**
 | Running late | one-tap | Job panel → "Running late" | `job_running_late` |
 | Job complete | one-tap | Job panel → "All done" | `job_complete` |
 | Quote follow-up (day 3) | **automated** | `daily-notifications` | `quote_followup` |
-| Invoice overdue (7 days) | **automated** | `daily-notifications` | `invoice_overdue` |
 | Booking acknowledgement | automated | `book-quote` / `inbound-lead` | `booking_ack` |
+
+> Invoice / payment reminders are **not** handled here — they're managed in Xero.
 
 One-tap texts pre-fill the composer (staff reviews the ETA/delay, then sends).
 The automated sends respect `clients.sms_opt_out`; one-tap texts do not (they're a
@@ -23,15 +24,9 @@ deliberate human action, but the job panel shows the opt-out state).
 
 ## `daily-notifications`
 
-Run once a day. It:
-1. **Quote follow-ups** — texts clients whose quote was sent 3+ days ago and is
-   still `sent`/`viewed` with `followup_count = 0`; bumps `followup_count`.
-2. **Invoice overdue** — texts clients whose job has been `invoiced` for 7+ days,
-   at most once every 7 days (idempotent via a look-back on `sms_messages`).
-
-Assumption: "overdue" = 7 days after the job moved to `invoiced`
-(`jobs.status_changed_at`). If/when Xero due-dates are synced locally, switch the
-overdue check to the real due date.
+Run once a day. It sends **quote follow-ups** — texts clients whose quote was
+sent 3+ days ago and is still `sent`/`viewed` with `followup_count = 0`; bumps
+`followup_count` so each quote is only nudged once.
 
 ### Deploy + schedule
 
