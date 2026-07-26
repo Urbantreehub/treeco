@@ -258,7 +258,7 @@ function SafetyActionsWidget({ onNavigate }) {
               desc:  'Monthly H&S briefing: site hazard debrief, SWMS/SOP review, PPE check, near-miss review, crew sign-off.',
               suggestedDate: nextToolbox.toISOString().split('T')[0],
             })}
-            style={{ fontSize:11, color:'#4A6741', background:'#fff', border:'1px solid #4A6741', borderRadius:6, padding:'4px 9px', cursor:'pointer', flexShrink:0, fontFamily:'var(--font)', fontWeight:600, whiteSpace:'nowrap' }}>
+            style={{ fontSize:11, color:'var(--terra)', background:'#fff', border:'1px solid var(--terra)', borderRadius:6, padding:'4px 9px', cursor:'pointer', flexShrink:0, fontFamily:'var(--font)', fontWeight:600, whiteSpace:'nowrap' }}>
             📅 Schedule
           </button>
         </div>

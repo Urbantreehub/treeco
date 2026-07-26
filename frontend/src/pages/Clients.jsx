@@ -160,7 +160,7 @@ function XeroImportModal({ contacts, existingXeroIds, onImport, onClose }) {
           </div>
         ) : (
           <>
-            <div style={{ padding: '12px 20px', borderBottom: '1px solid #E2DDD6', display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', display: 'flex', gap: '10px', alignItems: 'center' }}>
               <input
                 style={{ ...m.input, margin: 0, flex: 1 }}
                 placeholder="Search contacts…"
@@ -193,7 +193,7 @@ function XeroImportModal({ contacts, existingXeroIds, onImport, onClose }) {
           </>
         )}
 
-        <div style={{ ...m.footer, borderTop: '1px solid #E2DDD6', padding: '14px 20px' }}>
+        <div style={{ ...m.footer, borderTop: '1px solid var(--border)', padding: '14px 20px' }}>
           <button style={m.cancelBtn} onClick={onClose}>Cancel</button>
           {newContacts.length > 0 && (
             <button style={m.saveBtn} disabled={importing || selected.size === 0} onClick={handleImport}>
@@ -500,7 +500,7 @@ export default function Clients() {
 
 
       {toast && (
-        <div style={{ ...s.toast, background: toast.err ? '#C0392B' : '#2C2416' }}>
+        <div style={{ ...s.toast, background: toast.err ? '#C0392B' : 'var(--ink)' }}>
           {toast.msg}
         </div>
       )}
@@ -524,11 +524,11 @@ const s = {
 
   header: {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    padding: '20px 24px 12px', background: '#fff', borderBottom: '1px solid #E2DDD6', flexShrink: 0,
+    padding: '20px 24px 12px', background: '#fff', borderBottom: '1px solid var(--border)', flexShrink: 0,
   },
   hLeft:     { display: 'flex', alignItems: 'center', gap: '10px' },
   hRight:    { display: 'flex', alignItems: 'center', gap: '8px' },
-  pageTitle: { fontSize: '20px', fontWeight: '800', color: '#2C2416', margin: 0 },
+  pageTitle: { fontSize: '20px', fontWeight: '800', color: 'var(--ink)', margin: 0 },
   count:     { fontSize: '12px', fontWeight: '700', background: '#F5F3F0', color: '#888', borderRadius: '20px', padding: '2px 9px' },
 
   xeroBtn: {
@@ -540,18 +540,18 @@ const s = {
   },
   addBtn: {
     padding: '8px 16px', borderRadius: '7px',
-    background: '#2C2416', color: '#fff', border: 'none',
+    background: 'var(--ink)', color: '#fff', border: 'none',
     fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)',
   },
 
   searchBar: {
     display: 'flex', alignItems: 'center', gap: '8px',
-    padding: '10px 24px', background: '#fff', borderBottom: '1px solid #E2DDD6', flexShrink: 0,
+    padding: '10px 24px', background: '#fff', borderBottom: '1px solid var(--border)', flexShrink: 0,
   },
   searchIcon:  { fontSize: '14px', color: '#bbb' },
   searchInput: {
     flex: 1, border: 'none', outline: 'none', fontSize: '14px',
-    color: '#2C2416', background: 'transparent', fontFamily: 'var(--font)',
+    color: 'var(--ink)', background: 'transparent', fontFamily: 'var(--font)',
   },
   clearBtn: { background: 'none', border: 'none', color: '#bbb', cursor: 'pointer', fontSize: '14px', padding: '2px 4px' },
 
@@ -562,7 +562,7 @@ const s = {
   card: {
     display: 'flex', alignItems: 'center', gap: '14px',
     padding: '12px 16px', background: '#fff', borderRadius: '10px',
-    border: '1.5px solid #E2DDD6', cursor: 'pointer',
+    border: '1.5px solid var(--border)', cursor: 'pointer',
     transition: 'all 0.12s', boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
   },
   cardActive: { borderColor: '#4A6741', boxShadow: '0 0 0 3px rgba(74,103,65,0.12)' },
@@ -572,7 +572,7 @@ const s = {
     fontSize: '14px', fontWeight: '700', color: '#fff',
   },
   cardBody:  { flex: 1, minWidth: 0 },
-  cardName:  { fontSize: '14px', fontWeight: '700', color: '#2C2416', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  cardName:  { fontSize: '14px', fontWeight: '700', color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   cardMeta:  { fontSize: '12px', color: '#888', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   cardAddr:  { fontSize: '11px', color: '#bbb', marginTop: '1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   cardRight: { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px', flexShrink: 0 },
@@ -591,63 +591,63 @@ const s = {
 const m = {
   scrim:  { position: 'fixed', inset: 0, background: 'rgba(44,36,22,0.35)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center' },
   modal:  { background: '#fff', borderRadius: '12px', width: '480px', maxWidth: '95vw', boxShadow: '0 20px 60px rgba(0,0,0,0.2)', overflow: 'hidden' },
-  header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px', borderBottom: '1px solid #E2DDD6' },
-  title:  { fontSize: '16px', fontWeight: '800', color: '#2C2416', margin: 0 },
+  header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px', borderBottom: '1px solid var(--border)' },
+  title:  { fontSize: '16px', fontWeight: '800', color: 'var(--ink)', margin: 0 },
   closeBtn: { background: 'none', border: 'none', color: '#bbb', fontSize: '18px', cursor: 'pointer', lineHeight: 1, padding: '2px' },
   form:   { padding: '20px', display: 'flex', flexDirection: 'column', gap: '4px' },
   label:  { fontSize: '11px', fontWeight: '700', color: '#888', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '8px' },
   input:  {
     width: '100%', padding: '9px 12px', borderRadius: '7px',
-    border: '1.5px solid #E2DDD6', outline: 'none', fontSize: '14px',
-    color: '#2C2416', fontFamily: 'var(--font)', background: '#fff',
+    border: '1.5px solid var(--border)', outline: 'none', fontSize: '14px',
+    color: 'var(--ink)', fontFamily: 'var(--font)', background: '#fff',
     boxSizing: 'border-box',
   },
   row2:   { display: 'flex', gap: '12px' },
   error:  { background: '#FFF0EE', border: '1px solid #FCC', borderRadius: '6px', padding: '8px 12px', fontSize: '13px', color: '#C0392B', marginTop: '4px' },
   footer: { display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '16px' },
-  cancelBtn: { padding: '9px 18px', borderRadius: '7px', border: '1.5px solid #E2DDD6', background: '#fff', color: '#666', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
-  saveBtn:   { padding: '9px 20px', borderRadius: '7px', border: 'none', background: '#2C2416', color: '#fff', fontSize: '13px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)' },
+  cancelBtn: { padding: '9px 18px', borderRadius: '7px', border: '1.5px solid var(--border)', background: '#fff', color: '#666', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
+  saveBtn:   { padding: '9px 20px', borderRadius: '7px', border: 'none', background: 'var(--ink)', color: '#fff', fontSize: '13px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)' },
 }
 
 // ── Panel styles ───────────────────────────────────────────────────────────
 const p = {
   panel: {
     position: 'fixed', top: 0, right: 0, bottom: 0, width: '340px',
-    background: '#fff', borderLeft: '1px solid #E2DDD6',
+    background: '#fff', borderLeft: '1px solid var(--border)',
     boxShadow: '-4px 0 20px rgba(0,0,0,0.08)',
     display: 'flex', flexDirection: 'column', zIndex: 100,
   },
-  header: { display: 'flex', alignItems: 'center', gap: '14px', padding: '20px 16px 16px', borderBottom: '1px solid #E2DDD6' },
+  header: { display: 'flex', alignItems: 'center', gap: '14px', padding: '20px 16px 16px', borderBottom: '1px solid var(--border)' },
   avatar: { width: '48px', height: '48px', borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', fontWeight: '700', color: '#fff' },
-  name:   { fontSize: '16px', fontWeight: '800', color: '#2C2416', margin: '0 0 3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  name:   { fontSize: '16px', fontWeight: '800', color: 'var(--ink)', margin: '0 0 3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   xeroBadge: { fontSize: '10px', fontWeight: '700', background: '#E8F7FC', color: '#0B8AAB', borderRadius: '20px', padding: '2px 8px' },
   closeBtn: { background: 'none', border: 'none', color: '#bbb', fontSize: '18px', cursor: 'pointer', flexShrink: 0 },
   body:   { flex: 1, overflowY: 'auto', padding: '16px' },
   infoRow:   { display: 'flex', gap: '10px', padding: '8px 0', borderBottom: '1px solid #F5F3F0' },
   infoIcon:  { fontSize: '14px', flexShrink: 0, marginTop: '2px' },
   infoLabel: { fontSize: '10px', fontWeight: '700', color: '#bbb', textTransform: 'uppercase', letterSpacing: '0.05em' },
-  infoValue: { fontSize: '13px', color: '#2C2416', marginTop: '2px', lineHeight: 1.5 },
+  infoValue: { fontSize: '13px', color: 'var(--ink)', marginTop: '2px', lineHeight: 1.5 },
   link: { color: '#4A7FA5', textDecoration: 'none', fontSize: '13px' },
   section:      { marginTop: '16px' },
   sectionTitle: { fontSize: '11px', fontWeight: '700', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' },
   empty:    { fontSize: '13px', color: '#ccc', padding: '8px 0' },
   jobRow:   { display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 0', borderBottom: '1px solid #F5F3F0' },
   statusDot:{ width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0 },
-  jobTitle: { fontSize: '13px', fontWeight: '600', color: '#2C2416', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  jobTitle: { fontSize: '13px', fontWeight: '600', color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   jobMeta:  { fontSize: '11px', color: '#aaa', marginTop: '1px', textTransform: 'capitalize' },
-  footer:   { display: 'flex', gap: '8px', padding: '14px 16px', borderTop: '1px solid #E2DDD6', alignItems: 'center' },
+  footer:   { display: 'flex', gap: '8px', padding: '14px 16px', borderTop: '1px solid var(--border)', alignItems: 'center' },
   deleteBtn:     { padding: '8px 14px', borderRadius: '7px', border: '1.5px solid #FCC', background: '#FFF0EE', color: '#C0392B', fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
   deleteConfirm: { padding: '8px 14px', borderRadius: '7px', border: 'none', background: '#C0392B', color: '#fff', fontSize: '12px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)' },
-  cancelSmall:   { padding: '8px 12px', borderRadius: '7px', border: '1.5px solid #E2DDD6', background: '#fff', color: '#666', fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
-  editBtn:  { flex: 1, padding: '8px', borderRadius: '7px', border: 'none', background: '#2C2416', color: '#fff', fontSize: '13px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)', textAlign: 'center' },
+  cancelSmall:   { padding: '8px 12px', borderRadius: '7px', border: '1.5px solid var(--border)', background: '#fff', color: '#666', fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
+  editBtn:  { flex: 1, padding: '8px', borderRadius: '7px', border: 'none', background: 'var(--ink)', color: '#fff', fontSize: '13px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)', textAlign: 'center' },
 }
 
 // ── Xero import modal styles ───────────────────────────────────────────────
 const xi = {
-  selAll: { padding: '6px 12px', borderRadius: '6px', border: '1.5px solid #E2DDD6', background: '#fff', color: '#555', fontSize: '11px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap' },
+  selAll: { padding: '6px 12px', borderRadius: '6px', border: '1.5px solid var(--border)', background: '#fff', color: '#555', fontSize: '11px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap' },
   row: { display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 20px', borderBottom: '1px solid #F5F3F0', cursor: 'pointer' },
   avatar: { width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: '700', color: '#fff' },
-  name: { fontSize: '13px', fontWeight: '600', color: '#2C2416', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  name: { fontSize: '13px', fontWeight: '600', color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   meta: { fontSize: '11px', color: '#aaa', marginTop: '1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   addr: { fontSize: '11px', color: '#bbb', flexShrink: 0, maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
 }

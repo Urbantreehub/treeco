@@ -66,7 +66,7 @@ const t = {
   endDot: { width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0, zIndex: 1 },
   rail: {
     position: 'relative', flex: 1, height: '3px', borderRadius: '2px',
-    background: '#E2DDD6', margin: '0 2px', overflow: 'hidden',
+    background: 'var(--border)', margin: '0 2px', overflow: 'hidden',
   },
   railFill: { position: 'absolute', left: 0, top: 0, bottom: 0, borderRadius: '2px', transition: 'width 2s linear' },
   sitePin: { fontSize: '12px', flexShrink: 0, lineHeight: 1, zIndex: 1 },

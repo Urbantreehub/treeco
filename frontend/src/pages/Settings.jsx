@@ -218,7 +218,7 @@ function TeamTab({ toast }) {
 
       {resetLink && (
         <div style={{ background: '#F4F7F2', border: '1px solid #D0D9C8', borderRadius: 10, padding: '14px 16px', marginBottom: 4 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#2C2416', marginBottom: 6 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>
             Reset link for {resetLink.name} — copy and send via WhatsApp or text:
           </div>
           <input
@@ -348,7 +348,7 @@ function XeroImportModal({ contacts, onClose, onDone, toast }) {
           ? <div style={{ padding: '40px', textAlign: 'center', color: '#aaa', fontSize: '14px' }}>All contacts already imported ✓</div>
           : (
             <>
-              <div style={{ padding: '10px 18px', borderBottom: '1px solid #E2DDD6', display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <div style={{ padding: '10px 18px', borderBottom: '1px solid var(--border)', display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <input style={{ ...t.input, flex: 1, margin: 0 }} placeholder="Search…" value={search} onChange={e => setSearch(e.target.value)} />
                 <button style={t.saveBtn} onClick={() => {
                   const ids = filtered.map(c => c.xero_contact_id)
@@ -710,9 +710,9 @@ function AccountTab({ toast }) {
     <div style={{ ...t.section, maxWidth: '480px' }}>
       <div style={t.sectionTitle}>Account</div>
 
-      <div style={{ background: '#fff', border: '1.5px solid #E2DDD6', borderRadius: '12px', overflow: 'hidden' }}>
+      <div style={{ background: '#fff', border: '1.5px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
         <div style={{ padding: '18px 20px', borderBottom: '1px solid #F0EDE8' }}>
-          <div style={{ fontSize: '13px', fontWeight: '700', color: '#2C2416', marginBottom: '2px' }}>Change Password</div>
+          <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--ink)', marginBottom: '2px' }}>Change Password</div>
           <div style={{ fontSize: '12px', color: '#aaa' }}>Only visible to full-access users</div>
         </div>
         <form onSubmit={handleChange} style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -806,7 +806,7 @@ export default function Settings() {
       </div>
 
       {toast && (
-        <div style={{ ...s.toast, background: toast.err ? '#C0392B' : '#2C2416' }}>
+        <div style={{ ...s.toast, background: toast.err ? '#C0392B' : 'var(--ink)' }}>
           {toast.msg}
         </div>
       )}
@@ -817,11 +817,11 @@ export default function Settings() {
 // ── Styles ─────────────────────────────────────────────────────────────────
 const s = {
   shell:  { display: 'flex', flexDirection: 'column', height: '100%', background: '#F5F3F0', overflow: 'hidden' },
-  header: { padding: '20px 32px 0', background: '#fff', borderBottom: '1px solid #E2DDD6', flexShrink: 0 },
-  title:  { fontSize: '20px', fontWeight: '800', color: '#2C2416', margin: '0 0 14px' },
-  tabs:   { display: 'flex', gap: '0', background: '#fff', borderBottom: '1px solid #E2DDD6', padding: '0 32px', flexShrink: 0 },
+  header: { padding: '20px 32px 0', background: '#fff', borderBottom: '1px solid var(--border)', flexShrink: 0 },
+  title:  { fontSize: '20px', fontWeight: '800', color: 'var(--ink)', margin: '0 0 14px' },
+  tabs:   { display: 'flex', gap: '0', background: '#fff', borderBottom: '1px solid var(--border)', padding: '0 32px', flexShrink: 0 },
   tab:    { padding: '10px 18px', border: 'none', borderBottom: '2px solid transparent', background: 'none', fontSize: '13px', fontWeight: '600', color: '#aaa', cursor: 'pointer', fontFamily: 'var(--font)', marginBottom: '-1px' },
-  tabActive: { color: '#2C2416', borderBottomColor: '#2C2416' },
+  tabActive: { color: 'var(--ink)', borderBottomColor: 'var(--ink)' },
   body:   { flex: 1, overflowY: 'auto', padding: '24px 32px' },
   toast:  { position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)', color: '#fff', padding: '10px 22px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', zIndex: 9999, boxShadow: '0 4px 20px rgba(0,0,0,0.25)', whiteSpace: 'nowrap' },
 }
@@ -829,11 +829,11 @@ const s = {
 const t = {
   section:     { display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '700px' },
   sectionHead: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' },
-  sectionTitle:{ fontSize: '15px', fontWeight: '800', color: '#2C2416' },
+  sectionTitle:{ fontSize: '15px', fontWeight: '800', color: 'var(--ink)' },
   sectionSub:  { fontSize: '12px', color: '#aaa', marginTop: '3px' },
-  inviteBtn:      { padding: '8px 16px', borderRadius: '7px', border: 'none', background: '#2C2416', color: '#fff', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)', flexShrink: 0 },
-  inviteCard:     { background: '#fff', border: '1.5px solid #E2DDD6', borderRadius: '12px', overflow: 'hidden' },
-  inviteFormTitle:{ fontSize: '14px', fontWeight: '800', color: '#2C2416', padding: '18px 20px 0' },
+  inviteBtn:      { padding: '8px 16px', borderRadius: '7px', border: 'none', background: 'var(--ink)', color: '#fff', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)', flexShrink: 0 },
+  inviteCard:     { background: '#fff', border: '1.5px solid var(--border)', borderRadius: '12px', overflow: 'hidden' },
+  inviteFormTitle:{ fontSize: '14px', fontWeight: '800', color: 'var(--ink)', padding: '18px 20px 0' },
   inviteFormBody: { padding: '14px 20px', display: 'flex', flexDirection: 'column', gap: '12px' },
   inviteFooter:   { display: 'flex', gap: '8px', justifyContent: 'flex-end', padding: '14px 20px', borderTop: '1px solid #F0EDE8', background: '#FAFAF8' },
   inviteRow:      { display: 'none' },
@@ -842,43 +842,43 @@ const t = {
   fieldLabel:     { fontSize: '11px', fontWeight: '700', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.05em' },
   fieldErr:       { fontSize: '12px', color: '#C0392B', padding: '6px 10px', background: '#FFF0EE', borderRadius: '6px', border: '1px solid #FCC' },
   row2:           { display: 'flex', gap: '12px' },
-  cancelBtn:      { padding: '8px 16px', borderRadius: '7px', border: '1.5px solid #E2DDD6', background: '#fff', color: '#666', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
+  cancelBtn:      { padding: '8px 16px', borderRadius: '7px', border: '1.5px solid var(--border)', background: '#fff', color: '#666', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
   sentBox:        { padding: '32px 24px', textAlign: 'center' },
   sentIcon:       { fontSize: '36px', marginBottom: '12px' },
-  sentTitle:      { fontSize: '15px', fontWeight: '800', color: '#2C2416', marginBottom: '8px' },
+  sentTitle:      { fontSize: '15px', fontWeight: '800', color: 'var(--ink)', marginBottom: '8px' },
   sentBody:       { fontSize: '13px', color: '#666', lineHeight: 1.6, maxWidth: '360px', margin: '0 auto' },
-  input:  { padding: '9px 12px', borderRadius: '7px', border: '1.5px solid #E2DDD6', fontSize: '13px', color: '#2C2416', fontFamily: 'var(--font)', outline: 'none', width: '100%', boxSizing: 'border-box' },
-  select: { padding: '9px 10px', borderRadius: '7px', border: '1.5px solid #E2DDD6', fontSize: '13px', color: '#2C2416', fontFamily: 'var(--font)', background: '#fff', cursor: 'pointer', outline: 'none', width: '100%' },
+  input:  { padding: '9px 12px', borderRadius: '7px', border: '1.5px solid var(--border)', fontSize: '13px', color: 'var(--ink)', fontFamily: 'var(--font)', outline: 'none', width: '100%', boxSizing: 'border-box' },
+  select: { padding: '9px 10px', borderRadius: '7px', border: '1.5px solid var(--border)', fontSize: '13px', color: 'var(--ink)', fontFamily: 'var(--font)', background: '#fff', cursor: 'pointer', outline: 'none', width: '100%' },
   saveBtn:{ padding: '9px 18px', borderRadius: '7px', border: 'none', background: '#4A6741', color: '#fff', fontSize: '13px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)' },
   empty:  { color: '#bbb', fontSize: '13px', padding: '20px 0' },
   userList:  { display: 'flex', flexDirection: 'column', gap: '4px' },
-  userRow:   { display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', background: '#fff', borderRadius: '8px', border: '1px solid #E2DDD6' },
+  userRow:   { display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', background: '#fff', borderRadius: '8px', border: '1px solid var(--border)' },
   userAvatar:{ width: '36px', height: '36px', borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: '700', color: '#fff' },
-  userName:  { fontSize: '13px', fontWeight: '700', color: '#2C2416' },
+  userName:  { fontSize: '13px', fontWeight: '700', color: 'var(--ink)' },
   userEmail: { fontSize: '11px', color: '#aaa', marginTop: '2px' },
 
-  integrationCard: { display: 'flex', alignItems: 'center', gap: '16px', padding: '16px', background: '#fff', border: '1.5px solid #E2DDD6', borderRadius: '10px' },
+  integrationCard: { display: 'flex', alignItems: 'center', gap: '16px', padding: '16px', background: '#fff', border: '1.5px solid var(--border)', borderRadius: '10px' },
   intLogo: { flexShrink: 0 },
-  intName: { fontSize: '14px', fontWeight: '700', color: '#2C2416' },
+  intName: { fontSize: '14px', fontWeight: '700', color: 'var(--ink)' },
   intDesc: { fontSize: '12px', color: '#888', marginTop: '3px' },
   intBtn:         { padding: '8px 16px', borderRadius: '7px', border: '1.5px solid #13B5EA', background: '#13B5EA', color: '#fff', fontSize: '12px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)' },
-  intBtnSecondary:{ padding: '8px 16px', borderRadius: '7px', border: '1.5px solid #E2DDD6', background: '#fff', color: '#888', fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
+  intBtnSecondary:{ padding: '8px 16px', borderRadius: '7px', border: '1.5px solid var(--border)', background: '#fff', color: '#888', fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
 
-  deployNote:  { background: '#FAFAF8', border: '1px solid #E2DDD6', borderRadius: '10px', padding: '16px' },
+  deployNote:  { background: '#FAFAF8', border: '1px solid var(--border)', borderRadius: '10px', padding: '16px' },
   deployTitle: { fontSize: '12px', fontWeight: '700', color: '#888', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' },
   deployBody:  { fontSize: '12px', color: '#666', lineHeight: 1.7 },
-  code:        { background: '#F0EDE8', borderRadius: '6px', padding: '10px 12px', fontFamily: 'monospace', fontSize: '11px', color: '#2C2416', margin: '8px 0', whiteSpace: 'pre', overflowX: 'auto' },
+  code:        { background: '#F0EDE8', borderRadius: '6px', padding: '10px 12px', fontFamily: 'monospace', fontSize: '11px', color: 'var(--ink)', margin: '8px 0', whiteSpace: 'pre', overflowX: 'auto' },
 }
 
 const xi = {
   scrim:    { position: 'fixed', inset: 0, background: 'rgba(44,36,22,0.35)', zIndex: 600, display: 'flex', alignItems: 'center', justifyContent: 'center' },
   modal:    { background: '#fff', borderRadius: '12px', width: '500px', maxWidth: '95vw', maxHeight: '90dvh', boxShadow: '0 20px 60px rgba(0,0,0,0.2)', display: 'flex', flexDirection: 'column', overflow: 'hidden' },
-  header:   { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 18px', borderBottom: '1px solid #E2DDD6' },
-  title:    { fontSize: '15px', fontWeight: '800', color: '#2C2416' },
+  header:   { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 18px', borderBottom: '1px solid var(--border)' },
+  title:    { fontSize: '15px', fontWeight: '800', color: 'var(--ink)' },
   sub:      { fontSize: '11px', color: '#aaa', marginTop: '2px' },
   closeBtn: { background: 'none', border: 'none', color: '#bbb', fontSize: '18px', cursor: 'pointer' },
   row:      { display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 18px', borderBottom: '1px solid #F5F3F0', cursor: 'pointer' },
-  name:     { fontSize: '13px', fontWeight: '600', color: '#2C2416' },
+  name:     { fontSize: '13px', fontWeight: '600', color: 'var(--ink)' },
   meta:     { fontSize: '11px', color: '#aaa', marginTop: '1px' },
-  footer:   { display: 'flex', gap: '8px', justifyContent: 'flex-end', padding: '12px 18px', borderTop: '1px solid #E2DDD6' },
+  footer:   { display: 'flex', gap: '8px', justifyContent: 'flex-end', padding: '12px 18px', borderTop: '1px solid var(--border)' },
 }

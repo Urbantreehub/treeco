@@ -267,7 +267,7 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
             >
               ← Back to Job
             </button>
-            <span style={{ fontWeight: 700, fontSize: 15, color: '#2C2416' }}>{activeForm.label}</span>
+            <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--ink)' }}>{activeForm.label}</span>
             {formStatus[activeForm.id]?.completed && (
               <span style={{ marginLeft: 'auto', color: '#2e7d32', fontWeight: 700, fontSize: 13 }}>✓ Complete</span>
             )}
@@ -618,7 +618,7 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
                     }}
                   >
                     <span style={{ fontSize: '15px' }}>{f.icon}</span>
-                    <span style={{ flex: 1, fontSize: '13px', fontWeight: '600', color: '#2C2416' }}>{f.label}</span>
+                    <span style={{ flex: 1, fontSize: '13px', fontWeight: '600', color: 'var(--ink)' }}>{f.label}</span>
                     {done
                       ? <span style={{ color: '#2e7d32', fontSize: '17px', fontWeight: '700' }}>✓</span>
                       : f.required

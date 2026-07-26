@@ -303,7 +303,7 @@ export default function ImageMarkup({ imageUrl, onSave, onClose }) {
               top: `${textPos.y * (canvasRef.current?.getBoundingClientRect().height / canvasSize.h || 1) + canvasRef.current?.getBoundingClientRect().top - (canvasRef.current?.parentElement?.getBoundingClientRect().top || 0)}px`,
               zIndex: 10,
             }}>
-              <div style={{ display: 'flex', gap: '6px', background: '#2C2416', padding: '6px', borderRadius: '8px', boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}>
+              <div style={{ display: 'flex', gap: '6px', background: 'var(--ink)', padding: '6px', borderRadius: '8px', boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}>
                 <input
                   autoFocus
                   value={textInput}

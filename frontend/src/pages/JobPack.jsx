@@ -159,7 +159,7 @@ function Section({ title, children }) {
 const fs = {
   field: {},
   label: { fontSize: '10px', fontWeight: '700', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '3px' },
-  value: { fontSize: '14px', color: '#2C2416', fontWeight: '600' },
+  value: { fontSize: '14px', color: 'var(--ink)', fontWeight: '600' },
 }
 const s = {
   page: { minHeight: '100%', background: '#F4F2EF' },
