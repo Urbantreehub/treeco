@@ -29,6 +29,7 @@ export default function Pipeline() {
   const [selectedJobId, setSelectedJobId] = useState(() => new URLSearchParams(window.location.search).get('job'))
   const selectedJob = useMemo(() => jobs.find(j => j.id === selectedJobId) ?? null, [jobs, selectedJobId])
   const [showNewJob, setShowNewJob] = useState(false)
+  const [showArchived, setShowArchived] = useState(false)
   const [textFilter, setTextFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState(new Set())
   const [showFilterMenu, setShowFilterMenu] = useState(false)
@@ -45,6 +46,8 @@ export default function Pipeline() {
 
   const filtered = useMemo(() => {
     return jobs.filter(j => {
+      // Active view hides archived (invoiced) jobs; Archived view shows only them.
+      if (showArchived ? !j.archived_at : !!j.archived_at) return false
       const matchesStatus = statusFilter.size === 0 || statusFilter.has(j.status)
       const q = textFilter.toLowerCase()
       const matchesText = !q ||
@@ -54,7 +57,9 @@ export default function Pipeline() {
         j.job_type?.toLowerCase().includes(q)
       return matchesStatus && matchesText
     })
-  }, [jobs, textFilter, statusFilter])
+  }, [jobs, textFilter, statusFilter, showArchived])
+
+  const archivedCount = useMemo(() => jobs.filter(j => j.archived_at).length, [jobs])
 
   function toggleStatus(key) {
     setStatusFilter(prev => {
@@ -88,6 +93,22 @@ export default function Pipeline() {
         </div>
 
         <div style={s.controls}>
+          {/* Active / Archived toggle */}
+          <div style={s.seg}>
+            <button
+              onClick={() => setShowArchived(false)}
+              style={{ ...s.segBtn, ...(!showArchived ? s.segActive : {}) }}
+            >
+              Active
+            </button>
+            <button
+              onClick={() => setShowArchived(true)}
+              style={{ ...s.segBtn, ...(showArchived ? s.segActive : {}) }}
+            >
+              Archived{archivedCount > 0 && <span style={s.segCount}>{archivedCount}</span>}
+            </button>
+          </div>
+
           {/* Search */}
           <div style={s.searchWrap}>
             <svg style={s.searchIcon} viewBox="0 0 20 20" fill="none">
@@ -129,7 +150,7 @@ export default function Pipeline() {
                 {STATUS_ORDER.map(key => {
                   const st = JOB_STATUSES[key]
                   const checked = statusFilter.has(key)
-                  const count = jobs.filter(j => j.status === key).length
+                  const count = jobs.filter(j => j.status === key && (showArchived ? !!j.archived_at : !j.archived_at)).length
                   return (
                     <label key={key} style={s.filterItem}>
                       <input type="checkbox" checked={checked} onChange={() => toggleStatus(key)} style={{ display: 'none' }}/>
@@ -156,7 +177,7 @@ export default function Pipeline() {
           <div style={s.empty}>Loading…</div>
         ) : filtered.length === 0 ? (
           <div style={s.empty}>
-            {textFilter || filterActive ? 'No jobs match.' : 'No jobs yet.'}
+            {textFilter || filterActive ? 'No jobs match.' : showArchived ? 'No archived jobs yet.' : 'No jobs yet.'}
           </div>
         ) : (
           <div style={s.list}>
@@ -249,6 +270,20 @@ const s = {
     cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap',
   },
   controls: { display: 'flex', alignItems: 'center', gap: '8px' },
+  seg: {
+    display: 'flex', background: 'var(--cream)', border: '1.5px solid var(--border)',
+    borderRadius: '8px', padding: '2px', flexShrink: 0,
+  },
+  segBtn: {
+    display: 'flex', alignItems: 'center', gap: '5px', border: 'none', background: 'none',
+    color: '#888', fontSize: '13px', fontWeight: '600', padding: '6px 12px',
+    borderRadius: '6px', cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap',
+  },
+  segActive: { background: '#fff', color: 'var(--terra)', boxShadow: '0 1px 2px rgba(0,0,0,0.08)' },
+  segCount: {
+    fontSize: '11px', fontWeight: '700', background: 'var(--terra-wash)', color: 'var(--terra)',
+    borderRadius: '9px', padding: '0 6px',
+  },
   searchWrap: { position: 'relative', display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 },
   searchIcon: { position: 'absolute', left: '10px', width: '15px', height: '15px', pointerEvents: 'none' },
   searchInput: {

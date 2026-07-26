@@ -53,6 +53,7 @@ export const DEMO_JOBS = [
     id: '7', status: 'invoiced', title: 'Emergency Fallen Branch Removal',
     address: '9 Newlands Ave, Wellington', job_type: 'Emergency',
     created_at: '2026-06-08T06:00:00Z', status_changed_at: '2026-06-08T18:00:00Z',
+    archived_at: '2026-06-08T18:00:00Z',
     clients: { id: 'c7', name: 'Jason Park', phone: '021 234 567', email: 'jpark@gmail.com' },
     quotes: [{ id: 'q6', status: 'accepted', subtotal: 1200, gst: 180, total: 1380 }],
   },

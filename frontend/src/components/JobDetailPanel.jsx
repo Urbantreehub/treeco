@@ -86,6 +86,7 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
   const [smsNote, setSmsNote] = useState(null)
   const [optOut, setOptOut] = useState(false)
   const [schedDate, setSchedDate] = useState(null) // formatted next scheduled date, for the "confirm booking" text
+  const [restoring, setRestoring] = useState(false)
   const [formStatus, setFormStatus] = useState(() => {
     try { return JSON.parse(localStorage.getItem(`treeco_job_forms_${job.id}`) ?? '{}') } catch { return {} }
   })
@@ -152,6 +153,13 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
     const next = !optOut
     setOptOut(next)
     await supabase.from('clients').update({ sms_opt_out: next }).eq('id', clientId)
+  }
+
+  async function restoreJob() {
+    setRestoring(true)
+    const { error } = await supabase.from('jobs').update({ archived_at: null }).eq('id', job.id)
+    setRestoring(false)
+    if (!error) onUpdated?.()
   }
 
   async function sendFollowUp(channel) {
@@ -350,6 +358,18 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
             </div>
             <button onClick={onClose} style={styles.closeBtn}>✕</button>
           </div>
+
+          {/* Archived banner — invoiced jobs are archived off the active list */}
+          {job.archived_at && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'var(--cream)', border: '1px solid var(--border)', borderRadius: '8px', padding: '10px 12px', marginBottom: '14px' }}>
+              <span style={{ fontSize: '13px', color: 'var(--ink-2)', flex: 1 }}>
+                📦 Archived — invoiced {new Date(job.archived_at).toLocaleDateString('en-NZ', { day: 'numeric', month: 'short', year: 'numeric' })}
+              </span>
+              <button onClick={restoreJob} disabled={restoring} style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--terra)', background: 'var(--terra-wash)', color: 'var(--terra)', fontSize: '12px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)', opacity: restoring ? 0.5 : 1 }}>
+                {restoring ? 'Restoring…' : 'Restore'}
+              </button>
+            </div>
+          )}
 
           {/* Status + contextual forward actions */}
           <div style={styles.section}>
