@@ -5,6 +5,7 @@ import { downloadPdf } from '../utils/downloadPdf'
 import { GLOSSARY, TERMS, TERMS_DATE } from '../data/arboriculture'
 import { annotateSegments } from '../utils/annotateText'
 import { COMPANY, REVIEWS, QUALIFICATIONS, WHY_US } from '../config/company'
+import QuoteClientComments from '../components/QuoteClientComments'
 
 const GST_RATE = 0.15
 
@@ -592,6 +593,13 @@ export default function QuoteView() {
 
         </div>
       </div>
+
+      {/* Client discussion thread — outside the PDF-captured document */}
+      {!notFound && quote && (
+        <div style={{ maxWidth: 760, margin: '0 auto', padding: '0 4px' }}>
+          <QuoteClientComments token={token} quoteId={quote.id} isPreview={isPreview} />
+        </div>
+      )}
 
       {/* Lightbox */}
       {lightbox && (

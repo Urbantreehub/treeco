@@ -5,6 +5,7 @@ import ImageMarkup from '../components/ImageMarkup'
 import QuoteReference from '../components/QuoteReference'
 import QuoteVersionHistory from '../components/QuoteVersionHistory'
 import QuoteLibraryModal from '../components/QuoteLibraryModal'
+import QuoteComments from '../components/QuoteComments'
 import { showsQuoteReference } from '../config/statuses'
 import { searchSor, CHARGE_CODES } from '../data/sorCodes'
 import {
@@ -1032,6 +1033,9 @@ export default function QuoteBuilder() {
 
             {/* Version history — appears once a quote has been accepted/reopened */}
             {!isNew && <QuoteVersionHistory quoteId={id} refreshKey={quote?.status} />}
+
+            {/* Client discussion thread */}
+            {!isNew && <QuoteComments quoteId={id} />}
 
             {/* Job selector */}
             {isNew && (
