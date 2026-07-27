@@ -13,6 +13,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { supabase } from '../config/supabase'
+import { useAuth } from '../context/AuthContext'
 import { v4 as uuid } from 'uuid'
 import { GST, calcTotals } from '../utils/pricing'
 
@@ -631,6 +632,7 @@ function EmailModal({ quote, onClose, onSend, sending }) {
 // ── Main builder ────────────────────────────────────────────────────────────
 export default function QuoteBuilder() {
   const { id } = useParams()
+  const { session } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const isMobile = useIsMobile()
@@ -716,23 +718,25 @@ export default function QuoteBuilder() {
 
   async function save(newStatus, openSendModal = false) {
     setSaving(true)
+    const userId = session?.user?.id ?? null
     const payload = {
       line_items: items, subtotal: totals.subtotal, gst: totals.gst, total: totals.total,
       notes, private_notes: privateNotes, job_pack: jobPack,
+      ...(userId ? { updated_by: userId } : {}),
       ...(newStatus ? { status: newStatus } : {}),
       ...(newStatus === 'sent' ? { sent_at: new Date().toISOString() } : {}),
     }
-    // Graceful fallback if optional columns don't exist yet (migrations 007, 009)
-    const OPTIONAL_COLS = ['job_pack', 'private_notes', 'notes', 'valid_until']
+    // Graceful fallback if optional columns don't exist yet (migrations 007, 009, 019)
+    const OPTIONAL_COLS = ['job_pack', 'private_notes', 'notes', 'valid_until', 'created_by', 'updated_by']
     async function tryUpsert(p, isInsert, insertMeta) {
       let res = isInsert
         ? await supabase.from('quotes').insert({ ...insertMeta, ...p }).select().single()
         : await supabase.from('quotes').update(p).eq('id', id)
       const errMsg = res.error?.message ?? ''
       if (OPTIONAL_COLS.some(c => errMsg.includes(c))) {
-        const { job_pack: _jp, private_notes: _pn, notes: _n, ...pFallback } = p
+        const { job_pack: _jp, private_notes: _pn, notes: _n, updated_by: _ub, ...pFallback } = p
         const metaFallback = isInsert
-          ? Object.fromEntries(Object.entries(insertMeta).filter(([k]) => k !== 'valid_until'))
+          ? Object.fromEntries(Object.entries(insertMeta).filter(([k]) => !['valid_until', 'created_by'].includes(k)))
           : undefined
         res = isInsert
           ? await supabase.from('quotes').insert({ ...metaFallback, ...pFallback }).select().single()
@@ -744,7 +748,7 @@ export default function QuoteBuilder() {
       if (!jobId) { showToast('Select a job first', 'error'); setSaving(false); return }
       const token = uuid().replace(/-/g, '')
       const validUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
-      const { data, error } = await tryUpsert(payload, true, { job_id: jobId, status: newStatus ?? 'draft', client_view_token: token, valid_until: validUntil })
+      const { data, error } = await tryUpsert(payload, true, { job_id: jobId, status: newStatus ?? 'draft', client_view_token: token, valid_until: validUntil, ...(userId ? { created_by: userId } : {}) })
       if (error) showToast(error.message, 'error')
       else if (data) { showToast('Quote created'); navigate(`/quotes/${data.id}`, { replace: true, state: openSendModal ? { openSendModal: true } : null }) }
       else showToast('Quote created')
