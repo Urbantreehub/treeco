@@ -62,8 +62,38 @@ function demoQuotes() {
   }))
 }
 
+// A populated demo day so the calendar (and its per-crew totals) has content.
+function demoSchedule() {
+  const now = new Date()
+  // The calendar hides weekends and jumps to the next business day, so land the
+  // demo jobs on that same day (Sat/Sun → Monday) or they'd fall on a hidden day.
+  const dow = now.getDay()
+  if (dow === 6) now.setDate(now.getDate() + 2)
+  else if (dow === 0) now.setDate(now.getDate() + 1)
+  const ymd = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  const mk = (id, resource_id, start, end, name, job_type, subtotal) => ({
+    id, job_id: `sj-${id}`, date: ymd, start_time: start, end_time: end,
+    resource_id, status: 'scheduled', vehicle_reg: null,
+    jobs: {
+      id: `sj-${id}`, title: name, status: 'scheduled', job_type,
+      address: `${name.split(' ')[0]} Rd, Wellington`, lat: null, lng: null,
+      ko_reference: null, sla_due_at: null, description: null,
+      clients: { name, phone: null },
+      quotes: [{ id: `sq-${id}`, status: 'accepted', total: Math.round(subtotal * 1.15), subtotal }],
+    },
+  })
+  return [
+    mk('1', 'josh',   '07:00:00', '10:00:00', 'Margaret Thompson', 'Tree Removal', 4850),
+    mk('2', 'josh',   '11:00:00', '14:00:00', 'Coastal Properties', 'Pruning',     2070),
+    mk('3', 'isuzu',  '07:30:00', '12:00:00', 'Richard Tait',       'Pruning',      748),
+    mk('4', 'nissan', '08:00:00', '15:00:00', 'Heritage Homes',     'Tree Removal', 6210),
+    mk('5', 'nissan', '15:30:00', '17:00:00', 'Jason Park',         'Pruning',      1380),
+  ]
+}
+
 const DEMO_TABLES = {
   quotes:   () => demoQuotes(),
+  schedule: () => demoSchedule(),
   vehicles: () => ([
     { id: 'v1', name: 'Isuzu tipper', plate: 'KRT294', active: true, cof_due: null, ruc_km_remaining: 1240, notes: '' },
     { id: 'v2', name: 'Nissan crew cab', plate: 'MHD812', active: true, cof_due: null, ruc_km_remaining: 620, notes: '' },
