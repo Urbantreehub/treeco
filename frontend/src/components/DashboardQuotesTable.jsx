@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../config/supabase'
+import { ACCEPTED_STATUSES, isExpired, effectiveStatus } from '../utils/quoteStatus'
 
 // ── Quote-status presentation ───────────────────────────────────────────────
 // The quotes table uses its own status vocabulary ('viewed' = client opened the
@@ -18,22 +19,6 @@ const QUOTE_STATUS = {
 }
 function statusColor(k) { return QUOTE_STATUS[k]?.color ?? '#7C93A8' }
 function statusLabel(k) { return QUOTE_STATUS[k]?.label ?? (k || '—') }
-
-const ACCEPTED_STATUSES = ['accepted', 'complete', 'invoiced']
-
-// A sent/opened quote past its valid_until is treated as expired (matching
-// Quotient's lifecycle), without needing a stored status change.
-function isExpired(q) {
-  if (!['sent', 'viewed'].includes(q.status)) return false
-  if (!q.valid_until) return false
-  const today = new Date(); today.setHours(0, 0, 0, 0)
-  return new Date(q.valid_until) < today
-}
-
-// The status we present/filter on — the stored status, unless it has expired.
-function effectiveStatus(q) {
-  return isExpired(q) ? 'expired' : q.status
-}
 
 function nzd(v) {
   if (v == null) return '—'

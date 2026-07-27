@@ -1,31 +1,19 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../config/supabase'
+import { followUpBucket } from '../utils/quoteStatus'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON = import.meta.env.VITE_SUPABASE_ANON_KEY
 const fnHeaders = { 'Content-Type': 'application/json', apikey: ANON, Authorization: `Bearer ${ANON}` }
 
 const DAY = 86400000
-const HOUR = 3600000
 
-// Quotient's follow-up cadence: unopened after 12h, chase after 3 days, final
-// nudge after 14 days — all only while a quote is still awaiting a response.
+// Presentation for each follow-up cadence bucket (from followUpBucket()).
 const BUCKETS = {
   final:    { label: 'Final nudge', hint: 'Sent over 14 days ago', dot: '#C0392B', bg: '#FFF0EE', color: '#C0392B', order: 0 },
   chase:    { label: 'Follow up',   hint: 'No reply after 3 days',  dot: '#D4851A', bg: '#FDF3E3', color: '#D4851A', order: 1 },
   unopened: { label: 'Unopened',    hint: 'Not opened after 12h',   dot: '#4A7FA5', bg: '#EEF4FA', color: '#4A7FA5', order: 2 },
-}
-
-function bucketFor(q) {
-  if (!['sent', 'viewed'].includes(q.status)) return null
-  if (!q.sent_at) return null
-  const sentAgo = Date.now() - new Date(q.sent_at).getTime()
-  const opened = !!q.viewed_at || (q.opened_count ?? 0) > 0
-  if (sentAgo > 14 * DAY) return 'final'
-  if (sentAgo > 3 * DAY) return 'chase'
-  if (!opened && sentAgo > 12 * HOUR) return 'unopened'
-  return null
 }
 
 function nzd(v) {
@@ -57,7 +45,7 @@ export default function DashboardFollowUps() {
       .not('sent_at', 'is', null)
       .order('sent_at', { ascending: true })
     const withBucket = (data ?? [])
-      .map(q => ({ ...q, bucket: bucketFor(q) }))
+      .map(q => ({ ...q, bucket: followUpBucket(q) }))
       .filter(q => q.bucket)
       .sort((a, b) => BUCKETS[a.bucket].order - BUCKETS[b.bucket].order || new Date(a.sent_at) - new Date(b.sent_at))
     setItems(withBucket)
