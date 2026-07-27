@@ -22,16 +22,44 @@ function json(body: unknown, status = 200) {
 }
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
 
-async function geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
-  if (!address || !address.trim()) return null
-  // Bias toward NZ/Wellington to keep results local.
-  const q = encodeURIComponent(/wellington|nz|new zealand/i.test(address) ? address : `${address}, Wellington, New Zealand`)
-  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=nz&q=${q}`
+async function geocodeOnce(q: string): Promise<{ lat: number; lng: number } | null> {
+  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=nz&q=${encodeURIComponent(q)}`
   const res = await fetch(url, { headers: { 'User-Agent': 'TreeCo/1.0 (office@urbantreeservices.net)' } })
   if (!res.ok) return null
   const arr = await res.json()
   if (!Array.isArray(arr) || arr.length === 0) return null
-  return { lat: parseFloat(arr[0].lat), lng: parseFloat(arr[0].lon) }
+  const lat = parseFloat(arr[0].lat), lng = parseFloat(arr[0].lon)
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null
+  return { lat, lng }
+}
+
+// Build progressively looser query variants so real-world addresses (rural
+// blocks, ones prefixed with a person's name, or missing a suburb) still land
+// a pin instead of returning nothing.
+function candidateQueries(address: string): string[] {
+  const a = address.trim().replace(/\s+/g, ' ')
+  const hasNZ = /new zealand|,\s*nz\b/i.test(a)
+  const nz = (s: string) => (/new zealand|,\s*nz\b/i.test(s) ? s : `${s}, New Zealand`)
+  const parts = a.split(',').map(s => s.trim()).filter(Boolean)
+  const out: string[] = [nz(a)]
+  // Drop a leading label with no street number (e.g. "Dave's block, 12 Main Rd").
+  if (parts.length > 1 && !/\d/.test(parts[0])) out.push(nz(parts.slice(1).join(', ')))
+  // Fall back to the last two components (suburb/town + region).
+  if (parts.length > 2) out.push(nz(parts.slice(-2).join(', ')))
+  // Last resort: bias to the local region for a bare suburb/street.
+  if (!hasNZ) out.push(`${a}, Wellington, New Zealand`)
+  return [...new Set(out)]
+}
+
+async function geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
+  if (!address || !address.trim()) return null
+  const queries = candidateQueries(address)
+  for (let i = 0; i < queries.length; i++) {
+    const g = await geocodeOnce(queries[i])
+    if (g) return g
+    if (i < queries.length - 1) await sleep(1100) // respect Nominatim 1 req/sec
+  }
+  return null
 }
 
 Deno.serve(async (req: Request) => {
@@ -44,7 +72,41 @@ Deno.serve(async (req: Request) => {
   )
 
   try {
-    const { address, job_id, client_id, batch } = await req.json()
+    const { address, job_id, client_id, batch, mulch_site_id, batch_mulch } = await req.json()
+    const now = () => new Date().toISOString()
+
+    // Backfill/retry every mulch site that has an address but no pin (covers
+    // both never-geocoded and previously-failed sites).
+    if (batch_mulch) {
+      const { data: rows } = await supabase
+        .from('mulch_sites').select('id, address')
+        .is('lat', null).not('address', 'is', null).eq('active', true).limit(30)
+      let geocoded = 0, failed = 0
+      for (const s of rows ?? []) {
+        const g = await geocodeAddress(s.address)
+        if (g) {
+          await supabase.from('mulch_sites').update({ lat: g.lat, lng: g.lng, geocoded_at: now(), geocode_failed: false }).eq('id', s.id)
+          geocoded++
+        } else {
+          await supabase.from('mulch_sites').update({ geocoded_at: now(), geocode_failed: true }).eq('id', s.id)
+          failed++
+        }
+        await sleep(1100)
+      }
+      return json({ ok: true, geocoded, failed, scanned: rows?.length ?? 0 })
+    }
+
+    // Geocode a single mulch site and cache the result (or mark it failed).
+    if (mulch_site_id) {
+      const { data: s } = await supabase.from('mulch_sites').select('address').eq('id', mulch_site_id).single()
+      const g = await geocodeAddress(s?.address ?? '')
+      if (!g) {
+        await supabase.from('mulch_sites').update({ geocoded_at: now(), geocode_failed: true }).eq('id', mulch_site_id)
+        return json({ ok: false, error: 'not_recognised' })
+      }
+      await supabase.from('mulch_sites').update({ lat: g.lat, lng: g.lng, geocoded_at: now(), geocode_failed: false }).eq('id', mulch_site_id)
+      return json({ ok: true, ...g })
+    }
 
     // Batch: geocode every job that has an address but no coords yet.
     if (batch) {

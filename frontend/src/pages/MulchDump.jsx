@@ -68,6 +68,8 @@ export default function MulchDump() {
   const [activeId, setActiveId] = useState(null)
   const [editing, setEditing] = useState(null) // site object | 'new' | null
   const [toast, setToast] = useState(null)
+  const [geocoding, setGeocoding] = useState(false)
+  const autoTriedRef = useRef(false)
   const showToast = (m) => { setToast(m); setTimeout(() => setToast(null), 3200) }
 
   const load = useCallback(async () => {
@@ -82,7 +84,25 @@ export default function MulchDump() {
   }, [])
   useEffect(() => { load() }, [load])
 
+  // (Re)geocode every active site that has an address but no map pin.
+  const runBatchGeocode = useCallback(async () => {
+    setGeocoding(true)
+    try {
+      await fetch(`${SUPABASE_URL}/functions/v1/geocode`, { method: 'POST', headers: fnHeaders, body: JSON.stringify({ batch_mulch: true }) })
+    } catch { /* best effort */ }
+    setGeocoding(false)
+    load()
+  }, [load])
+
+  // On first load, auto-place any sites that were never geocoded (runs once).
+  useEffect(() => {
+    if (loading || autoTriedRef.current) return
+    const neverTried = sites.some(s => s.address && s.lat == null && !s.geocode_failed)
+    if (neverTried) { autoTriedRef.current = true; runBatchGeocode() }
+  }, [loading, sites, runBatchGeocode])
+
   const active = sites.find(s => s.id === activeId) || null
+  const unplaced = sites.filter(s => s.address && s.lat == null)
 
   async function logDump(site, note, photoUrl) {
     const { data, error } = await supabase.from('mulch_dumps')
@@ -119,6 +139,18 @@ export default function MulchDump() {
         </div>
         {isStaff && <button style={mstyle.addBtn} onClick={() => setEditing('new')}>+ Add site</button>}
       </div>
+
+      {geocoding && <div style={mstyle.geoBanner}>📍 Placing sites on the map…</div>}
+      {!geocoding && unplaced.length > 0 && (
+        <div style={mstyle.warnBanner}>
+          <span style={{ flex: 1 }}>
+            ⚠️ {unplaced.length} site{unplaced.length === 1 ? '' : 's'} couldn’t be placed on the map
+            {' — '}{unplaced.slice(0, 3).map(s => s.name).join(', ')}{unplaced.length > 3 ? '…' : ''}.
+            {' '}Check the address{unplaced.length === 1 ? '' : 'es'} or retry.
+          </span>
+          {isStaff && <button style={mstyle.retryGeoBtn} onClick={runBatchGeocode}>Retry</button>}
+        </div>
+      )}
 
       <div style={{ ...mstyle.body, flexDirection: isMobile ? 'column' : 'row' }}>
         <div style={{ ...mstyle.left, width: isMobile ? '100%' : '340px' }}>
@@ -319,12 +351,21 @@ function SiteEditor({ site, meId, onClose, onSaved, showToast }) {
       if (error) { showToast('Save failed'); setSaving(false); return }
       siteId = data.id
     }
-    // Geocode the address (best-effort, cached on the row).
+    // Geocode the address and cache the pin (server-side, via mulch_site_id).
+    // Awaited so we can tell the user immediately if it couldn't be placed.
+    let geoWarn = false
     if (payload.address && siteId) {
-      fetch(`${SUPABASE_URL}/functions/v1/geocode`, { method: 'POST', headers: fnHeaders, body: JSON.stringify({ address: payload.address }) })
-        .then(r => r.json()).then(g => { if (g.ok) supabase.from('mulch_sites').update({ lat: g.lat, lng: g.lng }).eq('id', siteId) }).catch(() => {})
+      try {
+        const r = await fetch(`${SUPABASE_URL}/functions/v1/geocode`, { method: 'POST', headers: fnHeaders, body: JSON.stringify({ mulch_site_id: siteId }) })
+        const g = await r.json().catch(() => ({}))
+        geoWarn = !g.ok
+      } catch { geoWarn = true }
     }
-    setSaving(false); showToast(site ? 'Site updated ✓' : 'Site added ✓'); onSaved()
+    setSaving(false)
+    showToast(geoWarn
+      ? 'Saved — but the address wasn’t recognised, so there’s no map pin. Check the address.'
+      : (site ? 'Site updated ✓' : 'Site added ✓'))
+    onSaved()
   }
 
   return (
@@ -376,6 +417,10 @@ const mstyle = {
   title: { fontSize: '18px', fontWeight: '700', color: 'var(--bark)' },
   sub: { fontSize: '12px', color: '#999', marginTop: '2px' },
   addBtn: { padding: '9px 16px', borderRadius: '9px', border: 'none', background: 'var(--moss)', color: '#fff', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)' },
+
+  geoBanner: { padding: '9px 20px', background: '#EEF4FA', color: '#3A6A8A', fontSize: '13px', fontWeight: '600', borderBottom: '1px solid #D3E2EC', flexShrink: 0 },
+  warnBanner: { display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 20px', background: '#FDF3E3', color: '#9A6A1A', fontSize: '13px', fontWeight: '600', borderBottom: '1px solid #F0DDB8', flexShrink: 0 },
+  retryGeoBtn: { padding: '6px 12px', borderRadius: '7px', border: '1px solid #D4851A', background: '#fff', color: '#D4851A', fontSize: '12px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)', flexShrink: 0 },
 
   body: { flex: 1, display: 'flex', minHeight: 0, overflow: 'hidden' },
   left: { display: 'flex', flexDirection: 'column', borderRight: '1px solid var(--border)', background: '#fff', overflowY: 'auto', flexShrink: 0 },
