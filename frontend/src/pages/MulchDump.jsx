@@ -11,6 +11,14 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON = import.meta.env.VITE_SUPABASE_ANON_KEY
 const fnHeaders = { 'Content-Type': 'application/json', apikey: ANON, Authorization: `Bearer ${ANON}` }
 const nzd = (v) => '$' + Number(v || 0).toLocaleString('en-NZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+// Universal Google Maps directions link (works on iOS, Android and desktop).
+// Prefers the exact pin, falls back to the typed address.
+function directionsUrl(site) {
+  const dest = (site.lat != null && site.lng != null)
+    ? `${site.lat},${site.lng}`
+    : encodeURIComponent(site.address || site.name || '')
+  return `https://www.google.com/maps/dir/?api=1&destination=${dest}`
+}
 function timeAgo(d) {
   const diff = Date.now() - new Date(d).getTime(), m = Math.floor(diff / 6e4), h = Math.floor(m / 60), day = Math.floor(h / 24)
   if (m < 1) return 'just now'; if (m < 60) return `${m}m ago`; if (h < 24) return `${h}h ago`
@@ -154,7 +162,7 @@ export default function MulchDump() {
 
       <div style={{ ...mstyle.body, flexDirection: isMobile ? 'column' : 'row' }}>
         <div style={{ ...mstyle.left, width: isMobile ? '100%' : '340px' }}>
-          {!isMobile && <SitesMap sites={sites} activeId={activeId} onPick={setActiveId} />}
+          <SitesMap sites={sites} activeId={activeId} onPick={setActiveId} />
           {loading ? <div style={mstyle.empty}>Loading…</div>
             : sites.length === 0 ? <div style={mstyle.empty}>No dump sites yet.{isStaff ? ' Add one to get started.' : ''}</div>
             : (
@@ -249,7 +257,12 @@ function SiteDetail({ site, dumps, isStaff, onLog, onRetry, onEdit, showToast })
           {isStaff && site.contact_email && <a href={`mailto:${site.contact_email}`} style={mstyle.contactLink}>✉ {site.contact_email}</a>}
         </div>
       </div>
-      {site.address && <div style={mstyle.addr}>🗺 {site.address}</div>}
+      <div style={mstyle.addrRow}>
+        {site.address && <div style={mstyle.addr}>🗺 {site.address}</div>}
+        {(site.address || (site.lat != null && site.lng != null)) && (
+          <a href={directionsUrl(site)} target="_blank" rel="noreferrer" style={mstyle.directionsBtn}>🧭 Directions</a>
+        )}
+      </div>
 
       {/* Log a load */}
       {!logging ? (
@@ -452,7 +465,9 @@ const mstyle = {
   price: { fontSize: '22px', fontWeight: '800', color: 'var(--moss)' },
   perLoad: { fontSize: '13px', fontWeight: '600', color: '#aaa' },
   contactLink: { display: 'block', fontSize: '13px', color: 'var(--sky)', textDecoration: 'none', marginTop: '4px' },
-  addr: { fontSize: '13px', color: '#888', marginBottom: '16px' },
+  addrRow: { display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '16px' },
+  addr: { fontSize: '13px', color: '#888' },
+  directionsBtn: { display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '13px', fontWeight: '700', color: '#fff', background: 'var(--sky)', textDecoration: 'none', padding: '7px 13px', borderRadius: '8px', whiteSpace: 'nowrap' },
 
   logBtn: { width: '100%', padding: '16px', borderRadius: '12px', border: 'none', background: 'var(--moss)', color: '#fff', fontSize: '16px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)', marginBottom: '20px', boxShadow: '0 2px 8px rgba(74,103,65,0.3)' },
   logCard: { background: '#fff', border: '1.5px solid var(--moss)', borderRadius: '12px', padding: '16px', marginBottom: '20px' },
