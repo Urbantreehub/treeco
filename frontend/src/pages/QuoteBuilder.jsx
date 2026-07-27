@@ -846,6 +846,19 @@ export default function QuoteBuilder() {
     setSaving(false)
   }
 
+  // Push a sent/viewed quote's expiry out another 30 days.
+  async function extendExpiry() {
+    const next = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+    setSaving(true)
+    const { error } = await supabase.from('quotes')
+      .update({ valid_until: next, updated_by: session?.user?.id ?? null })
+      .eq('id', id)
+    if (error) { showToast(error.message, 'error'); setSaving(false); return }
+    setQuote(q => ({ ...q, valid_until: next }))
+    showToast('Expiry extended 30 days')
+    setSaving(false)
+  }
+
   async function sendToXero() {
     if (!quote) return
     setXeroLoading(true)
@@ -940,6 +953,9 @@ export default function QuoteBuilder() {
   const canXero     = quote?.status === 'complete'
   // Accepted/complete/invoiced quotes are frozen (enforced in migration 020).
   const locked      = !isNew && ['accepted', 'complete', 'invoiced'].includes(quote?.status)
+  // Expiry awareness for live (sent/viewed) quotes.
+  const awaiting    = ['sent', 'viewed'].includes(quote?.status)
+  const expired     = awaiting && quote?.valid_until && new Date(quote.valid_until) < new Date(new Date().toDateString())
 
   return (
     <>
@@ -1028,6 +1044,24 @@ export default function QuoteBuilder() {
                   </div>
                 </div>
                 <button style={s.reopenBtn} onClick={reopen} disabled={saving}>Reopen to edit</button>
+              </div>
+            )}
+
+            {/* Signature record on accepted quotes */}
+            {locked && quote?.signed_name && (
+              <div style={s.signedNote}>✍ Signed by <strong>{quote.signed_name}</strong>{quote.responded_at ? ` on ${new Date(quote.responded_at).toLocaleDateString('en-NZ')}` : ''}</div>
+            )}
+
+            {/* Expiry — for live quotes awaiting a response */}
+            {awaiting && quote?.valid_until && (
+              <div style={{ ...s.expiryBanner, ...(expired ? s.expiryBannerExpired : null) }}>
+                <span>{expired ? '⏳' : '🗓'}</span>
+                <span style={{ flex: 1 }}>
+                  {expired
+                    ? <>This quote <strong>expired</strong> on {new Date(quote.valid_until).toLocaleDateString('en-NZ')}.</>
+                    : <>Valid until <strong>{new Date(quote.valid_until).toLocaleDateString('en-NZ')}</strong>.</>}
+                </span>
+                <button style={s.reopenBtn} onClick={extendExpiry} disabled={saving}>Extend 30 days</button>
               </div>
             )}
 
@@ -1366,6 +1400,9 @@ const s = {
   saveBtn: { background: 'var(--cream)', border: '1px solid var(--border)', borderRadius: '7px', padding: '7px 14px', fontSize: '13px', fontWeight: '600', color: 'var(--ink)', cursor: 'pointer', fontFamily: 'var(--font)' },
   lockBanner: { display: 'flex', alignItems: 'center', gap: 12, background: '#FBF6EC', border: '1px solid #E7D9BC', borderRadius: 'var(--radius)', padding: '12px 14px', marginBottom: 16 },
   reopenBtn: { background: '#fff', border: '1px solid var(--terra)', color: 'var(--terra)', borderRadius: '7px', padding: '8px 14px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap', flexShrink: 0 },
+  signedNote: { fontSize: '12.5px', color: '#4A6741', background: '#EDF3EA', border: '1px solid #D3E2CB', borderRadius: 'var(--radius)', padding: '9px 12px', marginBottom: 16 },
+  expiryBanner: { display: 'flex', alignItems: 'center', gap: 10, background: '#F6FAF4', border: '1px solid #D8EBD0', borderRadius: 'var(--radius)', padding: '10px 14px', marginBottom: 16, fontSize: '13px', color: 'var(--bark)' },
+  expiryBannerExpired: { background: '#FFF0EE', border: '1px solid #F0C0B8' },
   sendBtn: { background: 'var(--terra)', color: '#fff', border: 'none', borderRadius: '7px', padding: '8px 16px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
   emailBtn: { background: '#EBF3FA', color: '#4A7FA5', border: '1.5px solid #4A7FA5', borderRadius: '7px', padding: '7px 14px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
   completeBtn: { background: '#E6F4EC', color: '#1A7A4A', border: '1.5px solid #1A7A4A', borderRadius: '7px', padding: '7px 14px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },

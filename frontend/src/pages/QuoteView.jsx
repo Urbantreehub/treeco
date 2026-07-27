@@ -74,6 +74,7 @@ export default function QuoteView() {
   const [responding, setResponding] = useState(false)
   const [declineStep, setDeclineStep] = useState(false)
   const [declineReason, setDeclineReason] = useState('')
+  const [signName, setSignName] = useState('')
   const [response, setResponse] = useState(null)
   const [tcAgreed, setTcAgreed] = useState(false)
   const [showTc, setShowTc] = useState(false)
@@ -123,6 +124,7 @@ export default function QuoteView() {
     if (isPreview) return
     setResponding(true)
     const newStatus = action === 'accept' ? 'accepted' : 'declined'
+    const signature = action === 'accept' ? (signName.trim() || null) : null
     // Persist the client's optional-item selections and the resulting totals,
     // so the office sees exactly what was accepted. This goes through the
     // respond_to_quote RPC (SECURITY DEFINER) — the client is the anon role,
@@ -136,6 +138,7 @@ export default function QuoteView() {
       p_subtotal: finalTotals.subtotal,
       p_gst: finalTotals.gst,
       p_total: finalTotals.total,
+      p_signature: signature,
     })
     setResponding(false)
     setResponded(true)
@@ -459,14 +462,24 @@ export default function QuoteView() {
                   <div style={p.ctaHint}>
                     This quote is valid until <strong>{expiryDate}</strong>.
                   </div>
+                  <div style={p.signRow}>
+                    <label style={p.signLabel}>Type your full name to sign</label>
+                    <input
+                      style={p.signInput}
+                      value={signName}
+                      onChange={e => setSignName(e.target.value)}
+                      placeholder="Your full name"
+                      autoComplete="name"
+                    />
+                  </div>
                   <div style={p.ctaBtns}>
                     <button
-                      style={{ ...p.acceptBtn, opacity: tcAgreed ? 1 : 0.45, cursor: tcAgreed ? 'pointer' : 'not-allowed' }}
-                      onClick={() => tcAgreed && respond('accept')}
-                      disabled={responding || !tcAgreed}
-                      title={!tcAgreed ? 'Please agree to the Terms & Conditions to accept' : ''}
+                      style={{ ...p.acceptBtn, opacity: (tcAgreed && signName.trim()) ? 1 : 0.45, cursor: (tcAgreed && signName.trim()) ? 'pointer' : 'not-allowed' }}
+                      onClick={() => tcAgreed && signName.trim() && respond('accept')}
+                      disabled={responding || !tcAgreed || !signName.trim()}
+                      title={!tcAgreed ? 'Please agree to the Terms & Conditions to accept' : !signName.trim() ? 'Type your name to sign' : ''}
                     >
-                      {responding ? 'Processing…' : '✓ Accept quote'}
+                      {responding ? 'Processing…' : '✓ Accept & sign'}
                     </button>
                     <button style={p.declineBtn} onClick={() => setDeclineStep(true)} disabled={responding}>
                       Decline
@@ -511,6 +524,11 @@ export default function QuoteView() {
                   ? <>We'll be in touch within 1 business day to confirm your booking date.<br />Ref: #{quoteNum} · <a href="tel:0272031446" style={{ color: 'inherit' }}>027 203 1446</a></>
                   : <>We've received your response. Call <a href="tel:0272031446" style={{ color: 'inherit' }}>027 203 1446</a> if you'd like to discuss further.</>}
               </div>
+              {response === 'accepted' && (signName.trim() || quote.signed_name) && (
+                <div style={{ marginTop: '10px', fontSize: '13px', fontStyle: 'italic', fontFamily: 'Georgia, serif', opacity: 0.85 }}>
+                  Signed: {signName.trim() || quote.signed_name}
+                </div>
+              )}
             </div>
           )}
 
@@ -813,6 +831,9 @@ const p = {
   // CTA
   ctaBox: { marginBottom: '32px' },
   ctaHint: { fontSize: '12px', color: '#888', marginBottom: '14px', lineHeight: 1.5, textAlign: 'center' },
+  signRow: { display: 'flex', flexDirection: 'column', gap: '6px', maxWidth: '340px', margin: '0 auto 14px' },
+  signLabel: { fontSize: '12px', fontWeight: 600, color: '#6B6459', textAlign: 'center' },
+  signInput: { border: '1px solid #D8D2C6', borderRadius: '9px', padding: '11px 14px', fontSize: '17px', fontFamily: 'Georgia, "Times New Roman", serif', fontStyle: 'italic', color: '#3A3121', textAlign: 'center', outline: 'none' },
   ctaBtns: { display: 'flex', gap: '12px' },
   acceptBtn: {
     flex: 2, padding: '18px', background: 'var(--moss)', color: '#fff',
