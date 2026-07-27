@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useIsMobile } from '../hooks/useIsMobile'
 import ImageMarkup from '../components/ImageMarkup'
 import QuoteReference from '../components/QuoteReference'
+import QuoteVersionHistory from '../components/QuoteVersionHistory'
 import { showsQuoteReference } from '../config/statuses'
 import { searchSor, CHARGE_CODES } from '../data/sorCodes'
 import {
@@ -791,12 +792,43 @@ export default function QuoteBuilder() {
   }
 
   async function markComplete() {
-    await save('complete')
+    // Status-only update — never resends line_items, so it can't be used to
+    // slip an edit past the accepted-quote lock (see migration 020).
+    setSaving(true)
+    const { error } = await supabase.from('quotes')
+      .update({ status: 'complete', updated_by: session?.user?.id ?? null })
+      .eq('id', id)
+    if (error) { showToast(error.message, 'error'); setSaving(false); return }
     if (quote?.job_id) {
       await supabase.from('jobs')
         .update({ status: 'complete_to_invoice', status_changed_at: new Date().toISOString() })
         .eq('id', quote.job_id)
     }
+    const { data } = await supabase.from('quotes')
+      .select(`*, jobs (id, address, job_type, title, status, clients (id, name, email, phone))`)
+      .eq('id', id).single()
+    if (data) { setQuote(data); setJob(data.jobs) }
+    showToast('Marked complete')
+    setSaving(false)
+  }
+
+  // Reopen a locked (accepted/complete/invoiced) quote for editing. Reverts to
+  // "Sent"; the DB captures a version snapshot of the state being left behind.
+  async function reopen() {
+    if (!window.confirm(
+      'Reopen this quote for editing?\n\nA snapshot of the accepted quote is saved to its version history first. It reverts to “Sent”, and the client can view it again on their link until you re-send.'
+    )) return
+    setSaving(true)
+    const { error } = await supabase.from('quotes')
+      .update({ status: 'sent', updated_by: session?.user?.id ?? null })
+      .eq('id', id)
+    if (error) { showToast(error.message, 'error'); setSaving(false); return }
+    const { data } = await supabase.from('quotes')
+      .select(`*, jobs (id, address, job_type, title, status, clients (id, name, email, phone))`)
+      .eq('id', id).single()
+    if (data) { setQuote(data); setJob(data.jobs) }
+    showToast('Quote reopened for editing')
+    setSaving(false)
   }
 
   async function sendToXero() {
@@ -891,6 +923,8 @@ export default function QuoteBuilder() {
   const canSms      = !!clientPhone && quote?.client_view_token && quote?.status !== 'draft'
   const canComplete = quote?.status === 'accepted'
   const canXero     = quote?.status === 'complete'
+  // Accepted/complete/invoiced quotes are frozen (enforced in migration 020).
+  const locked      = !isNew && ['accepted', 'complete', 'invoiced'].includes(quote?.status)
 
   return (
     <>
@@ -953,7 +987,7 @@ export default function QuoteBuilder() {
             {canXero && (
               <button style={s.xeroBtn} onClick={sendToXero} disabled={xeroLoading}>{xeroLoading ? 'Sending…' : '→ Xero'}</button>
             )}
-            {quote?.status !== 'invoiced' && (
+            {!locked && (
               <button style={s.saveBtn} onClick={() => save()} disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
             )}
           </div>
@@ -962,6 +996,25 @@ export default function QuoteBuilder() {
         {/* ── Body ── */}
         <div style={{ ...s.body, flexDirection: isMobile ? 'column' : 'row' }}>
           <div style={s.main}>
+
+            {/* Locked banner — accepted/complete/invoiced quotes are frozen */}
+            {locked && (
+              <div style={s.lockBanner}>
+                <span style={{ fontSize: 18 }}>🔒</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, color: 'var(--bark)', fontSize: 14 }}>
+                    This quote is {ST[quote.status]?.label?.toLowerCase() ?? quote.status} and locked
+                  </div>
+                  <div style={{ fontSize: 12.5, color: '#8A857D', marginTop: 2 }}>
+                    Pricing, line items and terms can’t be changed. Reopen it to edit — the accepted version is saved to history first.
+                  </div>
+                </div>
+                <button style={s.reopenBtn} onClick={reopen} disabled={saving}>Reopen to edit</button>
+              </div>
+            )}
+
+            {/* Version history — appears once a quote has been accepted/reopened */}
+            {!isNew && <QuoteVersionHistory quoteId={id} refreshKey={quote?.status} />}
 
             {/* Job selector */}
             {isNew && (
@@ -1279,6 +1332,8 @@ const s = {
   },
   pdfBtn: { background: 'var(--cream)', border: '1px solid var(--border)', borderRadius: '7px', padding: '7px 12px', fontSize: '13px', fontWeight: '600', color: 'var(--ink)', cursor: 'pointer', fontFamily: 'var(--font)' },
   saveBtn: { background: 'var(--cream)', border: '1px solid var(--border)', borderRadius: '7px', padding: '7px 14px', fontSize: '13px', fontWeight: '600', color: 'var(--ink)', cursor: 'pointer', fontFamily: 'var(--font)' },
+  lockBanner: { display: 'flex', alignItems: 'center', gap: 12, background: '#FBF6EC', border: '1px solid #E7D9BC', borderRadius: 'var(--radius)', padding: '12px 14px', marginBottom: 16 },
+  reopenBtn: { background: '#fff', border: '1px solid var(--terra)', color: 'var(--terra)', borderRadius: '7px', padding: '8px 14px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap', flexShrink: 0 },
   sendBtn: { background: 'var(--terra)', color: '#fff', border: 'none', borderRadius: '7px', padding: '8px 16px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
   emailBtn: { background: '#EBF3FA', color: '#4A7FA5', border: '1.5px solid #4A7FA5', borderRadius: '7px', padding: '7px 14px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
   completeBtn: { background: '#E6F4EC', color: '#1A7A4A', border: '1.5px solid #1A7A4A', borderRadius: '7px', padding: '7px 14px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
