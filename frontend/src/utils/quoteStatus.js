@@ -8,6 +8,22 @@ const HOUR = 3600000
 // Statuses that count as won revenue.
 export const ACCEPTED_STATUSES = ['accepted', 'complete', 'invoiced']
 
+// Presentation for every quote status (plus the derived "expired"). Single
+// source of truth so every quote view shows the same label and colour.
+// NB: 'viewed' presents as "Opened" (the client opened the link).
+export const QUOTE_STATUS_META = {
+  draft:    { label: 'Draft',    color: '#7C93A8' },
+  sent:     { label: 'Sent',     color: '#D4851A' },
+  viewed:   { label: 'Opened',   color: '#4A7FA5' },
+  accepted: { label: 'Accepted', color: '#4A6741' },
+  declined: { label: 'Declined', color: '#C0392B' },
+  complete: { label: 'Complete', color: '#7FA650' },
+  invoiced: { label: 'Invoiced', color: '#2F5233' },
+  expired:  { label: 'Expired',  color: '#A85C5C' },
+}
+export function statusLabel(k) { return QUOTE_STATUS_META[k]?.label ?? (k || '—') }
+export function statusColor(k) { return QUOTE_STATUS_META[k]?.color ?? '#7C93A8' }
+
 // A sent/opened quote past its valid_until is treated as expired without
 // needing a stored status change (matches Quotient's lifecycle).
 export function isExpired(q, now = Date.now()) {

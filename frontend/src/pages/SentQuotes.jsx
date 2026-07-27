@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../config/supabase'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { useNavigate } from 'react-router-dom'
+// Quote-status presentation comes from utils/quoteStatus (single source of
+// truth); config/statuses.js is keyed for *job* statuses, not quotes.
+import { statusColor as qStatusColor, statusLabel as qStatusLabel } from '../utils/quoteStatus'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -10,20 +13,6 @@ const fnHeaders = {
   apikey: ANON,
   Authorization: `Bearer ${ANON}`,
 }
-
-// ── Quote-status presentation ───────────────────────────────────────────────
-// The quotes table uses its own status vocabulary ('viewed' = client opened the
-// quote link). config/statuses.js is keyed for *job* statuses, so we map quote
-// statuses locally rather than misuse those keys.
-const QUOTE_STATUS = {
-  draft:    { label: 'Draft',    color: '#7C93A8' },
-  sent:     { label: 'Sent',     color: '#D4851A' },
-  viewed:   { label: 'Opened',   color: '#4A7FA5' },
-  accepted: { label: 'Accepted', color: '#4A6741' },
-  declined: { label: 'Declined', color: '#C0392B' },
-}
-function qStatusColor(k) { return QUOTE_STATUS[k]?.color ?? '#7C93A8' }
-function qStatusLabel(k) { return QUOTE_STATUS[k]?.label ?? (k || '—') }
 
 // ── Relative time ───────────────────────────────────────────────────────────
 function timeAgo(dateStr) {

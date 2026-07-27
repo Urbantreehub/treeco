@@ -1,24 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../config/supabase'
-import { ACCEPTED_STATUSES, isExpired, effectiveStatus } from '../utils/quoteStatus'
-
-// ── Quote-status presentation ───────────────────────────────────────────────
-// The quotes table uses its own status vocabulary ('viewed' = client opened the
-// link). Mirrors the map in SentQuotes.jsx, extended with the post-acceptance
-// statuses (complete / invoiced) and a derived "expired" state.
-const QUOTE_STATUS = {
-  draft:    { label: 'Draft',    color: '#7C93A8' },
-  sent:     { label: 'Sent',     color: '#D4851A' },
-  viewed:   { label: 'Opened',   color: '#4A7FA5' },
-  accepted: { label: 'Accepted', color: '#4A6741' },
-  declined: { label: 'Declined', color: '#C0392B' },
-  complete: { label: 'Complete', color: '#7FA650' },
-  invoiced: { label: 'Invoiced', color: '#2F5233' },
-  expired:  { label: 'Expired',  color: '#A85C5C' },
-}
-function statusColor(k) { return QUOTE_STATUS[k]?.color ?? '#7C93A8' }
-function statusLabel(k) { return QUOTE_STATUS[k]?.label ?? (k || '—') }
+import { ACCEPTED_STATUSES, isExpired, effectiveStatus, statusColor, statusLabel } from '../utils/quoteStatus'
 
 function nzd(v) {
   if (v == null) return '—'

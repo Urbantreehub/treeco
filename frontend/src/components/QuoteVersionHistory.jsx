@@ -1,10 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../config/supabase'
+import { statusLabel } from '../utils/quoteStatus'
 
-const STATUS_LABEL = {
-  draft: 'Draft', sent: 'Sent', viewed: 'Opened', accepted: 'Accepted',
-  declined: 'Declined', complete: 'Complete', invoiced: 'Invoiced',
-}
 const REASON_LABEL = {
   accepted: 'Accepted by client',
   reopened: 'Reopened for editing',
@@ -60,7 +57,7 @@ export default function QuoteVersionHistory({ quoteId, refreshKey }) {
               <button style={st.rowHead} onClick={() => setOpenId(open ? null : v.id)}>
                 <span style={st.vno}>v{v.version_no}</span>
                 <span style={{ ...st.badge, background: v.reason === 'accepted' ? '#4A6741' : '#A85C5C' }}>
-                  {REASON_LABEL[v.reason] ?? STATUS_LABEL[v.status] ?? v.status}
+                  {REASON_LABEL[v.reason] ?? statusLabel(v.status)}
                 </span>
                 <span style={st.meta}>{when(v.created_at)} · {ownerName(v.snapshot_by)}</span>
                 <span style={st.total}>{nzd(v.total)}</span>
