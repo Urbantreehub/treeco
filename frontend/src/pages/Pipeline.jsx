@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { supabase } from '../config/supabase'
-import { JOB_STATUSES, STATUS_ORDER, SPENCERS_COLOR, isSpencersJob } from '../config/statuses'
+import { JOB_STATUSES, STATUS_ORDER, isSpencersJob, categoryMeta } from '../config/statuses'
 import { jobHeading, koCode, kpiCountdown } from '../utils/jobDisplay'
 import { useJobs } from '../hooks/useJobs'
 import { useAuth } from '../context/AuthContext'
@@ -182,27 +182,24 @@ export default function Pipeline() {
               const total = quote ? nzd(quote.total) : null
               const date = job.created_at ? new Date(job.created_at) : null
               const sp = isSpencersJob(job)
+              const cat = categoryMeta(job)
               const { primary, secondary } = jobHeading(job)
               const code = koCode(job)
               const kpi = sp ? kpiCountdown(job) : null
               return (
                 <div
                   key={job.id}
-                  style={{
-                    ...s.row,
-                    ...(isMobile ? s.rowMobile : {}),
-                    ...(sp ? { borderLeft: `4px solid ${SPENCERS_COLOR}`, paddingLeft: 12 } : {}),
-                  }}
+                  style={s.row}
                   onClick={() => setSelectedJobId(job.id)}
                 >
+                  {/* Category band across the top of the pill — colour + label make
+                      it instantly clear whether this is a Private, Spencers or
+                      Downer job. */}
+                  <div style={{ ...s.categoryBar, background: cat.color }}>{cat.label}</div>
+                  <div style={{ ...s.rowBody, ...(isMobile ? s.rowBodyMobile : {}) }}>
                   <div style={{ ...s.rowMain, ...(isMobile ? { width: '100%' } : {}) }}>
                     <div style={s.client}>{primary}</div>
                     <div style={s.meta}>
-                      {sp && (
-                        <span style={{ fontSize: 11, fontWeight: 700, color: SPENCERS_COLOR, background: SPENCERS_COLOR + '18', padding: '1px 7px', borderRadius: 5, letterSpacing: '.02em' }}>
-                          Spencers
-                        </span>
-                      )}
                       {code && <span style={{ ...s.jobType, fontWeight: 700, color: '#4A7FA5', background: '#EBF3FA', textTransform: 'none' }}>{code}</span>}
                       {sp ? (secondary && <span style={s.address}>{secondary}</span>)
                           : (job.job_type && <span style={s.jobType}>{job.job_type}</span>)}
@@ -243,6 +240,7 @@ export default function Pipeline() {
                     )}
                     {total && <div style={s.total}>{total}</div>}
                     {date && <div style={s.date}>{date.toLocaleDateString('en-NZ', { day: 'numeric', month: 'short' })}</div>}
+                  </div>
                   </div>
                 </div>
               )
@@ -340,15 +338,26 @@ const s = {
   filterCountBadge: { fontSize: '11px', fontWeight: '700', borderRadius: '10px', padding: '1px 7px' },
   body: { flex: 1, overflowY: 'auto', padding: '16px 20px' },
   list: { display: 'flex', flexDirection: 'column', gap: '8px' },
+  // Outer pill: the coloured category band sits flush along the top, so the card
+  // clips its corners and lays its children out in a column.
   row: {
     background: '#fff', borderRadius: '16px', border: '1px solid var(--border)',
-    padding: '14px 18px', display: 'flex', alignItems: 'center',
-    justifyContent: 'space-between', gap: '16px', cursor: 'pointer',
+    overflow: 'hidden', display: 'flex', flexDirection: 'column', cursor: 'pointer',
     transition: 'box-shadow 0.15s',
   },
-  // On phones the row stacks: client + meta on top, then the status dropdown,
+  // Full-width colour band across the top of the pill naming the job kind
+  // (Private / Spencers / Downer) — background is the category colour.
+  categoryBar: {
+    padding: '5px 18px', color: '#fff', fontSize: '11px', fontWeight: 700,
+    letterSpacing: '0.06em', textTransform: 'uppercase',
+  },
+  rowBody: {
+    padding: '14px 18px', display: 'flex', alignItems: 'center',
+    justifyContent: 'space-between', gap: '16px',
+  },
+  // On phones the body stacks: client + meta on top, then the status dropdown,
   // price and date on their own line so nothing overlaps on a narrow screen.
-  rowMobile: { flexDirection: 'column', alignItems: 'stretch', gap: '12px' },
+  rowBodyMobile: { flexDirection: 'column', alignItems: 'stretch', gap: '12px' },
   rowRightMobile: { width: '100%', justifyContent: 'flex-start', gap: '10px 12px', flexWrap: 'wrap' },
   rowMain: { flex: 1, minWidth: 0 },
   client: { fontSize: '14px', fontWeight: '600', color: 'var(--bark)', marginBottom: '3px' },
