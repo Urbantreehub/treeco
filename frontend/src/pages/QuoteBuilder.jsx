@@ -4,6 +4,7 @@ import { useIsMobile } from '../hooks/useIsMobile'
 import ImageMarkup from '../components/ImageMarkup'
 import QuoteReference from '../components/QuoteReference'
 import QuoteVersionHistory from '../components/QuoteVersionHistory'
+import QuoteLibraryModal from '../components/QuoteLibraryModal'
 import { showsQuoteReference } from '../config/statuses'
 import { searchSor, CHARGE_CODES } from '../data/sorCodes'
 import {
@@ -652,6 +653,7 @@ export default function QuoteBuilder() {
   const [jobs, setJobs] = useState([])
   const [activeId, setActiveId] = useState(null)
   const [showPreview, setShowPreview] = useState(false)
+  const [showLibrary, setShowLibrary] = useState(false)
   const [showSendModal, setShowSendModal] = useState(false)
   const [showEmailModal, setShowEmailModal] = useState(false)
   const [markupItem, setMarkupItem] = useState(null)
@@ -697,6 +699,18 @@ export default function QuoteBuilder() {
   const addItem = () => setItems(prev => [...prev, {
     id: uuid(), description: '', detail: '', qty: 1, rate: '', optional: false, selected: true, images: [], image_url: null,
   }])
+
+  // Insert one or more library items as new quote line items.
+  const insertItems = useCallback((newItems) => {
+    setItems(prev => [...prev, ...newItems])
+  }, [])
+
+  // Apply a template: append its line items, and adopt its default terms if the
+  // quote is still using the untouched default signature.
+  const applyTemplate = useCallback(({ line_items, notes: tplNotes }) => {
+    setItems(prev => [...prev, ...line_items])
+    if (tplNotes) setNotes(prev => (!prev || prev === DEFAULT_SIGNATURE) ? tplNotes : prev)
+  }, [])
 
   const updateItem = useCallback((updated) => {
     setItems(prev => prev.map(i => i.id === updated.id ? updated : i))
@@ -986,6 +1000,9 @@ export default function QuoteBuilder() {
             )}
             {canXero && (
               <button style={s.xeroBtn} onClick={sendToXero} disabled={xeroLoading}>{xeroLoading ? 'Sending…' : '→ Xero'}</button>
+            )}
+            {!locked && (
+              <button style={s.saveBtn} onClick={() => setShowLibrary(true)}>📚 Library</button>
             )}
             {!locked && (
               <button style={s.saveBtn} onClick={() => save()} disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
@@ -1283,6 +1300,17 @@ export default function QuoteBuilder() {
           saving={saving}
         />
       )}
+
+      {/* Quote library — reusable templates + price-item library */}
+      <QuoteLibraryModal
+        open={showLibrary}
+        onClose={() => setShowLibrary(false)}
+        items={items}
+        notes={notes}
+        userId={session?.user?.id ?? null}
+        onInsertItems={insertItems}
+        onApplyTemplate={applyTemplate}
+      />
 
       {/* Send modal */}
       {showSendModal && quote && (
