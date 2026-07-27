@@ -7,6 +7,7 @@ import QuoteReference from './QuoteReference'
 import SpencersInvoice from './SpencersInvoice'
 import SpencersPortalData from './SpencersPortalData'
 import AddressInput from './AddressInput'
+import { useIsMobile } from '../hooks/useIsMobile'
 import { JOB_STATUSES, STATUS_ORDER, isSpencersJob, showsQuoteReference } from '../config/statuses'
 import { mapsHref } from '../utils/geo'
 
@@ -80,6 +81,7 @@ function extractPriority(job) {
 export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }) {
   const { isStaff } = useAuth()
   const navigate = useNavigate()
+  const isMobile = useIsMobile()
   const [changingStatus, setChangingStatus] = useState(false)
   const [editing, setEditing] = useState(false)
   const [xeroStatus, setXeroStatus] = useState(null) // null | 'pushing' | 'ok' | 'err' | 'not_connected'
@@ -296,7 +298,10 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
 
       {/* Slide-over panel */}
       <div style={styles.panel}>
-        <div style={styles.panelInner}>
+        {/* On mobile the panel is pinned to bottom:0 and sits under the fixed
+            bottom nav, so pad the scroll content past the nav (+ safe area) to
+            keep the last section reachable. Desktop has no bottom nav. */}
+        <div style={{ ...styles.panelInner, ...(isMobile ? { paddingBottom: 'calc(24px + var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px))' } : {}) }}>
           {/* KO SLA banner */}
           {sla && (
             <div style={{ background: sla.bg, border: `1px solid ${sla.color}33`, borderRadius: '8px', padding: '10px 14px', marginBottom: '16px' }}>
