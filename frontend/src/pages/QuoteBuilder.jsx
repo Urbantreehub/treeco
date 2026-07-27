@@ -286,11 +286,22 @@ function LineItem({ item, onChange, onDelete, onMarkup }) {
 
         <textarea
           style={b.lineDetail}
-          placeholder="Additional details, breakdown of costs…"
+          placeholder={'Works — one per line, starting with “- ” for a bullet:\n- Reduce height & spread by 20%\n- Remove deadwood'}
           value={item.detail ?? ''}
           onChange={e => onChange({ ...item, detail: e.target.value })}
-          rows={2}
+          rows={3}
         />
+        {item.detail?.trim() && (
+          <div style={b.detailPreview}>
+            <div style={b.detailPreviewLabel}>Client sees</div>
+            {item.detail.split('\n').map((raw, i) => {
+              const line = raw.trim()
+              const m = /^[-•*]\s+(.*)$/.exec(line)
+              if (m) return <div key={i} style={b.previewBullet}><span style={b.previewDot}>•</span>{m[1]}</div>
+              return line ? <div key={i} style={b.previewLine}>{line}</div> : null
+            })}
+          </div>
+        )}
 
         {/* ── Optional client-style toggle — shows exactly as client sees it ── */}
         {item.optional && (
@@ -1468,7 +1479,12 @@ const b = {
   lineHandle: { width: '26px', background: '#FAFAFA', borderRight: '1px solid var(--border)', cursor: 'grab', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, userSelect: 'none', touchAction: 'none' },
   lineBody: { flex: 1, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '8px' },
   lineTitle: { padding: '7px 9px', borderRadius: '6px', border: '1.5px solid var(--border)', fontSize: '14px', fontFamily: 'var(--font)', color: 'var(--ink)', fontWeight: '500', boxSizing: 'border-box' },
-  lineDetail: { width: '100%', padding: '6px 9px', borderRadius: '6px', border: '1.5px solid var(--border)', fontSize: '12px', fontFamily: 'var(--font)', color: '#666', resize: 'none', boxSizing: 'border-box' },
+  lineDetail: { width: '100%', padding: '6px 9px', borderRadius: '6px', border: '1.5px solid var(--border)', fontSize: '12px', fontFamily: 'var(--font)', color: '#666', resize: 'vertical', boxSizing: 'border-box' },
+  detailPreview: { background: '#FAFAF7', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 10px', fontSize: '12px', color: 'var(--bark)', lineHeight: 1.5 },
+  detailPreviewLabel: { fontSize: '9.5px', fontWeight: '700', color: '#bbb', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' },
+  previewBullet: { display: 'flex', gap: '6px', alignItems: 'flex-start' },
+  previewDot: { color: 'var(--terra)', flexShrink: 0 },
+  previewLine: { marginBottom: '1px' },
   linePrice: { display: 'flex', alignItems: 'flex-end', gap: '14px', paddingTop: '8px', borderTop: '1px solid #f5f5f5', flexWrap: 'wrap' },
   priceCol: { display: 'flex', flexDirection: 'column', gap: '3px' },
   priceLabel: { fontSize: '10px', fontWeight: '700', color: '#aaa', textTransform: 'uppercase' },
