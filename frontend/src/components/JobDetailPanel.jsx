@@ -7,7 +7,7 @@ import QuoteReference from './QuoteReference'
 import SpencersInvoice from './SpencersInvoice'
 import SpencersPortalData from './SpencersPortalData'
 import AddressInput from './AddressInput'
-import { JOB_STATUSES, STATUS_ORDER, isSpencersJob } from '../config/statuses'
+import { JOB_STATUSES, STATUS_ORDER, isSpencersJob, showsQuoteReference } from '../config/statuses'
 import { mapsHref } from '../utils/geo'
 
 // Contextual forward-only transitions per status.
@@ -313,14 +313,35 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
             <button onClick={onClose} style={styles.closeBtn}>✕</button>
           </div>
 
-          {/* Status + contextual forward actions */}
+          {/* Status + contextual forward actions.
+              The status chip itself is the control — tap it to change status
+              (a transparent native <select> sits over the bubble), so there's
+              no separate dropdown box cluttering the panel. */}
           <div style={styles.section}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: FORWARD_ACTIONS[job.status]?.length ? '12px' : '0', flexWrap: 'wrap' }}>
-              <StatusBadge status={job.status} size="lg" />
+              <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+                <StatusBadge status={job.status} size="lg" />
+                <span style={{ marginLeft: '5px', fontSize: '9px', color: '#aaa', pointerEvents: 'none' }}>▼</span>
+                <select
+                  value=""
+                  disabled={changingStatus}
+                  onChange={e => { if (e.target.value) handleStatusChange(e.target.value) }}
+                  aria-label="Change status"
+                  style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', border: 'none', appearance: 'none', WebkitAppearance: 'none' }}
+                >
+                  <option value="">Change status…</option>
+                  {Object.keys(JOB_STATUSES)
+                    .filter(k => k !== job.status)
+                    .filter(k => k !== 'invoiced' || job.status === 'complete_to_invoice')
+                    .map(key => (
+                      <option key={key} value={key}>{JOB_STATUSES[key].label}</option>
+                    ))}
+                </select>
+              </div>
               {changingStatus && <span style={{ fontSize: '12px', color: '#aaa' }}>Updating…</span>}
             </div>
             {FORWARD_ACTIONS[job.status]?.length > 0 && (
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '10px' }}>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 {FORWARD_ACTIONS[job.status].map(({ status, label, variant }) => (
                   <button
                     key={status}
@@ -337,27 +358,6 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
                 ))}
               </div>
             )}
-            {/* Escape hatch — unusual or backwards moves */}
-            <details>
-              <summary style={{ fontSize: '11px', color: '#bbb', cursor: 'pointer', userSelect: 'none', listStyle: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                <span>▸</span> Move to different status…
-              </summary>
-              <select
-                value=""
-                disabled={changingStatus}
-                onChange={e => { if (e.target.value) handleStatusChange(e.target.value) }}
-                style={{ ...styles.statusSelect, marginTop: '8px', width: '100%' }}
-                aria-label="Change status"
-              >
-                <option value="">Select status…</option>
-                {Object.keys(JOB_STATUSES)
-                  .filter(k => k !== job.status)
-                  .filter(k => k !== 'invoiced' || job.status === 'complete_to_invoice')
-                  .map(key => (
-                    <option key={key} value={key}>{JOB_STATUSES[key].label}</option>
-                  ))}
-              </select>
-            </details>
           </div>
 
           {/* Quote follow-up — shown when awaiting client response */}
@@ -430,9 +430,13 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
                   <div style={styles.description}>{job.description}</div>
                 </div>
               )}
-              <div style={{ marginTop: '16px' }}>
-                <QuoteReference jobId={job.id} />
-              </div>
+              {/* Quote reference is lead/quoting material only — hidden once the
+                  quote is accepted and the job moves on (the quote supersedes it). */}
+              {showsQuoteReference(job.status) && (
+                <div style={{ marginTop: '16px' }}>
+                  <QuoteReference jobId={job.id} />
+                </div>
+              )}
               {isStaff && (
                 <button onClick={() => setEditing(true)} style={{ ...styles.ghostBtn, marginTop: '12px' }}>
                   Edit details
@@ -596,7 +600,9 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
             </div>
           )}
 
-          {/* Job Forms */}
+          {/* Job Forms — crew paperwork (SSSP etc.) only matters once the job is
+              actually going ahead, so it stays hidden through the lead/quote phase. */}
+          {['scheduled', 'stump_grinding', 'complete_to_invoice'].includes(job.status) && (
           <div style={styles.section}>
             <div style={styles.sectionTitle}>Job Forms</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -627,6 +633,7 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
               })}
             </div>
           </div>
+          )}
 
         </div>
       </div>

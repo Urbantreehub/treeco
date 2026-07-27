@@ -105,6 +105,16 @@ export const STATUS_ORDER = [
   'declined',
 ]
 
+// Quote-reference material (raw enquiry photos + site notes) is only relevant
+// while the job is still a lead or in the quoting phase. Once the client accepts
+// and the job moves on to scheduling/invoicing, the quote itself supersedes the
+// reference, so it's hidden to keep the view uncluttered.
+export const QUOTE_REFERENCE_STATUSES = ['new_lead', 'quote_scheduled', 'quote_sent']
+
+export function showsQuoteReference(status) {
+  return QUOTE_REFERENCE_STATUSES.includes(status)
+}
+
 export function getStatus(key) {
   return JOB_STATUSES[key] ?? null
 }
