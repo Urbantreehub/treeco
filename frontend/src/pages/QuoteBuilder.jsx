@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useIsMobile } from '../hooks/useIsMobile'
 import ImageMarkup from '../components/ImageMarkup'
 import QuoteReference from '../components/QuoteReference'
+import { showsQuoteReference } from '../config/statuses'
 import { searchSor, CHARGE_CODES } from '../data/sorCodes'
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragOverlay,
@@ -900,70 +901,56 @@ export default function QuoteBuilder() {
             </div>
           </div>
           <div style={{ ...s.hRight, flexWrap: 'wrap' }}>
-            {st && <span style={{ ...s.badge, background: st.bg, color: st.color }}>{st.label}</span>}
-            {quote && (
-              <select
-                value=""
-                onChange={e => { if (e.target.value) save(e.target.value) }}
-                disabled={saving}
-                aria-label="Change quote status"
-                style={{
-                  padding: '6px 10px', borderRadius: '7px', border: '1.5px solid var(--border)',
-                  background: '#fff', color: 'var(--bark)', fontSize: '12px', fontWeight: '600',
-                  fontFamily: 'var(--font)', cursor: 'pointer', outline: 'none',
-                }}
-              >
-                <option value="">{saving ? 'Saving…' : 'Change status…'}</option>
-                {['draft', 'sent', 'viewed', 'accepted', 'declined']
-                  .filter(k => k !== quote.status)
-                  .map(k => <option key={k} value={k}>{ST[k].label}</option>)}
-              </select>
+            {/* Status chip IS the control — tap the bubble to change status.
+                A transparent native <select> sits over it, so there's no
+                separate white dropdown box. */}
+            {quote && st && (
+              <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+                <span style={{ ...s.badge, background: st.bg, color: st.color, display: 'inline-flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: st.color, flexShrink: 0 }} />
+                  {saving ? 'Saving…' : st.label}
+                  <span style={{ fontSize: '8px', opacity: 0.7 }}>▼</span>
+                </span>
+                <select
+                  value=""
+                  onChange={e => { if (e.target.value) save(e.target.value) }}
+                  disabled={saving}
+                  aria-label="Change quote status"
+                  style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', border: 'none', appearance: 'none', WebkitAppearance: 'none' }}
+                >
+                  <option value="">Change status…</option>
+                  {['draft', 'sent', 'viewed', 'accepted', 'declined']
+                    .filter(k => k !== quote.status)
+                    .map(k => <option key={k} value={k}>{ST[k].label}</option>)}
+                </select>
+              </div>
             )}
-            {!isMobile && (
-              <button style={s.previewBtn} onClick={async () => { await save(); setShowPreview(true) }} disabled={saving}>
-                {saving ? 'Saving…' : 'Preview'}
-              </button>
+
+            {/* Only the essential action for the current status — everything
+                else (Preview / PDF) lives in the summary sidebar. */}
+            {(isNew || quote?.status === 'draft') && (
+              <button style={s.sendBtn} onClick={handleSend} disabled={saving}>{isMobile ? 'Send →' : 'Send to client →'}</button>
             )}
-            {!isMobile && quote?.client_view_token && (
-              <button
-                style={s.pdfBtn}
-                onClick={async () => {
-                  await save()
-                  window.open(`${window.location.origin}/q/${quote.client_view_token}?download=1&preview=1`, '_blank')
-                }}
-                disabled={saving}
-                title="Save and open PDF download page"
-              >
-                ⬇ PDF
-              </button>
-            )}
-            {canEmail && (
-              <button style={s.emailBtn} onClick={() => setShowEmailModal(true)} disabled={emailLoading}>
-                ✉ Email
-              </button>
-            )}
-            {canSms && (
-              <button style={s.emailBtn} onClick={sendSms} disabled={smsLoading} title="Text the quote link to the client">
-                {smsLoading ? 'Texting…' : '💬 Text'}
-              </button>
-            )}
-            {canComplete && (
-              <button style={s.completeBtn} onClick={markComplete} disabled={saving}>
-                Mark Complete ✓
-              </button>
-            )}
-            {canXero && (
-              <button style={s.xeroBtn} onClick={sendToXero} disabled={xeroLoading}>
-                {xeroLoading ? 'Sending…' : '→ Xero'}
-              </button>
-            )}
-            {quote?.status !== 'invoiced' && (
+            {(quote?.status === 'sent' || quote?.status === 'viewed') && (
               <>
-                <button style={s.saveBtn} onClick={() => save()} disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
-                {quote?.status !== 'complete' && (
-                  <button style={s.sendBtn} onClick={handleSend} disabled={saving}>{isMobile ? 'Send →' : 'Send to client →'}</button>
+                {canEmail && (
+                  <button style={s.emailBtn} onClick={() => setShowEmailModal(true)} disabled={emailLoading}>✉ Email</button>
+                )}
+                {canSms && (
+                  <button style={s.emailBtn} onClick={sendSms} disabled={smsLoading} title="Text the quote link to the client">
+                    {smsLoading ? 'Texting…' : '💬 Text'}
+                  </button>
                 )}
               </>
+            )}
+            {canComplete && (
+              <button style={s.completeBtn} onClick={markComplete} disabled={saving}>Mark Complete ✓</button>
+            )}
+            {canXero && (
+              <button style={s.xeroBtn} onClick={sendToXero} disabled={xeroLoading}>{xeroLoading ? 'Sending…' : '→ Xero'}</button>
+            )}
+            {quote?.status !== 'invoiced' && (
+              <button style={s.saveBtn} onClick={() => save()} disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
             )}
           </div>
         </div>
@@ -985,8 +972,11 @@ export default function QuoteBuilder() {
               </div>
             )}
 
-            {/* Quote reference — lead/site material for the operator (never on the client quote) */}
-            {jobId && <QuoteReference jobId={jobId} readOnly />}
+            {/* Quote reference — lead/site material for the operator (never on the
+                client quote). Only shown while the job is still a lead or being
+                quoted; once accepted the quote supersedes it. New quotes (no job
+                status loaded yet) are inherently in the quoting phase, so show it. */}
+            {jobId && (isNew || showsQuoteReference(job?.status)) && <QuoteReference jobId={jobId} readOnly />}
 
             {/* Line items */}
             <div style={s.card}>
@@ -1189,14 +1179,14 @@ export default function QuoteBuilder() {
                   </button>
                 </div>
               )}
-              {isMobile && (
-                <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-                  <button style={{ ...s.previewBtn, flex: 1 }} onClick={async () => { await save(); setShowPreview(true) }} disabled={saving}>Preview</button>
-                  {quote?.client_view_token && (
-                    <button style={{ ...s.pdfBtn, flex: 1 }} onClick={async () => { await save(); window.open(`${window.location.origin}/q/${quote.client_view_token}?download=1&preview=1`, '_blank') }} disabled={saving}>⬇ PDF</button>
-                  )}
-                </div>
-              )}
+              {/* Preview + PDF — document helpers, kept out of the header so it
+                  stays down to the essential status action. */}
+              <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                <button style={{ ...s.previewBtn, flex: 1 }} onClick={async () => { await save(); setShowPreview(true) }} disabled={saving}>Preview</button>
+                {quote?.client_view_token && (
+                  <button style={{ ...s.pdfBtn, flex: 1 }} onClick={async () => { await save(); window.open(`${window.location.origin}/q/${quote.client_view_token}?download=1&preview=1`, '_blank') }} disabled={saving}>⬇ PDF</button>
+                )}
+              </div>
             </div>
 
             {quote && (
