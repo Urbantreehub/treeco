@@ -26,6 +26,13 @@ const FORWARD_ACTIONS = {
   declined:            [{ status: 'new_lead',            label: 'Reopen',           variant: 'ghost' }],
 }
 
+// Crew (non-office/full) users only manage the on-the-ground job lifecycle:
+// they may move a job between these operational statuses (e.g. mark complete,
+// put on hold, resume, flag stump grinding). They can change status only FROM
+// one of these, and only TO another of these — so the sales/quoting statuses
+// and, crucially, invoicing stay office/full-access only.
+const CREW_STATUSES = ['scheduled', 'stump_grinding', 'complete_to_invoice', 'on_hold']
+
 const SUPABASE_URL  = import.meta.env.VITE_SUPABASE_URL
 const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY
 
@@ -204,7 +211,18 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
     } catch { return false }
   })()
 
+  // Status-change permissions. Office/full access can move to any status;
+  // crew can only move between the operational statuses (CREW_STATUSES).
+  const crewAllowed = CREW_STATUSES.includes(job.status)
+    ? CREW_STATUSES.filter(s => s !== job.status)
+    : []
+  const canChangeStatusTo = (target) => isStaff || crewAllowed.includes(target)
+  const canChangeStatus = isStaff || crewAllowed.length > 0
+  const forwardActions = (FORWARD_ACTIONS[job.status] ?? []).filter(a => canChangeStatusTo(a.status))
+
   async function handleStatusChange(newStatus) {
+    // Crew can only make the one permitted move for the current status.
+    if (!canChangeStatusTo(newStatus)) return
     const isComplete = newStatus === 'complete_to_invoice'
     if (isComplete && !sdPhotosReady) {
       alert('During and After photos must be uploaded in the Work Order before this job can be marked complete.')
@@ -316,33 +334,40 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
           {/* Status + contextual forward actions.
               The status chip itself is the control — tap it to change status
               (a transparent native <select> sits over the bubble), so there's
-              no separate dropdown box cluttering the panel. */}
+              no separate dropdown box cluttering the panel. Crew only see the
+              operational statuses they're allowed to move to; outside those
+              statuses the chip is just a read-only badge. */}
           <div style={styles.section}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: FORWARD_ACTIONS[job.status]?.length ? '12px' : '0', flexWrap: 'wrap' }}>
-              <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: forwardActions.length ? '12px' : '0', flexWrap: 'wrap' }}>
+              {canChangeStatus ? (
+                <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+                  <StatusBadge status={job.status} size="lg" />
+                  <span style={{ marginLeft: '5px', fontSize: '9px', color: '#aaa', pointerEvents: 'none' }}>▼</span>
+                  <select
+                    value=""
+                    disabled={changingStatus}
+                    onChange={e => { if (e.target.value) handleStatusChange(e.target.value) }}
+                    aria-label="Change status"
+                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', border: 'none', appearance: 'none', WebkitAppearance: 'none' }}
+                  >
+                    <option value="">Change status…</option>
+                    {Object.keys(JOB_STATUSES)
+                      .filter(k => k !== job.status)
+                      .filter(k => k !== 'invoiced' || job.status === 'complete_to_invoice')
+                      .filter(canChangeStatusTo)
+                      .map(key => (
+                        <option key={key} value={key}>{JOB_STATUSES[key].label}</option>
+                      ))}
+                  </select>
+                </div>
+              ) : (
                 <StatusBadge status={job.status} size="lg" />
-                <span style={{ marginLeft: '5px', fontSize: '9px', color: '#aaa', pointerEvents: 'none' }}>▼</span>
-                <select
-                  value=""
-                  disabled={changingStatus}
-                  onChange={e => { if (e.target.value) handleStatusChange(e.target.value) }}
-                  aria-label="Change status"
-                  style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', border: 'none', appearance: 'none', WebkitAppearance: 'none' }}
-                >
-                  <option value="">Change status…</option>
-                  {Object.keys(JOB_STATUSES)
-                    .filter(k => k !== job.status)
-                    .filter(k => k !== 'invoiced' || job.status === 'complete_to_invoice')
-                    .map(key => (
-                      <option key={key} value={key}>{JOB_STATUSES[key].label}</option>
-                    ))}
-                </select>
-              </div>
+              )}
               {changingStatus && <span style={{ fontSize: '12px', color: '#aaa' }}>Updating…</span>}
             </div>
-            {FORWARD_ACTIONS[job.status]?.length > 0 && (
+            {forwardActions.length > 0 && (
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                {FORWARD_ACTIONS[job.status].map(({ status, label, variant }) => (
+                {forwardActions.map(({ status, label, variant }) => (
                   <button
                     key={status}
                     onClick={() => handleStatusChange(status)}
