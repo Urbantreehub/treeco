@@ -4,7 +4,7 @@ import { useIsMobile } from '../hooks/useIsMobile'
 import { useNavigate } from 'react-router-dom'
 // Quote-status presentation comes from utils/quoteStatus (single source of
 // truth); config/statuses.js is keyed for *job* statuses, not quotes.
-import { statusColor as qStatusColor, statusLabel as qStatusLabel } from '../utils/quoteStatus'
+import { statusColor as qStatusColor, statusLabel as qStatusLabel, effectiveStatus, isExpired, ACCEPTED_STATUSES } from '../utils/quoteStatus'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -111,8 +111,8 @@ function QuoteCard({ q, isMobile, onFollowUp, onTextLink, onOpen, busy }) {
         </div>
         <div style={s.rightCol}>
           <div style={s.total}>{fmtMoney(q.total)}</div>
-          <span style={{ ...s.pill, background: qStatusColor(q.status) }}>
-            {qStatusLabel(q.status)}
+          <span style={{ ...s.pill, background: qStatusColor(effectiveStatus(q)) }}>
+            {qStatusLabel(effectiveStatus(q))}
           </span>
         </div>
       </div>
@@ -172,6 +172,7 @@ const FILTERS = [
   { key: 'opened',   label: 'Opened, no reply' },
   { key: 'accepted', label: 'Accepted' },
   { key: 'declined', label: 'Declined' },
+  { key: 'expired',  label: 'Expired' },
 ]
 
 export default function SentQuotes() {
@@ -193,7 +194,7 @@ export default function SentQuotes() {
     try {
       const { data, error } = await supabase
         .from('quotes')
-        .select('id, status, total, client_view_token, sent_at, viewed_at, responded_at, opened_count, last_opened_at, followup_count, last_followup_at, jobs ( title, address, clients ( name, email, phone ) )')
+        .select('id, status, total, client_view_token, valid_until, sent_at, viewed_at, responded_at, opened_count, last_opened_at, followup_count, last_followup_at, jobs ( title, address, clients ( name, email, phone ) )')
         .not('sent_at', 'is', null)
         .order('sent_at', { ascending: false })
       if (error) throw error
@@ -273,19 +274,20 @@ export default function SentQuotes() {
 
   // ── Derived ───────────────────────────────────────────────────────────────
   const counts = {
-    sent: quotes.filter(q => q.status === 'sent').length,
-    opened: quotes.filter(q => q.status === 'viewed').length,
-    accepted: quotes.filter(q => q.status === 'accepted').length,
+    sent: quotes.filter(q => effectiveStatus(q) === 'sent').length,
+    opened: quotes.filter(q => effectiveStatus(q) === 'viewed').length,
+    accepted: quotes.filter(q => ACCEPTED_STATUSES.includes(q.status)).length,
     declined: quotes.filter(q => q.status === 'declined').length,
     followUp: quotes.filter(needsFollowUp).length,
   }
 
   const filtered = quotes.filter(q => {
     switch (filter) {
-      case 'awaiting': return q.status === 'sent'
-      case 'opened':   return q.status === 'viewed'
-      case 'accepted': return q.status === 'accepted'
+      case 'awaiting': return effectiveStatus(q) === 'sent'
+      case 'opened':   return effectiveStatus(q) === 'viewed'
+      case 'accepted': return ACCEPTED_STATUSES.includes(q.status)
       case 'declined': return q.status === 'declined'
+      case 'expired':  return isExpired(q)
       default:         return true
     }
   })
