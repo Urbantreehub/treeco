@@ -27,6 +27,32 @@ function fmtDate(d) {
   return new Date(d).toLocaleDateString('en-NZ', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
+// Renders an item's detail with the quote-writing format in mind: lines that
+// start with "-", "•" or "*" become bullet points; other lines are kept as
+// separate lines. Each line still runs through the glossary annotator.
+function DetailBlock({ text, onOpenGlossary }) {
+  if (!text) return null
+  const lines = String(text).split('\n')
+  const out = []
+  let bullets = null
+  const flush = () => {
+    if (bullets) { out.push(<ul key={`u${out.length}`} style={p.bulletList}>{bullets}</ul>); bullets = null }
+  }
+  lines.forEach((raw, i) => {
+    const line = raw.trim()
+    const m = /^[-•*]\s+(.*)$/.exec(line)
+    if (m) {
+      bullets = bullets || []
+      bullets.push(<li key={i} style={p.bulletItem}><AnnotatedText text={m[1]} onOpenGlossary={onOpenGlossary} /></li>)
+    } else {
+      flush()
+      if (line) out.push(<div key={`l${i}`} style={p.detailLine}><AnnotatedText text={line} onOpenGlossary={onOpenGlossary} /></div>)
+    }
+  })
+  flush()
+  return <div style={p.itemDetail}>{out}</div>
+}
+
 function AnnotatedText({ text, onOpenGlossary }) {
   if (!text) return null
   const segs = annotateSegments(text)
@@ -296,7 +322,7 @@ export default function QuoteView() {
                     <div style={p.itemTop}>
                       <div style={p.itemDesc}>
                         <div style={p.itemTitle}><AnnotatedText text={item.description || '—'} onOpenGlossary={() => setShowGlossary(true)} /></div>
-                        {item.detail && <div style={p.itemDetail}><AnnotatedText text={item.detail} onOpenGlossary={() => setShowGlossary(true)} /></div>}
+                        {item.detail && <DetailBlock text={item.detail} onOpenGlossary={() => setShowGlossary(true)} />}
                         {(() => {
                           const imgs = item.images?.length ? item.images : (item.image_url ? [item.image_url] : [])
                           return imgs.length > 0 && (
@@ -747,6 +773,9 @@ const p = {
   itemDesc: { flex: 1 },
   itemTitle: { fontSize: '16px', fontWeight: '600', color: 'var(--bark)', marginBottom: '4px' },
   itemDetail: { fontSize: '13px', color: '#777', lineHeight: 1.5 },
+  bulletList: { margin: '2px 0', paddingLeft: '18px' },
+  bulletItem: { fontSize: '13px', color: '#777', lineHeight: 1.5, marginBottom: '2px' },
+  detailLine: { fontSize: '13px', color: '#777', lineHeight: 1.5 },
   itemRight: { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px', flexShrink: 0 },
   toggleBtn: {
     padding: '10px 18px', borderRadius: '8px', border: '2px solid',

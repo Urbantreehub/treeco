@@ -8,6 +8,7 @@ import QuoteLibraryModal from '../components/QuoteLibraryModal'
 import QuoteComments from '../components/QuoteComments'
 import { showsQuoteReference } from '../config/statuses'
 import { searchSor, CHARGE_CODES } from '../data/sorCodes'
+import { DISPOSAL_PRESETS, WORK_PRESETS } from '../data/quotePresets'
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragOverlay,
 } from '@dnd-kit/core'
@@ -706,6 +707,15 @@ export default function QuoteBuilder() {
     setItems(prev => [...prev, ...newItems])
   }, [])
 
+  // Add a common preset (disposal option / stump grind / etc.) as a line item.
+  const insertPreset = useCallback((preset) => {
+    if (!preset) return
+    setItems(prev => [...prev, {
+      id: uuid(), qty: 1, selected: true, images: [], image_url: null, detail: '',
+      ...preset.item,
+    }])
+  }, [])
+
   // Apply a template: append its line items, and adopt its default terms if the
   // quote is still using the untouched default signature.
   const applyTemplate = useCallback(({ line_items, notes: tplNotes }) => {
@@ -1112,7 +1122,29 @@ export default function QuoteBuilder() {
               </DndContext>
 
               {items.length === 0 && <div style={s.emptyItems}>No items yet</div>}
-              <button style={s.addBtn} onClick={addItem}>+ Add line item</button>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginTop: '12px' }}>
+                <button style={s.addBtn} onClick={addItem}>+ Add line item</button>
+                <select
+                  style={s.presetSelect}
+                  value=""
+                  onChange={e => {
+                    const all = [...WORK_PRESETS, ...DISPOSAL_PRESETS]
+                    insertPreset(all.find(p => p.key === e.target.value))
+                    e.target.value = ''
+                  }}
+                >
+                  <option value="">+ Common item…</option>
+                  <optgroup label="Works">
+                    {WORK_PRESETS.map(p => <option key={p.key} value={p.key}>{p.label}</option>)}
+                  </optgroup>
+                  <optgroup label="Disposal / material">
+                    {DISPOSAL_PRESETS.map(p => <option key={p.key} value={p.key}>{p.label}</option>)}
+                  </optgroup>
+                </select>
+              </div>
+              <div style={s.formatHint}>
+                💡 Put the tree/species in the item title (shows in bold). Start each line of detail with “- ” for a bullet point.
+              </div>
             </div>
 
             {/* Job Pack — crew-facing ops checklist */}
@@ -1415,7 +1447,9 @@ const s = {
   gstNote: { fontSize: '12px', color: '#666', background: '#EBF3FA', borderRadius: '6px', padding: '8px 12px', lineHeight: 1.5 },
   select: { width: '100%', padding: '9px 10px', borderRadius: '7px', border: '1.5px solid var(--border)', fontSize: '13px', fontFamily: 'var(--font)', color: 'var(--ink)' },
   emptyItems: { textAlign: 'center', color: '#ccc', padding: '24px 0', fontSize: '13px' },
-  addBtn: { marginTop: '12px', background: 'none', border: '1px dashed var(--border)', borderRadius: '7px', padding: '10px', fontSize: '13px', color: 'var(--terra)', cursor: 'pointer', fontFamily: 'var(--font)', width: '100%', fontWeight: '600' },
+  addBtn: { background: 'none', border: '1px dashed var(--border)', borderRadius: '7px', padding: '10px', fontSize: '13px', color: 'var(--terra)', cursor: 'pointer', fontFamily: 'var(--font)', flex: '1 1 200px', fontWeight: '600' },
+  presetSelect: { background: '#fff', border: '1px solid var(--border)', borderRadius: '7px', padding: '10px', fontSize: '13px', color: 'var(--ink)', cursor: 'pointer', fontFamily: 'var(--font)', fontWeight: '600', flex: '0 1 auto' },
+  formatHint: { marginTop: '10px', fontSize: '11.5px', color: 'var(--ink-3)', lineHeight: 1.5 },
   textarea: { width: '100%', padding: '10px 12px', borderRadius: '7px', border: '1.5px solid var(--border)', fontSize: '13px', fontFamily: 'var(--font)', color: 'var(--ink)', resize: 'vertical', boxSizing: 'border-box', lineHeight: 1.6 },
   totalsCard: { background: '#fff', borderRadius: '10px', border: '1px solid var(--border)', padding: '16px 18px' },
   optNote: { fontSize: '11px', color: '#D4851A', background: '#FDF3E3', borderRadius: '6px', padding: '6px 10px', marginBottom: '10px' },
