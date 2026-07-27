@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { supabase } from '../config/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useIsMobile } from '../hooks/useIsMobile'
+import AddressInput from '../components/AddressInput'
 
 // Mulch dump sites: live map + pins, photos, dump instructions, contact and
 // agreed per-load price. Crew log a dumped load, which auto-generates a Xero
@@ -349,11 +350,15 @@ function SiteEditor({ site, meId, onClose, onSaved, showToast }) {
   async function save() {
     if (!f.name.trim()) { showToast('Give the site a name'); return }
     setSaving(true)
+    // If the address was picked from the autocomplete, we already have exact
+    // coords — write them straight in, no geocode round-trip needed.
+    const resolved = f.lat != null && f.lng != null
     const payload = {
       name: f.name.trim(), address: f.address?.trim() || null, instructions: f.instructions?.trim() || null,
       contact_name: f.contact_name?.trim() || null, contact_phone: f.contact_phone?.trim() || null,
       contact_email: f.contact_email?.trim() || null, price_per_load: Number(f.price_per_load) || 0,
       notes: f.notes?.trim() || null, photos: f.photos || [],
+      ...(resolved ? { lat: f.lat, lng: f.lng } : {}),
     }
     let siteId = site?.id
     if (site) {
@@ -364,10 +369,10 @@ function SiteEditor({ site, meId, onClose, onSaved, showToast }) {
       if (error) { showToast('Save failed'); setSaving(false); return }
       siteId = data.id
     }
-    // Geocode the address and cache the pin (server-side, via mulch_site_id).
-    // Awaited so we can tell the user immediately if it couldn't be placed.
+    // Only free-typed addresses (no picked suggestion) need the best-effort
+    // edge geocode. Awaited so we can warn immediately if it can't be placed.
     let geoWarn = false
-    if (payload.address && siteId) {
+    if (!resolved && payload.address && siteId) {
       try {
         const r = await fetch(`${SUPABASE_URL}/functions/v1/geocode`, { method: 'POST', headers: fnHeaders, body: JSON.stringify({ mulch_site_id: siteId }) })
         const g = await r.json().catch(() => ({}))
@@ -392,7 +397,13 @@ function SiteEditor({ site, meId, onClose, onSaved, showToast }) {
           <label style={mstyle.fLabel}>Site name *</label>
           <input style={mstyle.input} value={f.name} onChange={e => set('name', e.target.value)} placeholder="e.g. Dave's lifestyle block" />
           <label style={mstyle.fLabel}>Address</label>
-          <input style={mstyle.input} value={f.address} onChange={e => set('address', e.target.value)} placeholder="Street, suburb — used to place the map pin" />
+          <AddressInput
+            value={f.address}
+            onChange={v => setF(prev => ({ ...prev, address: v, lat: null, lng: null }))}
+            onResolve={({ address, lat, lng }) => setF(prev => ({ ...prev, address, lat, lng }))}
+            placeholder="Start typing — pick a suggestion to place the pin"
+            inputStyle={mstyle.input}
+          />
           <label style={mstyle.fLabel}>Dump instructions</label>
           <textarea style={mstyle.textarea} rows={3} value={f.instructions} onChange={e => set('instructions', e.target.value)} placeholder="Where exactly to dump it, gate codes, access notes…" />
           <label style={mstyle.fLabel}>Agreed price per load (ex GST)</label>
