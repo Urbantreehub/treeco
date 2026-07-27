@@ -5,36 +5,70 @@ import { v4 as uuid } from 'uuid'
 const COLORS = ['#FF3B30', '#FF9500', '#FFCC00', '#34C759', '#007AFF', '#fff', '#000']
 const WIDTHS = [2, 4, 7, 12]
 const TOOLS = [
-  { id: 'arrow',   label: '↗ Arrow' },
-  { id: 'line',    label: '— Line' },
-  { id: 'rect',    label: '□ Box' },
-  { id: 'free',    label: '✏ Draw' },
-  { id: 'text',    label: 'T Text' },
+  { id: 'arrow',     label: '↗ Arrow' },
+  { id: 'line',      label: '— Line' },
+  { id: 'rect',      label: '□ Box' },
+  { id: 'reduction', label: '◠ Reduce' },
+  { id: 'free',      label: '✏ Draw' },
+  { id: 'text',      label: 'T Text' },
 ]
 
 function drawArrow(ctx, from, to, color, lw) {
   const dx = to.x - from.x
   const dy = to.y - from.y
   const angle = Math.atan2(dy, dx)
-  const head = Math.max(14, lw * 3.5)
+  const len = Math.hypot(dx, dy) || 1
+  const head = Math.min(len * 0.9, Math.max(16, lw * 4.5))
+  const spread = Math.PI / 7          // narrower wings = sleeker head
+  const notch = head * 0.5            // concave back depth
+
+  // Head geometry: tip, two wings, and a concave back notch.
+  const wingL = { x: to.x - head * Math.cos(angle - spread), y: to.y - head * Math.sin(angle - spread) }
+  const wingR = { x: to.x - head * Math.cos(angle + spread), y: to.y - head * Math.sin(angle + spread) }
+  const back  = { x: to.x - notch * Math.cos(angle),         y: to.y - notch * Math.sin(angle) }
 
   ctx.save()
   ctx.strokeStyle = color
   ctx.fillStyle = color
   ctx.lineWidth = lw
   ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
 
+  // Shaft stops at the notch so the round cap never pokes through the head.
   ctx.beginPath()
   ctx.moveTo(from.x, from.y)
-  ctx.lineTo(to.x, to.y)
+  ctx.lineTo(back.x, back.y)
   ctx.stroke()
 
+  // Filled concave arrowhead.
   ctx.beginPath()
   ctx.moveTo(to.x, to.y)
-  ctx.lineTo(to.x - head * Math.cos(angle - Math.PI / 6), to.y - head * Math.sin(angle - Math.PI / 6))
-  ctx.lineTo(to.x - head * Math.cos(angle + Math.PI / 6), to.y - head * Math.sin(angle + Math.PI / 6))
+  ctx.lineTo(wingL.x, wingL.y)
+  ctx.lineTo(back.x, back.y)
+  ctx.lineTo(wingR.x, wingR.y)
   ctx.closePath()
   ctx.fill()
+  ctx.restore()
+}
+
+// Horizontal semi-circle (dome + flat baseline) for marking crown reductions:
+// the flat line is the cut level, the dome the new canopy outline.
+function drawSemicircle(ctx, from, to, color, lw) {
+  const cx = (from.x + to.x) / 2
+  const baseY = Math.max(from.y, to.y)          // flat side sits at the lower point
+  const rx = Math.abs(to.x - from.x) / 2
+  const ry = Math.abs(to.y - from.y) || rx * 0.6
+  if (rx < 1) return
+  ctx.save()
+  ctx.strokeStyle = color
+  ctx.lineWidth = lw
+  ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
+  ctx.beginPath()
+  ctx.ellipse(cx, baseY, rx, ry, 0, Math.PI, 2 * Math.PI)  // upper half = dome
+  ctx.moveTo(cx - rx, baseY)                                // flat reduction line
+  ctx.lineTo(cx + rx, baseY)
+  ctx.stroke()
   ctx.restore()
 }
 
@@ -87,6 +121,7 @@ function renderShape(ctx, shape) {
   if (shape.type === 'arrow') drawArrow(ctx, shape.from, shape.to, shape.color, shape.lw)
   else if (shape.type === 'line') drawLine(ctx, shape.from, shape.to, shape.color, shape.lw)
   else if (shape.type === 'rect') drawRect(ctx, shape.from, shape.to, shape.color, shape.lw)
+  else if (shape.type === 'reduction') drawSemicircle(ctx, shape.from, shape.to, shape.color, shape.lw)
   else if (shape.type === 'free') drawFree(ctx, shape.points, shape.color, shape.lw)
   else if (shape.type === 'text') drawText(ctx, shape.text, shape.pos, shape.color, shape.lw * 6 + 12)
 }

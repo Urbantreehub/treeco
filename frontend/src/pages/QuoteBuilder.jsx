@@ -3,8 +3,12 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useIsMobile } from '../hooks/useIsMobile'
 import ImageMarkup from '../components/ImageMarkup'
 import QuoteReference from '../components/QuoteReference'
+import QuoteVersionHistory from '../components/QuoteVersionHistory'
+import QuoteLibraryModal from '../components/QuoteLibraryModal'
+import QuoteComments from '../components/QuoteComments'
 import { showsQuoteReference } from '../config/statuses'
 import { searchSor, CHARGE_CODES } from '../data/sorCodes'
+import { DISPOSAL_PRESETS, WORK_PRESETS } from '../data/quotePresets'
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragOverlay,
 } from '@dnd-kit/core'
@@ -13,6 +17,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { supabase } from '../config/supabase'
+import { useAuth } from '../context/AuthContext'
 import { v4 as uuid } from 'uuid'
 import { GST, calcTotals } from '../utils/pricing'
 
@@ -281,11 +286,22 @@ function LineItem({ item, onChange, onDelete, onMarkup }) {
 
         <textarea
           style={b.lineDetail}
-          placeholder="Additional details, breakdown of costs…"
+          placeholder={'Works — one per line, starting with “- ” for a bullet:\n- Reduce height & spread by 20%\n- Remove deadwood'}
           value={item.detail ?? ''}
           onChange={e => onChange({ ...item, detail: e.target.value })}
-          rows={2}
+          rows={3}
         />
+        {item.detail?.trim() && (
+          <div style={b.detailPreview}>
+            <div style={b.detailPreviewLabel}>Client sees</div>
+            {item.detail.split('\n').map((raw, i) => {
+              const line = raw.trim()
+              const m = /^[-•*]\s+(.*)$/.exec(line)
+              if (m) return <div key={i} style={b.previewBullet}><span style={b.previewDot}>•</span>{m[1]}</div>
+              return line ? <div key={i} style={b.previewLine}>{line}</div> : null
+            })}
+          </div>
+        )}
 
         {/* ── Optional client-style toggle — shows exactly as client sees it ── */}
         {item.optional && (
@@ -631,6 +647,7 @@ function EmailModal({ quote, onClose, onSend, sending }) {
 // ── Main builder ────────────────────────────────────────────────────────────
 export default function QuoteBuilder() {
   const { id } = useParams()
+  const { session } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const isMobile = useIsMobile()
@@ -649,6 +666,7 @@ export default function QuoteBuilder() {
   const [jobs, setJobs] = useState([])
   const [activeId, setActiveId] = useState(null)
   const [showPreview, setShowPreview] = useState(false)
+  const [showLibrary, setShowLibrary] = useState(false)
   const [showSendModal, setShowSendModal] = useState(false)
   const [showEmailModal, setShowEmailModal] = useState(false)
   const [markupItem, setMarkupItem] = useState(null)
@@ -695,6 +713,27 @@ export default function QuoteBuilder() {
     id: uuid(), description: '', detail: '', qty: 1, rate: '', optional: false, selected: true, images: [], image_url: null,
   }])
 
+  // Insert one or more library items as new quote line items.
+  const insertItems = useCallback((newItems) => {
+    setItems(prev => [...prev, ...newItems])
+  }, [])
+
+  // Add a common preset (disposal option / stump grind / etc.) as a line item.
+  const insertPreset = useCallback((preset) => {
+    if (!preset) return
+    setItems(prev => [...prev, {
+      id: uuid(), qty: 1, selected: true, images: [], image_url: null, detail: '',
+      ...preset.item,
+    }])
+  }, [])
+
+  // Apply a template: append its line items, and adopt its default terms if the
+  // quote is still using the untouched default signature.
+  const applyTemplate = useCallback(({ line_items, notes: tplNotes }) => {
+    setItems(prev => [...prev, ...line_items])
+    if (tplNotes) setNotes(prev => (!prev || prev === DEFAULT_SIGNATURE) ? tplNotes : prev)
+  }, [])
+
   const updateItem = useCallback((updated) => {
     setItems(prev => prev.map(i => i.id === updated.id ? updated : i))
   }, [])
@@ -716,23 +755,25 @@ export default function QuoteBuilder() {
 
   async function save(newStatus, openSendModal = false) {
     setSaving(true)
+    const userId = session?.user?.id ?? null
     const payload = {
       line_items: items, subtotal: totals.subtotal, gst: totals.gst, total: totals.total,
       notes, private_notes: privateNotes, job_pack: jobPack,
+      ...(userId ? { updated_by: userId } : {}),
       ...(newStatus ? { status: newStatus } : {}),
       ...(newStatus === 'sent' ? { sent_at: new Date().toISOString() } : {}),
     }
-    // Graceful fallback if optional columns don't exist yet (migrations 007, 009)
-    const OPTIONAL_COLS = ['job_pack', 'private_notes', 'notes', 'valid_until']
+    // Graceful fallback if optional columns don't exist yet (migrations 007, 009, 019)
+    const OPTIONAL_COLS = ['job_pack', 'private_notes', 'notes', 'valid_until', 'created_by', 'updated_by']
     async function tryUpsert(p, isInsert, insertMeta) {
       let res = isInsert
         ? await supabase.from('quotes').insert({ ...insertMeta, ...p }).select().single()
         : await supabase.from('quotes').update(p).eq('id', id)
       const errMsg = res.error?.message ?? ''
       if (OPTIONAL_COLS.some(c => errMsg.includes(c))) {
-        const { job_pack: _jp, private_notes: _pn, notes: _n, ...pFallback } = p
+        const { job_pack: _jp, private_notes: _pn, notes: _n, updated_by: _ub, ...pFallback } = p
         const metaFallback = isInsert
-          ? Object.fromEntries(Object.entries(insertMeta).filter(([k]) => k !== 'valid_until'))
+          ? Object.fromEntries(Object.entries(insertMeta).filter(([k]) => !['valid_until', 'created_by'].includes(k)))
           : undefined
         res = isInsert
           ? await supabase.from('quotes').insert({ ...metaFallback, ...pFallback }).select().single()
@@ -744,7 +785,7 @@ export default function QuoteBuilder() {
       if (!jobId) { showToast('Select a job first', 'error'); setSaving(false); return }
       const token = uuid().replace(/-/g, '')
       const validUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
-      const { data, error } = await tryUpsert(payload, true, { job_id: jobId, status: newStatus ?? 'draft', client_view_token: token, valid_until: validUntil })
+      const { data, error } = await tryUpsert(payload, true, { job_id: jobId, status: newStatus ?? 'draft', client_view_token: token, valid_until: validUntil, ...(userId ? { created_by: userId } : {}) })
       if (error) showToast(error.message, 'error')
       else if (data) { showToast('Quote created'); navigate(`/quotes/${data.id}`, { replace: true, state: openSendModal ? { openSendModal: true } : null }) }
       else showToast('Quote created')
@@ -787,12 +828,56 @@ export default function QuoteBuilder() {
   }
 
   async function markComplete() {
-    await save('complete')
+    // Status-only update — never resends line_items, so it can't be used to
+    // slip an edit past the accepted-quote lock (see migration 020).
+    setSaving(true)
+    const { error } = await supabase.from('quotes')
+      .update({ status: 'complete', updated_by: session?.user?.id ?? null })
+      .eq('id', id)
+    if (error) { showToast(error.message, 'error'); setSaving(false); return }
     if (quote?.job_id) {
       await supabase.from('jobs')
         .update({ status: 'complete_to_invoice', status_changed_at: new Date().toISOString() })
         .eq('id', quote.job_id)
     }
+    const { data } = await supabase.from('quotes')
+      .select(`*, jobs (id, address, job_type, title, status, clients (id, name, email, phone))`)
+      .eq('id', id).single()
+    if (data) { setQuote(data); setJob(data.jobs) }
+    showToast('Marked complete')
+    setSaving(false)
+  }
+
+  // Reopen a locked (accepted/complete/invoiced) quote for editing. Reverts to
+  // "Sent"; the DB captures a version snapshot of the state being left behind.
+  async function reopen() {
+    if (!window.confirm(
+      'Reopen this quote for editing?\n\nA snapshot of the accepted quote is saved to its version history first. It reverts to “Sent”, and the client can view it again on their link until you re-send.'
+    )) return
+    setSaving(true)
+    const { error } = await supabase.from('quotes')
+      .update({ status: 'sent', updated_by: session?.user?.id ?? null })
+      .eq('id', id)
+    if (error) { showToast(error.message, 'error'); setSaving(false); return }
+    const { data } = await supabase.from('quotes')
+      .select(`*, jobs (id, address, job_type, title, status, clients (id, name, email, phone))`)
+      .eq('id', id).single()
+    if (data) { setQuote(data); setJob(data.jobs) }
+    showToast('Quote reopened for editing')
+    setSaving(false)
+  }
+
+  // Push a sent/viewed quote's expiry out another 30 days.
+  async function extendExpiry() {
+    const next = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+    setSaving(true)
+    const { error } = await supabase.from('quotes')
+      .update({ valid_until: next, updated_by: session?.user?.id ?? null })
+      .eq('id', id)
+    if (error) { showToast(error.message, 'error'); setSaving(false); return }
+    setQuote(q => ({ ...q, valid_until: next }))
+    showToast('Expiry extended 30 days')
+    setSaving(false)
   }
 
   async function sendToXero() {
@@ -887,6 +972,11 @@ export default function QuoteBuilder() {
   const canSms      = !!clientPhone && quote?.client_view_token && quote?.status !== 'draft'
   const canComplete = quote?.status === 'accepted'
   const canXero     = quote?.status === 'complete'
+  // Accepted/complete/invoiced quotes are frozen (enforced in migration 020).
+  const locked      = !isNew && ['accepted', 'complete', 'invoiced'].includes(quote?.status)
+  // Expiry awareness for live (sent/viewed) quotes.
+  const awaiting    = ['sent', 'viewed'].includes(quote?.status)
+  const expired     = awaiting && quote?.valid_until && new Date(quote.valid_until) < new Date(new Date().toDateString())
 
   return (
     <>
@@ -949,7 +1039,10 @@ export default function QuoteBuilder() {
             {canXero && (
               <button style={s.xeroBtn} onClick={sendToXero} disabled={xeroLoading}>{xeroLoading ? 'Sending…' : '→ Xero'}</button>
             )}
-            {quote?.status !== 'invoiced' && (
+            {!locked && (
+              <button style={s.saveBtn} onClick={() => setShowLibrary(true)}>📚 Library</button>
+            )}
+            {!locked && (
               <button style={s.saveBtn} onClick={() => save()} disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
             )}
           </div>
@@ -958,6 +1051,46 @@ export default function QuoteBuilder() {
         {/* ── Body ── */}
         <div style={{ ...s.body, flexDirection: isMobile ? 'column' : 'row' }}>
           <div style={s.main}>
+
+            {/* Locked banner — accepted/complete/invoiced quotes are frozen */}
+            {locked && (
+              <div style={s.lockBanner}>
+                <span style={{ fontSize: 18 }}>🔒</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, color: 'var(--bark)', fontSize: 14 }}>
+                    This quote is {ST[quote.status]?.label?.toLowerCase() ?? quote.status} and locked
+                  </div>
+                  <div style={{ fontSize: 12.5, color: '#8A857D', marginTop: 2 }}>
+                    Pricing, line items and terms can’t be changed. Reopen it to edit — the accepted version is saved to history first.
+                  </div>
+                </div>
+                <button style={s.reopenBtn} onClick={reopen} disabled={saving}>Reopen to edit</button>
+              </div>
+            )}
+
+            {/* Signature record on accepted quotes */}
+            {locked && quote?.signed_name && (
+              <div style={s.signedNote}>✍ Signed by <strong>{quote.signed_name}</strong>{quote.responded_at ? ` on ${new Date(quote.responded_at).toLocaleDateString('en-NZ')}` : ''}</div>
+            )}
+
+            {/* Expiry — for live quotes awaiting a response */}
+            {awaiting && quote?.valid_until && (
+              <div style={{ ...s.expiryBanner, ...(expired ? s.expiryBannerExpired : null) }}>
+                <span>{expired ? '⏳' : '🗓'}</span>
+                <span style={{ flex: 1 }}>
+                  {expired
+                    ? <>This quote <strong>expired</strong> on {new Date(quote.valid_until).toLocaleDateString('en-NZ')}.</>
+                    : <>Valid until <strong>{new Date(quote.valid_until).toLocaleDateString('en-NZ')}</strong>.</>}
+                </span>
+                <button style={s.reopenBtn} onClick={extendExpiry} disabled={saving}>Extend 30 days</button>
+              </div>
+            )}
+
+            {/* Version history — appears once a quote has been accepted/reopened */}
+            {!isNew && <QuoteVersionHistory quoteId={id} refreshKey={quote?.status} />}
+
+            {/* Client discussion thread */}
+            {!isNew && <QuoteComments quoteId={id} />}
 
             {/* Job selector */}
             {isNew && (
@@ -1000,7 +1133,29 @@ export default function QuoteBuilder() {
               </DndContext>
 
               {items.length === 0 && <div style={s.emptyItems}>No items yet</div>}
-              <button style={s.addBtn} onClick={addItem}>+ Add line item</button>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginTop: '12px' }}>
+                <button style={s.addBtn} onClick={addItem}>+ Add line item</button>
+                <select
+                  style={s.presetSelect}
+                  value=""
+                  onChange={e => {
+                    const all = [...WORK_PRESETS, ...DISPOSAL_PRESETS]
+                    insertPreset(all.find(p => p.key === e.target.value))
+                    e.target.value = ''
+                  }}
+                >
+                  <option value="">+ Common item…</option>
+                  <optgroup label="Works">
+                    {WORK_PRESETS.map(p => <option key={p.key} value={p.key}>{p.label}</option>)}
+                  </optgroup>
+                  <optgroup label="Disposal / material">
+                    {DISPOSAL_PRESETS.map(p => <option key={p.key} value={p.key}>{p.label}</option>)}
+                  </optgroup>
+                </select>
+              </div>
+              <div style={s.formatHint}>
+                💡 Put the tree/species in the item title (shows in bold). Start each line of detail with “- ” for a bullet point.
+              </div>
             </div>
 
             {/* Job Pack — crew-facing ops checklist */}
@@ -1227,6 +1382,17 @@ export default function QuoteBuilder() {
         />
       )}
 
+      {/* Quote library — reusable templates + price-item library */}
+      <QuoteLibraryModal
+        open={showLibrary}
+        onClose={() => setShowLibrary(false)}
+        items={items}
+        notes={notes}
+        userId={session?.user?.id ?? null}
+        onInsertItems={insertItems}
+        onApplyTemplate={applyTemplate}
+      />
+
       {/* Send modal */}
       {showSendModal && quote && (
         <SendModal
@@ -1275,6 +1441,11 @@ const s = {
   },
   pdfBtn: { background: 'var(--cream)', border: '1px solid var(--border)', borderRadius: '7px', padding: '7px 12px', fontSize: '13px', fontWeight: '600', color: 'var(--ink)', cursor: 'pointer', fontFamily: 'var(--font)' },
   saveBtn: { background: 'var(--cream)', border: '1px solid var(--border)', borderRadius: '7px', padding: '7px 14px', fontSize: '13px', fontWeight: '600', color: 'var(--ink)', cursor: 'pointer', fontFamily: 'var(--font)' },
+  lockBanner: { display: 'flex', alignItems: 'center', gap: 12, background: '#FBF6EC', border: '1px solid #E7D9BC', borderRadius: 'var(--radius)', padding: '12px 14px', marginBottom: 16 },
+  reopenBtn: { background: '#fff', border: '1px solid var(--terra)', color: 'var(--terra)', borderRadius: '7px', padding: '8px 14px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap', flexShrink: 0 },
+  signedNote: { fontSize: '12.5px', color: '#4A6741', background: '#EDF3EA', border: '1px solid #D3E2CB', borderRadius: 'var(--radius)', padding: '9px 12px', marginBottom: 16 },
+  expiryBanner: { display: 'flex', alignItems: 'center', gap: 10, background: '#F6FAF4', border: '1px solid #D8EBD0', borderRadius: 'var(--radius)', padding: '10px 14px', marginBottom: 16, fontSize: '13px', color: 'var(--bark)' },
+  expiryBannerExpired: { background: '#FFF0EE', border: '1px solid #F0C0B8' },
   sendBtn: { background: 'var(--terra)', color: '#fff', border: 'none', borderRadius: '7px', padding: '8px 16px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
   emailBtn: { background: '#EBF3FA', color: '#4A7FA5', border: '1.5px solid #4A7FA5', borderRadius: '7px', padding: '7px 14px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
   completeBtn: { background: '#E6F4EC', color: '#1A7A4A', border: '1.5px solid #1A7A4A', borderRadius: '7px', padding: '7px 14px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
@@ -1287,7 +1458,9 @@ const s = {
   gstNote: { fontSize: '12px', color: '#666', background: '#EBF3FA', borderRadius: '6px', padding: '8px 12px', lineHeight: 1.5 },
   select: { width: '100%', padding: '9px 10px', borderRadius: '7px', border: '1.5px solid var(--border)', fontSize: '13px', fontFamily: 'var(--font)', color: 'var(--ink)' },
   emptyItems: { textAlign: 'center', color: '#ccc', padding: '24px 0', fontSize: '13px' },
-  addBtn: { marginTop: '12px', background: 'none', border: '1px dashed var(--border)', borderRadius: '7px', padding: '10px', fontSize: '13px', color: 'var(--terra)', cursor: 'pointer', fontFamily: 'var(--font)', width: '100%', fontWeight: '600' },
+  addBtn: { background: 'none', border: '1px dashed var(--border)', borderRadius: '7px', padding: '10px', fontSize: '13px', color: 'var(--terra)', cursor: 'pointer', fontFamily: 'var(--font)', flex: '1 1 200px', fontWeight: '600' },
+  presetSelect: { background: '#fff', border: '1px solid var(--border)', borderRadius: '7px', padding: '10px', fontSize: '13px', color: 'var(--ink)', cursor: 'pointer', fontFamily: 'var(--font)', fontWeight: '600', flex: '0 1 auto' },
+  formatHint: { marginTop: '10px', fontSize: '11.5px', color: 'var(--ink-3)', lineHeight: 1.5 },
   textarea: { width: '100%', padding: '10px 12px', borderRadius: '7px', border: '1.5px solid var(--border)', fontSize: '13px', fontFamily: 'var(--font)', color: 'var(--ink)', resize: 'vertical', boxSizing: 'border-box', lineHeight: 1.6 },
   totalsCard: { background: '#fff', borderRadius: '10px', border: '1px solid var(--border)', padding: '16px 18px' },
   optNote: { fontSize: '11px', color: '#D4851A', background: '#FDF3E3', borderRadius: '6px', padding: '6px 10px', marginBottom: '10px' },
@@ -1306,7 +1479,12 @@ const b = {
   lineHandle: { width: '26px', background: '#FAFAFA', borderRight: '1px solid var(--border)', cursor: 'grab', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, userSelect: 'none', touchAction: 'none' },
   lineBody: { flex: 1, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '8px' },
   lineTitle: { padding: '7px 9px', borderRadius: '6px', border: '1.5px solid var(--border)', fontSize: '14px', fontFamily: 'var(--font)', color: 'var(--ink)', fontWeight: '500', boxSizing: 'border-box' },
-  lineDetail: { width: '100%', padding: '6px 9px', borderRadius: '6px', border: '1.5px solid var(--border)', fontSize: '12px', fontFamily: 'var(--font)', color: '#666', resize: 'none', boxSizing: 'border-box' },
+  lineDetail: { width: '100%', padding: '6px 9px', borderRadius: '6px', border: '1.5px solid var(--border)', fontSize: '12px', fontFamily: 'var(--font)', color: '#666', resize: 'vertical', boxSizing: 'border-box' },
+  detailPreview: { background: '#FAFAF7', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 10px', fontSize: '12px', color: 'var(--bark)', lineHeight: 1.5 },
+  detailPreviewLabel: { fontSize: '9.5px', fontWeight: '700', color: '#bbb', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' },
+  previewBullet: { display: 'flex', gap: '6px', alignItems: 'flex-start' },
+  previewDot: { color: 'var(--terra)', flexShrink: 0 },
+  previewLine: { marginBottom: '1px' },
   linePrice: { display: 'flex', alignItems: 'flex-end', gap: '14px', paddingTop: '8px', borderTop: '1px solid #f5f5f5', flexWrap: 'wrap' },
   priceCol: { display: 'flex', flexDirection: 'column', gap: '3px' },
   priceLabel: { fontSize: '10px', fontWeight: '700', color: '#aaa', textTransform: 'uppercase' },

@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../config/supabase'
 import { useScheduledChecks } from '../hooks/useScheduledChecks'
+import DashboardQuotesTable from '../components/DashboardQuotesTable'
+import DashboardFollowUps from '../components/DashboardFollowUps'
 
 const CREW_DAY_RATE = 2500   // $ per crew per day
 
@@ -576,6 +578,12 @@ export default function Dashboard() {
 
       {/* Safety actions */}
       <SafetyActionsWidget onNavigate={nav} />
+
+      {/* Quotes needing follow-up (Quotient-style aging reminders) */}
+      <DashboardFollowUps />
+
+      {/* Quotes — filterable table + funnel metrics */}
+      <DashboardQuotesTable />
 
       <Section title="Revenue">
         {/* Monthly trend */}
