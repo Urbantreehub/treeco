@@ -26,12 +26,12 @@ const FORWARD_ACTIONS = {
   declined:            [{ status: 'new_lead',            label: 'Reopen',           variant: 'ghost' }],
 }
 
-// Crew (non-office/full) users may only advance a scheduled job to
-// "Complete — To Be Invoiced". Everything else — including invoicing — is
-// office/full-access only. Keyed by current status → allowed target statuses.
-const CREW_ALLOWED_TRANSITIONS = {
-  scheduled: ['complete_to_invoice'],
-}
+// Crew (non-office/full) users only manage the on-the-ground job lifecycle:
+// they may move a job between these operational statuses (e.g. mark complete,
+// put on hold, resume, flag stump grinding). They can change status only FROM
+// one of these, and only TO another of these — so the sales/quoting statuses
+// and, crucially, invoicing stay office/full-access only.
+const CREW_STATUSES = ['scheduled', 'stump_grinding', 'complete_to_invoice', 'on_hold']
 
 const SUPABASE_URL  = import.meta.env.VITE_SUPABASE_URL
 const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -212,8 +212,10 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
   })()
 
   // Status-change permissions. Office/full access can move to any status;
-  // crew are limited to CREW_ALLOWED_TRANSITIONS (scheduled → complete only).
-  const crewAllowed = CREW_ALLOWED_TRANSITIONS[job.status] ?? []
+  // crew can only move between the operational statuses (CREW_STATUSES).
+  const crewAllowed = CREW_STATUSES.includes(job.status)
+    ? CREW_STATUSES.filter(s => s !== job.status)
+    : []
   const canChangeStatusTo = (target) => isStaff || crewAllowed.includes(target)
   const canChangeStatus = isStaff || crewAllowed.length > 0
   const forwardActions = (FORWARD_ACTIONS[job.status] ?? []).filter(a => canChangeStatusTo(a.status))
@@ -332,9 +334,9 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
           {/* Status + contextual forward actions.
               The status chip itself is the control — tap it to change status
               (a transparent native <select> sits over the bubble), so there's
-              no separate dropdown box cluttering the panel. Crew are limited to
-              the one permitted transition; when they have none the chip is just
-              a read-only badge. */}
+              no separate dropdown box cluttering the panel. Crew only see the
+              operational statuses they're allowed to move to; outside those
+              statuses the chip is just a read-only badge. */}
           <div style={styles.section}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: forwardActions.length ? '12px' : '0', flexWrap: 'wrap' }}>
               {canChangeStatus ? (
