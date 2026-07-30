@@ -549,47 +549,6 @@ function _QuotePreviewStatic({ quote, items, notes, onClose, onSend, saving }) {
   )
 }
 
-// ── Send modal ─────────────────────────────────────────────────────────────
-function SendModal({ quote, onClose, onSent, saving }) {
-  const link = `${window.location.origin}/q/${quote.client_view_token}`
-  const [copied, setCopied] = useState(false)
-  const clientName = quote.jobs?.clients?.name ?? ''
-  const clientEmail = quote.jobs?.clients?.email ?? ''
-
-  function copy() { navigator.clipboard.writeText(link); setCopied(true); setTimeout(() => setCopied(false), 2000) }
-
-  const mailtoBody = encodeURIComponent(`Hi ${clientName.split(' ')[0]},\n\nPlease find your quote here:\n${link}\n\nLet me know if you have any questions.\n\n${DEFAULT_SIGNATURE}`)
-  const mailtoHref = `mailto:${clientEmail}?subject=${encodeURIComponent('Quote from Urban Tree Services')}&body=${mailtoBody}`
-
-  return (
-    <div style={sm.backdrop}>
-      <div style={sm.box}>
-        <div style={sm.header}>
-          <div style={sm.title}>Send quote to {clientName}</div>
-          <button style={sm.close} onClick={onClose}>✕</button>
-        </div>
-        <div style={sm.body}>
-          <div style={sm.label}>Client link — share this URL</div>
-          <div style={sm.linkRow}>
-            <div style={sm.linkUrl}>{link}</div>
-            <button style={sm.copyBtn} onClick={copy}>{copied ? '✓ Copied' : 'Copy'}</button>
-          </div>
-          {clientEmail && (
-            <a href={mailtoHref} style={sm.emailBtn}>✉ Open email app with link pre-filled</a>
-          )}
-          <div style={sm.note}>
-            Once you've shared the link, mark the quote as <strong>Sent</strong> to track when the client opens and responds.
-          </div>
-        </div>
-        <div style={sm.footer}>
-          <button style={sm.cancelBtn} onClick={onClose}>Cancel</button>
-          <button style={sm.sentBtn} onClick={onSent} disabled={saving}>{saving ? 'Saving…' : 'Mark as sent ✓'}</button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 const sm = {
   backdrop: { position: 'fixed', inset: 0, background: 'rgba(44,36,22,0.5)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' },
   box: { background: '#fff', borderRadius: '12px', width: '460px', maxWidth: '95vw', boxShadow: '0 12px 40px rgba(0,0,0,0.2)' },
@@ -608,35 +567,107 @@ const sm = {
   sentBtn: { background: 'var(--terra)', color: '#fff', border: 'none', borderRadius: '7px', padding: '8px 18px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
 }
 
-// ── Email modal ─────────────────────────────────────────────────────────────
-function EmailModal({ quote, onClose, onSend, sending }) {
-  const clientEmail = quote?.jobs?.clients?.email
+// ── Compose email screen ─────────────────────────────────────────────────────
+// The primary "Send" action. Opens an editable email — subject + a personal
+// message pre-filled with a thank-you template — with the quote link attached.
+function defaultEmailMessage({ firstName, address }) {
+  return `Hi ${firstName},
+
+Thank you for the opportunity to quote for the work at ${address} — we really appreciate it.
+
+Your full quote is ready to view. You can see all the details and accept or decline online using the button in this email.
+
+Any questions at all, just reply to this email or give me a call on 027 203 1446.
+
+Cheers,
+Josh
+Urban Tree Services`
+}
+
+function ComposeEmailModal({ quote, onClose, onSend, sending, onMarkSent, saving }) {
+  const clientEmail = quote?.jobs?.clients?.email ?? ''
   const clientName  = quote?.jobs?.clients?.name ?? ''
+  const firstName   = clientName.split(' ')[0] || 'there'
+  const address     = quote?.jobs?.address ?? 'your property'
   const total       = quote?.total ?? 0
-  function nzd(v) { return '$' + Number(v||0).toLocaleString('en-NZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
+  const link        = `${window.location.origin}/q/${quote?.client_view_token}`
+
+  const [subject, setSubject] = useState(`Your quote from Urban Tree Services — ${nzd(total)}`)
+  const [message, setMessage] = useState(defaultEmailMessage({ firstName, address }))
+  const [copied, setCopied]   = useState(false)
+  function copy() { navigator.clipboard.writeText(link); setCopied(true); setTimeout(() => setCopied(false), 2000) }
+
+  const fieldLabel = { fontSize: '11px', fontWeight: '700', color: '#6A8060', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '5px' }
+  const input = { width: '100%', boxSizing: 'border-box', border: '1px solid var(--border)', borderRadius: '7px', padding: '9px 11px', fontSize: '13px', color: 'var(--ink)', fontFamily: 'var(--font)', background: '#fff' }
+
+  // No email on file — offer the shareable link + manual "mark as sent" instead.
+  if (!clientEmail) {
+    return (
+      <div style={sm.backdrop}>
+        <div style={sm.box}>
+          <div style={sm.header}>
+            <div style={sm.title}>Send quote to {clientName}</div>
+            <button style={sm.close} onClick={onClose}>✕</button>
+          </div>
+          <div style={sm.body}>
+            <div style={{ background: '#FFF7E6', border: '1px solid #F0D9A8', borderRadius: '8px', padding: '12px 14px', fontSize: '13px', color: '#8A6D1A' }}>
+              This client has no email address on file, so the quote can't be emailed. Add one under the client, or share the link below.
+            </div>
+            <div style={sm.label}>Client link — share this URL</div>
+            <div style={sm.linkRow}>
+              <div style={sm.linkUrl}>{link}</div>
+              <button style={sm.copyBtn} onClick={copy}>{copied ? '✓ Copied' : 'Copy'}</button>
+            </div>
+          </div>
+          <div style={sm.footer}>
+            <button style={sm.cancelBtn} onClick={onClose}>Cancel</button>
+            <button style={sm.sentBtn} onClick={onMarkSent} disabled={saving}>{saving ? 'Saving…' : 'Mark as sent ✓'}</button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div style={sm.backdrop}>
-      <div style={sm.box}>
+      <div style={{ ...sm.box, width: '540px' }}>
         <div style={sm.header}>
-          <div style={sm.title}>Email quote to {clientName}</div>
+          <div style={sm.title}>Send quote to {clientName}</div>
           <button style={sm.close} onClick={onClose}>✕</button>
         </div>
-        <div style={sm.body}>
-          <div style={{ background: '#F8FAF7', border: '1px solid #D4E4D0', borderRadius: '8px', padding: '14px 16px' }}>
-            <div style={{ fontSize: '11px', fontWeight: '700', color: '#6A8060', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>Will send to</div>
+        <div style={{ ...sm.body, gap: '14px', maxHeight: '70vh', overflowY: 'auto' }}>
+          <div>
+            <div style={fieldLabel}>To</div>
             <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)' }}>{clientEmail}</div>
-            <div style={{ fontSize: '12px', color: '#888', marginTop: '2px' }}>Subject: Your quote from Urban Tree Services — {nzd(total)}</div>
+          </div>
+          <div>
+            <div style={fieldLabel}>Subject</div>
+            <input style={input} value={subject} onChange={e => setSubject(e.target.value)} />
+          </div>
+          <div>
+            <div style={fieldLabel}>Message</div>
+            <textarea
+              style={{ ...input, minHeight: '160px', resize: 'vertical', lineHeight: 1.55 }}
+              value={message}
+              onChange={e => setMessage(e.target.value)}
+            />
+          </div>
+          <div>
+            <div style={fieldLabel}>Quote link — included in the email</div>
+            <div style={sm.linkRow}>
+              <div style={sm.linkUrl}>{link}</div>
+              <button style={sm.copyBtn} onClick={copy}>{copied ? '✓ Copied' : 'Copy'}</button>
+            </div>
           </div>
           <div style={sm.note}>
-            A branded email will be sent with the total amount and a "View &amp; Accept Quote" button.
-            {quote?.status === 'draft' && ' The quote will also be marked as Sent.'}
+            The email is branded and adds the quote total and a "View &amp; Accept Quote" button below your message.
+            {quote?.status === 'draft' && ' The quote will be marked as Sent once it goes out.'}
           </div>
         </div>
         <div style={sm.footer}>
           <button style={sm.cancelBtn} onClick={onClose}>Cancel</button>
-          <button style={{ ...sm.sentBtn, background: '#4A7FA5' }} onClick={onSend} disabled={sending}>
-            {sending ? 'Sending…' : `Send email →`}
+          <button style={{ ...sm.sentBtn, background: '#4A7FA5' }} onClick={() => onSend({ subject, message })} disabled={sending}>
+            {sending ? 'Sending…' : 'Send email →'}
           </button>
         </div>
       </div>
@@ -667,7 +698,6 @@ export default function QuoteBuilder() {
   const [activeId, setActiveId] = useState(null)
   const [showPreview, setShowPreview] = useState(false)
   const [showLibrary, setShowLibrary] = useState(false)
-  const [showSendModal, setShowSendModal] = useState(false)
   const [showEmailModal, setShowEmailModal] = useState(false)
   const [markupItem, setMarkupItem] = useState(null)
   const [xeroLoading, setXeroLoading] = useState(false)
@@ -682,7 +712,7 @@ export default function QuoteBuilder() {
 
   // Open send modal if navigated here from a new-quote save-and-send
   useEffect(() => {
-    if (location.state?.openSendModal) setShowSendModal(true)
+    if (location.state?.openSendModal) setShowEmailModal(true)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -804,18 +834,18 @@ export default function QuoteBuilder() {
   async function handlePreviewSend() {
     await save(undefined, true)
     setShowPreview(false)
-    setShowSendModal(true)
+    setShowEmailModal(true)
   }
 
   async function handleSend() {
     if (items.length === 0) { showToast('Add at least one line item before sending', 'error'); return }
     await save(undefined, true)
-    setShowSendModal(true)
+    setShowEmailModal(true)
   }
 
   async function markAsSent() {
     await save('sent')
-    setShowSendModal(false)
+    setShowEmailModal(false)
     // Auto-advance job status to quote_sent if still at an early stage
     if (quote?.job_id) {
       const { data: currentJob } = await supabase.from('jobs').select('status').eq('id', quote.job_id).single()
@@ -906,22 +936,23 @@ export default function QuoteBuilder() {
     }
   }
 
-  async function sendEmail() {
+  async function sendEmail({ subject, message } = {}) {
     if (!quote) return
     setEmailLoading(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
+      const ANON = import.meta.env.VITE_SUPABASE_ANON_KEY
       const res = await fetch(`${SUPABASE_URL}/functions/v1/send-quote-email`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ quote_id: quote.id }),
+        headers: { 'Content-Type': 'application/json', apikey: ANON, Authorization: `Bearer ${session?.access_token ?? ANON}` },
+        body: JSON.stringify({ quote_id: quote.id, subject, message }),
       })
       const body = await res.json()
       if (!res.ok) throw new Error(body.error ?? 'Email failed')
       showToast(`Email sent to ${body.to} ✓`)
       setShowEmailModal(false)
-      // Mark as sent if still draft
+      // Mark as sent if still a draft (this is the primary send action now)
       if (quote.status === 'draft') await save('sent')
     } catch (err) {
       showToast(err.message, 'error')
@@ -1019,7 +1050,7 @@ export default function QuoteBuilder() {
             {/* Only the essential action for the current status — everything
                 else (Preview / PDF) lives in the summary sidebar. */}
             {(isNew || quote?.status === 'draft') && (
-              <button style={s.sendBtn} onClick={handleSend} disabled={saving}>{isMobile ? 'Send →' : 'Send to client →'}</button>
+              <button style={s.sendBtn} onClick={handleSend} disabled={saving}>Send</button>
             )}
             {(quote?.status === 'sent' || quote?.status === 'viewed') && (
               <>
@@ -1393,22 +1424,15 @@ export default function QuoteBuilder() {
         onApplyTemplate={applyTemplate}
       />
 
-      {/* Send modal */}
-      {showSendModal && quote && (
-        <SendModal
-          quote={quote}
-          onClose={() => setShowSendModal(false)}
-          onSent={markAsSent}
-          saving={saving}
-        />
-      )}
-
+      {/* Compose + send email — the primary send action */}
       {showEmailModal && quote && (
-        <EmailModal
+        <ComposeEmailModal
           quote={quote}
           onClose={() => setShowEmailModal(false)}
           onSend={sendEmail}
           sending={emailLoading}
+          onMarkSent={markAsSent}
+          saving={saving}
         />
       )}
 
