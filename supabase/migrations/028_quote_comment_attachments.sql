@@ -11,7 +11,10 @@ ALTER TABLE quote_comments
 -- ── Client read: non-internal comments (now including attachments) ───────────
 -- Same body as 022's get_quote_comments, with c.attachments added to the
 -- signature and the SELECT. SECURITY DEFINER, search_path and the internal
--- filter are unchanged.
+-- filter are unchanged. The RETURNS TABLE signature changes (adds attachments),
+-- so the old function must be dropped first — CREATE OR REPLACE can't alter a
+-- function's return type.
+DROP FUNCTION IF EXISTS get_quote_comments(TEXT);
 CREATE OR REPLACE FUNCTION get_quote_comments(p_token TEXT)
 RETURNS TABLE (id UUID, author_type TEXT, author_name TEXT, body TEXT, attachments JSONB, created_at TIMESTAMPTZ)
 LANGUAGE sql
