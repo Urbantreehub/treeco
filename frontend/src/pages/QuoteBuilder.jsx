@@ -2,11 +2,9 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useIsMobile } from '../hooks/useIsMobile'
 import ImageMarkup from '../components/ImageMarkup'
-import QuoteReference from '../components/QuoteReference'
 import QuoteVersionHistory from '../components/QuoteVersionHistory'
 import QuoteLibraryModal from '../components/QuoteLibraryModal'
 import QuoteComments from '../components/QuoteComments'
-import { showsQuoteReference } from '../config/statuses'
 import { searchSor, CHARGE_CODES } from '../data/sorCodes'
 import { DISPOSAL_PRESETS, WORK_PRESETS } from '../data/quotePresets'
 import {
@@ -699,6 +697,7 @@ export default function QuoteBuilder() {
   const [showPreview, setShowPreview] = useState(false)
   const [showLibrary, setShowLibrary] = useState(false)
   const [showEmailModal, setShowEmailModal] = useState(false)
+  const [showMenu, setShowMenu] = useState(false)
   const [markupItem, setMarkupItem] = useState(null)
   const [xeroLoading, setXeroLoading] = useState(false)
   const [emailLoading, setEmailLoading] = useState(false)
@@ -710,10 +709,15 @@ export default function QuoteBuilder() {
     setToast({ msg, type }); setTimeout(() => setToast(null), 3000)
   }
 
-  // Open send modal if navigated here from a new-quote save-and-send
+  // After a brand-new quote saves, it navigates to /quotes/:id with this flag —
+  // open the preview then. Keyed on location.state so it fires post-navigation,
+  // not just on first mount (the component doesn't remount when :id changes).
   useEffect(() => {
-    if (location.state?.openSendModal) setShowEmailModal(true)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    if (location.state?.openPreview) {
+      setShowPreview(true)
+      navigate(location.pathname, { replace: true, state: null }) // consume the flag
+    }
+  }, [location.state, location.pathname, navigate])
 
   useEffect(() => {
     if (!isNew) {
@@ -783,7 +787,7 @@ export default function QuoteBuilder() {
     })
   }
 
-  async function save(newStatus, openSendModal = false) {
+  async function save(newStatus, openPreview = false) {
     setSaving(true)
     const userId = session?.user?.id ?? null
     const payload = {
@@ -817,7 +821,7 @@ export default function QuoteBuilder() {
       const validUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
       const { data, error } = await tryUpsert(payload, true, { job_id: jobId, status: newStatus ?? 'draft', client_view_token: token, valid_until: validUntil, ...(userId ? { created_by: userId } : {}) })
       if (error) showToast(error.message, 'error')
-      else if (data) { showToast('Quote created'); navigate(`/quotes/${data.id}`, { replace: true, state: openSendModal ? { openSendModal: true } : null }) }
+      else if (data) { showToast('Quote created'); navigate(`/quotes/${data.id}`, { replace: true, state: openPreview ? { openPreview: true } : null }) }
       else showToast('Quote created')
     } else {
       const { error } = await tryUpsert(payload, false)
@@ -831,15 +835,20 @@ export default function QuoteBuilder() {
     setSaving(false)
   }
 
-  async function handlePreviewSend() {
-    await save(undefined, true)
-    setShowPreview(false)
-    setShowEmailModal(true)
+  // Primary action everywhere: save, then show the client preview. The preview's
+  // own "Send" button chains into the email draft (handleSendFromPreview).
+  async function previewAndSend() {
+    if (items.length === 0) { showToast('Add at least one line item first', 'error'); return }
+    setShowMenu(false)
+    if (isNew) { await save(undefined, true); return } // save() navigates; nav-state opens the preview
+    await save()
+    setShowPreview(true)
   }
 
-  async function handleSend() {
-    if (items.length === 0) { showToast('Add at least one line item before sending', 'error'); return }
-    await save(undefined, true)
+  // From inside the preview → open the editable email draft.
+  async function handleSendFromPreview() {
+    await save()
+    setShowPreview(false)
     setShowEmailModal(true)
   }
 
@@ -996,7 +1005,6 @@ export default function QuoteBuilder() {
     complete: { label: 'Complete', bg: '#E6F4EC', color: '#1A7A4A' },
     invoiced: { label: 'Invoiced', bg: '#E8EEFA', color: '#2A4AB0' },
   }
-  const st = quote?.status ? ST[quote.status] : null
   const clientEmail = quote?.jobs?.clients?.email
   const clientPhone = quote?.jobs?.clients?.phone
   const canEmail    = !!clientEmail && quote?.client_view_token && quote?.status !== 'draft'
@@ -1021,66 +1029,54 @@ export default function QuoteBuilder() {
               {!isNew && job && <div style={s.sub}>{job.address}{job.job_type ? ` · ${job.job_type}` : ''}</div>}
             </div>
           </div>
-          <div style={{ ...s.hRight, flexWrap: 'wrap' }}>
-            {/* Status chip IS the control — tap the bubble to change status.
-                A transparent native <select> sits over it, so there's no
-                separate white dropdown box. */}
-            {quote && st && (
-              <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
-                <span style={{ ...s.badge, background: st.bg, color: st.color, display: 'inline-flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
-                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: st.color, flexShrink: 0 }} />
-                  {saving ? 'Saving…' : st.label}
-                  <span style={{ fontSize: '8px', opacity: 0.7 }}>▼</span>
-                </span>
-                <select
-                  value=""
-                  onChange={e => { if (e.target.value) save(e.target.value) }}
-                  disabled={saving}
-                  aria-label="Change quote status"
-                  style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', border: 'none', appearance: 'none', WebkitAppearance: 'none' }}
-                >
-                  <option value="">Change status…</option>
-                  {['draft', 'sent', 'viewed', 'accepted', 'declined']
-                    .filter(k => k !== quote.status)
-                    .map(k => <option key={k} value={k}>{ST[k].label}</option>)}
-                </select>
-              </div>
+          <div style={s.hRight}>
+            {!locked && (
+              <button style={s.previewSendBtn} onClick={previewAndSend} disabled={saving}>
+                {saving ? 'Saving…' : 'Preview & Send'}
+              </button>
             )}
 
-            {/* Only the essential action for the current status — everything
-                else (Preview / PDF) lives in the summary sidebar. */}
-            {(isNew || quote?.status === 'draft') && (
-              <button style={s.sendBtn} onClick={handleSend} disabled={saving}>Send</button>
-            )}
-            {(quote?.status === 'sent' || quote?.status === 'viewed') && (
-              <>
-                {canEmail && (
-                  <button style={s.emailBtn} onClick={() => setShowEmailModal(true)} disabled={emailLoading}>✉ Email</button>
-                )}
-                {canSms && (
-                  <button style={s.emailBtn} onClick={sendSms} disabled={smsLoading} title="Text the quote link to the client">
-                    {smsLoading ? 'Texting…' : '💬 Text'}
-                  </button>
-                )}
-              </>
-            )}
-            {canComplete && (
-              <button style={s.completeBtn} onClick={markComplete} disabled={saving}>Mark Complete ✓</button>
-            )}
-            {canXero && (
-              <button style={s.xeroBtn} onClick={sendToXero} disabled={xeroLoading}>{xeroLoading ? 'Sending…' : '→ Xero'}</button>
-            )}
-            {!locked && (
-              <button style={s.saveBtn} onClick={() => setShowLibrary(true)}>📚 Library</button>
-            )}
-            {!locked && (
-              <button style={s.saveBtn} onClick={() => save()} disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
-            )}
+            {/* Everything else lives behind the ☰ menu. */}
+            <div style={{ position: 'relative' }}>
+              <button style={s.menuBtn} onClick={() => setShowMenu(v => !v)} aria-label="More options" aria-expanded={showMenu}>☰</button>
+              {showMenu && (
+                <>
+                  <div style={s.menuBackdrop} onClick={() => setShowMenu(false)} />
+                  <div style={s.menu}>
+                    {!locked && <button style={s.menuItem} onClick={() => { setShowMenu(false); save() }} disabled={saving}>💾 Save</button>}
+                    <button style={s.menuItem} onClick={async () => { setShowMenu(false); await save(); setShowPreview(true) }} disabled={saving}>👁 Preview only</button>
+                    {!locked && <button style={s.menuItem} onClick={() => { setShowMenu(false); setShowLibrary(true) }}>📚 Library</button>}
+                    {quote?.client_view_token && (
+                      <button style={s.menuItem} onClick={async () => { setShowMenu(false); await save(); window.open(`${window.location.origin}/q/${quote.client_view_token}?download=1&preview=1`, '_blank') }} disabled={saving}>⬇ Download PDF</button>
+                    )}
+                    {canEmail && <button style={s.menuItem} onClick={() => { setShowMenu(false); setShowEmailModal(true) }}>✉ Email quote</button>}
+                    {canSms && <button style={s.menuItem} onClick={() => { setShowMenu(false); sendSms() }} disabled={smsLoading}>💬 Text quote link</button>}
+                    {canComplete && <button style={s.menuItem} onClick={() => { setShowMenu(false); markComplete() }}>✓ Mark complete</button>}
+                    {canXero && <button style={s.menuItem} onClick={() => { setShowMenu(false); sendToXero() }} disabled={xeroLoading}>→ Send to Xero</button>}
+                    {locked && <button style={s.menuItem} onClick={() => { setShowMenu(false); reopen() }}>🔓 Reopen to edit</button>}
+                    {!isNew && quote && (
+                      <div style={s.menuStatus}>
+                        <div style={s.menuStatusLabel}>Set status</div>
+                        <div style={s.menuStatusRow}>
+                          {['draft', 'sent', 'viewed', 'accepted', 'declined'].map(k => (
+                            <button key={k} disabled={k === quote.status || saving}
+                              onClick={() => { setShowMenu(false); save(k) }}
+                              style={{ ...s.statusPill, ...(k === quote.status ? s.statusPillActive : {}) }}>
+                              {ST[k].label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* ── Body ── */}
-        <div style={{ ...s.body, flexDirection: isMobile ? 'column' : 'row' }}>
+        {/* ── Body ── single column, phone-first ── */}
+        <div style={s.body}>
           <div style={s.main}>
 
             {/* Locked banner — accepted/complete/invoiced quotes are frozen */}
@@ -1120,9 +1116,6 @@ export default function QuoteBuilder() {
             {/* Version history — appears once a quote has been accepted/reopened */}
             {!isNew && <QuoteVersionHistory quoteId={id} refreshKey={quote?.status} />}
 
-            {/* Client discussion thread */}
-            {!isNew && <QuoteComments quoteId={id} />}
-
             {/* Job selector */}
             {isNew && (
               <div style={s.card}>
@@ -1136,14 +1129,8 @@ export default function QuoteBuilder() {
               </div>
             )}
 
-            {/* Quote reference — lead/site material for the operator (never on the
-                client quote). Only shown while the job is still a lead or being
-                quoted; once accepted the quote supersedes it. New quotes (no job
-                status loaded yet) are inherently in the quoting phase, so show it. */}
-            {jobId && (isNew || showsQuoteReference(job?.status)) && <QuoteReference jobId={jobId} readOnly />}
-
-            {/* Line items */}
-            <div style={s.card}>
+            {/* Line items — the focus of the screen on mobile */}
+            <div style={{ ...s.card, ...s.itemsCard }}>
               <div style={s.cardTitle}>Line items</div>
               <div style={s.gstNote}>
                 💡 Enter prices <strong>ex GST</strong> — line totals are shown <strong>incl GST</strong> (15%)
@@ -1187,6 +1174,24 @@ export default function QuoteBuilder() {
               <div style={s.formatHint}>
                 💡 Put the tree/species in the item title (shows in bold). Start each line of detail with “- ” for a bullet point.
               </div>
+            </div>
+
+            {/* Summary + primary action, right under the line items */}
+            <div style={s.totalsCard}>
+              <div style={s.cardTitle}>Summary</div>
+              {items.some(i => i.optional) && (
+                <div style={s.optNote}>✱ Optional items included — client can toggle</div>
+              )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={s.tRow}><span>Subtotal (ex GST)</span><span>{nzd(totals.subtotal)}</span></div>
+                <div style={s.tRow}><span>GST (15%)</span><span>{nzd(totals.gst)}</span></div>
+                <div style={{ ...s.tRow, ...s.tBig }}><span>Total (incl GST)</span><span>{nzd(totals.total)}</span></div>
+              </div>
+              {!locked && (
+                <button style={s.previewSendBig} onClick={previewAndSend} disabled={saving}>
+                  {saving ? 'Saving…' : 'Preview & Send →'}
+                </button>
+              )}
             </div>
 
             {/* Job Pack — crew-facing ops checklist */}
@@ -1340,50 +1345,10 @@ export default function QuoteBuilder() {
                 Your signature is included here and appears on the printed document.
               </div>
             </div>
-          </div>
 
-          {/* Sidebar */}
-          <div style={{ ...s.sidebar, width: isMobile ? '100%' : '260px', position: isMobile ? 'static' : 'sticky' }}>
-            <div style={s.totalsCard}>
-              <div style={s.cardTitle}>Summary</div>
-              {items.some(i => i.optional) && (
-                <div style={s.optNote}>✱ Optional items included — client can toggle</div>
-              )}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div style={s.tRow}><span>Subtotal (ex GST)</span><span>{nzd(totals.subtotal)}</span></div>
-                <div style={s.tRow}><span>GST (15%)</span><span>{nzd(totals.gst)}</span></div>
-                <div style={{ ...s.tRow, ...s.tBig }}><span>Total (incl GST)</span><span>{nzd(totals.total)}</span></div>
-              </div>
-              {quote?.client_view_token && (
-                <div style={s.linkBox}>
-                  <div style={{ fontSize: '11px', color: '#aaa', marginBottom: '4px' }}>Client link</div>
-                  <div style={{ fontSize: '11px', color: '#4A7FA5', wordBreak: 'break-all', marginBottom: '8px' }}>
-                    {window.location.origin}/q/{quote.client_view_token}
-                  </div>
-                  <button style={s.copyBtn} onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/q/${quote.client_view_token}`); showToast('Link copied!') }}>
-                    Copy link
-                  </button>
-                </div>
-              )}
-              {/* Preview + PDF — document helpers, kept out of the header so it
-                  stays down to the essential status action. */}
-              <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-                <button style={{ ...s.previewBtn, flex: 1 }} onClick={async () => { await save(); setShowPreview(true) }} disabled={saving}>Preview</button>
-                {quote?.client_view_token && (
-                  <button style={{ ...s.pdfBtn, flex: 1 }} onClick={async () => { await save(); window.open(`${window.location.origin}/q/${quote.client_view_token}?download=1&preview=1`, '_blank') }} disabled={saving}>⬇ PDF</button>
-                )}
-              </div>
-            </div>
-
-            {quote && (
-              <div style={s.metaCard}>
-                <div style={s.cardTitle}>Client</div>
-                <div style={{ fontWeight: '600', color: 'var(--ink)', marginBottom: '4px' }}>{quote.jobs?.clients?.name}</div>
-                {quote.jobs?.clients?.email && <div style={s.metaLine}>{quote.jobs.clients.email}</div>}
-                {quote.jobs?.clients?.phone && <div style={s.metaLine}>{quote.jobs.clients.phone}</div>}
-                {quote.jobs?.address && <div style={{ ...s.metaLine, marginTop: '6px' }}>{quote.jobs.address}</div>}
-              </div>
-            )}
+            {/* Discussion — at the very bottom of the page. Allows image
+                attachments; internal notes never reach the client. */}
+            {!isNew && <QuoteComments quoteId={id} />}
           </div>
         </div>
       </div>
@@ -1408,7 +1373,7 @@ export default function QuoteBuilder() {
         <QuotePreview
           quote={quote}
           onClose={() => setShowPreview(false)}
-          onSend={handlePreviewSend}
+          onSend={handleSendFromPreview}
           saving={saving}
         />
       )}
@@ -1471,12 +1436,26 @@ const s = {
   expiryBanner: { display: 'flex', alignItems: 'center', gap: 10, background: '#F6FAF4', border: '1px solid #D8EBD0', borderRadius: 'var(--radius)', padding: '10px 14px', marginBottom: 16, fontSize: '13px', color: 'var(--bark)' },
   expiryBannerExpired: { background: '#FFF0EE', border: '1px solid #F0C0B8' },
   sendBtn: { background: 'var(--terra)', color: '#fff', border: 'none', borderRadius: '7px', padding: '8px 16px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
+  // Primary "Preview & Send" in the header
+  previewSendBtn: { background: 'var(--terra)', color: '#fff', border: 'none', borderRadius: '8px', padding: '9px 16px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap' },
+  // ☰ hamburger
+  menuBtn: { background: '#fff', border: '1px solid var(--border)', borderRadius: '8px', padding: '7px 12px', fontSize: '17px', lineHeight: 1, color: 'var(--ink)', cursor: 'pointer', fontFamily: 'var(--font)' },
+  menuBackdrop: { position: 'fixed', inset: 0, zIndex: 40 },
+  menu: { position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 41, background: '#fff', border: '1px solid var(--border)', borderRadius: '10px', boxShadow: '0 10px 30px rgba(0,0,0,0.14)', padding: '6px', minWidth: '210px', display: 'flex', flexDirection: 'column', gap: '2px' },
+  menuItem: { textAlign: 'left', background: 'none', border: 'none', borderRadius: '7px', padding: '10px 12px', fontSize: '13.5px', color: 'var(--ink)', cursor: 'pointer', fontFamily: 'var(--font)', width: '100%' },
+  menuStatus: { borderTop: '1px solid var(--border)', marginTop: '4px', paddingTop: '8px' },
+  menuStatusLabel: { fontSize: '10px', fontWeight: '700', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.06em', padding: '0 6px 6px' },
+  menuStatusRow: { display: 'flex', flexWrap: 'wrap', gap: '5px', padding: '0 6px 4px' },
+  statusPill: { background: 'var(--cream)', border: '1px solid var(--border)', borderRadius: '14px', padding: '4px 10px', fontSize: '12px', fontWeight: '600', color: '#888', cursor: 'pointer', fontFamily: 'var(--font)' },
+  statusPillActive: { background: 'var(--ink)', color: '#fff', borderColor: 'var(--ink)', cursor: 'default' },
   emailBtn: { background: '#EBF3FA', color: '#4A7FA5', border: '1.5px solid #4A7FA5', borderRadius: '7px', padding: '7px 14px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
   completeBtn: { background: '#E6F4EC', color: '#1A7A4A', border: '1.5px solid #1A7A4A', borderRadius: '7px', padding: '7px 14px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
   xeroBtn: { background: '#1A7A4A', color: '#fff', border: 'none', borderRadius: '7px', padding: '8px 16px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
-  body: { flex: 1, overflowY: 'auto', padding: '18px 20px', display: 'flex', gap: '18px', alignItems: 'flex-start' },
-  main: { flex: 1, display: 'flex', flexDirection: 'column', gap: '14px', minWidth: 0 },
-  sidebar: { width: '260px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '12px', position: 'sticky', top: 0 },
+  // Single column, centred with a comfortable reading width on desktop
+  body: { flex: 1, overflowY: 'auto', padding: '16px 16px 88px', display: 'flex', justifyContent: 'center' },
+  main: { flex: 1, width: '100%', maxWidth: '760px', display: 'flex', flexDirection: 'column', gap: '14px', minWidth: 0 },
+  itemsCard: { padding: '14px' },
+  previewSendBig: { width: '100%', marginTop: '14px', background: 'var(--terra)', color: '#fff', border: 'none', borderRadius: '10px', padding: '14px', fontSize: '15px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)' },
   card: { background: '#fff', borderRadius: '10px', border: '1px solid var(--border)', padding: '16px 18px' },
   cardTitle: { fontSize: '11px', fontWeight: '700', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px' },
   gstNote: { fontSize: '12px', color: '#666', background: '#EBF3FA', borderRadius: '6px', padding: '8px 12px', lineHeight: 1.5 },
