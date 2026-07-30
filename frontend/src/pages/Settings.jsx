@@ -244,6 +244,14 @@ function TeamTab({ toast }) {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={t.userName}>{u.name}</div>
                 <div style={t.userEmail}>{u.email}</div>
+                <input
+                  type="tel"
+                  defaultValue={u.phone ?? ''}
+                  placeholder="+ mobile number"
+                  title="Mobile — used to text this person a message from chat"
+                  onBlur={e => { const v = e.target.value.trim(); if (v !== (u.phone ?? '')) updateUser(u.id, { phone: v || null }) }}
+                  style={{ marginTop: 4, width: 160, maxWidth: '100%', border: '1px solid var(--border, #D0D9C8)', borderRadius: 6, padding: '4px 8px', fontSize: 12, color: '#4A6741', fontFamily: 'var(--font)', background: '#fff' }}
+                />
               </div>
               <div className="settings-user-controls" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                 <select

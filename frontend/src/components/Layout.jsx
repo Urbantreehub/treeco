@@ -66,6 +66,7 @@ const FULL_NAV = [
   { to: '/mulch',     label: 'Mulch',     icon: MulchIcon },
   { to: '/requests',  label: 'Tools',     icon: ToolIcon },
   { to: '/safety',    label: 'Safety',    icon: SafetyIcon },
+  { to: '/chat',      label: 'Chat',      icon: ChatIcon },
   { to: '/staff',     label: 'Team',      icon: StaffHubIcon },
 ]
 
@@ -76,6 +77,7 @@ const OFFICE_NAV = [
   { to: '/mulch',     label: 'Mulch',     icon: MulchIcon },
   { to: '/requests',  label: 'Tools',     icon: ToolIcon },
   { to: '/safety',    label: 'Safety',    icon: SafetyIcon },
+  { to: '/chat',      label: 'Chat',      icon: ChatIcon },
   { to: '/staff',     label: 'Team',      icon: StaffHubIcon },
 ]
 
@@ -84,6 +86,7 @@ const CREW_NAV = [
   { to: '/safety',   label: 'Safety',   icon: SafetyIcon },
   { to: '/mulch',    label: 'Mulch',    icon: MulchIcon },
   { to: '/requests', label: 'Tools',    icon: ToolIcon },
+  { to: '/chat',     label: 'Chat',     icon: ChatIcon },
 ]
 
 // Secondary nav — rarely-used items tucked into the mobile "More" sheet and the
