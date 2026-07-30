@@ -189,6 +189,10 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
         setXeroStatus(body?.error?.includes('not connected') ? 'not_connected' : 'err')
       } else {
         setXeroStatus('ok')
+        // The push also advances the job to 'invoiced' server-side, so refresh
+        // the board and close — the job leaves Complete — To Be Invoiced and
+        // lands in Invoiced ("archived"). Brief pause so the ✅ is seen first.
+        setTimeout(() => onUpdated(), 1200)
       }
     } catch {
       setXeroStatus('err')
@@ -513,8 +517,11 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
                   >
                     + New quote
                   </button>
-                  {/* Xero invoice push — only once the job is Complete — To Be Invoiced */}
-                  {job.status === 'complete_to_invoice' && job.quotes.some(q => ['accepted','invoiced'].includes(q.status)) && (
+                  {/* Xero invoice push — only once the job is Complete — To Be
+                      Invoiced. 'complete' covers a quote marked complete (which
+                      is what "Mark complete" sets); 'accepted' covers a job moved
+                      straight to invoicing from the pipeline. */}
+                  {job.status === 'complete_to_invoice' && job.quotes.some(q => ['accepted','complete','invoiced'].includes(q.status)) && (
                     <div style={{ marginTop: '6px' }}>
                       <button
                         style={{
@@ -525,7 +532,7 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
                           width: '100%',
                         }}
                         disabled={xeroStatus === 'pushing'}
-                        onClick={() => pushToXero(job.quotes.find(q => ['accepted','invoiced'].includes(q.status))?.id)}
+                        onClick={() => pushToXero(job.quotes.find(q => ['accepted','complete','invoiced'].includes(q.status))?.id)}
                       >
                         {xeroStatus === 'pushing' && '⏳ Pushing to Xero…'}
                         {xeroStatus === 'ok'      && '✅ Invoice created in Xero'}

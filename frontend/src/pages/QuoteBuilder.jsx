@@ -921,6 +921,9 @@ export default function QuoteBuilder() {
 
   async function sendToXero() {
     if (!quote) return
+    if (!window.confirm(
+      'Raise this invoice in Xero?\n\nAn invoice is created in Xero and the job moves to “Invoiced” (out of the Complete — To Be Invoiced list).'
+    )) return
     setXeroLoading(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
@@ -932,7 +935,9 @@ export default function QuoteBuilder() {
       })
       const body = await res.json()
       if (!res.ok) throw new Error(body.error ?? 'Xero sync failed')
-      showToast('Invoice created in Xero ✓')
+      showToast(body.invoice_number
+        ? `Invoice ${body.invoice_number} created in Xero — job moved to Invoiced ✓`
+        : 'Invoice created in Xero — job moved to Invoiced ✓')
       // Refresh quote data
       const { data } = await supabase.from('quotes')
         .select(`*, jobs (id, address, job_type, title, status, clients (id, name, email, phone))`)
@@ -1010,7 +1015,13 @@ export default function QuoteBuilder() {
   const canEmail    = !!clientEmail && quote?.client_view_token && quote?.status !== 'draft'
   const canSms      = !!clientPhone && quote?.client_view_token && quote?.status !== 'draft'
   const canComplete = quote?.status === 'accepted'
-  const canXero     = quote?.status === 'complete'
+  // Ready to invoice once the work is done — whether that was recorded on the
+  // quote ('complete') or straight on the job from the pipeline
+  // ('complete_to_invoice'). Either path surfaces the Xero button. Hidden once
+  // an invoice already exists.
+  const alreadyInvoiced = quote?.status === 'invoiced' || job?.status === 'invoiced'
+  const canXero     = !isNew && !alreadyInvoiced &&
+    (quote?.status === 'complete' || job?.status === 'complete_to_invoice')
   // Accepted/complete/invoiced quotes are frozen (enforced in migration 020).
   const locked      = !isNew && ['accepted', 'complete', 'invoiced'].includes(quote?.status)
   // Expiry awareness for live (sent/viewed) quotes.
@@ -1036,6 +1047,14 @@ export default function QuoteBuilder() {
               </button>
             )}
 
+            {/* Once work is done, invoicing is the primary action — surfaced
+                here (not buried in the menu) so it's one tap on a phone. */}
+            {canXero && (
+              <button style={s.xeroBtn} onClick={sendToXero} disabled={xeroLoading}>
+                {xeroLoading ? 'Invoicing…' : '→ Invoice to Xero'}
+              </button>
+            )}
+
             {/* Everything else lives behind the ☰ menu. */}
             <div style={{ position: 'relative' }}>
               <button style={s.menuBtn} onClick={() => setShowMenu(v => !v)} aria-label="More options" aria-expanded={showMenu}>☰</button>
@@ -1052,7 +1071,7 @@ export default function QuoteBuilder() {
                     {canEmail && <button style={s.menuItem} onClick={() => { setShowMenu(false); setShowEmailModal(true) }}>✉ Email quote</button>}
                     {canSms && <button style={s.menuItem} onClick={() => { setShowMenu(false); sendSms() }} disabled={smsLoading}>💬 Text quote link</button>}
                     {canComplete && <button style={s.menuItem} onClick={() => { setShowMenu(false); markComplete() }}>✓ Mark complete</button>}
-                    {canXero && <button style={s.menuItem} onClick={() => { setShowMenu(false); sendToXero() }} disabled={xeroLoading}>→ Send to Xero</button>}
+                    {/* Invoice to Xero is now a primary header button (see above). */}
                     {locked && <button style={s.menuItem} onClick={() => { setShowMenu(false); reopen() }}>🔓 Reopen to edit</button>}
                     {!isNew && quote && (
                       <div style={s.menuStatus}>
@@ -1438,6 +1457,7 @@ const s = {
   sendBtn: { background: 'var(--terra)', color: '#fff', border: 'none', borderRadius: '7px', padding: '8px 16px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
   // Primary "Preview & Send" in the header
   previewSendBtn: { background: 'var(--terra)', color: '#fff', border: 'none', borderRadius: '8px', padding: '9px 16px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap' },
+  xeroBtn: { background: '#13B5EA', color: '#fff', border: 'none', borderRadius: '8px', padding: '9px 16px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap' },
   // ☰ hamburger
   menuBtn: { background: '#fff', border: '1px solid var(--border)', borderRadius: '8px', padding: '7px 12px', fontSize: '17px', lineHeight: 1, color: 'var(--ink)', cursor: 'pointer', fontFamily: 'var(--font)' },
   menuBackdrop: { position: 'fixed', inset: 0, zIndex: 40 },
