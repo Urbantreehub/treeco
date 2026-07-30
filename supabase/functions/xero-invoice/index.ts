@@ -116,6 +116,13 @@ Deno.serve(async (req: Request) => {
     if (!xeroRes.ok) {
       const detail = await xeroRes.text()
       console.error('Xero API error:', detail)
+      // 401/403 here almost always means the connection lacks the
+      // accounting.transactions scope (it was first connected for contact
+      // import only). A token refresh can't add a scope — the user must
+      // reconnect in Settings to approve invoice access.
+      if (xeroRes.status === 401 || xeroRes.status === 403) {
+        throw new Error('Xero rejected the request — reconnect Xero in Settings so it can create invoices (needs the "accounting.transactions" permission).')
+      }
       throw new Error(`Xero API ${xeroRes.status}: ${detail.slice(0, 200)}`)
     }
 

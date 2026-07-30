@@ -590,7 +590,11 @@ function IntegrationsTab({ toast }) {
       response_type: 'code',
       client_id:     XERO_CLIENT_ID,
       redirect_uri:  XERO_REDIRECT_URI,
-      scope:         'openid profile email accounting.contacts.read offline_access',
+      // accounting.transactions is required to CREATE invoices (Push to Xero);
+      // accounting.contacts.read powers the contact import. offline_access gives
+      // us the refresh token. Changing scopes requires the user to reconnect —
+      // a refresh can't grant a scope that was never approved.
+      scope:         'openid profile email accounting.transactions accounting.contacts.read offline_access',
       state,
     })
     const url = `https://login.xero.com/identity/connect/authorize?${params}`
