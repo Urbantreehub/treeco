@@ -7,6 +7,7 @@ import HSDocuments from './HSDocuments'
 import SWMS from './SWMS'
 import SOP from './SOP'
 import StaffTrainingRegister from './StaffTrainingRegister'
+import TeamSignoff from './TeamSignoff'
 
 // ── Vault configs ───────────────────────────────────────────────────────────
 const STAFF_TYPES = [
@@ -119,6 +120,7 @@ export default function Safety() {
           </div>
 
           {tab === 'forms'       && <FormsPanel onSelect={setActiveForm} />}
+          {tab === 'signoff'     && <TeamSignoff />}
           {tab === 'checks'      && <ScheduledChecksPanel overdue={overdue} dueSoon={dueSoon} upcoming={upcoming} onDone={markDone} />}
           {tab === 'assessments' && <RiskAssessments />}
           {tab === 'swms'        && <SWMS />}
@@ -405,6 +407,7 @@ function ScheduledChecksPanel({ overdue, dueSoon, upcoming, onDone }) {
 
 const SECTION_LABELS = {
   forms:       'Forms',
+  signoff:     'Safety Sign-off',
   checks:      'Scheduled Checks',
   overview:    'Overview',
   swms:        'SWMS',
@@ -418,6 +421,7 @@ const SECTION_LABELS = {
 
 const SECTIONS = [
   { key:'forms',       icon:'📋', label:'Forms',                   desc:'SSSP, Toolbox Meeting, Pre-Start Check, Incident Report' },
+  { key:'signoff',     icon:'✍️',  label:'Safety Sign-off',         desc:'Crew acknowledge the current SWMS, SOPs & policies — kiosk + register' },
   { key:'checks',      icon:'✅', label:'Scheduled Checks',        desc:'Audits, cert renewals & compliance inspections' },
   { key:'overview',    icon:'📊', label:'Overview',                desc:'Expiry alerts, document summary & counts', staffOnly:true },
   { key:'swms',        icon:'🦺', label:'SWMS',                    desc:'Safe Work Method Statements — 13 documents' },
