@@ -97,6 +97,7 @@ Deno.serve(async (req: Request) => {
         Contact:         { Name: clientName },
         LineAmountTypes: 'Exclusive',
         CurrencyCode:    'NZD',
+        DueDate:         new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
         Reference:       `TreeCo quote — ${quote.jobs?.address ?? ''}`,
         LineItems:       lineItems,
       }],
