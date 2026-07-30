@@ -95,7 +95,7 @@ Deno.serve(async (req: Request) => {
         Type:            'ACCREC',
         Status:          'SUBMITTED',
         Contact:         { Name: clientName },
-        LineAmountTypes: 'EXCLUSIVE',
+        LineAmountTypes: 'Exclusive',
         CurrencyCode:    'NZD',
         Reference:       `TreeCo quote — ${quote.jobs?.address ?? ''}`,
         LineItems:       lineItems,
