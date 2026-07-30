@@ -23,7 +23,7 @@ const ROUTE_TITLES = {
   '/dashboard': 'Dashboard', '/pipeline': 'Jobs', '/calendar': 'Calendar',
   '/planner': 'Planner', '/mulch': 'Mulch', '/requests': 'Tools', '/safety': 'Safety',
   '/staff': 'Team', '/clients': 'Clients', '/settings': 'Settings', '/quotes': 'Quotes',
-  '/quote': 'Quote', '/workorder': 'Work Order', '/jobpack': 'Job Pack',
+  '/quote': 'Quote', '/workorder': 'Work Order', '/jobpack': 'Job Pack', '/my-docs': 'My Docs',
 }
 function resolveTitle(pathname) {
   const keys = Object.keys(ROUTE_TITLES).sort((a, b) => b.length - a.length)
@@ -66,6 +66,7 @@ const FULL_NAV = [
   { to: '/mulch',     label: 'Mulch',     icon: MulchIcon },
   { to: '/requests',  label: 'Tools',     icon: ToolIcon },
   { to: '/safety',    label: 'Safety',    icon: SafetyIcon },
+  { to: '/chat',      label: 'Chat',      icon: ChatIcon },
   { to: '/staff',     label: 'Team',      icon: StaffHubIcon },
 ]
 
@@ -76,14 +77,25 @@ const OFFICE_NAV = [
   { to: '/mulch',     label: 'Mulch',     icon: MulchIcon },
   { to: '/requests',  label: 'Tools',     icon: ToolIcon },
   { to: '/safety',    label: 'Safety',    icon: SafetyIcon },
+  { to: '/chat',      label: 'Chat',      icon: ChatIcon },
   { to: '/staff',     label: 'Team',      icon: StaffHubIcon },
 ]
 
+// Individual staff (person) login — documents & chat only. They remain calendar
+// resources so the office can enter their leave/personal time, but they don't see
+// the calendar themselves. (Truck logins get the calendar — see TRUCK_NAV.)
 const CREW_NAV = [
+  { to: '/safety',   label: 'Safety',   icon: SafetyIcon },
+  { to: '/chat',     label: 'Chat',     icon: ChatIcon },
+  { to: '/my-docs',  label: 'My Docs',  icon: FormsIcon },
+]
+
+// Truck login — a shared account on the truck's iPad. Sees that truck's scheduled
+// work (crew calendar view) + the work orders it links to, plus safety & chat.
+const TRUCK_NAV = [
   { to: '/calendar', label: 'Calendar', icon: CalendarIcon },
   { to: '/safety',   label: 'Safety',   icon: SafetyIcon },
-  { to: '/mulch',    label: 'Mulch',    icon: MulchIcon },
-  { to: '/requests', label: 'Tools',    icon: ToolIcon },
+  { to: '/chat',     label: 'Chat',     icon: ChatIcon },
 ]
 
 // Secondary nav — rarely-used items tucked into the mobile "More" sheet and the
@@ -94,7 +106,7 @@ const MORE_NAV = [
 ]
 
 export default function Layout() {
-  const { profile, isFullAccess, isStaff, signOut } = useAuth()
+  const { profile, isFullAccess, isStaff, isTruck, signOut } = useAuth()
   const navigate   = useNavigate()
   const isMobile   = useIsMobile()
   const { overdue, dueSoon } = useScheduledChecks()
@@ -109,7 +121,7 @@ export default function Layout() {
     navigate('/login', { replace: true })
   }
 
-  const navItems = isFullAccess ? FULL_NAV : isStaff ? OFFICE_NAV : CREW_NAV
+  const navItems = isFullAccess ? FULL_NAV : isStaff ? OFFICE_NAV : isTruck ? TRUCK_NAV : CREW_NAV
   const moreNav  = isStaff ? MORE_NAV : []
 
   if (isMobile) {
@@ -198,7 +210,7 @@ export default function Layout() {
     <div style={d.shell}>
       <nav style={d.nav}>
         <div style={d.navTop}>
-          <NavLink to={isFullAccess ? '/dashboard' : '/calendar'} style={d.brand}>
+          <NavLink to={isFullAccess ? '/dashboard' : (isStaff || isTruck) ? '/calendar' : '/safety'} style={d.brand}>
             <Starburst size={22} />
             <span style={d.brandName}>TreeCo</span>
           </NavLink>
@@ -236,7 +248,7 @@ export default function Layout() {
             <div style={d.avatar}>{profile?.name?.[0]?.toUpperCase() ?? '?'}</div>
             <div>
               <div style={d.userName}>{profile?.name ?? '—'}</div>
-              <div style={d.accessBadge}>{isFullAccess ? 'Full access' : isStaff ? 'Office' : 'Crew'}</div>
+              <div style={d.accessBadge}>{isFullAccess ? 'Full access' : isStaff ? 'Office' : isTruck ? 'Truck' : 'Crew'}</div>
             </div>
           </div>
           <button onClick={handleSignOut} style={d.signOutBtn}>Sign out</button>

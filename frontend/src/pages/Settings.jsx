@@ -18,7 +18,7 @@ const RESOURCES = [
   { id: 'unassigned', label: 'Unassigned' },
 ]
 
-const ACCESS_LABELS = { full: 'Full access', office: 'Office', restricted: 'Crew' }
+const ACCESS_LABELS = { full: 'Full access', office: 'Office', restricted: 'Crew', truck: 'Truck' }
 
 // ── Team tab ───────────────────────────────────────────────────────────────
 function TeamTab({ toast }) {
@@ -193,7 +193,8 @@ function TeamTab({ toast }) {
                     <select style={t.select} value={form.access_level} onChange={e => setForm(f => ({ ...f, access_level: e.target.value }))}>
                       <option value="full">Full access — sees everything</option>
                       <option value="office">Office — everything except dashboard</option>
-                      <option value="restricted">Crew — today's jobs only</option>
+                      <option value="truck">Truck — calendar & scheduled work</option>
+                      <option value="restricted">Crew — safety docs & chat only</option>
                     </select>
                   </div>
                   <div style={t.fieldGroup}>
@@ -244,6 +245,14 @@ function TeamTab({ toast }) {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={t.userName}>{u.name}</div>
                 <div style={t.userEmail}>{u.email}</div>
+                <input
+                  type="tel"
+                  defaultValue={u.phone ?? ''}
+                  placeholder="+ mobile number"
+                  title="Mobile — used to text this person a message from chat"
+                  onBlur={e => { const v = e.target.value.trim(); if (v !== (u.phone ?? '')) updateUser(u.id, { phone: v || null }) }}
+                  style={{ marginTop: 4, width: 160, maxWidth: '100%', border: '1px solid var(--border, #D0D9C8)', borderRadius: 6, padding: '4px 8px', fontSize: 12, color: '#4A6741', fontFamily: 'var(--font)', background: '#fff' }}
+                />
               </div>
               <div className="settings-user-controls" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                 <select
@@ -254,6 +263,7 @@ function TeamTab({ toast }) {
                 >
                   <option value="full">Full access</option>
                   <option value="office">Office</option>
+                  <option value="truck">Truck</option>
                   <option value="restricted">Crew</option>
                 </select>
                 <select

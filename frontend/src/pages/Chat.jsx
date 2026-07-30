@@ -23,7 +23,7 @@ function fmtDay(d) {
 const initials = (name) => (name || '?').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
 
 export default function Chat() {
-  const { profile } = useAuth()
+  const { profile, isFullAccess } = useAuth()
   const isMobile = useIsMobile()
   const meId = profile?.id
 
@@ -35,6 +35,10 @@ export default function Chat() {
   const [text, setText] = useState('')
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
+  // Office-only: also fire a DM out as SMS / email to the recipient.
+  const [relaySms, setRelaySms] = useState(false)
+  const [relayEmail, setRelayEmail] = useState(false)
+  const [relayNote, setRelayNote] = useState(null)
 
   const endRef = useRef(null)
   const activeRef = useRef(activeKey)
@@ -146,6 +150,37 @@ export default function Chat() {
     if (error) { setText(body); return }
     if (data && !seen.current.has(data.id)) { seen.current.add(data.id); setMessages(prev => [...prev, data]) }
     const reads = loadReads(); reads[activeKey] = new Date().toISOString(); saveReads(reads)
+
+    // Office (full-access) can also push a DM out as a text and/or email.
+    const other = otherOf(activeKey)
+    if (other && isFullAccess && (relaySms || relayEmail)) {
+      relayMessage(other, body, relaySms, relayEmail)
+    }
+    setRelaySms(false); setRelayEmail(false)
+  }
+
+  async function relayMessage(recipientId, body, sms, email) {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const URL = import.meta.env.VITE_SUPABASE_URL
+      const ANON = import.meta.env.VITE_SUPABASE_ANON_KEY
+      const res = await fetch(`${URL}/functions/v1/relay-message`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: ANON, Authorization: `Bearer ${session?.access_token ?? ANON}` },
+        body: JSON.stringify({ recipient_id: recipientId, body, sms, email }),
+      })
+      const b = await res.json().catch(() => ({}))
+      if (!res.ok) { setRelayNote({ type: 'error', msg: b.error || 'Text/email relay failed' }); return }
+      const parts = []
+      if (sms)   parts.push(b.sms?.ok   ? 'texted'  : `text failed (${b.sms?.error || '—'})`)
+      if (email) parts.push(b.email?.ok ? 'emailed' : `email failed (${b.email?.error || '—'})`)
+      const anyFail = (sms && !b.sms?.ok) || (email && !b.email?.ok)
+      setRelayNote({ type: anyFail ? 'error' : 'ok', msg: 'Also ' + parts.join(' · ') })
+    } catch (err) {
+      setRelayNote({ type: 'error', msg: err.message })
+    } finally {
+      setTimeout(() => setRelayNote(null), 6000)
+    }
   }
 
   const nameFor = (uid) => (uid === meId ? (profile?.name ?? 'You') : (names[uid] ?? 'Teammate'))
@@ -220,13 +255,29 @@ export default function Chat() {
         <div ref={endRef} />
       </div>
 
-      <form style={s.composer} onSubmit={send}>
-        <input style={s.input} placeholder={activeKey === 'team' ? 'Message the team…' : `Message ${activeTitle}…`}
-          value={text} onChange={e => setText(e.target.value)} maxLength={2000} />
-        <button type="submit" style={{ ...s.sendBtn, opacity: text.trim() && !sending ? 1 : 0.5 }} disabled={!text.trim() || sending}>
-          {sending ? '…' : 'Send'}
-        </button>
-      </form>
+      <div style={s.composerWrap}>
+        {activeKey !== 'team' && isFullAccess && (
+          <div style={s.relayRow}>
+            <span style={s.relayLabel}>Also send as</span>
+            <button type="button" onClick={() => setRelaySms(v => !v)}
+              style={{ ...s.chip, ...(relaySms ? s.chipOn : {}) }}>📱 Text</button>
+            <button type="button" onClick={() => setRelayEmail(v => !v)}
+              style={{ ...s.chip, ...(relayEmail ? s.chipOn : {}) }}>✉ Email</button>
+            {relayNote && (
+              <span style={{ ...s.relayNote, color: relayNote.type === 'error' ? '#C0392B' : 'var(--moss)' }}>
+                {relayNote.msg}
+              </span>
+            )}
+          </div>
+        )}
+        <form style={s.composer} onSubmit={send}>
+          <input style={s.input} placeholder={activeKey === 'team' ? 'Message the team…' : `Message ${activeTitle}…`}
+            value={text} onChange={e => setText(e.target.value)} maxLength={2000} />
+          <button type="submit" style={{ ...s.sendBtn, opacity: text.trim() && !sending ? 1 : 0.5 }} disabled={!text.trim() || sending}>
+            {sending ? '…' : 'Send'}
+          </button>
+        </form>
+      </div>
     </div>
   )
 
@@ -273,7 +324,13 @@ const s = {
   body: { fontSize: '14px', lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word' },
   time: { fontSize: '10px', textAlign: 'right', marginTop: '3px' },
 
-  composer: { display: 'flex', gap: '8px', padding: '12px 14px', borderTop: '1px solid var(--border)', background: '#fff', flexShrink: 0 },
+  composerWrap: { borderTop: '1px solid var(--border)', background: '#fff', flexShrink: 0 },
+  relayRow: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', padding: '10px 14px 0' },
+  relayLabel: { fontSize: '11px', fontWeight: '700', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.05em' },
+  chip: { border: '1.5px solid var(--border)', background: '#fff', color: '#777', borderRadius: '16px', padding: '4px 12px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
+  chipOn: { background: 'var(--moss-pale)', borderColor: 'var(--moss)', color: 'var(--moss)' },
+  relayNote: { fontSize: '12px', fontWeight: '600', marginLeft: 'auto' },
+  composer: { display: 'flex', gap: '8px', padding: '12px 14px', background: '#fff', flexShrink: 0 },
   input: { flex: 1, padding: '11px 14px', borderRadius: '22px', border: '1.5px solid var(--border)', fontSize: '14px', fontFamily: 'var(--font)', color: 'var(--bark)', outline: 'none' },
   sendBtn: { padding: '0 20px', borderRadius: '22px', border: 'none', background: 'var(--moss)', color: '#fff', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)' },
 }

@@ -26,6 +26,7 @@ const ToolRequests = lazy(() => import('./pages/ToolRequests'))
 const MulchDump    = lazy(() => import('./pages/MulchDump'))
 const JobPack      = lazy(() => import('./pages/JobPack'))
 const BookQuote    = lazy(() => import('./pages/BookQuote'))
+const MyDocs       = lazy(() => import('./pages/MyDocs'))
 
 const PageFallback = () => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100dvh', color: 'var(--bark)' }}>Loading…</div>
@@ -43,25 +44,43 @@ function RequireAuth({ children }) {
   return children
 }
 
+// Landing page per role — also where blocked users get bounced.
+// full → dashboard · office → pipeline · truck → calendar · individual staff → safety
+function homePath({ isFullAccess, isStaff, isTruck }) {
+  if (isFullAccess) return '/dashboard'
+  if (isStaff)      return '/pipeline'
+  if (isTruck)      return '/calendar'
+  return '/safety'
+}
+
 function RequireFullAccess({ children }) {
-  const { isFullAccess, loading, session, profile } = useAuth()
-  if (loading || (session && !profile)) return null
-  if (!isFullAccess) return <Navigate to="/calendar" replace />
+  const a = useAuth()
+  if (a.loading || (a.session && !a.profile)) return null
+  if (!a.isFullAccess) return <Navigate to={homePath(a)} replace />
   return children
 }
 
 function DefaultRedirect() {
-  const { isFullAccess, isStaff, loading, session, profile } = useAuth()
-  if (loading || (session && !profile)) return null
-  if (isFullAccess) return <Navigate to="/dashboard" replace />
-  if (isStaff) return <Navigate to="/pipeline" replace />
-  return <Navigate to="/calendar" replace />
+  const a = useAuth()
+  if (a.loading || (a.session && !a.profile)) return null
+  return <Navigate to={homePath(a)} replace />
 }
 
+// Full/office only — fences off the jobs pipeline, planner, mulch, tools, job packs
+// from both truck and individual-staff logins.
 function RequireStaff({ children }) {
-  const { isStaff, loading, session, profile } = useAuth()
-  if (loading || (session && !profile)) return null
-  if (!isStaff) return <Navigate to="/calendar" replace />
+  const a = useAuth()
+  if (a.loading || (a.session && !a.profile)) return null
+  if (!a.isStaff) return <Navigate to={homePath(a)} replace />
+  return children
+}
+
+// Scheduled-work access — staff + truck logins (crew calendar + the work orders it
+// links to). Individual-staff logins (docs & chat only) are bounced home.
+function RequireSchedule({ children }) {
+  const a = useAuth()
+  if (a.loading || (a.session && !a.profile)) return null
+  if (!(a.isStaff || a.isTruck)) return <Navigate to={homePath(a)} replace />
   return children
 }
 
@@ -90,7 +109,7 @@ export default function App() {
             <Route index element={<DefaultRedirect />} />
             <Route path="dashboard" element={<RequireFullAccess><Dashboard /></RequireFullAccess>} />
             <Route path="pipeline"  element={<RequireStaff><Pipeline /></RequireStaff>} />
-            <Route path="calendar"  element={<Calendar />} />
+            <Route path="calendar"  element={<RequireSchedule><Calendar /></RequireSchedule>} />
             <Route path="planner"   element={<RequireStaff><Planner /></RequireStaff>} />
             <Route path="sent-quotes" element={<RequireStaff><SentQuotes /></RequireStaff>} />
             <Route path="clients"   element={<RequireStaff><Clients /></RequireStaff>} />
@@ -99,11 +118,12 @@ export default function App() {
             <Route path="settings"  element={<RequireFullAccess><Settings /></RequireFullAccess>} />
             <Route path="safety"          element={<Safety />} />
             <Route path="chat"            element={<Chat />} />
-            <Route path="requests"        element={<ToolRequests />} />
-            <Route path="mulch"           element={<MulchDump />} />
+            <Route path="my-docs"         element={<MyDocs />} />
+            <Route path="requests"        element={<RequireStaff><ToolRequests /></RequireStaff>} />
+            <Route path="mulch"           element={<RequireStaff><MulchDump /></RequireStaff>} />
             <Route path="staff"           element={<RequireStaff><StaffHub /></RequireStaff>} />
-            <Route path="workorder/:jobId" element={<WorkOrder />} />
-            <Route path="jobpack/:jobId"   element={<JobPack />} />
+            <Route path="workorder/:jobId" element={<RequireSchedule><WorkOrder /></RequireSchedule>} />
+            <Route path="jobpack/:jobId"   element={<RequireStaff><JobPack /></RequireStaff>} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />
