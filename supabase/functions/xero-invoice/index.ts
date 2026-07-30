@@ -93,7 +93,7 @@ Deno.serve(async (req: Request) => {
     const invoicePayload = {
       Invoices: [{
         Type:            'ACCREC',
-        Status:          'SUBMITTED',
+        Status:          'DRAFT',
         Contact:         { Name: clientName },
         LineAmountTypes: 'Exclusive',
         CurrencyCode:    'NZD',
