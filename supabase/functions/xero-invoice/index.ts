@@ -123,7 +123,16 @@ Deno.serve(async (req: Request) => {
       if (xeroRes.status === 401 || xeroRes.status === 403) {
         throw new Error('Xero rejected the request — reconnect Xero in Settings so it can create invoices (needs the "accounting.invoices" permission).')
       }
-      throw new Error(`Xero API ${xeroRes.status}: ${detail.slice(0, 200)}`)
+      // Surface Xero's specific validation messages (bad account code, tax rate,
+      // missing field…) — they're nested in Elements[].ValidationErrors and were
+      // being lost to truncation, leaving a useless "ValidationException".
+      let vmsg = ''
+      try {
+        const p = JSON.parse(detail)
+        const errs = p?.Elements?.[0]?.ValidationErrors ?? p?.ValidationErrors ?? []
+        vmsg = errs.map((e: any) => e.Message).filter(Boolean).join(' • ')
+      } catch { /* fall back to raw text below */ }
+      throw new Error(vmsg ? `Xero rejected the invoice: ${vmsg}` : `Xero API ${xeroRes.status}: ${detail.slice(0, 300)}`)
     }
 
     const xeroData  = await xeroRes.json()
