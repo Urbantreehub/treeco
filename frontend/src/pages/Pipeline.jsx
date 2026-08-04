@@ -1,8 +1,10 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
-import { JOB_STATUSES, STATUS_ORDER, SPENCERS_COLOR, isSpencersJob } from '../config/statuses'
+import { supabase } from '../config/supabase'
+import { JOB_STATUSES, STATUS_ORDER, isSpencersJob, categoryMeta } from '../config/statuses'
 import { jobHeading, koCode, kpiCountdown } from '../utils/jobDisplay'
 import { useJobs } from '../hooks/useJobs'
 import { useAuth } from '../context/AuthContext'
+import { useIsMobile } from '../hooks/useIsMobile'
 import JobDetailPanel from '../components/JobDetailPanel'
 import NewJobModal from '../components/NewJobModal'
 
@@ -25,6 +27,7 @@ function bestQuote(job) {
 export default function Pipeline() {
   const { jobs, loading, fetchJobs } = useJobs()
   const { isStaff } = useAuth()
+  const isMobile = useIsMobile()
   // Deep-link support: /pipeline?job=<id> (e.g. opened from the calendar) auto-opens that job.
   const [selectedJobId, setSelectedJobId] = useState(() => new URLSearchParams(window.location.search).get('job'))
   const selectedJob = useMemo(() => jobs.find(j => j.id === selectedJobId) ?? null, [jobs, selectedJobId])
@@ -62,6 +65,19 @@ export default function Pipeline() {
       next.has(key) ? next.delete(key) : next.add(key)
       return next
     })
+  }
+
+  // Change a job's status straight from the list via the status dropdown.
+  const [savingStatus, setSavingStatus] = useState(null) // job id being saved
+  async function changeStatus(jobId, newStatus) {
+    setSavingStatus(jobId)
+    const { error } = await supabase
+      .from('jobs')
+      .update({ status: newStatus, status_changed_at: new Date().toISOString() })
+      .eq('id', jobId)
+    setSavingStatus(null)
+    if (error) { alert('Could not update status: ' + error.message); return }
+    fetchJobs()
   }
 
   const filterActive = statusFilter.size > 0
@@ -166,23 +182,24 @@ export default function Pipeline() {
               const total = quote ? nzd(quote.total) : null
               const date = job.created_at ? new Date(job.created_at) : null
               const sp = isSpencersJob(job)
+              const cat = categoryMeta(job)
               const { primary, secondary } = jobHeading(job)
               const code = koCode(job)
               const kpi = sp ? kpiCountdown(job) : null
               return (
                 <div
                   key={job.id}
-                  style={sp ? { ...s.row, borderLeft: `4px solid ${SPENCERS_COLOR}`, paddingLeft: 12 } : s.row}
+                  style={s.row}
                   onClick={() => setSelectedJobId(job.id)}
                 >
-                  <div style={s.rowMain}>
+                  {/* Category band across the top of the pill — colour + label make
+                      it instantly clear whether this is a Private, Spencers or
+                      Downer job. */}
+                  <div style={{ ...s.categoryBar, background: cat.color }}>{cat.label}</div>
+                  <div style={{ ...s.rowBody, ...(isMobile ? s.rowBodyMobile : {}) }}>
+                  <div style={{ ...s.rowMain, ...(isMobile ? { width: '100%' } : {}) }}>
                     <div style={s.client}>{primary}</div>
                     <div style={s.meta}>
-                      {sp && (
-                        <span style={{ fontSize: 11, fontWeight: 700, color: SPENCERS_COLOR, background: SPENCERS_COLOR + '18', padding: '1px 7px', borderRadius: 5, letterSpacing: '.02em' }}>
-                          Spencers
-                        </span>
-                      )}
                       {code && <span style={{ ...s.jobType, fontWeight: 700, color: '#4A7FA5', background: '#EBF3FA', textTransform: 'none' }}>{code}</span>}
                       {sp ? (secondary && <span style={s.address}>{secondary}</span>)
                           : (job.job_type && <span style={s.jobType}>{job.job_type}</span>)}
@@ -195,14 +212,35 @@ export default function Pipeline() {
                       )}
                     </div>
                   </div>
-                  <div style={s.rowRight}>
+                  <div style={{ ...s.rowRight, ...(isMobile ? s.rowRightMobile : {}) }}>
                     {st && (
-                      <span style={{ ...s.statusBadge, background: st.color + '18', color: st.color }}>
-                        {st.label}
-                      </span>
+                      <div
+                        style={{ ...s.statusChip, background: st.color + '1F', opacity: savingStatus === job.id ? 0.5 : 1 }}
+                        onClick={e => e.stopPropagation()}
+                      >
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: st.color, flexShrink: 0 }} />
+                        <span style={{ fontSize: '11px', fontWeight: 700, color: st.color, whiteSpace: 'nowrap' }}>{st.label}</span>
+                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke={st.color} strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, opacity: 0.75 }}>
+                          <path d="M6 9l6 6 6-6" />
+                        </svg>
+                        {/* Real dropdown, laid transparently over the chip so the pill keeps its
+                            natural width (native selects otherwise size to their widest option). */}
+                        <select
+                          value={job.status}
+                          disabled={savingStatus === job.id}
+                          onChange={e => changeStatus(job.id, e.target.value)}
+                          style={s.statusSelectOverlay}
+                          aria-label={`Status for ${primary} — change`}
+                        >
+                          {Object.keys(JOB_STATUSES).map(key => (
+                            <option key={key} value={key}>{JOB_STATUSES[key].label}</option>
+                          ))}
+                        </select>
+                      </div>
                     )}
                     {total && <div style={s.total}>{total}</div>}
                     {date && <div style={s.date}>{date.toLocaleDateString('en-NZ', { day: 'numeric', month: 'short' })}</div>}
+                  </div>
                   </div>
                 </div>
               )
@@ -300,12 +338,27 @@ const s = {
   filterCountBadge: { fontSize: '11px', fontWeight: '700', borderRadius: '10px', padding: '1px 7px' },
   body: { flex: 1, overflowY: 'auto', padding: '16px 20px' },
   list: { display: 'flex', flexDirection: 'column', gap: '8px' },
+  // Outer pill: the coloured category band sits flush along the top, so the card
+  // clips its corners and lays its children out in a column.
   row: {
-    background: '#fff', borderRadius: '10px', border: '1px solid var(--border)',
-    padding: '14px 18px', display: 'flex', alignItems: 'center',
-    justifyContent: 'space-between', gap: '16px', cursor: 'pointer',
+    background: '#fff', borderRadius: '16px', border: '1px solid var(--border)',
+    overflow: 'hidden', display: 'flex', flexDirection: 'column', cursor: 'pointer',
     transition: 'box-shadow 0.15s',
   },
+  // Full-width colour band across the top of the pill naming the job kind
+  // (Private / Spencers / Downer) — background is the category colour.
+  categoryBar: {
+    padding: '5px 18px', color: '#fff', fontSize: '11px', fontWeight: 700,
+    letterSpacing: '0.06em', textTransform: 'uppercase',
+  },
+  rowBody: {
+    padding: '14px 18px', display: 'flex', alignItems: 'center',
+    justifyContent: 'space-between', gap: '16px',
+  },
+  // On phones the body stacks: client + meta on top, then the status dropdown,
+  // price and date on their own line so nothing overlaps on a narrow screen.
+  rowBodyMobile: { flexDirection: 'column', alignItems: 'stretch', gap: '12px' },
+  rowRightMobile: { width: '100%', justifyContent: 'flex-start', gap: '10px 12px', flexWrap: 'wrap' },
   rowMain: { flex: 1, minWidth: 0 },
   client: { fontSize: '14px', fontWeight: '600', color: 'var(--bark)', marginBottom: '3px' },
   meta: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
@@ -316,6 +369,16 @@ const s = {
   address: { fontSize: '12px', color: '#aaa' },
   rowRight: { display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 },
   statusBadge: { fontSize: '11px', fontWeight: '600', borderRadius: '20px', padding: '3px 10px', whiteSpace: 'nowrap' },
+  statusChip: {
+    position: 'relative', display: 'inline-flex', alignItems: 'center', gap: '5px',
+    whiteSpace: 'nowrap', borderRadius: 'var(--radius-pill)', padding: '4px 9px 4px 10px',
+    cursor: 'pointer', transition: 'opacity 0.15s', flexShrink: 0,
+  },
+  statusSelectOverlay: {
+    position: 'absolute', inset: 0, width: '100%', height: '100%',
+    opacity: 0, cursor: 'pointer', border: 'none', outline: 'none',
+    appearance: 'none', WebkitAppearance: 'none', fontFamily: 'var(--font)',
+  },
   total: { fontSize: '14px', fontWeight: '700', color: 'var(--bark)', minWidth: '70px', textAlign: 'right' },
   date: { fontSize: '11px', color: '#aaa', minWidth: '55px', textAlign: 'right' },
   empty: { textAlign: 'center', color: '#ccc', padding: '60px 0', fontSize: '14px' },

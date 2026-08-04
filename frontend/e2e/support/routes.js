@@ -7,10 +7,11 @@
 // smoke suite never visits.
 //
 // `access` mirrors the router guards in App.jsx:
-//   'public' — no auth        (RequireAuth not applied)
-//   'any'    — any signed-in user
-//   'staff'  — RequireStaff   (full or office)
-//   'full'   — RequireFullAccess
+//   'public'   — no auth
+//   'any'      — any signed-in user
+//   'schedule' — RequireSchedule (full | office | truck)
+//   'staff'    — RequireStaff    (full | office)
+//   'full'     — RequireFullAccess
 
 /**
  * @typedef {Object} AppRoute
@@ -18,7 +19,7 @@
  * @property {string} path    Concrete URL to visit.
  * @property {boolean} [auth] Whether the route sits behind the auth gate.
  * @property {boolean} [redirects] Route intentionally redirects elsewhere.
- * @property {'public'|'any'|'staff'|'full'} access  Minimum access level.
+ * @property {'public'|'any'|'schedule'|'staff'|'full'} access  Minimum access level.
  */
 
 /** @type {AppRoute[]} */
@@ -33,7 +34,7 @@ export const APP_ROUTES = [
   { name: 'root', path: '/', auth: true, redirects: true, access: 'any' }, // index → role-based redirect
   { name: 'dashboard', path: '/dashboard', auth: true, access: 'full' },
   { name: 'pipeline', path: '/pipeline', auth: true, access: 'staff' },
-  { name: 'calendar', path: '/calendar', auth: true, access: 'any' },
+  { name: 'calendar', path: '/calendar', auth: true, access: 'schedule' },
   { name: 'planner', path: '/planner', auth: true, access: 'staff' },
   { name: 'sent-quotes', path: '/sent-quotes', auth: true, access: 'staff' },
   { name: 'clients', path: '/clients', auth: true, access: 'staff' },
@@ -42,27 +43,30 @@ export const APP_ROUTES = [
   { name: 'settings', path: '/settings', auth: true, access: 'full' },
   { name: 'safety', path: '/safety', auth: true, access: 'any' },
   { name: 'chat', path: '/chat', auth: true, access: 'any' },
-  { name: 'requests', path: '/requests', auth: true, access: 'any' },
-  { name: 'mulch', path: '/mulch', auth: true, access: 'any' },
+  { name: 'my-docs', path: '/my-docs', auth: true, access: 'any' },
+  { name: 'requests', path: '/requests', auth: true, access: 'staff' },
+  { name: 'mulch', path: '/mulch', auth: true, access: 'staff' },
   { name: 'staff', path: '/staff', auth: true, access: 'staff' },
-  { name: 'work-order', path: '/workorder/1', auth: true, access: 'any' },
-  { name: 'job-pack', path: '/jobpack/1', auth: true, access: 'any' },
+  { name: 'work-order', path: '/workorder/1', auth: true, access: 'schedule' },
+  { name: 'job-pack', path: '/jobpack/1', auth: true, access: 'staff' },
 ]
 
 export const ALL_ROUTES = [...PUBLIC_ROUTES, ...APP_ROUTES]
 
-export const ROLES = ['full', 'office', 'crew']
+// The four access levels a demo/live user can have (mirrors AuthContext).
+export const ROLES = ['full', 'office', 'truck', 'restricted']
 
-// Which access levels each role satisfies (mirrors AuthContext: office === staff
-// but not full; crew is neither).
+// Which access levels each role satisfies (mirrors the guards in App.jsx:
+// office === staff; truck === schedule-only; restricted === docs/chat/safety).
 const ROLE_GRANTS = {
-  full: ['public', 'any', 'staff', 'full'],
-  office: ['public', 'any', 'staff'],
-  crew: ['public', 'any'],
+  full: ['public', 'any', 'schedule', 'staff', 'full'],
+  office: ['public', 'any', 'schedule', 'staff'],
+  truck: ['public', 'any', 'schedule'],
+  restricted: ['public', 'any'],
 }
 
 export function roleCanAccess(role, access) {
-  return (ROLE_GRANTS[role] ?? ROLE_GRANTS.crew).includes(access)
+  return (ROLE_GRANTS[role] ?? ROLE_GRANTS.restricted).includes(access)
 }
 
 // Routes worth exercising interactively (click every button/link). Skip pure

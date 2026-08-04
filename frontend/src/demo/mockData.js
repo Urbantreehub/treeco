@@ -25,7 +25,7 @@ export const seededClients = () => (isEmptyTenant() ? [] : DEMO_CLIENTS)
 // every access level ('full' | 'office' | 'crew') so role-guarded routes and
 // role-specific navigation are all exercised. Like the empty-tenant flag, this is
 // read at runtime so one demo build can act as any user.
-const DEMO_ROLES = ['full', 'office', 'crew']
+const DEMO_ROLES = ['full', 'office', 'truck', 'restricted']
 
 export function demoAccessLevel() {
   const fromEnv = import.meta.env.VITE_DEMO_ROLE

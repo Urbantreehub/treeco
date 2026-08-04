@@ -7,7 +7,8 @@ import QuoteReference from './QuoteReference'
 import SpencersInvoice from './SpencersInvoice'
 import SpencersPortalData from './SpencersPortalData'
 import AddressInput from './AddressInput'
-import { JOB_STATUSES, STATUS_ORDER, isSpencersJob } from '../config/statuses'
+import { useIsMobile } from '../hooks/useIsMobile'
+import { JOB_STATUSES, STATUS_ORDER, isSpencersJob, showsQuoteReference } from '../config/statuses'
 import { mapsHref } from '../utils/geo'
 
 // Contextual forward-only transitions per status.
@@ -25,6 +26,13 @@ const FORWARD_ACTIONS = {
   on_hold:             [{ status: 'scheduled',           label: 'Reschedule',       variant: 'primary' }, { status: 'new_lead', label: 'Reopen as Lead', variant: 'ghost' }],
   declined:            [{ status: 'new_lead',            label: 'Reopen',           variant: 'ghost' }],
 }
+
+// Crew (non-office/full) users only manage the on-the-ground job lifecycle:
+// they may move a job between these operational statuses (e.g. mark complete,
+// put on hold, resume, flag stump grinding). They can change status only FROM
+// one of these, and only TO another of these — so the sales/quoting statuses
+// and, crucially, invoicing stay office/full-access only.
+const CREW_STATUSES = ['scheduled', 'stump_grinding', 'complete_to_invoice', 'on_hold']
 
 const SUPABASE_URL  = import.meta.env.VITE_SUPABASE_URL
 const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -73,6 +81,7 @@ function extractPriority(job) {
 export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }) {
   const { isStaff } = useAuth()
   const navigate = useNavigate()
+  const isMobile = useIsMobile()
   const [changingStatus, setChangingStatus] = useState(false)
   const [editing, setEditing] = useState(false)
   const [xeroStatus, setXeroStatus] = useState(null) // null | 'pushing' | 'ok' | 'err' | 'not_connected'
@@ -180,6 +189,10 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
         setXeroStatus(body?.error?.includes('not connected') ? 'not_connected' : 'err')
       } else {
         setXeroStatus('ok')
+        // The push also advances the job to 'invoiced' server-side, so refresh
+        // the board and close — the job leaves Complete — To Be Invoiced and
+        // lands in Invoiced ("archived"). Brief pause so the ✅ is seen first.
+        setTimeout(() => onUpdated(), 1200)
       }
     } catch {
       setXeroStatus('err')
@@ -204,7 +217,18 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
     } catch { return false }
   })()
 
+  // Status-change permissions. Office/full access can move to any status;
+  // crew can only move between the operational statuses (CREW_STATUSES).
+  const crewAllowed = CREW_STATUSES.includes(job.status)
+    ? CREW_STATUSES.filter(s => s !== job.status)
+    : []
+  const canChangeStatusTo = (target) => isStaff || crewAllowed.includes(target)
+  const canChangeStatus = isStaff || crewAllowed.length > 0
+  const forwardActions = (FORWARD_ACTIONS[job.status] ?? []).filter(a => canChangeStatusTo(a.status))
+
   async function handleStatusChange(newStatus) {
+    // Crew can only make the one permitted move for the current status.
+    if (!canChangeStatusTo(newStatus)) return
     const isComplete = newStatus === 'complete_to_invoice'
     if (isComplete && !sdPhotosReady) {
       alert('During and After photos must be uploaded in the Work Order before this job can be marked complete.')
@@ -278,7 +302,10 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
 
       {/* Slide-over panel */}
       <div style={styles.panel}>
-        <div style={styles.panelInner}>
+        {/* On mobile the panel is pinned to bottom:0 and sits under the fixed
+            bottom nav, so pad the scroll content past the nav (+ safe area) to
+            keep the last section reachable. Desktop has no bottom nav. */}
+        <div style={{ ...styles.panelInner, ...(isMobile ? { paddingBottom: 'calc(24px + var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px))' } : {}) }}>
           {/* KO SLA banner */}
           {sla && (
             <div style={{ background: sla.bg, border: `1px solid ${sla.color}33`, borderRadius: '8px', padding: '10px 14px', marginBottom: '16px' }}>
@@ -313,15 +340,43 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
             <button onClick={onClose} style={styles.closeBtn}>✕</button>
           </div>
 
-          {/* Status + contextual forward actions */}
+          {/* Status + contextual forward actions.
+              The status chip itself is the control — tap it to change status
+              (a transparent native <select> sits over the bubble), so there's
+              no separate dropdown box cluttering the panel. Crew only see the
+              operational statuses they're allowed to move to; outside those
+              statuses the chip is just a read-only badge. */}
           <div style={styles.section}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: FORWARD_ACTIONS[job.status]?.length ? '12px' : '0', flexWrap: 'wrap' }}>
-              <StatusBadge status={job.status} size="lg" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: forwardActions.length ? '12px' : '0', flexWrap: 'wrap' }}>
+              {canChangeStatus ? (
+                <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+                  <StatusBadge status={job.status} size="lg" />
+                  <span style={{ marginLeft: '5px', fontSize: '9px', color: '#aaa', pointerEvents: 'none' }}>▼</span>
+                  <select
+                    value=""
+                    disabled={changingStatus}
+                    onChange={e => { if (e.target.value) handleStatusChange(e.target.value) }}
+                    aria-label="Change status"
+                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', border: 'none', appearance: 'none', WebkitAppearance: 'none' }}
+                  >
+                    <option value="">Change status…</option>
+                    {Object.keys(JOB_STATUSES)
+                      .filter(k => k !== job.status)
+                      .filter(k => k !== 'invoiced' || job.status === 'complete_to_invoice')
+                      .filter(canChangeStatusTo)
+                      .map(key => (
+                        <option key={key} value={key}>{JOB_STATUSES[key].label}</option>
+                      ))}
+                  </select>
+                </div>
+              ) : (
+                <StatusBadge status={job.status} size="lg" />
+              )}
               {changingStatus && <span style={{ fontSize: '12px', color: '#aaa' }}>Updating…</span>}
             </div>
-            {FORWARD_ACTIONS[job.status]?.length > 0 && (
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '10px' }}>
-                {FORWARD_ACTIONS[job.status].map(({ status, label, variant }) => (
+            {forwardActions.length > 0 && (
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {forwardActions.map(({ status, label, variant }) => (
                   <button
                     key={status}
                     onClick={() => handleStatusChange(status)}
@@ -337,27 +392,6 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
                 ))}
               </div>
             )}
-            {/* Escape hatch — unusual or backwards moves */}
-            <details>
-              <summary style={{ fontSize: '11px', color: '#bbb', cursor: 'pointer', userSelect: 'none', listStyle: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                <span>▸</span> Move to different status…
-              </summary>
-              <select
-                value=""
-                disabled={changingStatus}
-                onChange={e => { if (e.target.value) handleStatusChange(e.target.value) }}
-                style={{ ...styles.statusSelect, marginTop: '8px', width: '100%' }}
-                aria-label="Change status"
-              >
-                <option value="">Select status…</option>
-                {Object.keys(JOB_STATUSES)
-                  .filter(k => k !== job.status)
-                  .filter(k => k !== 'invoiced' || job.status === 'complete_to_invoice')
-                  .map(key => (
-                    <option key={key} value={key}>{JOB_STATUSES[key].label}</option>
-                  ))}
-              </select>
-            </details>
           </div>
 
           {/* Quote follow-up — shown when awaiting client response */}
@@ -430,9 +464,13 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
                   <div style={styles.description}>{job.description}</div>
                 </div>
               )}
-              <div style={{ marginTop: '16px' }}>
-                <QuoteReference jobId={job.id} />
-              </div>
+              {/* Quote reference is lead/quoting material only — hidden once the
+                  quote is accepted and the job moves on (the quote supersedes it). */}
+              {showsQuoteReference(job.status) && (
+                <div style={{ marginTop: '16px' }}>
+                  <QuoteReference jobId={job.id} />
+                </div>
+              )}
               {isStaff && (
                 <button onClick={() => setEditing(true)} style={{ ...styles.ghostBtn, marginTop: '12px' }}>
                   Edit details
@@ -479,8 +517,11 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
                   >
                     + New quote
                   </button>
-                  {/* Xero invoice push — only once the job is Complete — To Be Invoiced */}
-                  {job.status === 'complete_to_invoice' && job.quotes.some(q => ['accepted','invoiced'].includes(q.status)) && (
+                  {/* Xero invoice push — only once the job is Complete — To Be
+                      Invoiced. 'complete' covers a quote marked complete (which
+                      is what "Mark complete" sets); 'accepted' covers a job moved
+                      straight to invoicing from the pipeline. */}
+                  {job.status === 'complete_to_invoice' && job.quotes.some(q => ['accepted','complete','invoiced'].includes(q.status)) && (
                     <div style={{ marginTop: '6px' }}>
                       <button
                         style={{
@@ -491,7 +532,7 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
                           width: '100%',
                         }}
                         disabled={xeroStatus === 'pushing'}
-                        onClick={() => pushToXero(job.quotes.find(q => ['accepted','invoiced'].includes(q.status))?.id)}
+                        onClick={() => pushToXero(job.quotes.find(q => ['accepted','complete','invoiced'].includes(q.status))?.id)}
                       >
                         {xeroStatus === 'pushing' && '⏳ Pushing to Xero…'}
                         {xeroStatus === 'ok'      && '✅ Invoice created in Xero'}
@@ -596,7 +637,9 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
             </div>
           )}
 
-          {/* Job Forms */}
+          {/* Job Forms — crew paperwork (SSSP etc.) only matters once the job is
+              actually going ahead, so it stays hidden through the lead/quote phase. */}
+          {['scheduled', 'stump_grinding', 'complete_to_invoice'].includes(job.status) && (
           <div style={styles.section}>
             <div style={styles.sectionTitle}>Job Forms</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -627,6 +670,7 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
               })}
             </div>
           </div>
+          )}
 
         </div>
       </div>

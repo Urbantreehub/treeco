@@ -91,6 +91,21 @@ export function jobCategory(job) {
   return 'residential'
 }
 
+// Per-category accent colour + display label. Each job pill is tagged with the
+// kind of work it is (private residential vs the two commercial portals) so it's
+// obvious at a glance. Colours are distinct from each other and from every
+// status colour. Spencers keeps its established violet (SPENCERS_COLOR).
+export const JOB_CATEGORIES = {
+  residential: { key: 'residential', label: 'Private',  color: '#4A6741' },
+  spencers:    { key: 'spencers',    label: 'Spencers', color: SPENCERS_COLOR },
+  downer:      { key: 'downer',      label: 'Downer',   color: '#C77D1A' },
+}
+
+// Category accent/label for a job (falls back to Private for anything unknown).
+export function categoryMeta(job) {
+  return JOB_CATEGORIES[jobCategory(job)] ?? JOB_CATEGORIES.residential
+}
+
 // Ordered list for pipeline column rendering.
 // quote_scheduled, accepted_to_schedule, stump_grinding removed — these were
 // transitional micro-states that added columns without adding clarity.
@@ -104,6 +119,16 @@ export const STATUS_ORDER = [
   'on_hold',
   'declined',
 ]
+
+// Quote-reference material (raw enquiry photos + site notes) is only relevant
+// while the job is still a lead or in the quoting phase. Once the client accepts
+// and the job moves on to scheduling/invoicing, the quote itself supersedes the
+// reference, so it's hidden to keep the view uncluttered.
+export const QUOTE_REFERENCE_STATUSES = ['new_lead', 'quote_scheduled', 'quote_sent']
+
+export function showsQuoteReference(status) {
+  return QUOTE_REFERENCE_STATUSES.includes(status)
+}
 
 export function getStatus(key) {
   return JOB_STATUSES[key] ?? null

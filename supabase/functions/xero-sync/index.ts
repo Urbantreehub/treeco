@@ -69,9 +69,14 @@ Deno.serve(async (req: Request) => {
     }).eq('id', CONN_ID)
   }
 
-  // Fetch contacts from Xero (active, with email or phone, paginated)
+  // Fetch active customer contacts from Xero. NOTE: Contacts have no
+  // `IsArchived` field — active/archived is expressed via ContactStatus.
+  // The old query filtered on IsArchived==false, which Xero rejected with a
+  // QueryParseException (ErrorNumber 16). Use ContactStatus=="ACTIVE" instead.
+  const where = encodeURIComponent('IsCustomer==true&&ContactStatus=="ACTIVE"')
+  const order = encodeURIComponent('Name ASC')
   const xeroRes = await fetch(
-    `https://api.xero.com/api.xro/2.0/Contacts?where=IsCustomer%3D%3Dtrue%26%26IsArchived%3D%3Dfalse&order=Name%20ASC&pageSize=200`,
+    `https://api.xero.com/api.xro/2.0/Contacts?where=${where}&order=${order}&page=1&pageSize=200`,
     {
       headers: {
         Authorization: `Bearer ${accessToken}`,

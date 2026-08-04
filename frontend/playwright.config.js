@@ -18,7 +18,7 @@ const baseURL = LIVE_URL || `http://localhost:${PORT}`
 
 // The demo build runs as every access level; each smoke run also covers a
 // seeded and an empty tenant.
-const ROLES = ['full', 'office', 'crew']
+const ROLES = ['full', 'office', 'truck', 'restricted']
 const TENANTS = ['seeded', 'empty']
 
 export default defineConfig({

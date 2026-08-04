@@ -32,6 +32,14 @@ function bestQuote(job) {
   return qs.find(q => q.status === 'accepted') || qs.find(q => q.status === 'viewed')
       || qs.find(q => q.status === 'sent') || qs.find(q => q.status === 'draft') || null
 }
+// Ex-GST value of a job's best quote. Prefer the stored subtotal; otherwise
+// strip 15% GST off the total. Returns 0 when there's no quote.
+function jobExGst(job) {
+  const q = bestQuote(job)
+  if (!q) return 0
+  if (q.subtotal != null) return Number(q.subtotal) || 0
+  return (Number(q.total) || 0) / 1.15
+}
 
 // Turn a free-text on-site estimate ("Half day, 4–6 hrs", "Full day", "90 min")
 // into hours, so dropping a job onto the calendar can auto-size the event.
@@ -56,6 +64,18 @@ function addHours(startTime, hours) {
   const end = Math.min(h * 60 + m + Math.round(hours * 60), 23 * 60 + 59)
   return `${String(Math.floor(end / 60)).padStart(2, '0')}:${String(end % 60).padStart(2, '0')}:00`
 }
+
+// Statuses offered in the tray's status filter (and fetched for it). Replaces
+// the old Quotes/Work tabs — one unified unscheduled list, filtered by status.
+const TRAY_STATUSES = [
+  'new_lead',
+  'quote_scheduled',
+  'quote_sent',
+  'accepted_to_schedule',
+  'scheduled',
+  'stump_grinding',
+  'on_hold',
+]
 
 // ── Resources ──────────────────────────────────────────────────────────────
 const RESOURCES = [
@@ -399,6 +419,7 @@ function Popover({ info, weekEvent, vehicles, onClose, onUnschedule, onLinkVehic
 function CrewCalendar() {
   const { profile } = useAuth()
   const navigate    = useNavigate()
+  const isMobile    = useIsMobile()
   const resourceId  = profile?.resource_id
   const myResource  = RESOURCES.find(r => r.id === resourceId)
 
@@ -414,7 +435,7 @@ function CrewCalendar() {
       setLoading(true)
       const { data } = await supabase
         .from('schedule')
-        .select('*, jobs(title, job_type, address, client_id, clients(name))')
+        .select('*, jobs(title, job_type, address, client_id, clients(name), quotes(id, status, total, subtotal))')
         .eq('date', todayYMD)
         .eq('resource_id', resourceId)
         .order('start_time')
@@ -426,6 +447,7 @@ function CrewCalendar() {
   }, [resourceId])
 
   const dateLabel = today.toLocaleDateString('en-NZ', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  const dayTotal = events.reduce((s, ev) => s + jobExGst(ev.jobs), 0)
 
   return (
     <div style={cw.shell}>
@@ -486,12 +508,41 @@ function CrewCalendar() {
           </div>
         )}
       </div>
+
+      {/* Crew's own daily total (ex GST) — visible on their iPad in the field.
+          On the mobile layout, clear the fixed bottom tab bar so it isn't hidden. */}
+      {!loading && resourceId && events.length > 0 && (
+        <div style={{ ...cw.totalsBar, paddingBottom: isMobile ? 'calc(14px + var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px))' : cw.totalsBar.paddingBottom }}>
+          <div style={cw.totalsHead}>
+            <span style={cw.totalsTitle}>Day total</span>
+            <span style={cw.totalsScope}>{myResource?.title ?? 'Your crew'} · ex GST</span>
+          </div>
+          <div style={cw.totalsGrand}>
+            <span style={cw.totalsGrandLabel}>{events.length} job{events.length === 1 ? '' : 's'}</span>
+            <span style={cw.totalsGrandVal}>{nzd(dayTotal) ?? '$0'}</span>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
 const cw = {
   shell:  { display: 'flex', flexDirection: 'column', height: '100%', background: '#F5F3F0' },
+  totalsBar: {
+    flexShrink: 0, background: '#fff', borderTop: '1px solid var(--border)',
+    padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    gap: '16px', flexWrap: 'wrap',
+    paddingBottom: 'calc(14px + env(safe-area-inset-bottom, 0px))',
+  },
+  totalsTitle: { fontSize: '15px', fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.01em' },
+  totalsScope: { fontSize: '11px', fontWeight: 600, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: '2px', display: 'block' },
+  totalsGrand: {
+    display: 'inline-flex', alignItems: 'center', gap: '12px',
+    background: 'var(--terra)', borderRadius: 'var(--radius-pill)', padding: '9px 18px',
+  },
+  totalsGrandLabel: { fontSize: '12px', fontWeight: 700, color: 'rgba(255,255,255,0.85)' },
+  totalsGrandVal: { fontSize: '20px', fontWeight: 800, color: '#fff', fontVariantNumeric: 'tabular-nums' },
   header: { padding: '20px 24px 16px', background: '#fff', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
   dayLabel:   { fontSize: '11px', fontWeight: '700', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' },
   dateLabel:  { fontSize: '20px', fontWeight: '800', color: 'var(--ink)' },
@@ -537,7 +588,11 @@ function FullCalendar_() {
   const [alerting,          setAlerting]          = useState(false)
   const [trayWidth,         setTrayWidth]         = useState(220)
   const [traySearch,        setTraySearch]        = useState('')
-  const [traySide,          setTraySide]          = useState('quotes') // 'quotes' | 'work'
+  // Status filter replaces the old Quotes/Work tabs. Starts with everything on
+  // so nothing is hidden by default — new leads included.
+  const [trayStatuses,      setTrayStatuses]      = useState(() => new Set(TRAY_STATUSES))
+  const [showStatusMenu,    setShowStatusMenu]    = useState(false)
+  const statusMenuRef = useRef(null)
   const [showTracker,       setShowTracker]       = useState(false)
   const trayResizing        = useRef(false)
   const trayResizeStart     = useRef(null)
@@ -545,6 +600,7 @@ function FullCalendar_() {
   const [activeView,        setActiveView]        = useState(isMobile ? 'listWeek' : 'resourceTimelineDay')
   const [weekStart,         setWeekStart]         = useState(() => weekMonday(new Date()))
   const [showFilter,        setShowFilter]        = useState(false)
+  const [viewRange,         setViewRange]         = useState(() => { const t = toYMD(new Date()); return { start: t, end: t } })
   const [orderedResources,  setOrderedResources]  = useState(RESOURCES)
   const [visibleIds,        setVisibleIds]        = useState(new Set(RESOURCES.map(r => r.id)))
   const [vehicles,          setVehicles]          = useState([])
@@ -569,6 +625,27 @@ function FullCalendar_() {
   function showToast(msg, err) {
     setToast({ msg, err })
     setTimeout(() => setToast(null), 3000)
+  }
+
+  // Close the status dropdown on an outside click, same as the pipeline filter.
+  useEffect(() => {
+    if (!showStatusMenu) return
+    function handler(e) {
+      if (statusMenuRef.current && !statusMenuRef.current.contains(e.target)) setShowStatusMenu(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showStatusMenu])
+
+  // The status filter may be emptied entirely — an empty selection reads as
+  // "show nothing", and the tray says so.
+  function toggleTrayStatus(key) {
+    setTrayStatuses(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
   }
 
   // ── Manually text every client scheduled on the shown day ────────────────
@@ -624,14 +701,14 @@ function FullCalendar_() {
     const [{ data: jobs }, { data: rows }] = await Promise.all([
       supabase
         .from('jobs')
-        // new_lead → Quotes tab, accepted_to_schedule → Work tab (scheduled ones
-        // are filtered out below once they have a schedule row).
+        // Fetch every tray status so the status filter has data to filter on;
+        // scheduled ones are dropped below once they have a schedule row.
         .select('*, clients(name, phone, email), quotes(id, status, total, job_pack)')
-        .in('status', ['new_lead', 'accepted_to_schedule', 'scheduled'])
+        .in('status', TRAY_STATUSES)
         .order('created_at', { ascending: true }),
       supabase
         .from('schedule')
-        .select('*, jobs(id, title, status, job_type, address, lat, lng, ko_reference, sla_due_at, description, clients(name, phone))')
+        .select('*, jobs(id, title, status, job_type, address, lat, lng, ko_reference, sla_due_at, description, clients(name, phone), quotes(id, status, total, subtotal))')
         .order('date'),
     ])
 
@@ -707,7 +784,32 @@ function FullCalendar_() {
     return p?.date === todayYMD && p?.vehicleReg && p?.job?.lat != null && p?.job?.lng != null
   })
 
-  const handleDatesSet = (arg) => setViewTitle(arg.view.title)
+  const handleDatesSet = (arg) => {
+    setViewTitle(arg.view.title)
+    // arg.end is exclusive — step back one day for an inclusive end date.
+    setViewRange({ start: toYMD(arg.start), end: toYMD(addDays(arg.end, -1)) })
+  }
+
+  // ── Per-crew totals (ex GST) for the day/range currently in view ───────────
+  const totalsScope = activeView === 'week'
+    ? { start: toYMD(weekStart), end: toYMD(addDays(weekStart, 4)) }
+    : viewRange
+  const totalsSingleDay = totalsScope.start === totalsScope.end
+  const crewTotals = activeResources.map(r => ({
+    id: r.id,
+    title: r.title,
+    color: RESOURCE_COLOR[r.id],
+    total: events.reduce((sum, ev) => {
+      const p = ev.extendedProps
+      const d = p?.date
+      const inRange = d && d >= totalsScope.start && d <= totalsScope.end
+      return inRange && (p?.resourceId ?? 'unassigned') === r.id ? sum + jobExGst(p.job) : sum
+    }, 0),
+  }))
+  const grandTotal = crewTotals.reduce((s, c) => s + c.total, 0)
+  const totalsLabel = totalsSingleDay
+    ? new Date(totalsScope.start + 'T00:00:00').toLocaleDateString('en-NZ', { weekday: 'short', day: 'numeric', month: 'short' })
+    : 'this week'
 
   const handleDrop = useCallback(async (info) => {
     const job = info.draggedEl._fcDraggable?.settings?.eventData?.extendedProps?.job
@@ -824,11 +926,16 @@ function FullCalendar_() {
   }
 
   const trayQ = traySearch.trim().toLowerCase()
-  // Quotes tab = new leads (oldest first, from the created_at-asc query);
-  // Work tab = accepted jobs waiting to be scheduled.
-  const leads = unscheduled.filter(j => j.status === 'new_lead')
-  const work  = unscheduled.filter(j => j.status === 'accepted_to_schedule')
-  const sideList = traySide === 'quotes' ? leads : work
+  // How many unscheduled jobs sit in each status — drives the filter counts.
+  const statusCounts = unscheduled.reduce((acc, j) => {
+    acc[j.status] = (acc[j.status] ?? 0) + 1
+    return acc
+  }, {})
+  // Every status is always offered (empty ones stay visible but show 0), so the
+  // control never renders as a bare "Status" heading with nothing under it.
+  const availableStatuses = TRAY_STATUSES
+  const allStatusesOn = TRAY_STATUSES.every(k => trayStatuses.has(k))
+  const sideList = unscheduled.filter(j => trayStatuses.has(j.status))
   const filteredUnscheduled = trayQ
     ? sideList.filter(j =>
         [j.title, j.clients?.name, j.address, j.job_type]
@@ -848,19 +955,59 @@ function FullCalendar_() {
       {/* ── Tray (hidden on mobile) ── */}
       {!isMobile && <div style={{ ...s.tray, width: trayWidth, minWidth: 180, maxWidth: 500, position: 'relative' }}>
         <div style={s.trayTop}>
-          <div style={s.trayTabs}>
+          {/* Status filter — dropdown, matching the pipeline's filter menu */}
+          <div style={s.trayFilter} ref={statusMenuRef}>
             <button
-              onClick={() => setTraySide('quotes')}
-              style={{ ...s.trayTab, ...(traySide === 'quotes' ? s.trayTabActive : {}) }}
+              onClick={() => setShowStatusMenu(v => !v)}
+              style={{ ...s.statusBtn, ...(showStatusMenu ? s.statusBtnOpen : {}) }}
             >
-              Quotes {leads.length > 0 && <span style={s.trayTabCount}>{leads.length}</span>}
+              <span style={s.statusBtnLabel}>
+                {allStatusesOn
+                  ? 'All statuses'
+                  : trayStatuses.size === 0
+                    ? 'No statuses'
+                    : `${trayStatuses.size} of ${availableStatuses.length} statuses`}
+              </span>
+              <span style={s.statusBtnCaret}>{showStatusMenu ? '▲' : '▼'}</span>
             </button>
-            <button
-              onClick={() => setTraySide('work')}
-              style={{ ...s.trayTab, ...(traySide === 'work' ? s.trayTabActive : {}) }}
-            >
-              Work {work.length > 0 && <span style={s.trayTabCount}>{work.length}</span>}
-            </button>
+
+            {showStatusMenu && (
+              <div style={s.statusMenu}>
+                <div style={s.statusMenuHead}>
+                  <span style={s.statusMenuTitle}>Status</span>
+                  {!allStatusesOn && (
+                    <button onClick={() => setTrayStatuses(new Set(TRAY_STATUSES))} style={s.statusMenuReset}>
+                      Select all
+                    </button>
+                  )}
+                </div>
+                {availableStatuses.map(key => {
+                  const on = trayStatuses.has(key)
+                  const count = statusCounts[key] ?? 0
+                  const color = JOB_STATUSES[key]?.color ?? '#7C93A8'
+                  return (
+                    <label key={key} style={s.statusItem} title={JOB_STATUSES[key]?.description ?? ''}>
+                      <input
+                        type="checkbox"
+                        checked={on}
+                        onChange={() => toggleTrayStatus(key)}
+                        style={{ display: 'none' }}
+                      />
+                      <span style={{ ...s.statusCheck, background: on ? color : '#fff', borderColor: on ? color : '#ddd' }}>
+                        {on && (
+                          <svg viewBox="0 0 12 10" width="10" height="10" fill="none">
+                            <path d="M1 5l3.5 3.5L11 1" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        )}
+                      </span>
+                      <span style={{ ...s.statusDot, background: color }} />
+                      <span style={s.statusLabel}>{getStatusLabel(key)}</span>
+                      <span style={{ ...s.statusCount, color, background: color + '20' }}>{count}</span>
+                    </label>
+                  )
+                })}
+              </div>
+            )}
           </div>
 
           {/* Search */}
@@ -881,7 +1028,9 @@ function FullCalendar_() {
             {loading && <div style={s.empty}>Loading…</div>}
             {!loading && filteredUnscheduled.length === 0 && (
               <div style={s.empty}>
-                {trayQ ? 'No matches' : traySide === 'quotes' ? 'No new leads' : 'All jobs scheduled ✓'}
+                {trayQ ? 'No matches'
+                  : trayStatuses.size === 0 ? 'No statuses selected'
+                  : 'All jobs scheduled ✓'}
               </div>
             )}
             {filteredUnscheduled.map(j => <TrayCard key={j.id} job={j} onOpen={setDetailJob} />)}
@@ -1066,6 +1215,29 @@ function FullCalendar_() {
           </div>
         )}
 
+        {/* ── Per-crew daily totals (ex GST) ── */}
+        {!loading && (
+          <div style={s.totalsBar}>
+            <div style={s.totalsHead}>
+              <span style={s.totalsTitle}>Crew totals</span>
+              <span style={s.totalsScope}>{totalsLabel} · ex GST</span>
+            </div>
+            <div style={s.totalsCrews}>
+              {crewTotals.map(c => (
+                <div key={c.id} style={s.totalsChip}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: c.color, flexShrink: 0 }} />
+                  <span style={s.totalsCrewName}>{c.title}</span>
+                  <span style={s.totalsCrewVal}>{nzd(c.total) ?? '$0'}</span>
+                </div>
+              ))}
+              <div style={s.totalsGrand}>
+                <span style={s.totalsGrandLabel}>{totalsSingleDay ? 'Day total' : 'Week total'}</span>
+                <span style={s.totalsGrandVal}>{nzd(grandTotal) ?? '$0'}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ── Truck Tracker panel ── */}
         <div style={s.trackerSection}>
           <button style={s.trackerToggle} onClick={() => setShowTracker(v => !v)}>
@@ -1218,18 +1390,43 @@ const s = {
     borderRight: '1px solid var(--border)',
     display: 'flex', flexDirection: 'column', overflow: 'hidden',
   },
-  trayTop:  { flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: '14px 0 0' },
+  // overflow must stay visible so the status dropdown can escape the tray;
+  // trayList does its own scrolling, and minHeight:0 keeps that working inside
+  // the flex column once the parent no longer clips.
+  trayTop:  { flex: 1, minHeight: 0, overflow: 'visible', display: 'flex', flexDirection: 'column', padding: '14px 0 0' },
   trayHead: { display: 'flex', alignItems: 'center', gap: '7px', padding: '0 14px 6px' },
   trayLabel:{ fontSize: '11px', fontWeight: '700', color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.05em' },
   trayBadge:{ fontSize: '10px', fontWeight: '700', background: '#D4851A', color: '#fff', borderRadius: '20px', padding: '1px 7px', lineHeight: 1.6 },
-  trayTabs: { display: 'flex', gap: '4px', padding: '0 10px 8px' },
-  trayTab: {
-    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
-    padding: '7px 8px', borderRadius: '8px', border: '1px solid var(--border)', background: '#fff',
-    fontSize: '12px', fontWeight: '700', color: '#8A8378', cursor: 'pointer', fontFamily: 'var(--font)',
+  trayFilter: { padding: '0 10px 8px', position: 'relative' },
+  statusBtn: {
+    width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px',
+    padding: '7px 10px', borderRadius: '8px', border: '1px solid var(--border, #E4E1D8)',
+    background: '#fff', color: 'var(--bark, #2C2416)', fontSize: '12px', fontWeight: '600',
+    cursor: 'pointer', fontFamily: 'inherit',
   },
-  trayTabActive: { background: 'var(--bark-mid, #4A6741)', color: '#fff', borderColor: 'var(--bark-mid, #4A6741)' },
-  trayTabCount: { fontSize: '10px', fontWeight: '800', background: 'rgba(0,0,0,0.14)', borderRadius: '20px', padding: '0 6px', lineHeight: 1.7 },
+  statusBtnOpen: { borderColor: 'var(--bark-mid, #4A6741)' },
+  statusBtnLabel: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  statusBtnCaret: { fontSize: '8px', color: '#999', flexShrink: 0 },
+  statusMenu: {
+    position: 'absolute', top: 'calc(100% + 4px)', left: '10px', right: '10px',
+    background: '#fff', border: '1.5px solid var(--border, #E4E1D8)', borderRadius: '10px',
+    boxShadow: '0 4px 20px rgba(0,0,0,0.12)', padding: '6px 0', zIndex: 60,
+    maxHeight: '320px', overflowY: 'auto',
+  },
+  statusMenuHead: {
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    padding: '4px 12px 8px', borderBottom: '1px solid var(--border, #E4E1D8)', marginBottom: '4px',
+  },
+  statusMenuTitle: { fontSize: '10px', fontWeight: '800', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.05em' },
+  statusMenuReset: { background: 'none', border: 'none', padding: 0, fontSize: '11px', fontWeight: '600', color: 'var(--moss, #4A6741)', cursor: 'pointer', fontFamily: 'inherit' },
+  statusItem: { display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 12px', cursor: 'pointer' },
+  statusCheck: {
+    width: '16px', height: '16px', borderRadius: '4px', border: '1.5px solid #ddd',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  },
+  statusDot: { width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0 },
+  statusLabel: { fontSize: '12.5px', color: 'var(--bark, #2C2416)', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  statusCount: { fontSize: '10.5px', fontWeight: '700', borderRadius: '10px', padding: '1px 6px', flexShrink: 0 },
   traySearchWrap: { position: 'relative', margin: '0 10px 8px', display: 'flex', alignItems: 'center' },
   traySearchIcon: { position: 'absolute', left: '8px', fontSize: '11px', pointerEvents: 'none', opacity: 0.5 },
   traySearchInput: {
@@ -1255,6 +1452,27 @@ const s = {
   legendDot:  { width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0 },
   legendName: { fontSize: '11px', color: '#555', fontWeight: '500' },
   main:    { flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#fff' },
+  totalsBar: {
+    flexShrink: 0, background: '#fff', borderTop: '1px solid var(--border)',
+    padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap',
+  },
+  totalsHead: { display: 'flex', flexDirection: 'column', flexShrink: 0 },
+  totalsTitle: { fontSize: '12px', fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.01em' },
+  totalsScope: { fontSize: '10.5px', fontWeight: 600, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: '1px' },
+  totalsCrews: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', flex: 1 },
+  totalsChip: {
+    display: 'inline-flex', alignItems: 'center', gap: '7px',
+    background: 'var(--cream)', border: '1px solid var(--border)', borderRadius: 'var(--radius-pill)',
+    padding: '5px 12px',
+  },
+  totalsCrewName: { fontSize: '12px', fontWeight: 600, color: 'var(--ink-2)' },
+  totalsCrewVal: { fontSize: '12.5px', fontWeight: 800, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' },
+  totalsGrand: {
+    display: 'inline-flex', alignItems: 'center', gap: '9px', marginLeft: 'auto',
+    background: 'var(--terra)', borderRadius: 'var(--radius-pill)', padding: '5px 14px',
+  },
+  totalsGrandLabel: { fontSize: '10.5px', fontWeight: 700, color: 'rgba(255,255,255,0.85)', textTransform: 'uppercase', letterSpacing: '0.04em' },
+  totalsGrandVal: { fontSize: '14px', fontWeight: 800, color: '#fff', fontVariantNumeric: 'tabular-nums' },
   trackerSection: { flexShrink: 0, borderTop: '1px solid var(--border)', background: '#fff' },
   trackerToggle: {
     width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',

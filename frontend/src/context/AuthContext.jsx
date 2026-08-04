@@ -81,10 +81,12 @@ export function AuthProvider({ children }) {
 
   const isFullAccess = profile?.access_level === 'full'
   const isStaff = profile?.access_level === 'full' || profile?.access_level === 'office'
+  // Truck = shared iPad login for a vehicle: scheduled work + calendar (not staff).
+  const isTruck = profile?.access_level === 'truck'
   const loading = session === undefined
 
   return (
-    <AuthContext.Provider value={{ session, profile, isFullAccess, isStaff, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ session, profile, isFullAccess, isStaff, isTruck, loading, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   )

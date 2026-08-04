@@ -59,7 +59,10 @@ jobs:
       # office (staff) account
       E2E_OFFICE_EMAIL: ${{ secrets.E2E_OFFICE_EMAIL }}
       E2E_OFFICE_PASSWORD: ${{ secrets.E2E_OFFICE_PASSWORD }}
-      # crew account
+      # truck (shared iPad — calendar + work orders) account
+      E2E_TRUCK_EMAIL: ${{ secrets.E2E_TRUCK_EMAIL }}
+      E2E_TRUCK_PASSWORD: ${{ secrets.E2E_TRUCK_PASSWORD }}
+      # crew / individual-staff (docs, chat, safety) account
       E2E_CREW_EMAIL: ${{ secrets.E2E_CREW_EMAIL }}
       E2E_CREW_PASSWORD: ${{ secrets.E2E_CREW_PASSWORD }}
     steps:

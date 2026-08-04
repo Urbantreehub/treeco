@@ -1,9 +1,10 @@
 import { test as base, expect } from '@playwright/test'
 import { attachPageGuard } from '../support/guards.js'
 
-// A link present in every navigation variant (full / office / crew), so it's a
-// reliable "the authenticated app shell has rendered" signal.
-const APP_SHELL_SELECTOR = 'a[href="/calendar"]'
+// A link present in every navigation variant (full / office / truck / crew), so
+// it's a reliable "the authenticated app shell has rendered" signal. (Calendar
+// isn't — crew/individual-staff logins don't get it.)
+const APP_SHELL_SELECTOR = 'a[href="/safety"]'
 
 // When E2E_BASE_URL is set the suite runs against a real deployment
 // (e.g. https://app.urbantreeservices.net) with a real Supabase backend, so the
@@ -20,7 +21,8 @@ const LIVE_ACCOUNTS = {
   'full:seeded': ['E2E_EMAIL', 'E2E_PASSWORD'],
   'full:empty': ['E2E_EMPTY_EMAIL', 'E2E_EMPTY_PASSWORD'],
   'office:seeded': ['E2E_OFFICE_EMAIL', 'E2E_OFFICE_PASSWORD'],
-  'crew:seeded': ['E2E_CREW_EMAIL', 'E2E_CREW_PASSWORD'],
+  'truck:seeded': ['E2E_TRUCK_EMAIL', 'E2E_TRUCK_PASSWORD'],
+  'restricted:seeded': ['E2E_CREW_EMAIL', 'E2E_CREW_PASSWORD'],
 }
 
 function liveCredentials(role, tenant) {

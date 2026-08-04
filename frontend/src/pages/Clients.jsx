@@ -3,6 +3,7 @@ import { supabase } from '../config/supabase'
 import { getStatusColor, getStatusLabel } from '../config/statuses'
 import { seededClients, seededJobs } from '../demo/mockData'
 import AddressInput from '../components/AddressInput'
+import { useIsMobile } from '../hooks/useIsMobile'
 import { mapsHref } from '../utils/geo'
 
 const IS_DEMO = import.meta.env.VITE_DEMO === 'true'
@@ -209,9 +210,17 @@ function XeroImportModal({ contacts, existingXeroIds, onImport, onClose }) {
 // ── Client detail panel ────────────────────────────────────────────────────
 function ClientPanel({ client, jobs, onEdit, onDelete, onClose }) {
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const isMobile = useIsMobile()
+
+  // On mobile the panel is pinned to bottom:0 under the fixed bottom nav, so
+  // reserve space below its footer (Delete etc.) so it isn't covered. The
+  // flex column shrinks the scroll body to fit. Desktop has no bottom nav.
+  const panelStyle = isMobile
+    ? { ...p.panel, paddingBottom: 'calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px))' }
+    : p.panel
 
   return (
-    <div style={p.panel}>
+    <div style={panelStyle}>
       <div style={p.header}>
         <div style={{ ...p.avatar, background: avatarColor(client.name) }}>{initials(client.name)}</div>
         <div style={{ flex: 1, minWidth: 0 }}>

@@ -2,8 +2,11 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useIsMobile } from '../hooks/useIsMobile'
 import ImageMarkup from '../components/ImageMarkup'
-import QuoteReference from '../components/QuoteReference'
+import QuoteVersionHistory from '../components/QuoteVersionHistory'
+import QuoteLibraryModal from '../components/QuoteLibraryModal'
+import QuoteComments from '../components/QuoteComments'
 import { searchSor, CHARGE_CODES } from '../data/sorCodes'
+import { DISPOSAL_PRESETS, WORK_PRESETS } from '../data/quotePresets'
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragOverlay,
 } from '@dnd-kit/core'
@@ -12,6 +15,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { supabase } from '../config/supabase'
+import { useAuth } from '../context/AuthContext'
 import { v4 as uuid } from 'uuid'
 import { GST, calcTotals } from '../utils/pricing'
 
@@ -280,11 +284,22 @@ function LineItem({ item, onChange, onDelete, onMarkup }) {
 
         <textarea
           style={b.lineDetail}
-          placeholder="Additional details, breakdown of costs…"
+          placeholder={'Works — one per line, starting with “- ” for a bullet:\n- Reduce height & spread by 20%\n- Remove deadwood'}
           value={item.detail ?? ''}
           onChange={e => onChange({ ...item, detail: e.target.value })}
-          rows={2}
+          rows={3}
         />
+        {item.detail?.trim() && (
+          <div style={b.detailPreview}>
+            <div style={b.detailPreviewLabel}>Client sees</div>
+            {item.detail.split('\n').map((raw, i) => {
+              const line = raw.trim()
+              const m = /^[-•*]\s+(.*)$/.exec(line)
+              if (m) return <div key={i} style={b.previewBullet}><span style={b.previewDot}>•</span>{m[1]}</div>
+              return line ? <div key={i} style={b.previewLine}>{line}</div> : null
+            })}
+          </div>
+        )}
 
         {/* ── Optional client-style toggle — shows exactly as client sees it ── */}
         {item.optional && (
@@ -532,47 +547,6 @@ function _QuotePreviewStatic({ quote, items, notes, onClose, onSend, saving }) {
   )
 }
 
-// ── Send modal ─────────────────────────────────────────────────────────────
-function SendModal({ quote, onClose, onSent, saving }) {
-  const link = `${window.location.origin}/q/${quote.client_view_token}`
-  const [copied, setCopied] = useState(false)
-  const clientName = quote.jobs?.clients?.name ?? ''
-  const clientEmail = quote.jobs?.clients?.email ?? ''
-
-  function copy() { navigator.clipboard.writeText(link); setCopied(true); setTimeout(() => setCopied(false), 2000) }
-
-  const mailtoBody = encodeURIComponent(`Hi ${clientName.split(' ')[0]},\n\nPlease find your quote here:\n${link}\n\nLet me know if you have any questions.\n\n${DEFAULT_SIGNATURE}`)
-  const mailtoHref = `mailto:${clientEmail}?subject=${encodeURIComponent('Quote from Urban Tree Services')}&body=${mailtoBody}`
-
-  return (
-    <div style={sm.backdrop}>
-      <div style={sm.box}>
-        <div style={sm.header}>
-          <div style={sm.title}>Send quote to {clientName}</div>
-          <button style={sm.close} onClick={onClose}>✕</button>
-        </div>
-        <div style={sm.body}>
-          <div style={sm.label}>Client link — share this URL</div>
-          <div style={sm.linkRow}>
-            <div style={sm.linkUrl}>{link}</div>
-            <button style={sm.copyBtn} onClick={copy}>{copied ? '✓ Copied' : 'Copy'}</button>
-          </div>
-          {clientEmail && (
-            <a href={mailtoHref} style={sm.emailBtn}>✉ Open email app with link pre-filled</a>
-          )}
-          <div style={sm.note}>
-            Once you've shared the link, mark the quote as <strong>Sent</strong> to track when the client opens and responds.
-          </div>
-        </div>
-        <div style={sm.footer}>
-          <button style={sm.cancelBtn} onClick={onClose}>Cancel</button>
-          <button style={sm.sentBtn} onClick={onSent} disabled={saving}>{saving ? 'Saving…' : 'Mark as sent ✓'}</button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 const sm = {
   backdrop: { position: 'fixed', inset: 0, background: 'rgba(44,36,22,0.5)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' },
   box: { background: '#fff', borderRadius: '12px', width: '460px', maxWidth: '95vw', boxShadow: '0 12px 40px rgba(0,0,0,0.2)' },
@@ -591,35 +565,107 @@ const sm = {
   sentBtn: { background: 'var(--terra)', color: '#fff', border: 'none', borderRadius: '7px', padding: '8px 18px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
 }
 
-// ── Email modal ─────────────────────────────────────────────────────────────
-function EmailModal({ quote, onClose, onSend, sending }) {
-  const clientEmail = quote?.jobs?.clients?.email
+// ── Compose email screen ─────────────────────────────────────────────────────
+// The primary "Send" action. Opens an editable email — subject + a personal
+// message pre-filled with a thank-you template — with the quote link attached.
+function defaultEmailMessage({ firstName, address }) {
+  return `Hi ${firstName},
+
+Thank you for the opportunity to quote for the work at ${address} — we really appreciate it.
+
+Your full quote is ready to view. You can see all the details and accept or decline online using the button in this email.
+
+Any questions at all, just reply to this email or give me a call on 027 203 1446.
+
+Cheers,
+Josh
+Urban Tree Services`
+}
+
+function ComposeEmailModal({ quote, onClose, onSend, sending, onMarkSent, saving }) {
+  const clientEmail = quote?.jobs?.clients?.email ?? ''
   const clientName  = quote?.jobs?.clients?.name ?? ''
+  const firstName   = clientName.split(' ')[0] || 'there'
+  const address     = quote?.jobs?.address ?? 'your property'
   const total       = quote?.total ?? 0
-  function nzd(v) { return '$' + Number(v||0).toLocaleString('en-NZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
+  const link        = `${window.location.origin}/q/${quote?.client_view_token}`
+
+  const [subject, setSubject] = useState(`Your quote from Urban Tree Services — ${nzd(total)}`)
+  const [message, setMessage] = useState(defaultEmailMessage({ firstName, address }))
+  const [copied, setCopied]   = useState(false)
+  function copy() { navigator.clipboard.writeText(link); setCopied(true); setTimeout(() => setCopied(false), 2000) }
+
+  const fieldLabel = { fontSize: '11px', fontWeight: '700', color: '#6A8060', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '5px' }
+  const input = { width: '100%', boxSizing: 'border-box', border: '1px solid var(--border)', borderRadius: '7px', padding: '9px 11px', fontSize: '13px', color: 'var(--ink)', fontFamily: 'var(--font)', background: '#fff' }
+
+  // No email on file — offer the shareable link + manual "mark as sent" instead.
+  if (!clientEmail) {
+    return (
+      <div style={sm.backdrop}>
+        <div style={sm.box}>
+          <div style={sm.header}>
+            <div style={sm.title}>Send quote to {clientName}</div>
+            <button style={sm.close} onClick={onClose}>✕</button>
+          </div>
+          <div style={sm.body}>
+            <div style={{ background: '#FFF7E6', border: '1px solid #F0D9A8', borderRadius: '8px', padding: '12px 14px', fontSize: '13px', color: '#8A6D1A' }}>
+              This client has no email address on file, so the quote can't be emailed. Add one under the client, or share the link below.
+            </div>
+            <div style={sm.label}>Client link — share this URL</div>
+            <div style={sm.linkRow}>
+              <div style={sm.linkUrl}>{link}</div>
+              <button style={sm.copyBtn} onClick={copy}>{copied ? '✓ Copied' : 'Copy'}</button>
+            </div>
+          </div>
+          <div style={sm.footer}>
+            <button style={sm.cancelBtn} onClick={onClose}>Cancel</button>
+            <button style={sm.sentBtn} onClick={onMarkSent} disabled={saving}>{saving ? 'Saving…' : 'Mark as sent ✓'}</button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div style={sm.backdrop}>
-      <div style={sm.box}>
+      <div style={{ ...sm.box, width: '540px' }}>
         <div style={sm.header}>
-          <div style={sm.title}>Email quote to {clientName}</div>
+          <div style={sm.title}>Send quote to {clientName}</div>
           <button style={sm.close} onClick={onClose}>✕</button>
         </div>
-        <div style={sm.body}>
-          <div style={{ background: '#F8FAF7', border: '1px solid #D4E4D0', borderRadius: '8px', padding: '14px 16px' }}>
-            <div style={{ fontSize: '11px', fontWeight: '700', color: '#6A8060', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>Will send to</div>
+        <div style={{ ...sm.body, gap: '14px', maxHeight: '70vh', overflowY: 'auto' }}>
+          <div>
+            <div style={fieldLabel}>To</div>
             <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)' }}>{clientEmail}</div>
-            <div style={{ fontSize: '12px', color: '#888', marginTop: '2px' }}>Subject: Your quote from Urban Tree Services — {nzd(total)}</div>
+          </div>
+          <div>
+            <div style={fieldLabel}>Subject</div>
+            <input style={input} value={subject} onChange={e => setSubject(e.target.value)} />
+          </div>
+          <div>
+            <div style={fieldLabel}>Message</div>
+            <textarea
+              style={{ ...input, minHeight: '160px', resize: 'vertical', lineHeight: 1.55 }}
+              value={message}
+              onChange={e => setMessage(e.target.value)}
+            />
+          </div>
+          <div>
+            <div style={fieldLabel}>Quote link — included in the email</div>
+            <div style={sm.linkRow}>
+              <div style={sm.linkUrl}>{link}</div>
+              <button style={sm.copyBtn} onClick={copy}>{copied ? '✓ Copied' : 'Copy'}</button>
+            </div>
           </div>
           <div style={sm.note}>
-            A branded email will be sent with the total amount and a "View &amp; Accept Quote" button.
-            {quote?.status === 'draft' && ' The quote will also be marked as Sent.'}
+            The email is branded and adds the quote total and a "View &amp; Accept Quote" button below your message.
+            {quote?.status === 'draft' && ' The quote will be marked as Sent once it goes out.'}
           </div>
         </div>
         <div style={sm.footer}>
           <button style={sm.cancelBtn} onClick={onClose}>Cancel</button>
-          <button style={{ ...sm.sentBtn, background: '#4A7FA5' }} onClick={onSend} disabled={sending}>
-            {sending ? 'Sending…' : `Send email →`}
+          <button style={{ ...sm.sentBtn, background: '#4A7FA5' }} onClick={() => onSend({ subject, message })} disabled={sending}>
+            {sending ? 'Sending…' : 'Send email →'}
           </button>
         </div>
       </div>
@@ -630,6 +676,7 @@ function EmailModal({ quote, onClose, onSend, sending }) {
 // ── Main builder ────────────────────────────────────────────────────────────
 export default function QuoteBuilder() {
   const { id } = useParams()
+  const { session } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const isMobile = useIsMobile()
@@ -648,8 +695,9 @@ export default function QuoteBuilder() {
   const [jobs, setJobs] = useState([])
   const [activeId, setActiveId] = useState(null)
   const [showPreview, setShowPreview] = useState(false)
-  const [showSendModal, setShowSendModal] = useState(false)
+  const [showLibrary, setShowLibrary] = useState(false)
   const [showEmailModal, setShowEmailModal] = useState(false)
+  const [showMenu, setShowMenu] = useState(false)
   const [markupItem, setMarkupItem] = useState(null)
   const [xeroLoading, setXeroLoading] = useState(false)
   const [emailLoading, setEmailLoading] = useState(false)
@@ -661,10 +709,15 @@ export default function QuoteBuilder() {
     setToast({ msg, type }); setTimeout(() => setToast(null), 3000)
   }
 
-  // Open send modal if navigated here from a new-quote save-and-send
+  // After a brand-new quote saves, it navigates to /quotes/:id with this flag —
+  // open the preview then. Keyed on location.state so it fires post-navigation,
+  // not just on first mount (the component doesn't remount when :id changes).
   useEffect(() => {
-    if (location.state?.openSendModal) setShowSendModal(true)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    if (location.state?.openPreview) {
+      setShowPreview(true)
+      navigate(location.pathname, { replace: true, state: null }) // consume the flag
+    }
+  }, [location.state, location.pathname, navigate])
 
   useEffect(() => {
     if (!isNew) {
@@ -694,6 +747,27 @@ export default function QuoteBuilder() {
     id: uuid(), description: '', detail: '', qty: 1, rate: '', optional: false, selected: true, images: [], image_url: null,
   }])
 
+  // Insert one or more library items as new quote line items.
+  const insertItems = useCallback((newItems) => {
+    setItems(prev => [...prev, ...newItems])
+  }, [])
+
+  // Add a common preset (disposal option / stump grind / etc.) as a line item.
+  const insertPreset = useCallback((preset) => {
+    if (!preset) return
+    setItems(prev => [...prev, {
+      id: uuid(), qty: 1, selected: true, images: [], image_url: null, detail: '',
+      ...preset.item,
+    }])
+  }, [])
+
+  // Apply a template: append its line items, and adopt its default terms if the
+  // quote is still using the untouched default signature.
+  const applyTemplate = useCallback(({ line_items, notes: tplNotes }) => {
+    setItems(prev => [...prev, ...line_items])
+    if (tplNotes) setNotes(prev => (!prev || prev === DEFAULT_SIGNATURE) ? tplNotes : prev)
+  }, [])
+
   const updateItem = useCallback((updated) => {
     setItems(prev => prev.map(i => i.id === updated.id ? updated : i))
   }, [])
@@ -713,25 +787,27 @@ export default function QuoteBuilder() {
     })
   }
 
-  async function save(newStatus, openSendModal = false) {
+  async function save(newStatus, openPreview = false) {
     setSaving(true)
+    const userId = session?.user?.id ?? null
     const payload = {
       line_items: items, subtotal: totals.subtotal, gst: totals.gst, total: totals.total,
       notes, private_notes: privateNotes, job_pack: jobPack,
+      ...(userId ? { updated_by: userId } : {}),
       ...(newStatus ? { status: newStatus } : {}),
       ...(newStatus === 'sent' ? { sent_at: new Date().toISOString() } : {}),
     }
-    // Graceful fallback if optional columns don't exist yet (migrations 007, 009)
-    const OPTIONAL_COLS = ['job_pack', 'private_notes', 'notes', 'valid_until']
+    // Graceful fallback if optional columns don't exist yet (migrations 007, 009, 019)
+    const OPTIONAL_COLS = ['job_pack', 'private_notes', 'notes', 'valid_until', 'created_by', 'updated_by']
     async function tryUpsert(p, isInsert, insertMeta) {
       let res = isInsert
         ? await supabase.from('quotes').insert({ ...insertMeta, ...p }).select().single()
         : await supabase.from('quotes').update(p).eq('id', id)
       const errMsg = res.error?.message ?? ''
       if (OPTIONAL_COLS.some(c => errMsg.includes(c))) {
-        const { job_pack: _jp, private_notes: _pn, notes: _n, ...pFallback } = p
+        const { job_pack: _jp, private_notes: _pn, notes: _n, updated_by: _ub, ...pFallback } = p
         const metaFallback = isInsert
-          ? Object.fromEntries(Object.entries(insertMeta).filter(([k]) => k !== 'valid_until'))
+          ? Object.fromEntries(Object.entries(insertMeta).filter(([k]) => !['valid_until', 'created_by'].includes(k)))
           : undefined
         res = isInsert
           ? await supabase.from('quotes').insert({ ...metaFallback, ...pFallback }).select().single()
@@ -743,9 +819,9 @@ export default function QuoteBuilder() {
       if (!jobId) { showToast('Select a job first', 'error'); setSaving(false); return }
       const token = uuid().replace(/-/g, '')
       const validUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
-      const { data, error } = await tryUpsert(payload, true, { job_id: jobId, status: newStatus ?? 'draft', client_view_token: token, valid_until: validUntil })
+      const { data, error } = await tryUpsert(payload, true, { job_id: jobId, status: newStatus ?? 'draft', client_view_token: token, valid_until: validUntil, ...(userId ? { created_by: userId } : {}) })
       if (error) showToast(error.message, 'error')
-      else if (data) { showToast('Quote created'); navigate(`/quotes/${data.id}`, { replace: true, state: openSendModal ? { openSendModal: true } : null }) }
+      else if (data) { showToast('Quote created'); navigate(`/quotes/${data.id}`, { replace: true, state: openPreview ? { openPreview: true } : null }) }
       else showToast('Quote created')
     } else {
       const { error } = await tryUpsert(payload, false)
@@ -759,21 +835,26 @@ export default function QuoteBuilder() {
     setSaving(false)
   }
 
-  async function handlePreviewSend() {
-    await save(undefined, true)
-    setShowPreview(false)
-    setShowSendModal(true)
+  // Primary action everywhere: save, then show the client preview. The preview's
+  // own "Send" button chains into the email draft (handleSendFromPreview).
+  async function previewAndSend() {
+    if (items.length === 0) { showToast('Add at least one line item first', 'error'); return }
+    setShowMenu(false)
+    if (isNew) { await save(undefined, true); return } // save() navigates; nav-state opens the preview
+    await save()
+    setShowPreview(true)
   }
 
-  async function handleSend() {
-    if (items.length === 0) { showToast('Add at least one line item before sending', 'error'); return }
-    await save(undefined, true)
-    setShowSendModal(true)
+  // From inside the preview → open the editable email draft.
+  async function handleSendFromPreview() {
+    await save()
+    setShowPreview(false)
+    setShowEmailModal(true)
   }
 
   async function markAsSent() {
     await save('sent')
-    setShowSendModal(false)
+    setShowEmailModal(false)
     // Auto-advance job status to quote_sent if still at an early stage
     if (quote?.job_id) {
       const { data: currentJob } = await supabase.from('jobs').select('status').eq('id', quote.job_id).single()
@@ -786,16 +867,63 @@ export default function QuoteBuilder() {
   }
 
   async function markComplete() {
-    await save('complete')
+    // Status-only update — never resends line_items, so it can't be used to
+    // slip an edit past the accepted-quote lock (see migration 020).
+    setSaving(true)
+    const { error } = await supabase.from('quotes')
+      .update({ status: 'complete', updated_by: session?.user?.id ?? null })
+      .eq('id', id)
+    if (error) { showToast(error.message, 'error'); setSaving(false); return }
     if (quote?.job_id) {
       await supabase.from('jobs')
         .update({ status: 'complete_to_invoice', status_changed_at: new Date().toISOString() })
         .eq('id', quote.job_id)
     }
+    const { data } = await supabase.from('quotes')
+      .select(`*, jobs (id, address, job_type, title, status, clients (id, name, email, phone))`)
+      .eq('id', id).single()
+    if (data) { setQuote(data); setJob(data.jobs) }
+    showToast('Marked complete')
+    setSaving(false)
+  }
+
+  // Reopen a locked (accepted/complete/invoiced) quote for editing. Reverts to
+  // "Sent"; the DB captures a version snapshot of the state being left behind.
+  async function reopen() {
+    if (!window.confirm(
+      'Reopen this quote for editing?\n\nA snapshot of the accepted quote is saved to its version history first. It reverts to “Sent”, and the client can view it again on their link until you re-send.'
+    )) return
+    setSaving(true)
+    const { error } = await supabase.from('quotes')
+      .update({ status: 'sent', updated_by: session?.user?.id ?? null })
+      .eq('id', id)
+    if (error) { showToast(error.message, 'error'); setSaving(false); return }
+    const { data } = await supabase.from('quotes')
+      .select(`*, jobs (id, address, job_type, title, status, clients (id, name, email, phone))`)
+      .eq('id', id).single()
+    if (data) { setQuote(data); setJob(data.jobs) }
+    showToast('Quote reopened for editing')
+    setSaving(false)
+  }
+
+  // Push a sent/viewed quote's expiry out another 30 days.
+  async function extendExpiry() {
+    const next = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+    setSaving(true)
+    const { error } = await supabase.from('quotes')
+      .update({ valid_until: next, updated_by: session?.user?.id ?? null })
+      .eq('id', id)
+    if (error) { showToast(error.message, 'error'); setSaving(false); return }
+    setQuote(q => ({ ...q, valid_until: next }))
+    showToast('Expiry extended 30 days')
+    setSaving(false)
   }
 
   async function sendToXero() {
     if (!quote) return
+    if (!window.confirm(
+      'Raise this invoice in Xero?\n\nAn invoice is created in Xero and the job moves to “Invoiced” (out of the Complete — To Be Invoiced list).'
+    )) return
     setXeroLoading(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
@@ -807,7 +935,9 @@ export default function QuoteBuilder() {
       })
       const body = await res.json()
       if (!res.ok) throw new Error(body.error ?? 'Xero sync failed')
-      showToast('Invoice created in Xero ✓')
+      showToast(body.invoice_number
+        ? `Invoice ${body.invoice_number} created in Xero — job moved to Invoiced ✓`
+        : 'Invoice created in Xero — job moved to Invoiced ✓')
       // Refresh quote data
       const { data } = await supabase.from('quotes')
         .select(`*, jobs (id, address, job_type, title, status, clients (id, name, email, phone))`)
@@ -820,22 +950,23 @@ export default function QuoteBuilder() {
     }
   }
 
-  async function sendEmail() {
+  async function sendEmail({ subject, message } = {}) {
     if (!quote) return
     setEmailLoading(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
+      const ANON = import.meta.env.VITE_SUPABASE_ANON_KEY
       const res = await fetch(`${SUPABASE_URL}/functions/v1/send-quote-email`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ quote_id: quote.id }),
+        headers: { 'Content-Type': 'application/json', apikey: ANON, Authorization: `Bearer ${session?.access_token ?? ANON}` },
+        body: JSON.stringify({ quote_id: quote.id, subject, message }),
       })
       const body = await res.json()
       if (!res.ok) throw new Error(body.error ?? 'Email failed')
       showToast(`Email sent to ${body.to} ✓`)
       setShowEmailModal(false)
-      // Mark as sent if still draft
+      // Mark as sent if still a draft (this is the primary send action now)
       if (quote.status === 'draft') await save('sent')
     } catch (err) {
       showToast(err.message, 'error')
@@ -879,13 +1010,23 @@ export default function QuoteBuilder() {
     complete: { label: 'Complete', bg: '#E6F4EC', color: '#1A7A4A' },
     invoiced: { label: 'Invoiced', bg: '#E8EEFA', color: '#2A4AB0' },
   }
-  const st = quote?.status ? ST[quote.status] : null
   const clientEmail = quote?.jobs?.clients?.email
   const clientPhone = quote?.jobs?.clients?.phone
   const canEmail    = !!clientEmail && quote?.client_view_token && quote?.status !== 'draft'
   const canSms      = !!clientPhone && quote?.client_view_token && quote?.status !== 'draft'
   const canComplete = quote?.status === 'accepted'
-  const canXero     = quote?.status === 'complete'
+  // Ready to invoice once the work is done — whether that was recorded on the
+  // quote ('complete') or straight on the job from the pipeline
+  // ('complete_to_invoice'). Either path surfaces the Xero button. Hidden once
+  // an invoice already exists.
+  const alreadyInvoiced = quote?.status === 'invoiced' || job?.status === 'invoiced'
+  const canXero     = !isNew && !alreadyInvoiced &&
+    (quote?.status === 'complete' || job?.status === 'complete_to_invoice')
+  // Accepted/complete/invoiced quotes are frozen (enforced in migration 020).
+  const locked      = !isNew && ['accepted', 'complete', 'invoiced'].includes(quote?.status)
+  // Expiry awareness for live (sent/viewed) quotes.
+  const awaiting    = ['sent', 'viewed'].includes(quote?.status)
+  const expired     = awaiting && quote?.valid_until && new Date(quote.valid_until) < new Date(new Date().toDateString())
 
   return (
     <>
@@ -899,78 +1040,100 @@ export default function QuoteBuilder() {
               {!isNew && job && <div style={s.sub}>{job.address}{job.job_type ? ` · ${job.job_type}` : ''}</div>}
             </div>
           </div>
-          <div style={{ ...s.hRight, flexWrap: 'wrap' }}>
-            {st && <span style={{ ...s.badge, background: st.bg, color: st.color }}>{st.label}</span>}
-            {quote && (
-              <select
-                value=""
-                onChange={e => { if (e.target.value) save(e.target.value) }}
-                disabled={saving}
-                aria-label="Change quote status"
-                style={{
-                  padding: '6px 10px', borderRadius: '7px', border: '1.5px solid var(--border)',
-                  background: '#fff', color: 'var(--bark)', fontSize: '12px', fontWeight: '600',
-                  fontFamily: 'var(--font)', cursor: 'pointer', outline: 'none',
-                }}
-              >
-                <option value="">{saving ? 'Saving…' : 'Change status…'}</option>
-                {['draft', 'sent', 'viewed', 'accepted', 'declined']
-                  .filter(k => k !== quote.status)
-                  .map(k => <option key={k} value={k}>{ST[k].label}</option>)}
-              </select>
-            )}
-            {!isMobile && (
-              <button style={s.previewBtn} onClick={async () => { await save(); setShowPreview(true) }} disabled={saving}>
-                {saving ? 'Saving…' : 'Preview'}
+          <div style={s.hRight}>
+            {!locked && (
+              <button style={s.previewSendBtn} onClick={previewAndSend} disabled={saving}>
+                {saving ? 'Saving…' : 'Preview & Send'}
               </button>
             )}
-            {!isMobile && quote?.client_view_token && (
-              <button
-                style={s.pdfBtn}
-                onClick={async () => {
-                  await save()
-                  window.open(`${window.location.origin}/q/${quote.client_view_token}?download=1&preview=1`, '_blank')
-                }}
-                disabled={saving}
-                title="Save and open PDF download page"
-              >
-                ⬇ PDF
-              </button>
-            )}
-            {canEmail && (
-              <button style={s.emailBtn} onClick={() => setShowEmailModal(true)} disabled={emailLoading}>
-                ✉ Email
-              </button>
-            )}
-            {canSms && (
-              <button style={s.emailBtn} onClick={sendSms} disabled={smsLoading} title="Text the quote link to the client">
-                {smsLoading ? 'Texting…' : '💬 Text'}
-              </button>
-            )}
-            {canComplete && (
-              <button style={s.completeBtn} onClick={markComplete} disabled={saving}>
-                Mark Complete ✓
-              </button>
-            )}
+
+            {/* Once work is done, invoicing is the primary action — surfaced
+                here (not buried in the menu) so it's one tap on a phone. */}
             {canXero && (
               <button style={s.xeroBtn} onClick={sendToXero} disabled={xeroLoading}>
-                {xeroLoading ? 'Sending…' : '→ Xero'}
+                {xeroLoading ? 'Invoicing…' : '→ Invoice to Xero'}
               </button>
             )}
-            {quote?.status !== 'invoiced' && (
-              <>
-                <button style={s.saveBtn} onClick={() => save()} disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
-                {quote?.status !== 'complete' && (
-                  <button style={s.sendBtn} onClick={handleSend} disabled={saving}>{isMobile ? 'Send →' : 'Send to client →'}</button>
-                )}
-              </>
-            )}
+
+            {/* Everything else lives behind the ☰ menu. */}
+            <div style={{ position: 'relative' }}>
+              <button style={s.menuBtn} onClick={() => setShowMenu(v => !v)} aria-label="More options" aria-expanded={showMenu}>☰</button>
+              {showMenu && (
+                <>
+                  <div style={s.menuBackdrop} onClick={() => setShowMenu(false)} />
+                  <div style={s.menu}>
+                    {!locked && <button style={s.menuItem} onClick={() => { setShowMenu(false); save() }} disabled={saving}>💾 Save</button>}
+                    <button style={s.menuItem} onClick={async () => { setShowMenu(false); await save(); setShowPreview(true) }} disabled={saving}>👁 Preview only</button>
+                    {!locked && <button style={s.menuItem} onClick={() => { setShowMenu(false); setShowLibrary(true) }}>📚 Library</button>}
+                    {quote?.client_view_token && (
+                      <button style={s.menuItem} onClick={async () => { setShowMenu(false); await save(); window.open(`${window.location.origin}/q/${quote.client_view_token}?download=1&preview=1`, '_blank') }} disabled={saving}>⬇ Download PDF</button>
+                    )}
+                    {canEmail && <button style={s.menuItem} onClick={() => { setShowMenu(false); setShowEmailModal(true) }}>✉ Email quote</button>}
+                    {canSms && <button style={s.menuItem} onClick={() => { setShowMenu(false); sendSms() }} disabled={smsLoading}>💬 Text quote link</button>}
+                    {canComplete && <button style={s.menuItem} onClick={() => { setShowMenu(false); markComplete() }}>✓ Mark complete</button>}
+                    {/* Invoice to Xero is now a primary header button (see above). */}
+                    {locked && <button style={s.menuItem} onClick={() => { setShowMenu(false); reopen() }}>🔓 Reopen to edit</button>}
+                    {!isNew && quote && (
+                      <div style={s.menuStatus}>
+                        <div style={s.menuStatusLabel}>Set status</div>
+                        <div style={s.menuStatusRow}>
+                          {['draft', 'sent', 'viewed', 'accepted', 'declined'].map(k => (
+                            <button key={k} disabled={k === quote.status || saving}
+                              onClick={() => { setShowMenu(false); save(k) }}
+                              style={{ ...s.statusPill, ...(k === quote.status ? s.statusPillActive : {}) }}>
+                              {ST[k].label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* ── Body ── */}
-        <div style={{ ...s.body, flexDirection: isMobile ? 'column' : 'row' }}>
+        {/* ── Body ── single column, phone-first ── */}
+        <div style={s.body}>
           <div style={s.main}>
+
+            {/* Locked banner — accepted/complete/invoiced quotes are frozen */}
+            {locked && (
+              <div style={s.lockBanner}>
+                <span style={{ fontSize: 18 }}>🔒</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, color: 'var(--bark)', fontSize: 14 }}>
+                    This quote is {ST[quote.status]?.label?.toLowerCase() ?? quote.status} and locked
+                  </div>
+                  <div style={{ fontSize: 12.5, color: '#8A857D', marginTop: 2 }}>
+                    Pricing, line items and terms can’t be changed. Reopen it to edit — the accepted version is saved to history first.
+                  </div>
+                </div>
+                <button style={s.reopenBtn} onClick={reopen} disabled={saving}>Reopen to edit</button>
+              </div>
+            )}
+
+            {/* Signature record on accepted quotes */}
+            {locked && quote?.signed_name && (
+              <div style={s.signedNote}>✍ Signed by <strong>{quote.signed_name}</strong>{quote.responded_at ? ` on ${new Date(quote.responded_at).toLocaleDateString('en-NZ')}` : ''}</div>
+            )}
+
+            {/* Expiry — for live quotes awaiting a response */}
+            {awaiting && quote?.valid_until && (
+              <div style={{ ...s.expiryBanner, ...(expired ? s.expiryBannerExpired : null) }}>
+                <span>{expired ? '⏳' : '🗓'}</span>
+                <span style={{ flex: 1 }}>
+                  {expired
+                    ? <>This quote <strong>expired</strong> on {new Date(quote.valid_until).toLocaleDateString('en-NZ')}.</>
+                    : <>Valid until <strong>{new Date(quote.valid_until).toLocaleDateString('en-NZ')}</strong>.</>}
+                </span>
+                <button style={s.reopenBtn} onClick={extendExpiry} disabled={saving}>Extend 30 days</button>
+              </div>
+            )}
+
+            {/* Version history — appears once a quote has been accepted/reopened */}
+            {!isNew && <QuoteVersionHistory quoteId={id} refreshKey={quote?.status} />}
 
             {/* Job selector */}
             {isNew && (
@@ -985,11 +1148,8 @@ export default function QuoteBuilder() {
               </div>
             )}
 
-            {/* Quote reference — lead/site material for the operator (never on the client quote) */}
-            {jobId && <QuoteReference jobId={jobId} readOnly />}
-
-            {/* Line items */}
-            <div style={s.card}>
+            {/* Line items — the focus of the screen on mobile */}
+            <div style={{ ...s.card, ...s.itemsCard }}>
               <div style={s.cardTitle}>Line items</div>
               <div style={s.gstNote}>
                 💡 Enter prices <strong>ex GST</strong> — line totals are shown <strong>incl GST</strong> (15%)
@@ -1010,7 +1170,47 @@ export default function QuoteBuilder() {
               </DndContext>
 
               {items.length === 0 && <div style={s.emptyItems}>No items yet</div>}
-              <button style={s.addBtn} onClick={addItem}>+ Add line item</button>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginTop: '12px' }}>
+                <button style={s.addBtn} onClick={addItem}>+ Add line item</button>
+                <select
+                  style={s.presetSelect}
+                  value=""
+                  onChange={e => {
+                    const all = [...WORK_PRESETS, ...DISPOSAL_PRESETS]
+                    insertPreset(all.find(p => p.key === e.target.value))
+                    e.target.value = ''
+                  }}
+                >
+                  <option value="">+ Common item…</option>
+                  <optgroup label="Works">
+                    {WORK_PRESETS.map(p => <option key={p.key} value={p.key}>{p.label}</option>)}
+                  </optgroup>
+                  <optgroup label="Disposal / material">
+                    {DISPOSAL_PRESETS.map(p => <option key={p.key} value={p.key}>{p.label}</option>)}
+                  </optgroup>
+                </select>
+              </div>
+              <div style={s.formatHint}>
+                💡 Put the tree/species in the item title (shows in bold). Start each line of detail with “- ” for a bullet point.
+              </div>
+            </div>
+
+            {/* Summary + primary action, right under the line items */}
+            <div style={s.totalsCard}>
+              <div style={s.cardTitle}>Summary</div>
+              {items.some(i => i.optional) && (
+                <div style={s.optNote}>✱ Optional items included — client can toggle</div>
+              )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={s.tRow}><span>Subtotal (ex GST)</span><span>{nzd(totals.subtotal)}</span></div>
+                <div style={s.tRow}><span>GST (15%)</span><span>{nzd(totals.gst)}</span></div>
+                <div style={{ ...s.tRow, ...s.tBig }}><span>Total (incl GST)</span><span>{nzd(totals.total)}</span></div>
+              </div>
+              {!locked && (
+                <button style={s.previewSendBig} onClick={previewAndSend} disabled={saving}>
+                  {saving ? 'Saving…' : 'Preview & Send →'}
+                </button>
+              )}
             </div>
 
             {/* Job Pack — crew-facing ops checklist */}
@@ -1164,50 +1364,10 @@ export default function QuoteBuilder() {
                 Your signature is included here and appears on the printed document.
               </div>
             </div>
-          </div>
 
-          {/* Sidebar */}
-          <div style={{ ...s.sidebar, width: isMobile ? '100%' : '260px', position: isMobile ? 'static' : 'sticky' }}>
-            <div style={s.totalsCard}>
-              <div style={s.cardTitle}>Summary</div>
-              {items.some(i => i.optional) && (
-                <div style={s.optNote}>✱ Optional items included — client can toggle</div>
-              )}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div style={s.tRow}><span>Subtotal (ex GST)</span><span>{nzd(totals.subtotal)}</span></div>
-                <div style={s.tRow}><span>GST (15%)</span><span>{nzd(totals.gst)}</span></div>
-                <div style={{ ...s.tRow, ...s.tBig }}><span>Total (incl GST)</span><span>{nzd(totals.total)}</span></div>
-              </div>
-              {quote?.client_view_token && (
-                <div style={s.linkBox}>
-                  <div style={{ fontSize: '11px', color: '#aaa', marginBottom: '4px' }}>Client link</div>
-                  <div style={{ fontSize: '11px', color: '#4A7FA5', wordBreak: 'break-all', marginBottom: '8px' }}>
-                    {window.location.origin}/q/{quote.client_view_token}
-                  </div>
-                  <button style={s.copyBtn} onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/q/${quote.client_view_token}`); showToast('Link copied!') }}>
-                    Copy link
-                  </button>
-                </div>
-              )}
-              {isMobile && (
-                <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-                  <button style={{ ...s.previewBtn, flex: 1 }} onClick={async () => { await save(); setShowPreview(true) }} disabled={saving}>Preview</button>
-                  {quote?.client_view_token && (
-                    <button style={{ ...s.pdfBtn, flex: 1 }} onClick={async () => { await save(); window.open(`${window.location.origin}/q/${quote.client_view_token}?download=1&preview=1`, '_blank') }} disabled={saving}>⬇ PDF</button>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {quote && (
-              <div style={s.metaCard}>
-                <div style={s.cardTitle}>Client</div>
-                <div style={{ fontWeight: '600', color: 'var(--ink)', marginBottom: '4px' }}>{quote.jobs?.clients?.name}</div>
-                {quote.jobs?.clients?.email && <div style={s.metaLine}>{quote.jobs.clients.email}</div>}
-                {quote.jobs?.clients?.phone && <div style={s.metaLine}>{quote.jobs.clients.phone}</div>}
-                {quote.jobs?.address && <div style={{ ...s.metaLine, marginTop: '6px' }}>{quote.jobs.address}</div>}
-              </div>
-            )}
+            {/* Discussion — at the very bottom of the page. Allows image
+                attachments; internal notes never reach the client. */}
+            {!isNew && <QuoteComments quoteId={id} />}
           </div>
         </div>
       </div>
@@ -1232,27 +1392,31 @@ export default function QuoteBuilder() {
         <QuotePreview
           quote={quote}
           onClose={() => setShowPreview(false)}
-          onSend={handlePreviewSend}
+          onSend={handleSendFromPreview}
           saving={saving}
         />
       )}
 
-      {/* Send modal */}
-      {showSendModal && quote && (
-        <SendModal
-          quote={quote}
-          onClose={() => setShowSendModal(false)}
-          onSent={markAsSent}
-          saving={saving}
-        />
-      )}
+      {/* Quote library — reusable templates + price-item library */}
+      <QuoteLibraryModal
+        open={showLibrary}
+        onClose={() => setShowLibrary(false)}
+        items={items}
+        notes={notes}
+        userId={session?.user?.id ?? null}
+        onInsertItems={insertItems}
+        onApplyTemplate={applyTemplate}
+      />
 
+      {/* Compose + send email — the primary send action */}
       {showEmailModal && quote && (
-        <EmailModal
+        <ComposeEmailModal
           quote={quote}
           onClose={() => setShowEmailModal(false)}
           onSend={sendEmail}
           sending={emailLoading}
+          onMarkSent={markAsSent}
+          saving={saving}
         />
       )}
 
@@ -1285,19 +1449,41 @@ const s = {
   },
   pdfBtn: { background: 'var(--cream)', border: '1px solid var(--border)', borderRadius: '7px', padding: '7px 12px', fontSize: '13px', fontWeight: '600', color: 'var(--ink)', cursor: 'pointer', fontFamily: 'var(--font)' },
   saveBtn: { background: 'var(--cream)', border: '1px solid var(--border)', borderRadius: '7px', padding: '7px 14px', fontSize: '13px', fontWeight: '600', color: 'var(--ink)', cursor: 'pointer', fontFamily: 'var(--font)' },
+  lockBanner: { display: 'flex', alignItems: 'center', gap: 12, background: '#FBF6EC', border: '1px solid #E7D9BC', borderRadius: 'var(--radius)', padding: '12px 14px', marginBottom: 16 },
+  reopenBtn: { background: '#fff', border: '1px solid var(--terra)', color: 'var(--terra)', borderRadius: '7px', padding: '8px 14px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap', flexShrink: 0 },
+  signedNote: { fontSize: '12.5px', color: '#4A6741', background: '#EDF3EA', border: '1px solid #D3E2CB', borderRadius: 'var(--radius)', padding: '9px 12px', marginBottom: 16 },
+  expiryBanner: { display: 'flex', alignItems: 'center', gap: 10, background: '#F6FAF4', border: '1px solid #D8EBD0', borderRadius: 'var(--radius)', padding: '10px 14px', marginBottom: 16, fontSize: '13px', color: 'var(--bark)' },
+  expiryBannerExpired: { background: '#FFF0EE', border: '1px solid #F0C0B8' },
   sendBtn: { background: 'var(--terra)', color: '#fff', border: 'none', borderRadius: '7px', padding: '8px 16px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
+  // Primary "Preview & Send" in the header
+  previewSendBtn: { background: 'var(--terra)', color: '#fff', border: 'none', borderRadius: '8px', padding: '9px 16px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap' },
+  xeroBtn: { background: '#13B5EA', color: '#fff', border: 'none', borderRadius: '8px', padding: '9px 16px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap' },
+  // ☰ hamburger
+  menuBtn: { background: '#fff', border: '1px solid var(--border)', borderRadius: '8px', padding: '7px 12px', fontSize: '17px', lineHeight: 1, color: 'var(--ink)', cursor: 'pointer', fontFamily: 'var(--font)' },
+  menuBackdrop: { position: 'fixed', inset: 0, zIndex: 40 },
+  menu: { position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 41, background: '#fff', border: '1px solid var(--border)', borderRadius: '10px', boxShadow: '0 10px 30px rgba(0,0,0,0.14)', padding: '6px', minWidth: '210px', display: 'flex', flexDirection: 'column', gap: '2px' },
+  menuItem: { textAlign: 'left', background: 'none', border: 'none', borderRadius: '7px', padding: '10px 12px', fontSize: '13.5px', color: 'var(--ink)', cursor: 'pointer', fontFamily: 'var(--font)', width: '100%' },
+  menuStatus: { borderTop: '1px solid var(--border)', marginTop: '4px', paddingTop: '8px' },
+  menuStatusLabel: { fontSize: '10px', fontWeight: '700', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.06em', padding: '0 6px 6px' },
+  menuStatusRow: { display: 'flex', flexWrap: 'wrap', gap: '5px', padding: '0 6px 4px' },
+  statusPill: { background: 'var(--cream)', border: '1px solid var(--border)', borderRadius: '14px', padding: '4px 10px', fontSize: '12px', fontWeight: '600', color: '#888', cursor: 'pointer', fontFamily: 'var(--font)' },
+  statusPillActive: { background: 'var(--ink)', color: '#fff', borderColor: 'var(--ink)', cursor: 'default' },
   emailBtn: { background: '#EBF3FA', color: '#4A7FA5', border: '1.5px solid #4A7FA5', borderRadius: '7px', padding: '7px 14px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
   completeBtn: { background: '#E6F4EC', color: '#1A7A4A', border: '1.5px solid #1A7A4A', borderRadius: '7px', padding: '7px 14px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
   xeroBtn: { background: '#1A7A4A', color: '#fff', border: 'none', borderRadius: '7px', padding: '8px 16px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
-  body: { flex: 1, overflowY: 'auto', padding: '18px 20px', display: 'flex', gap: '18px', alignItems: 'flex-start' },
-  main: { flex: 1, display: 'flex', flexDirection: 'column', gap: '14px', minWidth: 0 },
-  sidebar: { width: '260px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '12px', position: 'sticky', top: 0 },
+  // Single column, centred with a comfortable reading width on desktop
+  body: { flex: 1, overflowY: 'auto', padding: '16px 16px 88px', display: 'flex', justifyContent: 'center' },
+  main: { flex: 1, width: '100%', maxWidth: '760px', display: 'flex', flexDirection: 'column', gap: '14px', minWidth: 0 },
+  itemsCard: { padding: '14px' },
+  previewSendBig: { width: '100%', marginTop: '14px', background: 'var(--terra)', color: '#fff', border: 'none', borderRadius: '10px', padding: '14px', fontSize: '15px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)' },
   card: { background: '#fff', borderRadius: '10px', border: '1px solid var(--border)', padding: '16px 18px' },
   cardTitle: { fontSize: '11px', fontWeight: '700', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px' },
   gstNote: { fontSize: '12px', color: '#666', background: '#EBF3FA', borderRadius: '6px', padding: '8px 12px', lineHeight: 1.5 },
   select: { width: '100%', padding: '9px 10px', borderRadius: '7px', border: '1.5px solid var(--border)', fontSize: '13px', fontFamily: 'var(--font)', color: 'var(--ink)' },
   emptyItems: { textAlign: 'center', color: '#ccc', padding: '24px 0', fontSize: '13px' },
-  addBtn: { marginTop: '12px', background: 'none', border: '1px dashed var(--border)', borderRadius: '7px', padding: '10px', fontSize: '13px', color: 'var(--terra)', cursor: 'pointer', fontFamily: 'var(--font)', width: '100%', fontWeight: '600' },
+  addBtn: { background: 'none', border: '1px dashed var(--border)', borderRadius: '7px', padding: '10px', fontSize: '13px', color: 'var(--terra)', cursor: 'pointer', fontFamily: 'var(--font)', flex: '1 1 200px', fontWeight: '600' },
+  presetSelect: { background: '#fff', border: '1px solid var(--border)', borderRadius: '7px', padding: '10px', fontSize: '13px', color: 'var(--ink)', cursor: 'pointer', fontFamily: 'var(--font)', fontWeight: '600', flex: '0 1 auto' },
+  formatHint: { marginTop: '10px', fontSize: '11.5px', color: 'var(--ink-3)', lineHeight: 1.5 },
   textarea: { width: '100%', padding: '10px 12px', borderRadius: '7px', border: '1.5px solid var(--border)', fontSize: '13px', fontFamily: 'var(--font)', color: 'var(--ink)', resize: 'vertical', boxSizing: 'border-box', lineHeight: 1.6 },
   totalsCard: { background: '#fff', borderRadius: '10px', border: '1px solid var(--border)', padding: '16px 18px' },
   optNote: { fontSize: '11px', color: '#D4851A', background: '#FDF3E3', borderRadius: '6px', padding: '6px 10px', marginBottom: '10px' },
@@ -1316,7 +1502,12 @@ const b = {
   lineHandle: { width: '26px', background: '#FAFAFA', borderRight: '1px solid var(--border)', cursor: 'grab', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, userSelect: 'none', touchAction: 'none' },
   lineBody: { flex: 1, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '8px' },
   lineTitle: { padding: '7px 9px', borderRadius: '6px', border: '1.5px solid var(--border)', fontSize: '14px', fontFamily: 'var(--font)', color: 'var(--ink)', fontWeight: '500', boxSizing: 'border-box' },
-  lineDetail: { width: '100%', padding: '6px 9px', borderRadius: '6px', border: '1.5px solid var(--border)', fontSize: '12px', fontFamily: 'var(--font)', color: '#666', resize: 'none', boxSizing: 'border-box' },
+  lineDetail: { width: '100%', padding: '6px 9px', borderRadius: '6px', border: '1.5px solid var(--border)', fontSize: '12px', fontFamily: 'var(--font)', color: '#666', resize: 'vertical', boxSizing: 'border-box' },
+  detailPreview: { background: '#FAFAF7', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 10px', fontSize: '12px', color: 'var(--bark)', lineHeight: 1.5 },
+  detailPreviewLabel: { fontSize: '9.5px', fontWeight: '700', color: '#bbb', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' },
+  previewBullet: { display: 'flex', gap: '6px', alignItems: 'flex-start' },
+  previewDot: { color: 'var(--terra)', flexShrink: 0 },
+  previewLine: { marginBottom: '1px' },
   linePrice: { display: 'flex', alignItems: 'flex-end', gap: '14px', paddingTop: '8px', borderTop: '1px solid #f5f5f5', flexWrap: 'wrap' },
   priceCol: { display: 'flex', flexDirection: 'column', gap: '3px' },
   priceLabel: { fontSize: '10px', fontWeight: '700', color: '#aaa', textTransform: 'uppercase' },

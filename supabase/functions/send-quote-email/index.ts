@@ -1,8 +1,12 @@
 // Sends a quote email to the client via Resend.
 // The email contains the quote total and a "View Quote" button linking to /q/:token
 //
-// POST body: { quote_id: string }
-// Returns:   { ok: true }
+// POST body: { quote_id: string, subject?: string, message?: string }
+//   subject  — optional override for the email subject line
+//   message  — optional personal note (plain text) shown in place of the default
+//              greeting/intro. Newlines become paragraphs. Falls back to the
+//              standard "Please find your quote…" copy when omitted.
+// Returns:   { ok: true, to }
 //
 // Required secrets:
 //   RESEND_API_KEY         — from resend.com (free tier: 100 emails/day)
@@ -13,7 +17,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const CORS = {
   'Access-Control-Allow-Origin':  '*',
-  'Access-Control-Allow-Headers': 'authorization, content-type',
+  'Access-Control-Allow-Headers': 'authorization, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
@@ -35,13 +39,20 @@ function esc(s: unknown): string {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
 }
 
+// Turn a plain-text note into escaped HTML paragraphs. Blank lines separate
+// paragraphs; single newlines become <br>.
+function renderMessage(msg: string): string {
+  return msg.trim().split(/\n{2,}/).map(p =>
+    `<p style="margin:0 0 16px;font-size:14px;color:#2C2416;line-height:1.6">${esc(p).replace(/\n/g, '<br>')}</p>`
+  ).join('')
+}
+
 function buildHtml(opts: {
-  clientFirstName: string
-  jobAddress: string
+  bodyHtml: string
   total: number
   quoteUrl: string
 }) {
-  const { clientFirstName, jobAddress, total, quoteUrl } = opts
+  const { bodyHtml, total, quoteUrl } = opts
   return `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -66,11 +77,7 @@ function buildHtml(opts: {
 
         <!-- Body -->
         <tr><td style="background:#fff;padding:32px">
-          <p style="margin:0 0 16px;font-size:15px;color:#2C2416">Hi ${esc(clientFirstName)},</p>
-          <p style="margin:0 0 24px;font-size:14px;color:#555;line-height:1.6">
-            Please find your quote for work at <strong>${esc(jobAddress)}</strong> below.
-            Click the button to view the full quote, accept or decline, and see all the details.
-          </p>
+          ${bodyHtml}
 
           <!-- Total box -->
           <table width="100%" cellpadding="0" cellspacing="0" style="background:#F8FAF7;border:1px solid #D4E4D0;border-radius:8px;margin-bottom:28px">
@@ -125,7 +132,7 @@ Deno.serve(async (req: Request) => {
   )
 
   try {
-    const { quote_id } = await req.json()
+    const { quote_id, subject: subjectIn, message: messageIn } = await req.json()
     if (!quote_id) return json({ error: 'quote_id required' }, 400)
 
     const { data: quote, error: qErr } = await supabase
@@ -145,7 +152,20 @@ Deno.serve(async (req: Request) => {
     const appUrl      = Deno.env.get('APP_URL') ?? 'https://app.urbantreeservices.net'
     const quoteUrl    = `${appUrl}/q/${quote.client_view_token}`
 
-    const html = buildHtml({ clientFirstName: firstName, jobAddress, total: quote.total, quoteUrl })
+    // Body: use the sender's custom note if provided, else the standard copy.
+    const message  = typeof messageIn === 'string' ? messageIn.trim() : ''
+    const bodyHtml = message
+      ? renderMessage(message)
+      : `<p style="margin:0 0 16px;font-size:15px;color:#2C2416">Hi ${esc(firstName)},</p>`
+        + `<p style="margin:0 0 24px;font-size:14px;color:#555;line-height:1.6">`
+        + `Please find your quote for work at <strong>${esc(jobAddress)}</strong> below. `
+        + `Click the button to view the full quote, accept or decline, and see all the details.</p>`
+
+    const subject  = (typeof subjectIn === 'string' && subjectIn.trim())
+      ? subjectIn.trim()
+      : `Your quote from Urban Tree Services — ${nzd(quote.total)}`
+
+    const html = buildHtml({ bodyHtml, total: quote.total, quoteUrl })
 
     const emailRes = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -157,10 +177,9 @@ Deno.serve(async (req: Request) => {
         from:     'Urban Tree Services <noreply@urbantreeservices.net>',
         reply_to: 'office@urbantreeservices.net',
         to:       clientEmail,
-        subject:  `Your quote from Urban Tree Services — ${nzd(quote.total)}`,
+        subject,
         html,
-        text: `Hi ${firstName},\n\n`
-          + `Please find your quote for work at ${jobAddress}.\n\n`
+        text: (message ? message + '\n\n' : `Hi ${firstName},\n\nPlease find your quote for work at ${jobAddress}.\n\n`)
           + `Quote total: ${nzd(quote.total)} (incl. GST 15%)\n\n`
           + `View, accept or decline your quote here:\n${quoteUrl}\n\n`
           + `Urban Tree Services · office@urbantreeservices.net · 027 203 1446`,

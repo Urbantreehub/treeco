@@ -93,10 +93,11 @@ Deno.serve(async (req: Request) => {
     const invoicePayload = {
       Invoices: [{
         Type:            'ACCREC',
-        Status:          'SUBMITTED',
+        Status:          'DRAFT',
         Contact:         { Name: clientName },
-        LineAmountTypes: 'EXCLUSIVE',
+        LineAmountTypes: 'Exclusive',
         CurrencyCode:    'NZD',
+        DueDate:         new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
         Reference:       `TreeCo quote — ${quote.jobs?.address ?? ''}`,
         LineItems:       lineItems,
       }],
@@ -116,7 +117,23 @@ Deno.serve(async (req: Request) => {
     if (!xeroRes.ok) {
       const detail = await xeroRes.text()
       console.error('Xero API error:', detail)
-      throw new Error(`Xero API ${xeroRes.status}: ${detail.slice(0, 200)}`)
+      // 401/403 here almost always means the connection lacks the
+      // accounting.invoices scope (it was first connected for contact import
+      // only). A token refresh can't add a scope — the user must reconnect in
+      // Settings to approve invoice access.
+      if (xeroRes.status === 401 || xeroRes.status === 403) {
+        throw new Error('Xero rejected the request — reconnect Xero in Settings so it can create invoices (needs the "accounting.invoices" permission).')
+      }
+      // Surface Xero's specific validation messages (bad account code, tax rate,
+      // missing field…) — they're nested in Elements[].ValidationErrors and were
+      // being lost to truncation, leaving a useless "ValidationException".
+      let vmsg = ''
+      try {
+        const p = JSON.parse(detail)
+        const errs = p?.Elements?.[0]?.ValidationErrors ?? p?.ValidationErrors ?? []
+        vmsg = errs.map((e: any) => e.Message).filter(Boolean).join(' • ')
+      } catch { /* fall back to raw text below */ }
+      throw new Error(vmsg ? `Xero rejected the invoice: ${vmsg}` : `Xero API ${xeroRes.status}: ${detail.slice(0, 300)}`)
     }
 
     const xeroData  = await xeroRes.json()

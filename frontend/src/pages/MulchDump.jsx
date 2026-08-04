@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { supabase } from '../config/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useIsMobile } from '../hooks/useIsMobile'
+import AddressInput from '../components/AddressInput'
 
 // Mulch dump sites: live map + pins, photos, dump instructions, contact and
 // agreed per-load price. Crew log a dumped load, which auto-generates a Xero
@@ -11,6 +12,14 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON = import.meta.env.VITE_SUPABASE_ANON_KEY
 const fnHeaders = { 'Content-Type': 'application/json', apikey: ANON, Authorization: `Bearer ${ANON}` }
 const nzd = (v) => '$' + Number(v || 0).toLocaleString('en-NZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+// Universal Google Maps directions link (works on iOS, Android and desktop).
+// Prefers the exact pin, falls back to the typed address.
+function directionsUrl(site) {
+  const dest = (site.lat != null && site.lng != null)
+    ? `${site.lat},${site.lng}`
+    : encodeURIComponent(site.address || site.name || '')
+  return `https://www.google.com/maps/dir/?api=1&destination=${dest}`
+}
 function timeAgo(d) {
   const diff = Date.now() - new Date(d).getTime(), m = Math.floor(diff / 6e4), h = Math.floor(m / 60), day = Math.floor(h / 24)
   if (m < 1) return 'just now'; if (m < 60) return `${m}m ago`; if (h < 24) return `${h}h ago`
@@ -68,6 +77,8 @@ export default function MulchDump() {
   const [activeId, setActiveId] = useState(null)
   const [editing, setEditing] = useState(null) // site object | 'new' | null
   const [toast, setToast] = useState(null)
+  const [geocoding, setGeocoding] = useState(false)
+  const autoTriedRef = useRef(false)
   const showToast = (m) => { setToast(m); setTimeout(() => setToast(null), 3200) }
 
   const load = useCallback(async () => {
@@ -82,7 +93,25 @@ export default function MulchDump() {
   }, [])
   useEffect(() => { load() }, [load])
 
+  // (Re)geocode every active site that has an address but no map pin.
+  const runBatchGeocode = useCallback(async () => {
+    setGeocoding(true)
+    try {
+      await fetch(`${SUPABASE_URL}/functions/v1/geocode`, { method: 'POST', headers: fnHeaders, body: JSON.stringify({ batch_mulch: true }) })
+    } catch { /* best effort */ }
+    setGeocoding(false)
+    load()
+  }, [load])
+
+  // On first load, auto-place any sites that were never geocoded (runs once).
+  useEffect(() => {
+    if (loading || autoTriedRef.current) return
+    const neverTried = sites.some(s => s.address && s.lat == null && !s.geocode_failed)
+    if (neverTried) { autoTriedRef.current = true; runBatchGeocode() }
+  }, [loading, sites, runBatchGeocode])
+
   const active = sites.find(s => s.id === activeId) || null
+  const unplaced = sites.filter(s => s.address && s.lat == null)
 
   async function logDump(site, note, photoUrl) {
     const { data, error } = await supabase.from('mulch_dumps')
@@ -120,9 +149,21 @@ export default function MulchDump() {
         {isStaff && <button style={mstyle.addBtn} onClick={() => setEditing('new')}>+ Add site</button>}
       </div>
 
+      {geocoding && <div style={mstyle.geoBanner}>📍 Placing sites on the map…</div>}
+      {!geocoding && unplaced.length > 0 && (
+        <div style={mstyle.warnBanner}>
+          <span style={{ flex: 1 }}>
+            ⚠️ {unplaced.length} site{unplaced.length === 1 ? '' : 's'} couldn’t be placed on the map
+            {' — '}{unplaced.slice(0, 3).map(s => s.name).join(', ')}{unplaced.length > 3 ? '…' : ''}.
+            {' '}Check the address{unplaced.length === 1 ? '' : 'es'} or retry.
+          </span>
+          {isStaff && <button style={mstyle.retryGeoBtn} onClick={runBatchGeocode}>Retry</button>}
+        </div>
+      )}
+
       <div style={{ ...mstyle.body, flexDirection: isMobile ? 'column' : 'row' }}>
         <div style={{ ...mstyle.left, width: isMobile ? '100%' : '340px' }}>
-          {!isMobile && <SitesMap sites={sites} activeId={activeId} onPick={setActiveId} />}
+          <SitesMap sites={sites} activeId={activeId} onPick={setActiveId} />
           {loading ? <div style={mstyle.empty}>Loading…</div>
             : sites.length === 0 ? <div style={mstyle.empty}>No dump sites yet.{isStaff ? ' Add one to get started.' : ''}</div>
             : (
@@ -217,7 +258,12 @@ function SiteDetail({ site, dumps, isStaff, onLog, onRetry, onEdit, showToast })
           {isStaff && site.contact_email && <a href={`mailto:${site.contact_email}`} style={mstyle.contactLink}>✉ {site.contact_email}</a>}
         </div>
       </div>
-      {site.address && <div style={mstyle.addr}>🗺 {site.address}</div>}
+      <div style={mstyle.addrRow}>
+        {site.address && <div style={mstyle.addr}>🗺 {site.address}</div>}
+        {(site.address || (site.lat != null && site.lng != null)) && (
+          <a href={directionsUrl(site)} target="_blank" rel="noreferrer" style={mstyle.directionsBtn}>🧭 Directions</a>
+        )}
+      </div>
 
       {/* Log a load */}
       {!logging ? (
@@ -304,11 +350,15 @@ function SiteEditor({ site, meId, onClose, onSaved, showToast }) {
   async function save() {
     if (!f.name.trim()) { showToast('Give the site a name'); return }
     setSaving(true)
+    // If the address was picked from the autocomplete, we already have exact
+    // coords — write them straight in, no geocode round-trip needed.
+    const resolved = f.lat != null && f.lng != null
     const payload = {
       name: f.name.trim(), address: f.address?.trim() || null, instructions: f.instructions?.trim() || null,
       contact_name: f.contact_name?.trim() || null, contact_phone: f.contact_phone?.trim() || null,
       contact_email: f.contact_email?.trim() || null, price_per_load: Number(f.price_per_load) || 0,
       notes: f.notes?.trim() || null, photos: f.photos || [],
+      ...(resolved ? { lat: f.lat, lng: f.lng } : {}),
     }
     let siteId = site?.id
     if (site) {
@@ -319,13 +369,23 @@ function SiteEditor({ site, meId, onClose, onSaved, showToast }) {
       if (error) { showToast('Save failed'); setSaving(false); return }
       siteId = data.id
     }
-    // Geocode the address (best-effort, cached on the row). Skipped without a
-    // backend (demo mode) so we never fetch `undefined/functions/v1/geocode`.
-    if (payload.address && siteId && SUPABASE_URL) {
-      fetch(`${SUPABASE_URL}/functions/v1/geocode`, { method: 'POST', headers: fnHeaders, body: JSON.stringify({ address: payload.address }) })
-        .then(r => r.json()).then(g => { if (g.ok) supabase.from('mulch_sites').update({ lat: g.lat, lng: g.lng }).eq('id', siteId) }).catch(() => {})
+    // Only free-typed addresses (no picked suggestion) need the best-effort
+    // edge geocode. Awaited so we can warn immediately if it can't be placed.
+    // Skipped without a backend (demo mode) so we never fetch
+    // `undefined/functions/v1/geocode`.
+    let geoWarn = false
+    if (!resolved && payload.address && siteId && SUPABASE_URL) {
+      try {
+        const r = await fetch(`${SUPABASE_URL}/functions/v1/geocode`, { method: 'POST', headers: fnHeaders, body: JSON.stringify({ mulch_site_id: siteId }) })
+        const g = await r.json().catch(() => ({}))
+        geoWarn = !g.ok
+      } catch { geoWarn = true }
     }
-    setSaving(false); showToast(site ? 'Site updated ✓' : 'Site added ✓'); onSaved()
+    setSaving(false)
+    showToast(geoWarn
+      ? 'Saved — but the address wasn’t recognised, so there’s no map pin. Check the address.'
+      : (site ? 'Site updated ✓' : 'Site added ✓'))
+    onSaved()
   }
 
   return (
@@ -339,7 +399,13 @@ function SiteEditor({ site, meId, onClose, onSaved, showToast }) {
           <label style={mstyle.fLabel}>Site name *</label>
           <input style={mstyle.input} value={f.name} onChange={e => set('name', e.target.value)} placeholder="e.g. Dave's lifestyle block" />
           <label style={mstyle.fLabel}>Address</label>
-          <input style={mstyle.input} value={f.address} onChange={e => set('address', e.target.value)} placeholder="Street, suburb — used to place the map pin" />
+          <AddressInput
+            value={f.address}
+            onChange={v => setF(prev => ({ ...prev, address: v, lat: null, lng: null }))}
+            onResolve={({ address, lat, lng }) => setF(prev => ({ ...prev, address, lat, lng }))}
+            placeholder="Start typing — pick a suggestion to place the pin"
+            inputStyle={mstyle.input}
+          />
           <label style={mstyle.fLabel}>Dump instructions</label>
           <textarea style={mstyle.textarea} rows={3} value={f.instructions} onChange={e => set('instructions', e.target.value)} placeholder="Where exactly to dump it, gate codes, access notes…" />
           <label style={mstyle.fLabel}>Agreed price per load (ex GST)</label>
@@ -378,6 +444,10 @@ const mstyle = {
   sub: { fontSize: '12px', color: '#999', marginTop: '2px' },
   addBtn: { padding: '9px 16px', borderRadius: '9px', border: 'none', background: 'var(--moss)', color: '#fff', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)' },
 
+  geoBanner: { padding: '9px 20px', background: '#EEF4FA', color: '#3A6A8A', fontSize: '13px', fontWeight: '600', borderBottom: '1px solid #D3E2EC', flexShrink: 0 },
+  warnBanner: { display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 20px', background: '#FDF3E3', color: '#9A6A1A', fontSize: '13px', fontWeight: '600', borderBottom: '1px solid #F0DDB8', flexShrink: 0 },
+  retryGeoBtn: { padding: '6px 12px', borderRadius: '7px', border: '1px solid #D4851A', background: '#fff', color: '#D4851A', fontSize: '12px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)', flexShrink: 0 },
+
   body: { flex: 1, display: 'flex', minHeight: 0, overflow: 'hidden' },
   left: { display: 'flex', flexDirection: 'column', borderRight: '1px solid var(--border)', background: '#fff', overflowY: 'auto', flexShrink: 0 },
   map: { height: '220px', width: '100%', flexShrink: 0, background: '#dfe6df' },
@@ -408,7 +478,9 @@ const mstyle = {
   price: { fontSize: '22px', fontWeight: '800', color: 'var(--moss)' },
   perLoad: { fontSize: '13px', fontWeight: '600', color: '#aaa' },
   contactLink: { display: 'block', fontSize: '13px', color: 'var(--sky)', textDecoration: 'none', marginTop: '4px' },
-  addr: { fontSize: '13px', color: '#888', marginBottom: '16px' },
+  addrRow: { display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '16px' },
+  addr: { fontSize: '13px', color: '#888' },
+  directionsBtn: { display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '13px', fontWeight: '700', color: '#fff', background: 'var(--sky)', textDecoration: 'none', padding: '7px 13px', borderRadius: '8px', whiteSpace: 'nowrap' },
 
   logBtn: { width: '100%', padding: '16px', borderRadius: '12px', border: 'none', background: 'var(--moss)', color: '#fff', fontSize: '16px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)', marginBottom: '20px', boxShadow: '0 2px 8px rgba(74,103,65,0.3)' },
   logCard: { background: '#fff', border: '1.5px solid var(--moss)', borderRadius: '12px', padding: '16px', marginBottom: '20px' },

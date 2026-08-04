@@ -28,6 +28,16 @@ export async function clickEverything(page, { reset, guard, testInfo, max = 24 }
   // Native dialogs (confirm/alert) would otherwise block the click forever.
   page.on('dialog', (d) => d.dismiss().catch(() => {}))
 
+  // Neutralise every Supabase edge-function call for the duration of the sweep.
+  // Two reasons: (1) against the live app these fire real external side effects
+  // (send SMS/email via Twilio, push to Xero) that must NOT happen just because a
+  // button got clicked; (2) in demo mode VITE_SUPABASE_URL is undefined, so the
+  // app builds `undefined/functions/v1/...` and 404s. Stubbing both away keeps the
+  // sweep focused on UI behaviour, not backend integrations.
+  await page.route('**/functions/v1/**', (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: '{"ok":true}' })
+  )
+
   const meta = await page.$$eval(CONTROLS_SELECTOR, (els) =>
     els.map((el, i) => {
       const rect = el.getBoundingClientRect()
