@@ -6,6 +6,7 @@ import { GLOSSARY, TERMS, TERMS_DATE } from '../data/arboriculture'
 import { annotateSegments } from '../utils/annotateText'
 import { COMPANY, REVIEWS, QUALIFICATIONS, WHY_US } from '../config/company'
 import QuoteClientComments from '../components/QuoteClientComments'
+import { lineExtras, DISPOSAL_OPTIONS, GRINDINGS_OPTIONS } from '../utils/pricing'
 
 const GST_RATE = 0.15
 
@@ -18,35 +19,98 @@ function nzd(v) {
 function calcTotals(items) {
   const subtotal = items
     .filter(i => !i.optional || i.selected)
-    .reduce((s, i) => s + (Number(i.qty) || 0) * (Number(i.rate) || 0), 0)
+    .reduce((s, i) => s + (Number(i.qty) || 0) * (Number(i.rate) || 0) + lineExtras(i), 0)
   const gst = subtotal * GST_RATE
   return { subtotal, gst, total: subtotal + gst }
+}
+
+// One add-on group (Disposal / Grindings) on the client quote. One offered
+// option → shown as an included line. Multiple → the client picks one.
+function AddonView({ group, catalog, label, groupName, itemId, onSelect, responded }) {
+  const options = group?.options
+  if (!Array.isArray(options) || !options.length) return null
+  const full = key => catalog.find(c => c.key === key)?.full ?? key
+  const selectedKey = options.some(o => o.key === group.selected) ? group.selected : options[0].key
+
+  if (options.length === 1) {
+    const o = options[0]
+    return (
+      <div style={p.addonFixed}>
+        <span style={p.addonBullet}>•</span>
+        <span>
+          {full(o.key)}
+          {Number(o.price) > 0 && <span style={p.addonInlinePrice}> (+{nzd(o.price)} ex GST)</span>}
+        </span>
+      </div>
+    )
+  }
+  return (
+    <div style={p.addonChoice}>
+      <div style={p.addonChoiceLabel}>{label} — choose one</div>
+      {options.map(o => {
+        const on = o.key === selectedKey
+        return (
+          <button
+            key={o.key} type="button" disabled={responded}
+            onClick={() => onSelect(itemId, groupName, o.key)}
+            style={{ ...p.addonOpt, ...(on ? p.addonOptOn : {}) }}
+          >
+            <span style={{ ...p.addonRadio, ...(on ? p.addonRadioOn : {}) }}>{on ? '●' : ''}</span>
+            <span style={p.addonOptText}>{full(o.key)}</span>
+            <span style={p.addonOptPrice}>{Number(o.price) > 0 ? `+${nzd(o.price)}` : 'included'}</span>
+          </button>
+        )
+      })}
+    </div>
+  )
 }
 
 function fmtDate(d) {
   return new Date(d).toLocaleDateString('en-NZ', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
-// Renders an item's detail with the quote-writing format in mind: lines that
-// start with "-", "•" or "*" become bullet points; other lines are kept as
-// separate lines. Each line still runs through the glossary annotator.
+// Renders an item's detail. Two supported styles, auto-detected so the office
+// never has to type markup:
+//   • New (no markers): the first line is the tree name / group and shows in
+//     bold; every line after it becomes a bullet automatically.
+//   • Legacy (any line starts with "-", "•" or "*"): marked lines are bullets,
+//     unmarked lines are plain — preserves how older quotes were written.
+// Each line still runs through the glossary annotator.
 function DetailBlock({ text, onOpenGlossary }) {
   if (!text) return null
-  const lines = String(text).split('\n')
+  const lines = String(text).split('\n').map(l => l.trim()).filter(Boolean)
+  if (!lines.length) return null
+  const hasMarkers = lines.some(l => /^[-•*]\s+/.test(l))
+
+  if (!hasMarkers) {
+    const [head, ...actions] = lines
+    return (
+      <div style={p.itemDetail}>
+        <div style={p.itemSubTitle}><AnnotatedText text={head} onOpenGlossary={onOpenGlossary} /></div>
+        {actions.length > 0 && (
+          <ul style={p.bulletList}>
+            {actions.map((l, i) => (
+              <li key={i} style={p.bulletItem}><AnnotatedText text={l} onOpenGlossary={onOpenGlossary} /></li>
+            ))}
+          </ul>
+        )}
+      </div>
+    )
+  }
+
   const out = []
   let bullets = null
   const flush = () => {
     if (bullets) { out.push(<ul key={`u${out.length}`} style={p.bulletList}>{bullets}</ul>); bullets = null }
   }
-  lines.forEach((raw, i) => {
-    const line = raw.trim()
+  lines.forEach((line, i) => {
     const m = /^[-•*]\s+(.*)$/.exec(line)
     if (m) {
       bullets = bullets || []
       bullets.push(<li key={i} style={p.bulletItem}><AnnotatedText text={m[1]} onOpenGlossary={onOpenGlossary} /></li>)
     } else {
       flush()
-      if (line) out.push(<div key={`l${i}`} style={p.detailLine}><AnnotatedText text={line} onOpenGlossary={onOpenGlossary} /></div>)
+      out.push(<div key={`l${i}`} style={p.detailLine}><AnnotatedText text={line} onOpenGlossary={onOpenGlossary} /></div>)
     }
   })
   flush()
@@ -142,6 +206,13 @@ export default function QuoteView() {
   const toggleOptional = (itemId) => {
     if (responded) return
     setItems(prev => prev.map(i => i.id === itemId ? { ...i, selected: !i.selected } : i))
+  }
+
+  const selectAddon = (itemId, groupName, key) => {
+    if (responded) return
+    setItems(prev => prev.map(i => i.id === itemId
+      ? { ...i, [groupName]: { ...(i[groupName] || {}), selected: key } }
+      : i))
   }
 
   const totals = calcTotals(items)
@@ -306,7 +377,7 @@ export default function QuoteView() {
             {items.map((item) => {
               const isOptional = item.optional
               const isActive = !isOptional || item.selected
-              const lineTotal = (Number(item.qty) || 0) * (Number(item.rate) || 0)
+              const lineTotal = (Number(item.qty) || 0) * (Number(item.rate) || 0) + lineExtras(item)
 
               return (
                 <div
@@ -356,6 +427,10 @@ export default function QuoteView() {
                             </div>
                           )
                         })()}
+                        <AddonView group={item.disposal} catalog={DISPOSAL_OPTIONS} label="Disposal"
+                          groupName="disposal" itemId={item.id} onSelect={selectAddon} responded={responded} />
+                        <AddonView group={item.grindings} catalog={GRINDINGS_OPTIONS} label="Grindings"
+                          groupName="grindings" itemId={item.id} onSelect={selectAddon} responded={responded} />
                       </div>
                       <div style={p.itemRight}>
                         {isActive ? (
@@ -776,6 +851,19 @@ const p = {
   itemDesc: { flex: 1 },
   itemTitle: { fontSize: '16px', fontWeight: '600', color: 'var(--bark)', marginBottom: '4px' },
   itemDetail: { fontSize: '13px', color: '#777', lineHeight: 1.5 },
+  itemSubTitle: { fontSize: '14px', fontWeight: '700', color: 'var(--bark)', marginBottom: '4px' },
+  // Disposal / Grindings add-ons on the client quote
+  addonFixed: { display: 'flex', gap: '6px', alignItems: 'flex-start', fontSize: '13px', color: '#777', lineHeight: 1.5, marginTop: '6px' },
+  addonBullet: { color: 'var(--moss)', flexShrink: 0 },
+  addonInlinePrice: { color: '#999', fontStyle: 'italic' },
+  addonChoice: { marginTop: '10px', border: '1px solid var(--border)', borderRadius: '9px', padding: '8px', background: '#FAFAF8' },
+  addonChoiceLabel: { fontSize: '10px', fontWeight: '700', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px', paddingLeft: '2px' },
+  addonOpt: { width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 11px', marginBottom: '5px', borderRadius: '8px', border: '1.5px solid var(--border)', background: '#fff', cursor: 'pointer', fontFamily: 'var(--font)', textAlign: 'left' },
+  addonOptOn: { borderColor: 'var(--moss)', background: '#EDF3EA' },
+  addonRadio: { width: '18px', height: '18px', flexShrink: 0, borderRadius: '50%', border: '2px solid var(--moss)', color: 'var(--moss)', fontSize: '11px', lineHeight: '14px', textAlign: 'center', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' },
+  addonRadioOn: { background: '#fff' },
+  addonOptText: { flex: 1, fontSize: '13px', color: 'var(--bark)', lineHeight: 1.4 },
+  addonOptPrice: { fontSize: '13px', fontWeight: '700', color: 'var(--moss)', whiteSpace: 'nowrap' },
   bulletList: { margin: '2px 0', paddingLeft: '18px' },
   bulletItem: { fontSize: '13px', color: '#777', lineHeight: 1.5, marginBottom: '2px' },
   detailLine: { fontSize: '13px', color: '#777', lineHeight: 1.5 },

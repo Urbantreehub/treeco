@@ -17,7 +17,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { supabase } from '../config/supabase'
 import { useAuth } from '../context/AuthContext'
 import { v4 as uuid } from 'uuid'
-import { GST, calcTotals } from '../utils/pricing'
+import { GST, calcTotals, lineExtras, DISPOSAL_OPTIONS, GRINDINGS_OPTIONS } from '../utils/pricing'
 
 const COMPANY = {
   name: 'Urban Tree Services Limited',
@@ -98,8 +98,8 @@ function ImageGallery({ images, onAdd, onRemove, onMarkup }) {
       ))}
       <div style={iu.zone} onClick={() => ref.current?.click()}>
         <input ref={ref} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFile} />
-        <span style={{ fontSize: '18px' }}>🖼</span>
-        <span style={iu.hint}>{uploading ? 'Uploading…' : 'Add photo'}</span>
+        <span style={iu.plus}>+</span>
+        <span style={iu.hint}>{uploading ? 'Uploading…' : 'Add attachment'}</span>
       </div>
     </div>
   )
@@ -126,9 +126,10 @@ const iu = {
   zone: {
     width: '90px', height: '66px', border: '1.5px dashed var(--border)', borderRadius: '6px',
     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-    cursor: 'pointer', gap: '2px', background: '#FAFAFA', flexShrink: 0,
+    cursor: 'pointer', gap: '3px', background: '#FAFAFA', flexShrink: 0,
   },
-  hint: { fontSize: '9px', color: '#aaa', fontWeight: '500' },
+  plus: { fontSize: '22px', lineHeight: 1, color: '#9a948a', fontWeight: '300' },
+  hint: { fontSize: '9.5px', color: '#8A857D', fontWeight: '600' },
 }
 
 // ── Line item (builder) ────────────────────────────────────────────────────
@@ -172,7 +173,7 @@ function SorAutocomplete({ value, onChange, onSelect }) {
     <div ref={wrapRef} style={{ flex: 1, position: 'relative' }}>
       <input
         style={{ ...b.lineTitle, width: '100%' }}
-        placeholder="Item name / SOR code / description of work…"
+        placeholder="Location — e.g. front yard, rear boundary (or SOR code)"
         value={value}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
@@ -219,12 +220,92 @@ const ac = {
   uom:  { fontSize: '11px', fontWeight: '600', borderRadius: '4px', padding: '2px 6px' },
 }
 
+// ── Per-line add-on group (Disposal / Grindings) ───────────────────────────
+// Collapsed by default. The office ticks which options to offer and sets a
+// markup for each; the first offered option is the client's default. When only
+// one is offered it shows on the quote as an included line (not a choice).
+function AddonGroup({ label, catalog, value, onChange }) {
+  const options = value?.options ?? []
+  const [open, setOpen] = useState(options.length > 0)
+  const isOn = key => options.some(o => o.key === key)
+  const priceOf = key => options.find(o => o.key === key)?.price ?? ''
+
+  function commit(next) {
+    if (!next.length) { onChange(null); return }
+    const selected = next.some(o => o.key === value?.selected) ? value.selected : next[0].key
+    onChange({ options: next, selected })
+  }
+  function toggle(key) {
+    commit(isOn(key) ? options.filter(o => o.key !== key) : [...options, { key, price: '' }])
+  }
+  function setPrice(key, price) {
+    commit(options.map(o => o.key === key ? { ...o, price } : o))
+  }
+
+  return (
+    <div style={b.addonWrap}>
+      <button style={b.addonHead} onClick={() => setOpen(o => !o)} type="button">
+        <span style={b.addonLabel}>{label}</span>
+        {options.length > 0 && <span style={b.addonCount}>{options.length} offered</span>}
+        <span style={b.addonChevron}>{open ? '▴' : '▾'}</span>
+      </button>
+      {open && (
+        <div style={b.addonBody}>
+          {catalog.map(opt => {
+            const on = isOn(opt.key)
+            const isDefault = value?.selected === opt.key
+            return (
+              <div key={opt.key} style={b.addonRow}>
+                <button
+                  type="button"
+                  onClick={() => toggle(opt.key)}
+                  style={{ ...b.addonChip, ...(on ? b.addonChipOn : {}) }}
+                  title={opt.full}
+                >
+                  {on ? '✓ ' : '+ '}{opt.short}
+                </button>
+                {on && (
+                  <>
+                    <span style={b.addonPlus}>+$</span>
+                    <input
+                      type="number" min="0" placeholder="0"
+                      value={priceOf(opt.key)}
+                      onChange={e => setPrice(opt.key, e.target.value)}
+                      style={b.addonPriceInput}
+                    />
+                    {options.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => onChange({ options, selected: opt.key })}
+                        style={{ ...b.addonDefault, ...(isDefault ? b.addonDefaultOn : {}) }}
+                        title="Show this as the client's default choice"
+                      >
+                        {isDefault ? '★ default' : 'set default'}
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
+            )
+          })}
+          {options.length === 1 && (
+            <div style={b.addonNote}>One option → shown as an included line on the quote (not a choice).</div>
+          )}
+          {options.length > 1 && (
+            <div style={b.addonNote}>{options.length} options → client picks one on the quote.</div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function LineItem({ item, onChange, onDelete, onMarkup }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: item.id })
 
   const images = item.images ?? (item.image_url ? [item.image_url] : [])
-  const exTotal = (Number(item.qty) || 0) * (Number(item.rate) || 0)
+  const exTotal = (Number(item.qty) || 0) * (Number(item.rate) || 0) + lineExtras(item)
   const inclTotal = exTotal * (1 + GST)
 
   function addImage(url) {
@@ -265,26 +346,31 @@ function LineItem({ item, onChange, onDelete, onMarkup }) {
               rate: sor.rate != null ? sor.rate : item.rate,
             })}
           />
-          {/* Fixed / Optional segmented control */}
-          <div style={b.segWrap}>
-            <button
-              style={{ ...b.seg, ...(item.optional ? {} : b.segActiveFixed) }}
-              onClick={() => onChange({ ...item, optional: false })}
-            >
-              Fixed
-            </button>
-            <button
-              style={{ ...b.seg, ...(item.optional ? b.segActiveOpt : {}) }}
-              onClick={() => onChange({ ...item, optional: true, selected: true })}
-            >
-              Optional
-            </button>
+          {/* Fixed / Optional segmented control — labelled so it's easy to find */}
+          <div style={b.segCol}>
+            <span style={b.segLabel}>Item type</span>
+            <div style={b.segWrap}>
+              <button
+                style={{ ...b.seg, ...(item.optional ? {} : b.segActiveFixed) }}
+                onClick={() => onChange({ ...item, optional: false })}
+                title="Always included in the quote"
+              >
+                Fixed
+              </button>
+              <button
+                style={{ ...b.seg, ...(item.optional ? b.segActiveOpt : {}) }}
+                onClick={() => onChange({ ...item, optional: true, selected: true })}
+                title="Client can tick to add or remove this"
+              >
+                Optional
+              </button>
+            </div>
           </div>
         </div>
 
         <textarea
           style={b.lineDetail}
-          placeholder={'Works — one per line, starting with “- ” for a bullet:\n- Reduce height & spread by 20%\n- Remove deadwood'}
+          placeholder={'Tree or group on the first line, then one action per line:\nSilver birch\nReduce height & spread by 20%\nRemove deadwood'}
           value={item.detail ?? ''}
           onChange={e => onChange({ ...item, detail: e.target.value })}
           rows={3}
@@ -292,31 +378,43 @@ function LineItem({ item, onChange, onDelete, onMarkup }) {
         {item.detail?.trim() && (
           <div style={b.detailPreview}>
             <div style={b.detailPreviewLabel}>Client sees</div>
-            {item.detail.split('\n').map((raw, i) => {
-              const line = raw.trim()
-              const m = /^[-•*]\s+(.*)$/.exec(line)
-              if (m) return <div key={i} style={b.previewBullet}><span style={b.previewDot}>•</span>{m[1]}</div>
-              return line ? <div key={i} style={b.previewLine}>{line}</div> : null
-            })}
+            {(() => {
+              const lines = item.detail.split('\n').map(l => l.trim()).filter(Boolean)
+              const hasMarkers = lines.some(l => /^[-•*]\s+/.test(l))
+              if (!hasMarkers) {
+                const [head, ...actions] = lines
+                return (
+                  <>
+                    <div style={b.previewTitle}>{head}</div>
+                    {actions.map((l, i) => (
+                      <div key={i} style={b.previewBullet}><span style={b.previewDot}>•</span>{l}</div>
+                    ))}
+                  </>
+                )
+              }
+              return lines.map((line, i) => {
+                const m = /^[-•*]\s+(.*)$/.exec(line)
+                if (m) return <div key={i} style={b.previewBullet}><span style={b.previewDot}>•</span>{m[1]}</div>
+                return <div key={i} style={b.previewLine}>{line}</div>
+              })
+            })()}
           </div>
         )}
 
-        {/* ── Optional client-style toggle — shows exactly as client sees it ── */}
+        {/* ── Optional item default — mirrors the checkbox the client taps ── */}
         {item.optional && (
           <div style={b.optClientRow}>
-            <span style={b.optClientLabel}>Client will see:</span>
+            <span style={b.optClientLabel}>Client sees:</span>
             <button
-              style={{
-                ...b.clientToggleBtn,
-                background: item.selected ? 'var(--terra)' : '#fff',
-                color: item.selected ? '#fff' : 'var(--terra)',
-                boxShadow: item.selected ? '0 2px 8px rgba(74,103,65,0.25)' : 'none',
-              }}
+              style={{ ...b.optCheckbox, ...(item.selected ? b.optCheckboxOn : {}) }}
               onClick={() => onChange({ ...item, selected: !item.selected })}
-              title="Toggle — mirrors what client can click"
+              title="Sets whether this option is ticked by default"
             >
-              {item.selected ? '✓ Included' : '+ Add to quote'}
+              {item.selected ? '✓' : ''}
             </button>
+            <span style={b.optClientHint}>
+              {item.selected ? 'Ticked by default — included' : 'Unticked by default — client adds it'}
+            </span>
           </div>
         )}
 
@@ -327,6 +425,14 @@ function LineItem({ item, onChange, onDelete, onMarkup }) {
           onRemove={removeImage}
           onMarkup={(idx, url) => onMarkup({ item, imageIndex: idx, imageUrl: url })}
         />
+
+        {/* ── Disposal / Grindings add-ons ── */}
+        <div style={b.addonGroups}>
+          <AddonGroup label="Disposal" catalog={DISPOSAL_OPTIONS}
+            value={item.disposal} onChange={dg => onChange({ ...item, disposal: dg })} />
+          <AddonGroup label="Grindings" catalog={GRINDINGS_OPTIONS}
+            value={item.grindings} onChange={gg => onChange({ ...item, grindings: gg })} />
+        </div>
 
         {/* ── Pricing row ── */}
         <div style={b.linePrice}>
@@ -742,6 +848,8 @@ export default function QuoteBuilder() {
   }, [id, isNew])
 
   const totals = calcTotals(items)
+  const optionalTotal = items.filter(i => i.optional).length
+  const optionalSelected = items.filter(i => i.optional && i.selected).length
 
   const addItem = () => setItems(prev => [...prev, {
     id: uuid(), description: '', detail: '', qty: 1, rate: '', optional: false, selected: true, images: [], image_url: null,
@@ -1191,17 +1299,23 @@ export default function QuoteBuilder() {
                 </select>
               </div>
               <div style={s.formatHint}>
-                💡 Put the tree/species in the item title (shows in bold). Start each line of detail with “- ” for a bullet point.
+                💡 Title = location (e.g. front yard). In the details, the first line — the tree name or group — shows in <strong>bold</strong>, and every line after it becomes a bullet automatically. No need to type dashes or asterisks.
               </div>
             </div>
 
             {/* Summary + primary action, right under the line items */}
             <div style={s.totalsCard}>
               <div style={s.cardTitle}>Summary</div>
-              {items.some(i => i.optional) && (
-                <div style={s.optNote}>✱ Optional items included — client can toggle</div>
+              {optionalTotal > 0 && (
+                <div style={s.optNote}>✱ Optional items included — client can tick to add or remove</div>
               )}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {optionalTotal > 0 && (
+                  <div style={{ ...s.tRow, borderBottom: '1px dashed var(--border)', paddingBottom: '8px' }}>
+                    <span>Options selected</span>
+                    <span style={{ fontWeight: '700', color: 'var(--terra)' }}>{optionalSelected} of {optionalTotal}</span>
+                  </div>
+                )}
                 <div style={s.tRow}><span>Subtotal (ex GST)</span><span>{nzd(totals.subtotal)}</span></div>
                 <div style={s.tRow}><span>GST (15%)</span><span>{nzd(totals.gst)}</span></div>
                 <div style={{ ...s.tRow, ...s.tBig }}><span>Total (incl GST)</span><span>{nzd(totals.total)}</span></div>
@@ -1505,6 +1619,7 @@ const b = {
   lineDetail: { width: '100%', padding: '6px 9px', borderRadius: '6px', border: '1.5px solid var(--border)', fontSize: '12px', fontFamily: 'var(--font)', color: '#666', resize: 'vertical', boxSizing: 'border-box' },
   detailPreview: { background: '#FAFAF7', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 10px', fontSize: '12px', color: 'var(--bark)', lineHeight: 1.5 },
   detailPreviewLabel: { fontSize: '9.5px', fontWeight: '700', color: '#bbb', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' },
+  previewTitle: { fontWeight: '700', color: 'var(--bark)', marginBottom: '2px' },
   previewBullet: { display: 'flex', gap: '6px', alignItems: 'flex-start' },
   previewDot: { color: 'var(--terra)', flexShrink: 0 },
   previewLine: { marginBottom: '1px' },
@@ -1517,18 +1632,40 @@ const b = {
   lineTotalEx: { fontSize: '10px', color: '#aaa' },
   removeBtn: { background: 'none', border: 'none', color: '#C0392B', fontSize: '12px', cursor: 'pointer', fontFamily: 'var(--font)', padding: '3px 6px' },
   // Fixed / Optional segmented control
+  segCol: { display: 'flex', flexDirection: 'column', gap: '4px', flexShrink: 0, alignItems: 'flex-end' },
+  segLabel: { fontSize: '9.5px', fontWeight: '700', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.05em' },
   segWrap: { display: 'flex', borderRadius: '7px', border: '1.5px solid var(--border)', overflow: 'hidden', flexShrink: 0 },
   seg: { padding: '6px 11px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)', border: 'none', background: 'transparent', color: '#aaa', transition: 'all 0.15s' },
   segActiveFixed: { background: 'var(--ink)', color: '#fff' },
   segActiveOpt: { background: '#D4851A', color: '#fff' },
-  // Client-style optional toggle (mirrors QuoteView)
-  optClientRow: { display: 'flex', alignItems: 'center', gap: '10px', padding: '6px 10px', background: '#FDF9F0', borderRadius: '7px', border: '1px solid #F5C842' },
-  optClientLabel: { fontSize: '11px', color: '#B8860B', fontWeight: '600', whiteSpace: 'nowrap' },
-  clientToggleBtn: {
-    padding: '8px 18px', borderRadius: '20px', border: '2px solid var(--terra)',
-    fontSize: '13px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)',
-    transition: 'all 0.2s', whiteSpace: 'nowrap',
+  // Client-style optional checkbox preview (mirrors QuoteView)
+  optClientRow: { display: 'flex', alignItems: 'center', gap: '10px', padding: '7px 10px', background: '#FDF9F0', borderRadius: '7px', border: '1px solid #F5C842' },
+  optClientLabel: { fontSize: '11px', color: '#B8860B', fontWeight: '700', whiteSpace: 'nowrap' },
+  optClientHint: { fontSize: '11.5px', color: '#8A857D', fontWeight: '500' },
+  optCheckbox: {
+    width: '24px', height: '24px', flexShrink: 0, borderRadius: '6px',
+    border: '2px solid var(--terra)', background: '#fff', color: 'var(--terra)',
+    fontSize: '14px', fontWeight: '800', lineHeight: 1, cursor: 'pointer',
+    fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    transition: 'all 0.15s',
   },
+  optCheckboxOn: { background: 'var(--terra)', color: '#fff', boxShadow: '0 2px 6px rgba(74,103,65,0.25)' },
+  // Disposal / Grindings add-on groups
+  addonGroups: { display: 'flex', flexDirection: 'column', gap: '6px' },
+  addonWrap: { border: '1px solid var(--border)', borderRadius: '8px', background: '#FAFAF7', overflow: 'hidden' },
+  addonHead: { width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 10px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font)', textAlign: 'left' },
+  addonLabel: { fontSize: '11px', fontWeight: '700', color: '#8A857D', textTransform: 'uppercase', letterSpacing: '0.05em' },
+  addonCount: { fontSize: '11px', color: 'var(--terra)', fontWeight: '600' },
+  addonChevron: { marginLeft: 'auto', fontSize: '11px', color: '#bbb' },
+  addonBody: { padding: '4px 10px 10px', display: 'flex', flexDirection: 'column', gap: '6px', borderTop: '1px solid var(--border)' },
+  addonRow: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
+  addonChip: { padding: '6px 12px', borderRadius: '16px', border: '1.5px solid var(--border)', background: '#fff', color: '#8A857D', fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap' },
+  addonChipOn: { background: '#EDF3EA', borderColor: 'var(--terra)', color: 'var(--terra)' },
+  addonPlus: { fontSize: '12px', color: '#aaa' },
+  addonPriceInput: { width: '68px', padding: '5px 7px', borderRadius: '6px', border: '1.5px solid var(--border)', fontSize: '12px', fontFamily: 'var(--font)', color: 'var(--ink)', textAlign: 'right' },
+  addonDefault: { padding: '4px 9px', borderRadius: '12px', border: '1px solid var(--border)', background: '#fff', color: '#aaa', fontSize: '11px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
+  addonDefaultOn: { background: '#FDF3E3', borderColor: '#D4851A', color: '#D4851A' },
+  addonNote: { fontSize: '11px', color: '#A8A29A', fontStyle: 'italic' },
 }
 
 // ── Preview styles ──

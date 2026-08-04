@@ -47,8 +47,8 @@ export default function QuoteClientComments({ token, quoteId, isPreview }) {
 
   return (
     <div style={st.wrap}>
-      <div style={st.title}>Questions about this quote?</div>
-      <div style={st.sub}>Message us here — we'll get back to you, and it stays with your quote.</div>
+      <div style={st.title}>Questions &amp; Answers</div>
+      <div style={st.sub}>Ask us anything about this quote — we'll reply here, and it stays with your quote.</div>
 
       {comments.length > 0 && (
         <div style={st.thread}>
