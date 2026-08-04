@@ -35,10 +35,19 @@ function timeAgo(dateStr) {
   return `${yr} year${yr === 1 ? '' : 's'} ago`
 }
 
+// Quotient shows amounts as a bare, 2dp, comma-grouped number (e.g. 1,000.00)
+// right-aligned in the list; the $ lives in the detail header.
 function fmtMoney(n) {
   const v = Number(n)
   if (!Number.isFinite(v)) return '—'
-  return v.toLocaleString('en-AU', { style: 'currency', currency: 'AUD', minimumFractionDigits: 0, maximumFractionDigits: 0 })
+  return v.toLocaleString('en-NZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+function fmtListDate(dateStr) {
+  if (!dateStr) return ''
+  return new Date(dateStr).toLocaleDateString('en-NZ', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+function quoteRef(q) {
+  return q.quote_number ?? (q.id ? q.id.slice(-6).toUpperCase() : '')
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -51,7 +60,7 @@ function isOpened(q) {
   return !!q.viewed_at || (q.opened_count ?? 0) > 0
 }
 function isResolved(q) {
-  return q.status === 'accepted' || q.status === 'declined'
+  return ACCEPTED_STATUSES.includes(q.status) || q.status === 'declined'
 }
 
 // ── Toast ───────────────────────────────────────────────────────────────────
@@ -87,14 +96,44 @@ function FollowUpMenu({ onPick, onClose, busy }) {
   )
 }
 
-// ── Quote card ──────────────────────────────────────────────────────────────
-function QuoteCard({ q, isMobile, onFollowUp, onTextLink, onOpen, busy }) {
+// ── Quote row (Quotient "Sent" list style) ──────────────────────────────────
+// One row per quote: bold title (property address) with the amount right-
+// aligned, then a tracking sub-line — green "Viewed N hours ago" (or "Sent /
+// Not opened yet"), the client, the owner, and the quote ref — with the sent
+// date under the amount. Follow-up actions reveal on hover / focus so the list
+// stays as clean as Quotient's while keeping the tracker's follow-up tools.
+function QuoteCard({ q, ownerName, onFollowUp, onTextLink, onOpen, busy }) {
   const [menuOpen, setMenuOpen] = useState(false)
+  const [hover, setHover] = useState(false)
   const job = q.jobs ?? {}
   const client = job.clients ?? {}
   const opened = isOpened(q)
   const resolved = isResolved(q)
   const overdue = needsFollowUp(q)
+  const eff = effectiveStatus(q)
+
+  const title = job.address || job.title || client.name || 'Untitled quote'
+  const owner = ownerName(q.created_by)
+  const openedAgo = timeAgo(q.last_opened_at || q.viewed_at)
+
+  // Left accent bar colour, Quotient-style: amber if a follow-up is overdue,
+  // else the quote's status colour once opened/resolved, else a neutral grey.
+  const accent = overdue ? 'var(--amber)'
+    : (resolved || eff === 'expired') ? qStatusColor(eff)
+    : opened ? qStatusColor('viewed')
+    : '#D8D2C8'
+
+  // The tracking line's leading phrase, colour-coded like Quotient.
+  let track = null
+  if (resolved) {
+    track = <span style={{ ...s.trackLead, color: qStatusColor(eff) }}>{qStatusLabel(eff)}{q.responded_at ? ` ${timeAgo(q.responded_at)}` : ''}</span>
+  } else if (eff === 'expired') {
+    track = <span style={{ ...s.trackLead, color: qStatusColor('expired') }}>Expired</span>
+  } else if (opened) {
+    track = <span style={{ ...s.trackLead, color: qStatusColor('viewed') }}>Viewed {openedAgo}{(q.opened_count ?? 0) > 1 ? ` · ${q.opened_count}×` : ''}</span>
+  } else if (q.sent_at) {
+    track = <span style={{ ...s.trackLead, color: '#A8A29A' }}>Not opened yet</span>
+  }
 
   async function pick(channel) {
     await onFollowUp(q, channel)
@@ -102,48 +141,38 @@ function QuoteCard({ q, isMobile, onFollowUp, onTextLink, onOpen, busy }) {
   }
 
   return (
-    <div style={{ ...s.card, ...(overdue ? s.cardOverdue : null) }}>
-      <div style={s.cardTop}>
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={s.clientName}>{client.name || 'Unknown client'}</div>
-          {job.address && <div style={s.address}>{job.address}</div>}
-          {job.title && <div style={s.jobTitle}>{job.title}</div>}
+    <div
+      style={{ ...s.row, ...(opened && !resolved ? s.rowOpened : null), ...(overdue ? s.rowOverdue : null) }}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+    >
+      <div style={{ ...s.rowAccent, background: accent }} />
+      <div style={s.rowBody} onClick={() => onOpen(q)} role="button" tabIndex={0}>
+        <div style={s.rowMain}>
+          <div style={s.rowTitle}>{title}</div>
+          <div style={s.rowSub}>
+            {track}
+            <span style={s.trackRest}>
+              {client.name || 'Unknown client'} by {owner} <span style={s.ref}>#{quoteRef(q)}</span>
+            </span>
+          </div>
+          {(q.followup_count ?? 0) > 0 && (
+            <div style={s.followNote}>
+              Followed up {q.followup_count}×{timeAgo(q.last_followup_at) ? ` · last ${timeAgo(q.last_followup_at)}` : ''}
+            </div>
+          )}
         </div>
         <div style={s.rightCol}>
           <div style={s.total}>{fmtMoney(q.total)}</div>
-          <span style={{ ...s.pill, background: qStatusColor(effectiveStatus(q)) }}>
-            {qStatusLabel(effectiveStatus(q))}
-          </span>
+          <div style={s.rowDate}>{fmtListDate(q.sent_at || q.created_at)}</div>
         </div>
       </div>
 
-      <div style={s.meta}>
-        {opened ? (
-          <span style={s.openedTag}>
-            👁 Opened{(q.opened_count ?? 0) > 0 ? ` ${q.opened_count}×` : ''}
-            {timeAgo(q.last_opened_at || q.viewed_at) ? ` · last ${timeAgo(q.last_opened_at || q.viewed_at)}` : ''}
-          </span>
-        ) : (
-          <span style={s.notOpened}>Not opened yet</span>
-        )}
-        {q.sent_at && <span style={s.sentAgo}>Sent {timeAgo(q.sent_at)}</span>}
-      </div>
-
-      {(q.followup_count ?? 0) > 0 && (
-        <div style={s.followNote}>
-          Followed up {q.followup_count}×
-          {timeAgo(q.last_followup_at) ? ` · last ${timeAgo(q.last_followup_at)}` : ''}
-        </div>
-      )}
-
-      <div style={s.actions}>
-        {!resolved && (
+      {/* Follow-up tools — visible on hover, or always if this row is overdue */}
+      {(hover || menuOpen || overdue) && !resolved && (
+        <div style={s.actions} onClick={e => e.stopPropagation()}>
           <div style={{ position: 'relative' }}>
-            <button
-              style={s.btnPrimary}
-              disabled={busy}
-              onClick={() => setMenuOpen(o => !o)}
-            >
+            <button style={s.btnPrimary} disabled={busy} onClick={() => setMenuOpen(o => !o)}>
               Follow up
             </button>
             {menuOpen && (
@@ -153,14 +182,9 @@ function QuoteCard({ q, isMobile, onFollowUp, onTextLink, onOpen, busy }) {
               </>
             )}
           </div>
-        )}
-        {!resolved && (
-          <button style={s.btnGhost} disabled={busy} onClick={() => onTextLink(q)}>
-            Text link
-          </button>
-        )}
-        <button style={s.btnGhost} onClick={() => onOpen(q)}>Open</button>
-      </div>
+          <button style={s.btnGhost} disabled={busy} onClick={() => onTextLink(q)}>Text link</button>
+        </div>
+      )}
     </div>
   )
 }
@@ -179,6 +203,7 @@ export default function SentQuotes() {
   const isMobile = useIsMobile()
   const navigate = useNavigate()
   const [quotes, setQuotes] = useState([])
+  const [owners, setOwners] = useState([])   // [{ id, name }] — for "by {owner}"
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
   const [toast, setToast] = useState(null)
@@ -192,13 +217,17 @@ export default function SentQuotes() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const { data, error } = await supabase
-        .from('quotes')
-        .select('id, status, total, client_view_token, valid_until, sent_at, viewed_at, responded_at, opened_count, last_opened_at, followup_count, last_followup_at, jobs ( title, address, clients ( name, email, phone ) )')
-        .not('sent_at', 'is', null)
-        .order('sent_at', { ascending: false })
+      const [{ data, error }, uRes] = await Promise.all([
+        supabase
+          .from('quotes')
+          .select('id, status, total, created_at, created_by, client_view_token, valid_until, sent_at, viewed_at, responded_at, opened_count, last_opened_at, followup_count, last_followup_at, jobs ( title, address, clients ( name, email, phone ) )')
+          .not('sent_at', 'is', null)
+          .order('sent_at', { ascending: false }),
+        supabase.from('users').select('id, name'),
+      ])
       if (error) throw error
       setQuotes(Array.isArray(data) ? data : [])
+      setOwners(uRes.data ?? [])
     } catch (err) {
       showToast(err?.message || 'Could not load quotes', 'error')
       setQuotes([])
@@ -206,6 +235,11 @@ export default function SentQuotes() {
       setLoading(false)
     }
   }, [showToast])
+
+  const ownerName = useCallback(
+    (uid) => (uid ? (owners.find(o => o.id === uid)?.name ?? 'Unknown') : 'Urban Tree Services'),
+    [owners]
+  )
 
   useEffect(() => { load() }, [load])
 
@@ -334,7 +368,7 @@ export default function SentQuotes() {
             <QuoteCard
               key={q.id}
               q={q}
-              isMobile={isMobile}
+              ownerName={ownerName}
               busy={busyId === q.id}
               onFollowUp={handleFollowUp}
               onTextLink={handleTextLink}
@@ -382,30 +416,41 @@ const s = {
   },
   chipActive: { background: 'var(--moss)', borderColor: 'var(--moss)', color: '#fff' },
 
-  list: { display: 'flex', flexDirection: 'column', gap: 12 },
-  card: {
+  // Quotient-style grouped list: one bordered card, rows divided by hairlines.
+  list: {
+    display: 'flex', flexDirection: 'column',
     background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius)',
-    padding: 16,
+    overflow: 'hidden',
   },
-  cardOverdue: { borderLeft: '4px solid var(--amber)' },
-  cardTop: { display: 'flex', gap: 12, alignItems: 'flex-start', justifyContent: 'space-between' },
-  clientName: { fontWeight: 600, fontSize: 16, color: 'var(--bark)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-  address: { fontSize: 13, color: '#8A857D', marginTop: 2 },
-  jobTitle: { fontSize: 13, color: '#8A857D', marginTop: 2 },
-  rightCol: { textAlign: 'right', flexShrink: 0 },
-  total: { fontWeight: 700, fontSize: 16, color: 'var(--bark)' },
-  pill: {
-    display: 'inline-block', color: '#fff', fontSize: 11, fontWeight: 600,
-    padding: '3px 10px', borderRadius: 999, marginTop: 6,
+  row: {
+    position: 'relative', display: 'flex', alignItems: 'stretch',
+    borderTop: '1px solid var(--border)',
   },
-
-  meta: { display: 'flex', flexWrap: 'wrap', gap: '6px 14px', marginTop: 12, fontSize: 13, alignItems: 'center' },
-  openedTag: { color: 'var(--moss)', fontWeight: 600 },
-  notOpened: { color: '#A8A29A' },
-  sentAgo: { color: '#8A857D' },
+  rowOpened: { background: '#FBFAF8' },
+  rowOverdue: {},
+  rowAccent: { width: 4, flexShrink: 0, background: 'var(--border)' },
+  rowBody: {
+    flex: 1, minWidth: 0, display: 'flex', gap: 12, alignItems: 'flex-start',
+    justifyContent: 'space-between', padding: '14px 16px', cursor: 'pointer',
+  },
+  rowMain: { minWidth: 0, flex: 1 },
+  rowTitle: {
+    fontWeight: 700, fontSize: 16, color: 'var(--bark)',
+    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+  },
+  rowSub: { marginTop: 3, fontSize: 13.5, lineHeight: 1.4 },
+  trackLead: { fontStyle: 'italic', fontWeight: 600, marginRight: 6 },
+  trackRest: { color: '#8A857D' },
+  ref: { color: '#B4AEA4' },
+  rightCol: { textAlign: 'right', flexShrink: 0, paddingLeft: 8 },
+  total: { fontWeight: 700, fontSize: 16, color: 'var(--bark)', whiteSpace: 'nowrap' },
+  rowDate: { fontSize: 12.5, color: '#A8A29A', marginTop: 4, whiteSpace: 'nowrap' },
   followNote: { marginTop: 6, fontSize: 12, color: 'var(--sky)' },
 
-  actions: { display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 14 },
+  actions: {
+    display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center',
+    padding: '0 16px 14px', marginTop: -4,
+  },
   btnPrimary: {
     background: 'var(--moss)', color: '#fff', border: 'none', borderRadius: 8,
     padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)',

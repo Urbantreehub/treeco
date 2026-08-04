@@ -54,11 +54,55 @@ function demoQuotes() {
     [2025, 3, 3800, 'invoiced', 'Pruning'],        [2025, 1, 2400, 'accepted', 'Tree Removal'],
     [2025, 10, 1500, 'stump grinding', 'Stump Grinding'],
   ]
-  return rows.map(([y, m, subtotal, status, job_type], i) => ({
-    id: `demo-q${i}`, status, subtotal, total: Math.round(subtotal * 1.15),
-    created_at: new Date(y, m, 12).toISOString(), jobs: { job_type },
-  }))
+  // Client / address / owner so the Sent-quotes tracker and activity timeline
+  // read like real quotes rather than "Untitled quote · Unknown client".
+  const parties = [
+    ['Margaret Thompson', '14 Hillcrest Ave, Wellington', 'Josh Micallef'],
+    ['Richard Tait',      '8 Miramar Rd, Miramar', 'Josh Micallef'],
+    ['Coastal Properties Ltd', '55 Oriental Parade, Oriental Bay', 'Ashley Rapana'],
+    ['Dave & Sue Wilson', '3 Karori Rd, Karori', 'Josh Micallef'],
+    ['Anna Ferreira',     '22 Brooklyn Rd, Brooklyn', 'Ashley Rapana'],
+    ['Heritage Homes Trust', '101 Mt Victoria Blvd, Mt Victoria', 'Josh Micallef'],
+    ['Jason Park',        '9 Newlands Ave, Newlands', 'Josh Micallef'],
+  ]
+  const HOUR = 3600000, DAY = 86400000
+  const now = Date.now()
+  return rows.map(([y, m, subtotal, status, job_type], i) => {
+    const [clientName, address, owner] = parties[i % parties.length]
+    const createdISO = new Date(y, m, 12).toISOString()
+    const responded = ['accepted', 'declined', 'complete', 'invoiced'].includes(status)
+    // Live quotes get a recent lifecycle so "Viewed N hours ago" reads freshly;
+    // historical ones anchor to their created month.
+    const isLive = status === 'sent'
+    const base = isLive ? now - 2 * DAY : new Date(y, m, 12).getTime()
+    const sentAt = new Date(base + 2 * HOUR).toISOString()
+    const firstOpen = status === 'draft' ? null : new Date(base + 6 * HOUR).toISOString()
+    const lastOpen = status === 'draft' ? null
+      : new Date(isLive ? now - 5 * HOUR : base + 30 * HOUR).toISOString()
+    return {
+      id: `demo-q${i}`, status, subtotal, total: Math.round(subtotal * 1.15),
+      created_at: createdISO,
+      created_by: owner === 'Ashley Rapana' ? 'demo-ashley' : 'demo-josh',
+      client_view_token: `demo-tok-${i}`,
+      notes: 'Payment due upon completion of job\nCash or direct bank transfer is accepted\n\nCheers,\nJosh',
+      sent_at: status === 'draft' ? null : sentAt,
+      viewed_at: firstOpen,
+      last_opened_at: lastOpen,
+      opened_count: status === 'draft' ? 0 : (i % 3) + 1,
+      responded_at: responded ? new Date(base + 3 * DAY).toISOString() : null,
+      signed_name: status === 'accepted' ? clientName : null,
+      valid_until: new Date(base + 30 * DAY).toISOString().slice(0, 10),
+      followup_count: isLive ? 1 : 0,
+      last_followup_at: isLive ? new Date(now - 12 * HOUR).toISOString() : null,
+      jobs: { job_type, title: address, address, clients: { id: `demo-c${i}`, name: clientName, email: 'client@example.com', phone: '021 000 000' } },
+    }
+  })
 }
+// Demo roster so activity events attribute to real names.
+const DEMO_USERS = [
+  { id: 'demo-josh', name: 'Josh Micallef' },
+  { id: 'demo-ashley', name: 'Ashley Rapana' },
+]
 
 // A populated demo day so the calendar (and its per-crew totals) has content.
 function demoSchedule() {
@@ -91,6 +135,7 @@ function demoSchedule() {
 
 const DEMO_TABLES = {
   quotes:   () => demoQuotes(),
+  users:    () => DEMO_USERS,
   schedule: () => demoSchedule(),
   vehicles: () => ([
     { id: 'v1', name: 'Isuzu tipper', plate: 'KRT294', active: true, cof_due: null, ruc_km_remaining: 1240, notes: '' },

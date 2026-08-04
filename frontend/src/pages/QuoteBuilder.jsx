@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useIsMobile } from '../hooks/useIsMobile'
 import ImageMarkup from '../components/ImageMarkup'
 import QuoteVersionHistory from '../components/QuoteVersionHistory'
+import QuoteActivity from '../components/QuoteActivity'
 import QuoteLibraryModal from '../components/QuoteLibraryModal'
 import QuoteComments from '../components/QuoteComments'
 import { searchSor, CHARGE_CODES } from '../data/sorCodes'
@@ -790,6 +791,7 @@ export default function QuoteBuilder() {
   const preselectedJobId = isNew ? new URLSearchParams(window.location.search).get('job') : null
 
   const [quote, setQuote] = useState(null)
+  const [owners, setOwners] = useState([])   // [{ id, name }] — attributes activity events
   const [job, setJob] = useState(null)
   const [items, setItems] = useState([])
   const [notes, setNotes] = useState(DEFAULT_SIGNATURE)
@@ -846,6 +848,12 @@ export default function QuoteBuilder() {
         .then(({ data }) => setJobs(data ?? []))
     }
   }, [id, isNew])
+
+  // Team roster — used to attribute activity events (created/edited/sent by …).
+  useEffect(() => {
+    if (isNew) return
+    supabase.from('users').select('id, name').then(({ data }) => setOwners(data ?? []))
+  }, [isNew])
 
   const totals = calcTotals(items)
   const optionalTotal = items.filter(i => i.optional).length
@@ -1239,6 +1247,9 @@ export default function QuoteBuilder() {
                 <button style={s.reopenBtn} onClick={extendExpiry} disabled={saving}>Extend 30 days</button>
               </div>
             )}
+
+            {/* Activity timeline — Quotient-style Overview / All Activity feed */}
+            {!isNew && quote && <QuoteActivity quote={quote} owners={owners} />}
 
             {/* Version history — appears once a quote has been accepted/reopened */}
             {!isNew && <QuoteVersionHistory quoteId={id} refreshKey={quote?.status} />}
