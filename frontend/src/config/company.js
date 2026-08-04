@@ -39,9 +39,13 @@ export const REVIEWS = {
 }
 
 // Qualifications & accreditations — the trust badges on the quote.
+// `href` (optional) renders a "View certificate" link on the badge — used for
+// the public liability certificate so clients can verify cover themselves.
+// ⚠️ When the PL policy renews, replace public/insurance/public-liability-certificate.pdf
+//    with the new certificate (same filename) and update the cover figure below.
 export const QUALIFICATIONS = [
   { label: 'Qualified Arborists', detail: 'NZ Certificate in Arboriculture — trained, not just experienced' },
-  { label: 'Fully Insured', detail: '$2M public liability cover on every job' },
+  { label: 'Fully Insured', detail: '$10M public liability cover on every job', href: '/insurance/public-liability-certificate.pdf' },
   { label: 'SiteWise Certified', detail: 'Independently audited health & safety systems' },
   { label: 'Growsafe & First Aid', detail: 'Current certifications across the crew' },
 ]

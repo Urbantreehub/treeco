@@ -203,6 +203,7 @@ export default function QuoteView() {
   const firstName = client?.name?.split(' ')[0] ?? 'there'
   const hasOptional = items.some(i => i.optional)
   const optionalSelected = items.filter(i => i.optional && i.selected).length
+  const optionalTotal = items.filter(i => i.optional).length
   const quoteNum = quote.quote_number ?? quote.id.slice(-6).toUpperCase()
   const notes = quote.notes ?? ''
   const quoteDate = quote.created_at ? fmtDate(quote.created_at) : fmtDate(new Date())
@@ -320,8 +321,23 @@ export default function QuoteView() {
                 >
                   <div style={p.itemBody}>
                     <div style={p.itemTop}>
+                      {isOptional && (
+                        <button
+                          role="checkbox"
+                          aria-checked={item.selected}
+                          style={{ ...p.optCheckbox, ...(item.selected ? p.optCheckboxOn : {}) }}
+                          onClick={() => toggleOptional(item.id)}
+                          disabled={responded}
+                          title={item.selected ? 'Included — tap to remove' : 'Tap to add this to your quote'}
+                        >
+                          {item.selected ? '✓' : ''}
+                        </button>
+                      )}
                       <div style={p.itemDesc}>
-                        <div style={p.itemTitle}><AnnotatedText text={item.description || '—'} onOpenGlossary={() => setShowGlossary(true)} /></div>
+                        <div style={p.itemTitle}>
+                          <AnnotatedText text={item.description || '—'} onOpenGlossary={() => setShowGlossary(true)} />
+                          {isOptional && <span style={p.optInlineTag}>Optional</span>}
+                        </div>
                         {item.detail && <DetailBlock text={item.detail} onOpenGlossary={() => setShowGlossary(true)} />}
                         {(() => {
                           const imgs = item.images?.length ? item.images : (item.image_url ? [item.image_url] : [])
@@ -342,21 +358,6 @@ export default function QuoteView() {
                         })()}
                       </div>
                       <div style={p.itemRight}>
-                        {isOptional && (
-                          <button
-                            style={{
-                              ...p.toggleBtn,
-                              background: item.selected ? '#4A6741' : '#fff',
-                              color: item.selected ? '#fff' : '#4A6741',
-                              borderColor: '#4A6741',
-                              boxShadow: item.selected ? '0 2px 8px rgba(74,103,65,0.3)' : 'none',
-                            }}
-                            onClick={() => toggleOptional(item.id)}
-                            disabled={responded}
-                          >
-                            {item.selected ? '✓ Included' : '+ Add to quote'}
-                          </button>
-                        )}
                         {isActive ? (
                           <div style={p.priceStack}>
                             <div style={p.itemTotal}>{nzd(lineTotal * 1.15)}</div>
@@ -364,16 +365,6 @@ export default function QuoteView() {
                           </div>
                         ) : (
                           <div style={p.itemTotal}>—</div>
-                        )}
-                        {isOptional && (
-                          <span style={{
-                            ...p.optTag,
-                            background: item.selected ? '#E8F0E6' : '#F5F5F5',
-                            color: item.selected ? '#4A6741' : '#aaa',
-                            borderColor: item.selected ? '#4A674144' : 'var(--border)',
-                          }}>
-                            Optional
-                          </span>
                         )}
                       </div>
                     </div>
@@ -396,6 +387,12 @@ export default function QuoteView() {
               </div>
             )}
             <div style={p.totalsInner}>
+              {hasOptional && (
+                <div style={{ ...p.tRow, ...p.optCountRow }}>
+                  <span style={p.tLabel}>Options selected</span>
+                  <span style={p.optCountVal}>{optionalSelected} of {optionalTotal}</span>
+                </div>
+              )}
               <div style={p.tRow}>
                 <span style={p.tLabel}>Subtotal (ex GST)</span>
                 <span style={p.tVal}>{nzd(totals.subtotal)}</span>
@@ -599,6 +596,11 @@ export default function QuoteView() {
                   <div>
                     <div style={p.qualLabel}>{q.label}</div>
                     <div style={p.qualDetail}>{q.detail}</div>
+                    {q.href && (
+                      <a href={q.href} target="_blank" rel="noopener noreferrer" style={p.qualLink}>
+                        View certificate ↗
+                      </a>
+                    )}
                   </div>
                 </div>
               ))}
@@ -752,6 +754,7 @@ const p = {
   qualGlyph: { fontSize: '16px', lineHeight: 1.2, flexShrink: 0, color: 'var(--moss)' },
   qualLabel: { fontSize: '13px', fontWeight: '700', color: 'var(--bark)', marginBottom: '2px' },
   qualDetail: { fontSize: '11px', color: '#777', lineHeight: 1.45 },
+  qualLink: { display: 'inline-block', marginTop: '3px', fontSize: '11px', fontWeight: '600', color: 'var(--moss)', textDecoration: 'none' },
   whyList: { listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexWrap: 'wrap', gap: '8px 20px' },
   whyItem: { display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '13px', color: '#4A4A42', lineHeight: 1.5, flex: '1 1 240px' },
   whyCheck: {
@@ -777,6 +780,24 @@ const p = {
   bulletItem: { fontSize: '13px', color: '#777', lineHeight: 1.5, marginBottom: '2px' },
   detailLine: { fontSize: '13px', color: '#777', lineHeight: 1.5 },
   itemRight: { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px', flexShrink: 0 },
+  // Quotient-style include/exclude checkbox on the left of an optional item
+  optCheckbox: {
+    width: '26px', height: '26px', flexShrink: 0, marginTop: '1px',
+    borderRadius: '6px', border: '2px solid #4A6741', background: '#fff',
+    color: '#4A6741', fontSize: '15px', fontWeight: '800', lineHeight: 1,
+    cursor: 'pointer', fontFamily: 'var(--font)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    transition: 'all 0.15s',
+  },
+  optCheckboxOn: { background: '#4A6741', color: '#fff', boxShadow: '0 2px 6px rgba(74,103,65,0.3)' },
+  optInlineTag: {
+    display: 'inline-block', marginLeft: '8px', verticalAlign: 'middle',
+    fontSize: '10px', fontWeight: '700', color: '#D4851A', background: '#FDF3E3',
+    border: '1px solid #FAE8CC', borderRadius: '10px', padding: '2px 8px',
+    textTransform: 'uppercase', letterSpacing: '0.04em',
+  },
+  optCountRow: { paddingBottom: '10px', marginBottom: '2px', borderBottom: '1px dashed var(--border)' },
+  optCountVal: { fontSize: '14px', fontWeight: '700', color: 'var(--moss)' },
   toggleBtn: {
     padding: '10px 18px', borderRadius: '8px', border: '2px solid',
     fontSize: '14px', fontWeight: '700', cursor: 'pointer',
