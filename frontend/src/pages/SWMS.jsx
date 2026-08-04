@@ -3,7 +3,7 @@ import { useState, useCallback } from 'react'
 // ── Storage ───────────────────────────────────────────────────────────────────
 
 const LS_KEY     = 'treeco_swms_v2'
-const SEED_KEY   = 'treeco_swms_seeded_v5'
+const SEED_KEY   = 'treeco_swms_seeded_v6'
 
 function loadDocs() {
   try {
@@ -336,16 +336,16 @@ function makeDoc(lib, idx) {
     title: lib.title,
     lib_id: lib.id,
     ref: lib.ref,
-    version: '1.0',
+    version: '2.0',
     status: 'draft',
     prepared_by: 'Josh Micallef',
     approved_by: '',
-    review_date: '',
+    review_date: '2027-07-31',
     hazards: lib.hazards.map(h => ({ ...h, id: uid() })),
     ppe: ACT_PPE[lib.id] ?? [],
     sign_offs: DEFAULT_STAFF.map(s => ({ ...s, date: '', signed: false })),
     created_at: today(),
-    notes: '',
+    notes: 'v2.0 — reissued after the 31 Jul 2026 toolbox review.',
   }
 }
 

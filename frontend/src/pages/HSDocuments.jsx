@@ -3,7 +3,7 @@ import { useState, useCallback } from 'react'
 // ── Constants ────────────────────────────────────────────────────────────────
 
 const LS_KEY = 'treeco_hs_documents'
-const SEED_KEY = 'treeco_hs_docs_seeded_v1'
+const SEED_KEY = 'treeco_hs_docs_seeded_v2'
 const MAX_FILE_BYTES = 5 * 1024 * 1024 // 5 MB
 
 const CATEGORIES = [
@@ -55,11 +55,11 @@ function loadDocs() {
       const policy = blankDoc({
         name: 'Health & Safety Policy',
         category: 'policy',
-        version: '1.0',
+        version: '2.0',
         file_url: '/forms/hs-policy.html',
-        uploaded_date: '2026-06-30',
+        uploaded_date: '2026-07-31',
         expiry_date: '2027-06-30',
-        notes: 'v1.0 — aligned with HSWA 2015, NZArb, ArbAus MIS 01–14, ECP 34, WorkSafe NZ. Review June 2027.',
+        notes: 'v2.0 — amended at the 31 Jul 2026 toolbox (spear cutting prohibited, overhead/underground services checks, ground-hazard controls, near-miss reporting, hi-vis by agreement). Aligned with HSWA 2015, NZArb, ArbAus MIS 01–14, ECP 34, WorkSafe NZ. Review June 2027.',
       })
       const merged = [policy, ...existing.filter(d => d.name !== 'Health & Safety Policy')]
       localStorage.setItem(LS_KEY, JSON.stringify(merged))
