@@ -142,6 +142,23 @@ def upload_image(image_bytes, filename, mime="image/jpeg"):
 # even before migration 015 is applied (it just skips the new columns).
 _UNKNOWN_COL_RE = re.compile(r"'([a-z_]+)' column")
 
+def resolve_location_code(label):
+    """Map a portal location LABEL to its short code so it pre-fills the quote's
+    location dropdown. "Property Exterior 1" -> "PE1", "Unit" -> "UN". Unknown
+    labels return "" — the office picks the code from the dropdown in-app."""
+    s = (label or "").strip()
+    if not s:
+        return ""
+    m = re.match(r"property exterior\s*(\d+)", s, re.I)
+    if m:
+        return f"PE{m.group(1)}"
+    if s.lower() == "unit":
+        return "UN"
+    # Already a bare code (PE1, RF3, B12 …)?
+    if re.fullmatch(r"[A-Z]{1,3}\d{0,2}", s):
+        return s
+    return ""
+
 def parse_due_date(raw):
     """Portal dates look like '25/07/2026' (DD/MM/YYYY). Return ISO or None."""
     raw = (raw or "").strip()
@@ -435,12 +452,20 @@ async def extract_job_detail(page, job):
             if doc_uuid:
                 images = await scrape_document_images(page, doc_uuid, job_id, code)
 
+            # Location cell — the first cell of the row holds the property-element
+            # location LABEL (e.g. "Property Exterior 1"). Resolve to the portal
+            # code (PE1) where we can so it pre-fills the quote's location dropdown.
+            location_label = cell_texts[0].strip() if cell_texts else ""
+            location_code = resolve_location_code(location_label)
+
             if code:
                 cl = {
                     "ord_job_id": ord_job_id,
                     "code":       code,
                     "desc":       desc or full_desc_title[:80],
                     "uom":        uom,
+                    "location":       location_code,
+                    "location_label": location_label,
                     "line_note":  line_note,
                     "qty":        qty,
                     "rate":       rate,
@@ -580,6 +605,8 @@ def create_quote_from_charge_lines(job_id, client_id, charge_lines):
         item = {
             "id":          str(i + 1),
             "code":        code,       # SOR job code, surfaced as a badge in-app
+            "location":       cl.get("location", ""),        # PE-code for the location dropdown
+            "location_label": cl.get("location_label", ""),  # human label from the portal
             "description": desc,
             "detail":      detail,
             "qty":         disp_qty,
@@ -800,8 +827,9 @@ def sync_jobs_to_supabase(dbs_jobs):
 async def run_once():
     """Scrape the portal once and sync into TreeCo. Returns a summary dict."""
     # Respect the Settings toggle — skip entirely while sync is paused.
-    if not sync_enabled():
-        log("  ⏸  Portal sync is paused (Settings toggle off) — skipping.")
+    # DBS_FORCE=1 overrides the pause for a deliberate manual import/backfill.
+    if not sync_enabled() and os.environ.get("DBS_FORCE", "").strip() not in ("1", "true", "yes"):
+        log("  ⏸  Portal sync is paused (Settings toggle off) — skipping. (set DBS_FORCE=1 to override)")
         return {"created": 0, "updated": 0, "skipped": 0, "changed": 0, "new": 0, "paused": True}
 
     log("══════════════════════════════════════════════════")

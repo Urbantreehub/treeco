@@ -15,3 +15,7 @@ scripts/*_dryrun.json
 # Playwright (belt-and-suspenders; frontend/.gitignore also covers these)
 test-results/
 playwright-report/
+
+# Job/client data backups (contain client PII)
+scripts/backups/
+scripts/quotient_scrape_raw.json

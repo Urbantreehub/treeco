@@ -19,6 +19,8 @@ import { supabase } from '../config/supabase'
 import { useAuth } from '../context/AuthContext'
 import { v4 as uuid } from 'uuid'
 import { GST, calcTotals, lineExtras, DISPOSAL_OPTIONS, GRINDINGS_OPTIONS } from '../utils/pricing'
+import { isSpencersJob } from '../config/statuses'
+import { SPENCERS_LOCATION_GROUPS } from '../config/spencersLocations'
 
 const COMPANY = {
   name: 'Urban Tree Services Limited',
@@ -301,7 +303,7 @@ function AddonGroup({ label, catalog, value, onChange }) {
   )
 }
 
-function LineItem({ item, onChange, onDelete, onMarkup }) {
+function LineItem({ item, onChange, onDelete, onMarkup, spencers }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: item.id })
 
@@ -368,6 +370,31 @@ function LineItem({ item, onChange, onDelete, onMarkup }) {
             </div>
           </div>
         </div>
+
+        {/* ── Spencers property-element location (PE1, PE2 …) ── */}
+        {spencers && (
+          <div style={b.locationRow}>
+            <span style={b.locationLabel}>Location</span>
+            <select
+              style={b.locationSelect}
+              value={item.location ?? ''}
+              onChange={e => onChange({ ...item, location: e.target.value })}
+              title="Property-element location from the Spencers portal (e.g. PE1 = Property Exterior 1)"
+            >
+              <option value="">— Select location —</option>
+              {SPENCERS_LOCATION_GROUPS.map(g => (
+                <optgroup key={g.prefix} label={g.label}>
+                  {g.options.map(o => (
+                    <option key={o.code} value={o.code}>
+                      {g.prefix === 'PE' ? `${o.code} — Property Exterior ${o.code.slice(2)}` : o.code}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+            {item.location && <span style={b.locationChip}>{item.location}</span>}
+          </div>
+        )}
 
         <textarea
           style={b.lineDetail}
@@ -892,6 +919,10 @@ export default function QuoteBuilder() {
     setItems(prev => prev.filter(i => i.id !== itemId))
   }, [])
 
+  // Spencers (DBS / Kāinga Ora) jobs get a per-line property-element location
+  // picker (PE1 = Property Exterior 1, etc.) — mirrors the portal's location_id.
+  const spencers = isSpencersJob(job)
+
   function handleDragStart({ active }) { setActiveId(active.id) }
   function handleDragEnd({ active, over }) {
     setActiveId(null)
@@ -1279,12 +1310,12 @@ export default function QuoteBuilder() {
                 <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px' }}>
                     {items.map(item => (
-                      <LineItem key={item.id} item={item} onChange={updateItem} onDelete={deleteItem} onMarkup={setMarkupItem} />
+                      <LineItem key={item.id} item={item} onChange={updateItem} onDelete={deleteItem} onMarkup={setMarkupItem} spencers={spencers} />
                     ))}
                   </div>
                 </SortableContext>
                 <DragOverlay>
-                  {activeItem && <LineItem item={activeItem} onChange={() => {}} onDelete={() => {}} />}
+                  {activeItem && <LineItem item={activeItem} onChange={() => {}} onDelete={() => {}} spencers={spencers} />}
                 </DragOverlay>
               </DndContext>
 
@@ -1643,6 +1674,10 @@ const b = {
   lineTotalEx: { fontSize: '10px', color: '#aaa' },
   removeBtn: { background: 'none', border: 'none', color: '#C0392B', fontSize: '12px', cursor: 'pointer', fontFamily: 'var(--font)', padding: '3px 6px' },
   // Fixed / Optional segmented control
+  locationRow: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
+  locationLabel: { fontSize: '9.5px', fontWeight: '700', color: '#6D4AA8', textTransform: 'uppercase', letterSpacing: '0.05em' },
+  locationSelect: { padding: '5px 8px', borderRadius: '6px', border: '1.5px solid #6D4AA8', fontSize: '12px', fontFamily: 'var(--font)', color: 'var(--bark)', background: '#fff', minWidth: '190px' },
+  locationChip: { fontSize: '11px', fontWeight: '700', color: '#fff', background: '#6D4AA8', borderRadius: '4px', padding: '2px 7px', letterSpacing: '0.03em' },
   segCol: { display: 'flex', flexDirection: 'column', gap: '4px', flexShrink: 0, alignItems: 'flex-end' },
   segLabel: { fontSize: '9.5px', fontWeight: '700', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.05em' },
   segWrap: { display: 'flex', borderRadius: '7px', border: '1.5px solid var(--border)', overflow: 'hidden', flexShrink: 0 },
