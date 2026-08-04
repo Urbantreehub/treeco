@@ -33,6 +33,7 @@ CREATE TABLE users (
   phone         TEXT,
   access_level  access_level NOT NULL DEFAULT 'restricted',
   avatar_url    TEXT,
+  resource_id   TEXT,                            -- default calendar resource ('josh', 'isuzu', …)
   active        BOOLEAN NOT NULL DEFAULT TRUE,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -122,6 +123,7 @@ CREATE TABLE schedule (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   job_id      UUID NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
   assigned_to UUID[] NOT NULL DEFAULT '{}',   -- array of user IDs
+  resource_id TEXT,                           -- calendar resource / truck lane ('josh', 'isuzu', …)
   date        DATE NOT NULL,
   start_time  TIME,
   end_time    TIME,
@@ -152,6 +154,7 @@ CREATE INDEX idx_jobs_status ON jobs(status);
 CREATE INDEX idx_jobs_client_id ON jobs(client_id);
 CREATE INDEX idx_schedule_date ON schedule(date);
 CREATE INDEX idx_schedule_job_id ON schedule(job_id);
+CREATE INDEX idx_schedule_resource_id ON schedule(resource_id);
 CREATE INDEX idx_quotes_job_id ON quotes(job_id);
 CREATE INDEX idx_quotes_token ON quotes(client_view_token);
 CREATE INDEX idx_job_photos_job_id ON job_photos(job_id);
