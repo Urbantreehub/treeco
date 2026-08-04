@@ -1047,7 +1047,9 @@ const HAZARD_OPTIONS = [
   'Working at heights',
   'Falling branches / objects',
   'Overhead power lines',
+  'Overhead comms / data cables',
   'Underground services',
+  'Star pickets / ground hazards under climber',
   'Pedestrian and road traffic',
   'Uneven / unstable ground',
   'Fuel handling',
@@ -1124,7 +1126,27 @@ const TASK_PREFILL = {
 • No rigging lines, ropes, branches or equipment to cross over or contact power lines
 • Spotter appointed to monitor clearance distances during aerial and ground operations
 • Works halted immediately and network operator contacted if any accidental approach or contact occurs
-• Network operator written approval obtained for all works within 4m of lines`
+• Network operator written approval obtained for all works within 4m of lines
+• Spear cutting is PROHIBITED near power or service lines — use a directional/scarf cut, smaller cut, higher cutting point or pull line, and plan the drop away from services`
+  },
+  'Overhead comms / data cables': {
+    chips: ['Elimination', 'Administrative controls', 'Engineering controls'],
+    description: `Urban Tree Services Overhead Comms / Data Cable Controls:
+• All overhead services identified and marked at pre-start — comms/data cables checked alongside power lines, not just power
+• Plan the drop away from cables; rig and lower controlled sections rather than free-dropping near a cable
+• Spotter appointed to watch BOTH the piece and the cable line during cutting and lowering
+• Spear cutting is PROHIBITED near any service line — it cannot be directed accurately; use a directional cut, smaller cut, higher cutting point or pull line
+• A brought-down cable is treated as an incident / near-miss and reported (near-miss tick-box on the Incident Report form)`
+  },
+  'Star pickets / ground hazards under climber': {
+    chips: ['Elimination', 'Administrative controls', 'PPE'],
+    description: `Urban Tree Services Ground-Hazard Controls (under the climber):
+• Ground directly beneath the climber checked in the pre-start for EVERY tree, every time — regardless of the tree's size
+• Star pickets / waratahs, protruding stakes, spikes, fencing and debris identified before anyone climbs
+• Hierarchy of control: ELIMINATE first — pull the star picket / waratah out of the ground
+• If it cannot be removed: CAP and FLAG it and note it on this SSSP before climbing begins
+• Star-picket caps carried on every truck
+• Climbers make a habit of looking down when descending`
   },
   'Chipper use': {
     chips: ['PPE', 'Engineering controls', 'Administrative controls'],
@@ -1231,7 +1253,9 @@ const TASK_PREFILL = {
 • Hand-dig trial holes to confirm service locations before mechanical excavation within 500mm of marked services
 • Ground crew aware of all marked service routes — work stops if unexpected pipes, cables or conduits are encountered
 • Stump grinding depth limited to above known service depth in vicinity of marked services
-• Spotter maintained during any mechanical excavation near services`
+• Spotter maintained during any mechanical excavation near services
+• Applies when FELLING as well as grinding — check the street / gutter for service markings before felling near a tree
+• Markings can be incomplete or hidden (e.g. a cap concealed under a bush) — treat services as present wherever power or water clearly runs under or near the tree`
   },
   'Apprentice / trainee on site': {
     chips: ['Administrative controls', 'Engineering controls'],

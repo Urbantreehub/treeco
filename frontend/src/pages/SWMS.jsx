@@ -3,7 +3,7 @@ import { useState, useCallback } from 'react'
 // ── Storage ───────────────────────────────────────────────────────────────────
 
 const LS_KEY     = 'treeco_swms_v2'
-const SEED_KEY   = 'treeco_swms_seeded_v4'
+const SEED_KEY   = 'treeco_swms_seeded_v5'
 
 function loadDocs() {
   try {
@@ -100,6 +100,9 @@ const TASK_LIBRARY = [
       { hazard:'Struck by falling timber, branches or debris', who:'Ground crew / public',
         controls:'Exclusion zone minimum 2× tree height radius — cones, tape and signage. All ground crew within tree radius wear arborist helmet (NZS 8600). Climber signals before each cut or drop. No one stands directly below climber at any time.',
         ll:3,cl:4,lr:2,cr:3 },
+      { hazard:'Fall onto a ground hazard beneath the climber (star picket / waratah, stake, spike, debris)', who:'Climber',
+        controls:'Ground hazards directly under the climber are checked in the pre-start for EVERY tree, every time — regardless of the tree\'s size. Apply the hierarchy of control: ELIMINATE first (pull the star picket / waratah out of the ground); if it cannot be removed, CAP and FLAG it and note it on the SSSP before anyone climbs. Star-picket caps carried on every truck. Look down when descending.',
+        ll:3,cl:4,lr:1,cr:4 },
       { hazard:'Chainsaw contact / kickback during aerial cutting', who:'Climber',
         controls:'Class 1 chainsaw chaps (AS/NZS 4453.3). Cut-resistant gloves. Chainsaw helmet with full visor and earmuffs. Cut at or below shoulder height — never above. Chain brake functional and tested. Sheath chainsaw before descending.',
         ll:3,cl:5,lr:2,cr:4 },
@@ -247,6 +250,9 @@ const TASK_LIBRARY = [
       { hazard:'Uncontrolled fall direction', who:'Operator / crew / public',
         controls:'Assess lean, crown weight, root plate, defects and obstacles before first cut. Plan and communicate intended fall direction. Escape routes established (45° rear diagonal opposite fall) — clear of debris. Bore cut / Humboldt technique to maintain holding-wood control. Wedge for upright or back-lean trees. Exclusion zone (≥2× tree height all directions) clear and confirmed before felling begins.',
         ll:3,cl:5,lr:2,cr:4 },
+      { hazard:'Loss of directional control from an unapproved cut (spear cutting)', who:'Operator / crew / public',
+        controls:'Spear / plunge-spearing a stem to "steer" it is a PROHIBITED cut — struck from company practice at the 31 Jul 2026 toolbox. It cannot be reliably directed. Use an approved directional / scarf cut and back cut, a smaller cut, a higher cutting point, or a pull line / winch. Spear cutting is NEVER used near power or communications lines. If a cut looks difficult, stop and re-plan — the few minutes saved never justify the risk.',
+        ll:2,cl:5,lr:1,cr:5 },
       { hazard:'Barber chair / premature trunk split', who:'Operator',
         controls:'Identify tension wood: leaning trees, co-dominant stems, swept grain. Bore cut technique — do not back-cut through all holding wood in one pass. Have wedge and felling bar ready. Maintain wide hinge (min 10% of diameter). Escape route confirmed before cutting.',
         ll:2,cl:5,lr:1,cr:5 },
@@ -262,12 +268,18 @@ const TASK_LIBRARY = [
     ],
   },
   {
-    id:'powerline', ref:'ArbAus MIS 13 / ECP 34 / WorkSafe NZ',
-    title:'Work Near Power Lines',
+    id:'powerline', ref:'ArbAus MIS 13 / NZECP 34:2001 / WorkSafe NZ',
+    title:'Work Near Power Lines & Services',
     hazards:[
+      { hazard:'Overhead & underground services not identified at pre-start', who:'All crew',
+        controls:'Overhead and underground services — power AND communications / data cables — are checked, marked and recorded on the SSSP at the pre-start for EVERY site. When felling (not only stump grinding), check the street / gutter for underground service markings; markings can be incomplete or hidden (e.g. a cap under a bush), so treat services as present whenever power or water clearly runs under or near the tree. Plan the drop away from services.',
+        ll:3,cl:5,lr:2,cr:4 },
       { hazard:'Electrocution / arcing from energised line contact', who:'Climber / ground crew',
-        controls:'NEVER work within 4m of LV distribution lines (≤110kV) or 6m of HV transmission lines (>110kV) without written approval from line owner and line de-energised or insulated (ECP 34). Map ALL power lines before commencing. Notify line owner (Powerco / Wellington Electricity / Lines Company) before work near lines. If clearances cannot be maintained — STOP. Treat ALL lines as LIVE.',
+        controls:'NEVER work within 4m of LV distribution lines (≤110kV) or 6m of HV transmission lines (>110kV) without written approval from line owner and line de-energised or insulated (NZECP 34). Inside the approach distance, treat as PERMIT-TO-WORK. Map ALL power lines before commencing. Notify line owner (Powerco / Wellington Electricity / Lines Company) before work near lines. If clearances cannot be maintained — STOP. Treat ALL lines as LIVE.',
         ll:3,cl:5,lr:1,cr:5 },
+      { hazard:'Overhead communications / data cable brought down', who:'Climber / ground crew',
+        controls:'Comms/data cables are identified and marked alongside power at pre-start. Spear cutting is PROHIBITED near any service line (it cannot be directed accurately — struck from company practice 31 Jul 2026). Use a directional cut, smaller cut, higher cutting point or pull line, rig and lower controlled sections near lines, and use a SPOTTER watching both the piece and the lines. A downed cable is reported as an incident / near-miss.',
+        ll:3,cl:4,lr:1,cr:3 },
       { hazard:'Ropes, tools or equipment contacting lines', who:'Climber / ground crew',
         controls:'Plan rope throws and anchor placements away from line zone. Fibre ropes only near power lines (no metallic-core ropes). Assess rope path before each throw. Keep pruning poles below line plane. Ground crew maintains line-watching role throughout.',
         ll:3,cl:5,lr:2,cr:4 },
