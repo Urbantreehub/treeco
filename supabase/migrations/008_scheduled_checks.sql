@@ -24,20 +24,14 @@ ON CONFLICT DO NOTHING;
 -- RLS — only staff and above can see / edit
 ALTER TABLE scheduled_checks ENABLE ROW LEVEL SECURITY;
 
+-- access_level enum values are 'full' and 'office' (plus 'restricted'/'truck'
+-- for crew) — no 'staff'/'admin'. Office + full (director) get read/write.
 CREATE POLICY "staff_read_checks" ON scheduled_checks
   FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM users
-      WHERE users.id = auth.uid()
-        AND users.access_level IN ('staff', 'office', 'admin')
-    )
+    (SELECT access_level FROM public.users WHERE id = auth.uid()) IN ('full','office')
   );
 
 CREATE POLICY "admin_write_checks" ON scheduled_checks
   FOR ALL USING (
-    EXISTS (
-      SELECT 1 FROM users
-      WHERE users.id = auth.uid()
-        AND users.access_level IN ('office', 'admin')
-    )
+    (SELECT access_level FROM public.users WHERE id = auth.uid()) IN ('full','office')
   );

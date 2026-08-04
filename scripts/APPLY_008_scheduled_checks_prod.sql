@@ -47,21 +47,20 @@ SET last_done  = DATE '2026-07-31',
 WHERE title = 'Monthly Toolbox Meeting';
 
 -- ── RLS ──────────────────────────────────────────────────────────────
+-- NB: this DB's access_level enum values are 'full' and 'office' (plus
+-- 'restricted'/'truck' for crew) — there is no 'staff'/'admin'. Office +
+-- full (director) get read/write, matching the applied safety migrations.
 ALTER TABLE scheduled_checks ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "staff_read_checks"  ON scheduled_checks;
 CREATE POLICY "staff_read_checks" ON scheduled_checks
   FOR SELECT USING (
-    EXISTS (SELECT 1 FROM users
-            WHERE users.id = auth.uid()
-              AND users.access_level IN ('staff', 'office', 'admin')));
+    (SELECT access_level FROM public.users WHERE id = auth.uid()) IN ('full','office'));
 
 DROP POLICY IF EXISTS "admin_write_checks" ON scheduled_checks;
 CREATE POLICY "admin_write_checks" ON scheduled_checks
   FOR ALL USING (
-    EXISTS (SELECT 1 FROM users
-            WHERE users.id = auth.uid()
-              AND users.access_level IN ('office', 'admin')));
+    (SELECT access_level FROM public.users WHERE id = auth.uid()) IN ('full','office'));
 
 -- ── Verify ───────────────────────────────────────────────────────────
 SELECT title, check_type, last_done, next_due FROM scheduled_checks ORDER BY next_due;
