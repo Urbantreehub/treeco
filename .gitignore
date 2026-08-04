@@ -19,3 +19,7 @@ playwright-report/
 # Job/client data backups (contain client PII)
 scripts/backups/
 scripts/quotient_scrape_raw.json
+
+# Apple Calendar import (client PII)
+scripts/truck_cal_events.txt
+scripts/cal_matches.json
