@@ -1,8 +1,8 @@
 import { useState, useCallback } from 'react'
-import { DEMO_JOBS } from './mockData'
+import { seededJobs } from './mockData'
 
 export function useJobs() {
-  const [jobs, setJobs] = useState(DEMO_JOBS)
+  const [jobs, setJobs] = useState(seededJobs())
 
   const updateJobStatus = useCallback((jobId, newStatus) => {
     setJobs(prev => prev.map(j => j.id === jobId

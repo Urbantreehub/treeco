@@ -371,8 +371,10 @@ function SiteEditor({ site, meId, onClose, onSaved, showToast }) {
     }
     // Only free-typed addresses (no picked suggestion) need the best-effort
     // edge geocode. Awaited so we can warn immediately if it can't be placed.
+    // Skipped without a backend (demo mode) so we never fetch
+    // `undefined/functions/v1/geocode`.
     let geoWarn = false
-    if (!resolved && payload.address && siteId) {
+    if (!resolved && payload.address && siteId && SUPABASE_URL) {
       try {
         const r = await fetch(`${SUPABASE_URL}/functions/v1/geocode`, { method: 'POST', headers: fnHeaders, body: JSON.stringify({ mulch_site_id: siteId }) })
         const g = await r.json().catch(() => ({}))

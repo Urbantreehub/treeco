@@ -1,0 +1,90 @@
+name: E2E
+
+# Playwright end-to-end tests on every push and PR.
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  # Safe, secret-free gate: build the app in demo mode (mock backend, no real
+  # writes) and run the full suite — route smoke against the seeded AND empty
+  # tenants, plus the destructive per-page interaction sweep.
+  e2e-demo:
+    name: E2E (demo build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        working-directory: frontend
+        # --legacy-peer-deps matches how the project installs locally
+        # (react-leaflet's peer range lags the pinned React version).
+        run: npm ci --legacy-peer-deps
+      - name: Install Playwright browser
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+      - name: Run e2e (demo)
+        working-directory: frontend
+        run: npm run test:e2e
+      - name: Upload report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-demo
+          path: frontend/playwright-report
+          retention-days: 14
+
+  # Full suite against the live app. The live deployment is a test environment,
+  # so the destructive interaction sweep runs here too — it writes to the test
+  # database, while controls with real external side effects (send SMS/email,
+  # Xero sync) are skipped. Each project logs in as its own real test account;
+  # any project whose account secret isn't configured skips automatically, so
+  # coverage grows as accounts are added.
+  e2e-live:
+    name: E2E (live app)
+    runs-on: ubuntu-latest
+    env:
+      E2E_BASE_URL: https://app.urbantreeservices.net
+      # full-access owner
+      E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
+      E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+      # full-access, empty tenant (no jobs/clients)
+      E2E_EMPTY_EMAIL: ${{ secrets.E2E_EMPTY_EMAIL }}
+      E2E_EMPTY_PASSWORD: ${{ secrets.E2E_EMPTY_PASSWORD }}
+      # office (staff) account
+      E2E_OFFICE_EMAIL: ${{ secrets.E2E_OFFICE_EMAIL }}
+      E2E_OFFICE_PASSWORD: ${{ secrets.E2E_OFFICE_PASSWORD }}
+      # truck (shared iPad — calendar + work orders) account
+      E2E_TRUCK_EMAIL: ${{ secrets.E2E_TRUCK_EMAIL }}
+      E2E_TRUCK_PASSWORD: ${{ secrets.E2E_TRUCK_PASSWORD }}
+      # crew / individual-staff (docs, chat, safety) account
+      E2E_CREW_EMAIL: ${{ secrets.E2E_CREW_EMAIL }}
+      E2E_CREW_PASSWORD: ${{ secrets.E2E_CREW_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci --legacy-peer-deps
+      - name: Install Playwright browser
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+      - name: Run full suite against the live app
+        working-directory: frontend
+        run: npm run test:e2e
+      - name: Upload report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-live
+          path: frontend/playwright-report
+          retention-days: 14

@@ -101,6 +101,9 @@ export function routeDistanceKm(orderedPoints, start = DEPOT) {
 export async function ensureJobCoords(job) {
   if (job?.lat != null && job?.lng != null) return { lat: job.lat, lng: job.lng }
   if (!job?.id || !job?.address) return null
+  // No backend configured (demo mode) — skip the edge-function call so we never
+  // fetch `undefined/functions/v1/geocode` (a same-origin 404).
+  if (!SUPABASE_URL) return null
   try {
     const res = await fetch(`${SUPABASE_URL}/functions/v1/geocode`, {
       method: 'POST',
@@ -116,6 +119,7 @@ export async function ensureJobCoords(job) {
 
 // Kick off a batch geocode of all un-geocoded jobs (fire-and-forget).
 export async function batchGeocodeJobs() {
+  if (!SUPABASE_URL) return { ok: false, error: 'no backend' }
   try {
     const res = await fetch(`${SUPABASE_URL}/functions/v1/geocode`, {
       method: 'POST',

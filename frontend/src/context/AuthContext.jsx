@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../config/supabase'
-import { DEMO_PROFILE } from '../demo/mockData'
+import { demoProfile } from '../demo/mockData'
 
 const IS_DEMO = import.meta.env.VITE_DEMO === 'true'
 const IS_PURE_DEMO = IS_DEMO && !import.meta.env.VITE_SUPABASE_URL
@@ -8,8 +8,8 @@ const AUTO_LOGIN = !!import.meta.env.VITE_DEMO_EMAIL
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
-  const [session, setSession] = useState(IS_PURE_DEMO ? { user: DEMO_PROFILE } : undefined)
-  const [profile, setProfile] = useState(IS_PURE_DEMO ? DEMO_PROFILE : null)
+  const [session, setSession] = useState(IS_PURE_DEMO ? { user: demoProfile() } : undefined)
+  const [profile, setProfile] = useState(IS_PURE_DEMO ? demoProfile() : null)
 
   useEffect(() => {
     if (IS_PURE_DEMO) return
@@ -28,8 +28,8 @@ export function AuthProvider({ children }) {
               setSession(data.session)
               fetchProfile(data.session.user.id)
             } else {
-              setSession({ user: DEMO_PROFILE })
-              setProfile(DEMO_PROFILE)
+              setSession({ user: demoProfile() })
+              setProfile(demoProfile())
             }
           })
         }
