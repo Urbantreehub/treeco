@@ -11,6 +11,14 @@ H = {"apikey": KEY, "Authorization": f"Bearer {KEY}", "Content-Type": "applicati
 matches = json.load(open("scripts/cal_matches.json"))
 DRY = "--dry-run" in sys.argv
 
+# Map each truck calendar onto its calendar resource + Cartrack vehicle so imported
+# bookings land under the right truck's row (Isuzu/Nissan) instead of "Unassigned",
+# and the live truck-progress rail can track them. resource_id must match
+# RESOURCES in frontend/src/pages/Calendar.jsx; vehicle_reg matches the Cartrack
+# registrations in frontend/src/components/CartrackMap.jsx.
+TRUCK_RESOURCE = {"Big Truck": "isuzu", "Small Truck": "nissan"}
+TRUCK_REG      = {"Big Truck": "GWL756", "Small Truck": "WA2244"}
+
 def parse_iso(s):
     m = re.match(r"(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})", s)
     if not m:
@@ -33,13 +41,15 @@ for m in matches:
         "start_time": None if allday else st,
         "end_time": None if allday else et,
         "status": "scheduled",
+        "resource_id": TRUCK_RESOURCE.get(m["truck"]),
+        "vehicle_reg": TRUCK_REG.get(m["truck"]),
         "notes": f"{m['truck']} · {m['summary']}  (imported from Apple Calendar)",
     })
     job_ids.add(m["job_id"])
 
 print(f"{len(rows)} schedule rows across {len(job_ids)} jobs")
 for r in rows:
-    print(f"  {r['date']} {r['start_time'] or 'all-day'}  {r['notes'][:50]}")
+    print(f"  {r['date']} {r['start_time'] or 'all-day'}  [{r['resource_id'] or 'UNMAPPED'}]  {r['notes'][:50]}")
 if DRY:
     print("DRY RUN — nothing written"); sys.exit(0)
 
