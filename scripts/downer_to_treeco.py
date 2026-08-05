@@ -2,6 +2,13 @@
 """
 downer_to_treeco.py — pull Downer (MyWork/Spotless) work orders into TreeCo.
 
+⚠️  SUPERSEDED for production by downer_desk.py.  MyWork's Microsoft/SharePoint
+login does NOT persist across separate browser launches (the tenant disables
+"keep me signed in"), so this headless, session-file approach reliably fails
+with "session expired". Use scripts/downer_desk.py instead — it keeps one
+authenticated browser open and reads the same MyWork JSON feed. This module is
+kept only for its Supabase helpers (imported by downer_desk.py) and reference.
+
 The Downer counterpart of dbs_to_treeco.py (Spencers). MyWork requires MFA, so
 this runs off a persisted browser session (DOWNER_STORAGE_STATE) captured once
 with:  python3 portal_actions_worker.py --capture-downer

@@ -27,14 +27,13 @@ DOWNER_STORAGE_STATE = os.environ.get("DOWNER_STORAGE_STATE", "downer_session.js
 # Shown verbatim in the TreeCo banner + Actions alert when the session dies.
 MFA_TITLE = "Downer (MyWork) login expired — reconnect"
 MFA_DETAIL = (
-    "Automated Downer sync and portal uploads are paused until the MyWork login "
-    "is refreshed.\n\n"
-    "To reconnect (on the office laptop):\n"
-    "1. Run:  python3 scripts/portal_actions_worker.py --capture-downer\n"
-    "2. Sign in to MyWork and approve the MFA prompt on your phone.\n"
-    "3. It saves a new session file (downer_session.json).\n"
-    "4. Update the worker's DOWNER_STORAGE_STATE secret and redeploy "
-    "(see docs/portal-setup-guide.md).\n\n"
+    "Automated Downer sync is paused until the MyWork login is refreshed.\n\n"
+    "To reconnect (on the office computer running Downer Desk):\n"
+    "1. Find the open Downer Desk browser/Terminal window.\n"
+    "2. Sign in to MyWork again and approve the MFA prompt on your phone.\n"
+    "3. Back in the Terminal window, press Enter — the sync resumes.\n\n"
+    "If Downer Desk isn't running, double-click 'Downer Desk.command' in the "
+    "scripts folder and sign in when the browser opens.\n\n"
     "This message clears itself once the login is working again."
 )
 
