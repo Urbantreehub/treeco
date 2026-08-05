@@ -428,41 +428,38 @@ function LineItem({ item, onChange, onDelete, onMarkup, spencers, spencersOnly, 
           onChange={e => onChange({ ...item, detail: e.target.value })}
           rows={3}
         />
-        {/* Auto-format is off by default — the client sees the text exactly as
-            typed. Turn it on to bold the first line and bullet the rest. */}
-        <button
-          type="button"
-          style={{ ...b.formatBtn, ...(item.format ? b.formatBtnOn : {}) }}
-          onClick={() => onChange({ ...item, format: !item.format })}
-          title="Bold the first line and turn the following lines into bullet points"
-        >
-          {item.format ? '✓ Auto-format: bold heading + bullets' : '✨ Auto-format (bold heading + bullets)'}
-        </button>
+        {/* No auto-format — the client sees the text exactly as typed. Two
+            optional toggles: bold the first line, and/or bullet the rest. */}
+        <div style={b.formatRow}>
+          <button
+            type="button"
+            style={{ ...b.formatBtn, ...(item.bold ? b.formatBtnOn : {}) }}
+            onClick={() => onChange({ ...item, bold: !item.bold })}
+            title="Bold the first line (the heading)"
+          >
+            <strong>B</strong> {item.bold ? 'Bold on' : 'Bold'}
+          </button>
+          <button
+            type="button"
+            style={{ ...b.formatBtn, ...(item.bullets ? b.formatBtnOn : {}) }}
+            onClick={() => onChange({ ...item, bullets: !item.bullets })}
+            title="Show the lines after the first as dot points"
+          >
+            • {item.bullets ? 'Dot points on' : 'Dot points'}
+          </button>
+        </div>
         {item.detail?.trim() && (
           <div style={b.detailPreview}>
             <div style={b.detailPreviewLabel}>Client sees</div>
-            {item.format ? (() => {
+            {(() => {
               const lines = item.detail.split('\n').map(l => l.trim()).filter(Boolean)
-              const hasMarkers = lines.some(l => /^[-•*]\s+/.test(l))
-              if (!hasMarkers) {
-                const [head, ...actions] = lines
-                return (
-                  <>
-                    <div style={b.previewTitle}>{head}</div>
-                    {actions.map((l, i) => (
-                      <div key={i} style={b.previewBullet}><span style={b.previewDot}>•</span>{l}</div>
-                    ))}
-                  </>
-                )
-              }
               return lines.map((line, i) => {
-                const m = /^[-•*]\s+(.*)$/.exec(line)
-                if (m) return <div key={i} style={b.previewBullet}><span style={b.previewDot}>•</span>{m[1]}</div>
-                return <div key={i} style={b.previewLine}>{line}</div>
+                const clean = line.replace(/^[-•*]\s+/, '')
+                if (i === 0) return <div key={i} style={item.bold ? b.previewTitle : b.previewLine}>{clean}</div>
+                if (item.bullets) return <div key={i} style={b.previewBullet}><span style={b.previewDot}>•</span>{clean}</div>
+                return <div key={i} style={b.previewLine}>{clean}</div>
               })
-            })() : (
-              item.detail.split('\n').map((line, i) => <div key={i} style={b.previewLine}>{line || ' '}</div>)
-            )}
+            })()}
           </div>
         )}
 
@@ -1799,7 +1796,8 @@ const b = {
   lineBody: { flex: 1, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '8px' },
   lineTitle: { padding: '7px 9px', borderRadius: '6px', border: '1.5px solid var(--border)', fontSize: '14px', fontFamily: 'var(--font)', color: 'var(--ink)', fontWeight: '500', boxSizing: 'border-box' },
   lineDetail: { width: '100%', padding: '6px 9px', borderRadius: '6px', border: '1.5px solid var(--border)', fontSize: '12px', fontFamily: 'var(--font)', color: '#666', resize: 'vertical', boxSizing: 'border-box' },
-  formatBtn: { alignSelf: 'flex-start', margin: '2px 0 6px', padding: '5px 11px', borderRadius: '7px', border: '1.5px solid var(--border)', background: '#fff', color: '#888', fontSize: '11px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
+  formatRow: { display: 'flex', gap: '6px', flexWrap: 'wrap', margin: '2px 0 6px' },
+  formatBtn: { padding: '5px 11px', borderRadius: '7px', border: '1.5px solid var(--border)', background: '#fff', color: '#888', fontSize: '11px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
   formatBtnOn: { borderColor: 'var(--moss)', color: 'var(--moss)', background: '#F0F7EE' },
   detailPreview: { background: '#FAFAF7', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 10px', fontSize: '12px', color: 'var(--bark)', lineHeight: 1.5 },
   detailPreviewLabel: { fontSize: '9.5px', fontWeight: '700', color: '#bbb', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' },

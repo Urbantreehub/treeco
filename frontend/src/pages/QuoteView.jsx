@@ -76,58 +76,35 @@ function fmtDate(d) {
 //   • Legacy (any line starts with "-", "•" or "*"): marked lines are bullets,
 //     unmarked lines are plain — preserves how older quotes were written.
 // Each line still runs through the glossary annotator.
-function DetailBlock({ text, format, onOpenGlossary }) {
+function DetailBlock({ text, bold, bullets, onOpenGlossary }) {
   if (!text) return null
-  const lines = String(text).split('\n').map(l => l.trim()).filter(Boolean)
+  const lines = String(text).split('\n').map(l => l.trim().replace(/^[-•*]\s+/, '')).filter(Boolean)
   if (!lines.length) return null
 
-  // Auto-format is opt-in per line. Off (default): show the text exactly as
-  // typed. On: bold the first line and bullet the rest.
-  if (!format) {
-    return (
-      <div style={p.itemDetail}>
-        {lines.map((l, i) => (
-          <div key={i} style={p.detailLine}><AnnotatedText text={l} onOpenGlossary={onOpenGlossary} /></div>
-        ))}
+  // No auto-format. The line's own toggles decide: `bold` bolds the first line
+  // (the heading); `bullets` shows the following lines as dot points. Off = the
+  // text exactly as typed.
+  const [head, ...body] = lines
+  return (
+    <div style={p.itemDetail}>
+      <div style={bold ? p.itemSubTitle : p.detailLine}>
+        <AnnotatedText text={head} onOpenGlossary={onOpenGlossary} />
       </div>
-    )
-  }
-
-  const hasMarkers = lines.some(l => /^[-•*]\s+/.test(l))
-
-  if (!hasMarkers) {
-    const [head, ...actions] = lines
-    return (
-      <div style={p.itemDetail}>
-        <div style={p.itemSubTitle}><AnnotatedText text={head} onOpenGlossary={onOpenGlossary} /></div>
-        {actions.length > 0 && (
+      {body.length > 0 && (
+        bullets ? (
           <ul style={p.bulletList}>
-            {actions.map((l, i) => (
+            {body.map((l, i) => (
               <li key={i} style={p.bulletItem}><AnnotatedText text={l} onOpenGlossary={onOpenGlossary} /></li>
             ))}
           </ul>
-        )}
-      </div>
-    )
-  }
-
-  const out = []
-  let bullets = null
-  const flush = () => {
-    if (bullets) { out.push(<ul key={`u${out.length}`} style={p.bulletList}>{bullets}</ul>); bullets = null }
-  }
-  lines.forEach((line, i) => {
-    const m = /^[-•*]\s+(.*)$/.exec(line)
-    if (m) {
-      bullets = bullets || []
-      bullets.push(<li key={i} style={p.bulletItem}><AnnotatedText text={m[1]} onOpenGlossary={onOpenGlossary} /></li>)
-    } else {
-      flush()
-      out.push(<div key={`l${i}`} style={p.detailLine}><AnnotatedText text={line} onOpenGlossary={onOpenGlossary} /></div>)
-    }
-  })
-  flush()
-  return <div style={p.itemDetail}>{out}</div>
+        ) : (
+          body.map((l, i) => (
+            <div key={i} style={p.detailLine}><AnnotatedText text={l} onOpenGlossary={onOpenGlossary} /></div>
+          ))
+        )
+      )}
+    </div>
+  )
 }
 
 function AnnotatedText({ text, onOpenGlossary }) {
@@ -429,7 +406,7 @@ export default function QuoteView() {
                           <AnnotatedText text={item.description || '—'} onOpenGlossary={() => setShowGlossary(true)} />
                           {isOptional && <span style={p.optInlineTag}>Optional</span>}
                         </div>
-                        {item.detail && <DetailBlock text={item.detail} format={item.format} onOpenGlossary={() => setShowGlossary(true)} />}
+                        {item.detail && <DetailBlock text={item.detail} bold={item.bold} bullets={item.bullets} onOpenGlossary={() => setShowGlossary(true)} />}
                         {item.breakdown && (
                           <div style={p.breakdown}>
                             <span style={p.breakdownLabel}>Breakdown of Costs</span>
