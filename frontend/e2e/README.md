@@ -38,14 +38,20 @@ brand-new account with no data. This is what runs on every push (`e2e-demo` job)
 
 ### Live deployment (real login, real backend)
 
-The live app (`app.urbantreeservices.net`) is a **test environment**, so the full
-suite — smoke *and* the destructive interaction sweep — runs against it:
+Against `app.urbantreeservices.net`, CI runs **smoke only** — visit every route as
+the real logged-in user and fail on crashes / console errors / empty pages. It's
+read-only (loads pages, no writes), so it's safe on every push:
 
 ```bash
 E2E_BASE_URL=https://app.urbantreeservices.net \
 E2E_EMAIL=... E2E_PASSWORD=... \
-npm run test:e2e
+npm run test:e2e -- smoke.spec.js
 ```
+
+The destructive click-every-control sweep (`pages.spec.js`) stays on the demo
+build. You *can* point it at the live app manually (drop `smoke.spec.js` above) —
+it writes to the test database, and every edge-function call is stubbed so no
+real SMS/email/Xero fires — but it's intentionally kept out of the per-push CI.
 
 The auth fixture drives the **real login form**. On a live target a role isn't a
 toggle — it's a property of the account you log into — so each `role × tenant`
@@ -70,14 +76,14 @@ Obvious external-comms buttons are also skipped by label (`SKIP_TEXT`).
 
 `.github/workflows/e2e.yml` runs on every push / PR:
 
-- **`e2e-demo`** — full suite against the demo build (no secrets).
-- **`e2e-live`** — full suite against `https://app.urbantreeservices.net` using
-  the account secrets in the table above. Add them in **Settings → Secrets and
-  variables → Actions**. Any account you don't add just skips.
+- **`e2e-demo`** — full suite (smoke + interaction sweep) against the demo build,
+  no secrets.
+- **`e2e-live`** — **smoke only** against `https://app.urbantreeservices.net`
+  using the account secrets in the table above. Add them in **Settings → Secrets
+  and variables → Actions**. Any account you don't add just skips.
 
-> ⚠️ The live accounts should be **test accounts** on the test deployment. The
-> interaction sweep creates records; external-comms/integration buttons are
-> skipped, but everything else (Save/Create) writes to that database.
+> ⚠️ The live accounts should be **test accounts** on the test deployment. Smoke
+> only loads pages (no writes), so it's safe to run on every push.
 
 ## Handy commands
 
