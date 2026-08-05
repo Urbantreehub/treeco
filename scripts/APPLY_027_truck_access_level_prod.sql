@@ -24,8 +24,9 @@ ALTER TYPE access_level ADD VALUE IF NOT EXISTS 'truck';
 -- First, see the current logins so you can pick the right rows:
 --   SELECT id, name, email, access_level, resource_id FROM users ORDER BY name;
 --
--- Then set each truck iPad account. Mapping (per Josh): the Big Truck is
--- the Nissan, the Small Truck is the Isuzu. Fill in the real login emails:
+-- Then set each per-vehicle iPad account. Mapping (per Josh): the Big Truck
+-- is the Nissan, the Small Truck is the Isuzu. The stump grinder is its own
+-- resource. Fill in the real login emails:
 
 -- Small Truck iPad  ->  Isuzu
 UPDATE users
@@ -36,6 +37,11 @@ UPDATE users
 UPDATE users
    SET access_level = 'truck', resource_id = 'nissan'
  WHERE email = 'REPLACE_WITH_BIG_TRUCK_LOGIN_EMAIL';
+
+-- Stump Grinder iPad  ->  Stump Grinder
+UPDATE users
+   SET access_level = 'truck', resource_id = 'stump'
+ WHERE email = 'REPLACE_WITH_STUMP_GRINDER_LOGIN_EMAIL';
 
 -- Verify:
 --   SELECT name, email, access_level, resource_id FROM users
