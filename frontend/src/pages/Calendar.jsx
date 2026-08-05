@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useIsMobile } from '../hooks/useIsMobile'
+import DayRunView from '../components/dayrun/DayRunView'
 import FullCalendar from '@fullcalendar/react'
 import resourceTimelinePlugin from '@fullcalendar/resource-timeline'
 import interactionPlugin, { Draggable } from '@fullcalendar/interaction'
@@ -418,6 +419,36 @@ function Popover({ info, weekEvent, vehicles, onClose, onUnschedule, onLinkVehic
 // ── Crew (restricted) calendar view ───────────────────────────────────────
 function CrewCalendar() {
   const { profile } = useAuth()
+  const resourceId  = profile?.resource_id
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  if (!resourceId) {
+    return (
+      <div style={cw.shell}>
+        <div style={cw.body}>
+          <div style={cw.empty}>No resource assigned — ask your manager to set up your account in Settings.</div>
+        </div>
+      </div>
+    )
+  }
+
+  // Trucks get the same day-run view as quote runs — big stop list, navigate
+  // arrows, work-order shortcut — locked to their own resource by default.
+  return (
+    <DayRunView
+      initialDate={toYMD(today)}
+      myResourceId={resourceId}
+      resources={RESOURCES}
+      resourceColors={RESOURCE_COLOR}
+      onBack={null}
+    />
+  )
+}
+
+function CrewCalendarLegacy_unused() {
+  const { profile } = useAuth()
   const navigate    = useNavigate()
   const isMobile    = useIsMobile()
   const resourceId  = profile?.resource_id
@@ -577,6 +608,10 @@ export default function Calendar() {
 function FullCalendar_() {
   const isMobile = useIsMobile()
   const navigate = useNavigate()
+  const { profile } = useAuth()
+  // Compact-width day-run mode (F26): the selected day rendered as a big
+  // ordered stop list with one-tap navigation, instead of the calendar grid.
+  const [dayRun, setDayRun] = useState(null) // YYYY-MM-DD | null
   const calRef   = useRef()
   const [unscheduled,       setUnscheduled]       = useState([])
   const [events,            setEvents]            = useState([])
@@ -949,6 +984,20 @@ function FullCalendar_() {
     { v: 'listWeek',            label: 'List' },
   ]
 
+  // F26: compact-width day-run mode — the selected day as a big ordered stop
+  // list with one-tap navigation, replacing the calendar grid until Back.
+  if (isMobile && dayRun) {
+    return (
+      <DayRunView
+        initialDate={dayRun}
+        myResourceId={profile?.resource_id}
+        resources={orderedResources}
+        resourceColors={RESOURCE_COLOR}
+        onBack={() => setDayRun(null)}
+      />
+    )
+  }
+
   return (
     <div style={{ ...s.shell, flexDirection: isMobile ? 'column' : 'row' }}>
 
@@ -1072,6 +1121,14 @@ function FullCalendar_() {
             >
               📣 {!isMobile && 'Text day'}
             </button>
+            {isMobile && (
+              <button
+                onClick={() => setDayRun(viewRange.start || toYMD(new Date()))}
+                style={{ background: 'var(--terra)', color: '#fff', border: 'none', borderRadius: '8px', padding: '7px 12px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}
+              >
+                ▶ Day run
+              </button>
+            )}
             <button
               style={{ ...s.filterBtn, ...(showFilter ? s.filterBtnOn : {}) }}
               onClick={() => setShowFilter(v => !v)}

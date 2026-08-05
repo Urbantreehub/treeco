@@ -50,3 +50,28 @@ export function jobHeading(job) {
   }
   return { primary: job?.clients?.name || job?.address || job?.title || '—', secondary: job?.address || null }
 }
+
+// ── Display casing (F6) ──────────────────────────────────────────────────────
+// Portal imports (Downer / Spencers scrapers) arrive ALL CAPS. Convert shouting
+// strings to title case for display only — never mutate stored data. Mixed-case
+// strings are left untouched so hand-entered names keep their exact casing.
+const KEEP_UPPER = new Set(['NZ', 'GST', 'SH', 'KO', 'DBS', 'SP', 'PO', 'RD1', 'ID'])
+
+export function displayCase(str) {
+  if (!str || typeof str !== 'string') return str
+  const letters = str.replace(/[^A-Za-zĀĒĪŌŪāēīōū]/g, '')
+  if (letters.length < 4) return str
+  const upperRatio = str.replace(/[^A-ZĀĒĪŌŪ]/g, '').length / letters.length
+  if (upperRatio < 0.8) return str // already mixed case — leave alone
+  return str.toLowerCase().replace(/[a-zāēīōū][a-zāēīōū']*/g, w => {
+    const up = w.toUpperCase()
+    if (KEEP_UPPER.has(up)) return up
+    return w.charAt(0).toUpperCase() + w.slice(1)
+  })
+}
+
+// tel: href for a phone number — strips spaces/dashes, keeps leading +.
+export function telHref(phone) {
+  if (!phone) return null
+  return 'tel:' + String(phone).replace(/[^\d+]/g, '')
+}

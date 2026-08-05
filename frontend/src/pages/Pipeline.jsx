@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { supabase } from '../config/supabase'
-import { JOB_STATUSES, STATUS_ORDER, isSpencersJob, categoryMeta } from '../config/statuses'
+import { JOB_STATUSES, STATUS_ORDER, isSpencersJob, categoryMeta, manualStatusOptions } from '../config/statuses'
 import { jobHeading, koCode, kpiCountdown } from '../utils/jobDisplay'
 import { useJobs } from '../hooks/useJobs'
 import { useOpenAlerts } from '../hooks/useOpenAlerts'
@@ -236,7 +236,10 @@ export default function Pipeline() {
                           style={s.statusSelectOverlay}
                           aria-label={`Status for ${primary} — change`}
                         >
-                          {Object.keys(JOB_STATUSES).map(key => (
+                          {/* Current status + the few manual moves (F2) — derived
+                              statuses are set by events, not this menu. */}
+                          <option value={job.status}>{JOB_STATUSES[job.status]?.label ?? job.status}</option>
+                          {manualStatusOptions(job.status).map(key => (
                             <option key={key} value={key}>{JOB_STATUSES[key].label}</option>
                           ))}
                         </select>

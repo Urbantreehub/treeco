@@ -231,7 +231,12 @@ function SafetyActionsWidget({ onNavigate }) {
             <div key={item.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 12px', background:u.bg, borderRadius:8, border:`1px solid ${u.color}30` }}>
               <span style={{ width:8, height:8, borderRadius:'50%', background:u.dot, flexShrink:0 }} />
               <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ fontSize:13, fontWeight:600, color:'var(--bark)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{item.title}</div>
+                <div style={{ fontSize:13, fontWeight:600, color:'var(--bark)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                  {item.title.replace(/\s*\(SUPERSEDED\)\s*/i, ' ').trim()}
+                  {/\(SUPERSEDED\)/i.test(item.title) && (
+                    <span style={{ marginLeft:6, fontSize:10, fontWeight:700, color:'#999', background:'#F0EFEA', borderRadius:8, padding:'1px 7px', textTransform:'lowercase', verticalAlign:'middle' }}>superseded</span>
+                  )}
+                </div>
                 <div style={{ fontSize:11, color:'#888', marginTop:1 }}>{item.desc}</div>
               </div>
               <span style={{ fontSize:11, fontWeight:700, color:u.color, flexShrink:0 }}>{dLabel(item.dueDate)}</span>
@@ -396,7 +401,10 @@ export default function Dashboard() {
         { headers: { Authorization: `Bearer ${session?.access_token}` } }
       )
       const body = await res.json()
-      if (res.ok && body.revenue != null) setXeroPnl(body)
+      // F16: treat an all-zero P&L as not-connected — showing $0 revenue tiles
+      // (and a false "pipeline thin" alarm derived from them) is worse than the
+      // accepted-quotes fallback.
+      if (res.ok && body.revenue != null && (Number(body.revenue) !== 0 || Number(body.expenses) !== 0)) setXeroPnl(body)
     } catch { /* Xero not set up */ }
 
     setLoading(false)
@@ -637,98 +645,8 @@ export default function Dashboard() {
         </div>
       </Section>
 
-      {/* ── Fleet ── */}
-      <Section title="Fleet — COF & RUC">
-        <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: '10px', overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', minWidth: '560px' }}>
-            <thead>
-              <tr style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
-                {['Vehicle', 'Plate', 'COF Due', 'RUC Remaining', 'Notes', ''].map(h => (
-                  <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: '11px', fontWeight: '600', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {vehicles.length === 0 && (
-                <tr><td colSpan={6} style={{ padding: '20px', color: '#aaa', textAlign: 'center', fontSize: '13px' }}>
-                  No vehicles yet — run the SQL in Supabase to seed your fleet.
-                </td></tr>
-              )}
-              {vehicles.map(v => {
-                const isEditing = editVeh?.id === v.id
-                const ev = isEditing ? editVeh : v
-                const cofDays = daysUntil(ev.cof_due)
-
-                return (
-                  <tr key={v.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                    <td style={{ padding: '12px 14px', fontWeight: '600', color: 'var(--bark)' }}>{v.name}</td>
-
-                    <td style={{ padding: '12px 14px' }}>
-                      {isEditing
-                        ? <input value={ev.plate || ''} onChange={e => setEditVeh({ ...ev, plate: e.target.value })}
-                            style={styles.cell_input} placeholder="ABC123" />
-                        : <span style={{ color: ev.plate ? 'var(--bark)' : '#ccc' }}>{ev.plate || '—'}</span>
-                      }
-                    </td>
-
-                    <td style={{ padding: '12px 14px' }}>
-                      {isEditing
-                        ? <input type="date" value={ev.cof_due || ''} onChange={e => setEditVeh({ ...ev, cof_due: e.target.value })}
-                            style={styles.cell_input} />
-                        : ev.cof_due
-                          ? <span style={{ fontWeight: '600', color: cofColor(cofDays) }}>
-                              {new Date(ev.cof_due).toLocaleDateString('en-NZ')}
-                              {cofDays != null && <span style={{ fontSize: '11px', marginLeft: '6px', opacity: 0.8 }}>
-                                {cofDays < 0 ? `(${Math.abs(cofDays)}d overdue)` : `(${cofDays}d)`}
-                              </span>}
-                            </span>
-                          : <span style={{ color: '#ccc' }}>—</span>
-                      }
-                    </td>
-
-                    <td style={{ padding: '12px 14px' }}>
-                      {isEditing
-                        ? <input type="number" value={ev.ruc_km_remaining ?? ''} onChange={e => setEditVeh({ ...ev, ruc_km_remaining: e.target.value })}
-                            style={styles.cell_input} placeholder="km" />
-                        : ev.ruc_km_remaining != null
-                          ? <span style={{ fontWeight: '600', color: rucColor(ev.ruc_km_remaining) }}>
-                              {Number(ev.ruc_km_remaining).toLocaleString()} km
-                            </span>
-                          : <span style={{ color: '#ccc' }}>—</span>
-                      }
-                    </td>
-
-                    <td style={{ padding: '12px 14px' }}>
-                      {isEditing
-                        ? <input value={ev.notes || ''} onChange={e => setEditVeh({ ...ev, notes: e.target.value })}
-                            style={{ ...styles.cell_input, width: '180px' }} placeholder="Notes…" />
-                        : <span style={{ color: '#888', fontSize: '12px' }}>{ev.notes || ''}</span>
-                      }
-                    </td>
-
-                    <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>
-                      {isEditing ? (
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <button onClick={() => saveVehicle(ev)} disabled={savingVeh}
-                            style={styles.btn_save}>Save</button>
-                          <button onClick={() => setEditVeh(null)}
-                            style={styles.btn_cancel}>Cancel</button>
-                        </div>
-                      ) : (
-                        <button onClick={() => setEditVeh({ ...v })}
-                          style={styles.btn_edit}>Edit</button>
-                      )}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-        <div style={{ fontSize: '11px', color: '#bbb', marginTop: '8px' }}>
-          COF = Certificate of Fitness &nbsp;·&nbsp; RUC = Road User Charges &nbsp;·&nbsp; Red = overdue/critical, Orange = due soon
-        </div>
-      </Section>
+      {/* Fleet — COF & RUC section removed (F25): it shipped a developer
+          empty state to users. Re-mount once fleet data actually exists. */}
 
 
     </div>

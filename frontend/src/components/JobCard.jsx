@@ -2,6 +2,7 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useState, useEffect } from 'react'
 import { getStatusColor, getStatus } from '../config/statuses'
+import { displayCase } from '../utils/jobDisplay'
 
 function daysSince(dateStr) {
   const diff = Date.now() - new Date(dateStr).getTime()
@@ -89,13 +90,13 @@ export default function JobCard({ job, onClick, showStatus = true }) {
       <div style={{ ...styles.colorBar, background: color }} />
       <div style={styles.body}>
         <div style={styles.topRow}>
-          <div style={styles.clientName}>{job.clients?.name ?? '—'}</div>
+          <div style={styles.clientName}>{displayCase(job.clients?.name) ?? '—'}</div>
           <span style={{ ...styles.daysBadge, background: overdue ? '#FFF0EE' : 'var(--border)', color: overdue ? 'var(--danger)' : '#888' }}>
             {days === 0 ? 'Today' : `${days}d`}
           </span>
         </div>
 
-        {job.address && <div style={styles.address}>{job.address}</div>}
+        {job.address && <div style={styles.address}>{displayCase(job.address)}</div>}
 
         <div style={styles.midRow}>
           {priStyle && (
