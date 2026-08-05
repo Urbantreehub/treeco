@@ -19,8 +19,17 @@ import os
 import requests
 from datetime import datetime, timezone
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://zagwhnnxjtimzvvjaujm.supabase.co")
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
+import re as _re
+
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://zagwhnnxjtimzvvjaujm.supabase.co").strip()
+
+# Be resilient to a mangled key (stray newlines / shell text pasted around it,
+# which is a very easy mistake to make when exporting a JWT in a terminal). The
+# service_role key is a JWT — extract just that so a messy paste can't produce an
+# illegal HTTP header value ("Invalid leading whitespace ... in header value").
+_raw_key = os.environ.get("SUPABASE_SERVICE_KEY", "")
+_jwt = _re.search(r"eyJ[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+", _raw_key)
+SUPABASE_KEY = _jwt.group(0) if _jwt else _raw_key.strip()
 DOWNER_URL           = os.environ.get("DOWNER_URL", "https://mywork.spotless.com.au")
 DOWNER_STORAGE_STATE = os.environ.get("DOWNER_STORAGE_STATE", "downer_session.json")
 

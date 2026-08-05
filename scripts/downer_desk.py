@@ -34,6 +34,29 @@ import os
 import sys
 import asyncio
 
+
+def _load_dotenv(path=".env"):
+    """Load scripts/.env before importing anything that reads os.environ at import
+    time — so `python3 downer_desk.py` works with no shell `export`/`set -a` step
+    (that's exactly where keys get mangled). Robust to `export KEY=…`, quotes, and
+    blank/comment lines; .env wins over an existing (possibly mangled) env var."""
+    try:
+        with open(path) as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                k, v = line.split("=", 1)
+                k = k.replace("export ", "").strip()
+                v = v.strip().strip('"').strip("'")
+                if k:
+                    os.environ[k] = v
+    except FileNotFoundError:
+        pass
+
+
+_load_dotenv()
+
 from playwright.async_api import async_playwright, TimeoutError as PWTimeout
 
 from downer_common import flag_downer_mfa
