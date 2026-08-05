@@ -8,7 +8,7 @@ import { supabase } from '../config/supabase'
 const ACTION_LABEL = {
   accept: 'Accepted', schedule: 'Schedule sent', complete: 'Marked complete',
   upload_invoice: 'Invoice uploaded', preapproval_note: 'Pre-approval note',
-  preapproval_request: 'Pre-approval requested',
+  preapproval_request: 'Pre-approval requested', push_to_portal: 'Pushed to portal',
 }
 
 function fmt(ts) {

@@ -9,7 +9,7 @@ import SpencersPortalData from './SpencersPortalData'
 import ErrorBoundary from './ErrorBoundary'
 import AddressInput from './AddressInput'
 import { useIsMobile } from '../hooks/useIsMobile'
-import { JOB_STATUSES, STATUS_ORDER, isSpencersJob, showsQuoteReference } from '../config/statuses'
+import { JOB_STATUSES, STATUS_ORDER, isSpencersJob, jobCategory, showsQuoteReference } from '../config/statuses'
 import { mapsHref } from '../utils/geo'
 
 // Contextual forward-only transitions per status.
@@ -86,6 +86,7 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
   const [changingStatus, setChangingStatus] = useState(false)
   const [editing, setEditing] = useState(false)
   const [xeroStatus, setXeroStatus] = useState(null) // null | 'pushing' | 'ok' | 'err' | 'not_connected'
+  const [portalPush, setPortalPush] = useState(null) // null | 'pushing' | 'done' | 'err'
   const [quoteFollowUp, setQuoteFollowUp] = useState(null) // { opened_count, last_opened_at, followup_count, last_followup_at, sent_at, id }
   const [followingUp, setFollowingUp] = useState(false)
   const [smsOpen, setSmsOpen] = useState(false)
@@ -199,6 +200,34 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
       setXeroStatus('err')
     }
   }
+  // Stage the completed job for its client portal (Spencers = 'dbs', Downer =
+  // 'downer'): queue a portal_actions row carrying the quote + all Before/During/
+  // After/extra photos so the portal push has everything to submit. The worker
+  // that drains this queue performs the actual portal upload.
+  async function pushToPortal() {
+    setPortalPush('pushing')
+    try {
+      const quote = (job.quotes ?? []).find(q => ['accepted', 'complete', 'invoiced'].includes(q.status)) ?? job.quotes?.[0]
+      const { data: ph } = await supabase.from('job_photos')
+        .select('url, phase, line_ref').eq('job_id', job.id)
+        .in('phase', ['before', 'during', 'after', 'extra'])
+      const photos = { before: [], during: [], after: [], extra: [] }
+      for (const p of (ph ?? [])) { if (photos[p.phase]) photos[p.phase].push({ url: p.url, line_ref: p.line_ref }) }
+      const category = jobCategory(job)
+      const { error } = await supabase.from('portal_actions').insert({
+        job_id: job.id,
+        ko_reference: job.ko_reference || null,
+        source: category === 'downer' ? 'downer' : 'dbs',
+        action: 'push_to_portal',
+        payload: { quote_id: quote?.id ?? null, total: quote?.total ?? null, category, address: job.address, photos },
+      })
+      if (error) throw error
+      setPortalPush('done')
+    } catch {
+      setPortalPush('err')
+    }
+  }
+
   const [form, setForm] = useState({
     title: job.title,
     address: job.address ?? '',
@@ -543,6 +572,27 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
                         {xeroStatus === 'err'     && '❌ Xero push failed — retry?'}
                         {xeroStatus === 'not_connected' && '⚠️ Xero not connected (Settings)'}
                         {!xeroStatus              && '📤 Push invoice to Xero'}
+                      </button>
+                    </div>
+                  )}
+                  {/* Push to Portal — once the S&D job is complete, stage the
+                      quote + all photos for the Spencers/Downer portal. */}
+                  {isSpencersJob(job) && ['complete_to_invoice', 'invoiced'].includes(job.status) && (
+                    <div style={{ marginTop: '6px' }}>
+                      <button
+                        style={{
+                          ...styles.ghostBtn, width: '100%',
+                          borderColor: '#6D4AA855',
+                          color: portalPush === 'done' ? '#1a7a4a' : portalPush === 'err' ? '#c0392b' : '#6D4AA8',
+                          background: portalPush === 'done' ? '#f0fff4' : portalPush === 'err' ? '#fff0ee' : '#F7F4FB',
+                        }}
+                        disabled={portalPush === 'pushing'}
+                        onClick={pushToPortal}
+                      >
+                        {portalPush === 'pushing' && '⏳ Staging for portal…'}
+                        {portalPush === 'done'    && '✅ Queued for portal push'}
+                        {portalPush === 'err'     && '❌ Failed — retry?'}
+                        {!portalPush              && `📤 Push to ${jobCategory(job) === 'downer' ? 'Downer' : 'Spencers'} portal`}
                       </button>
                     </div>
                   )}
