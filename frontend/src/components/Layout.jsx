@@ -130,9 +130,11 @@ export default function Layout() {
     // Secondary items (moreNav, e.g. Clients) always live in the More sheet.
     const mobileItems = [...navItems, ...(isFullAccess ? [{ to: '/settings', label: 'Settings', icon: SettingsIcon }] : [])]
     const MAX = 5
-    const useMore  = mobileItems.length > MAX - 1 || moreNav.length > 0
-    const primary  = useMore ? mobileItems.slice(0, MAX - 1) : mobileItems
-    const overflow = useMore ? [...mobileItems.slice(MAX - 1), ...moreNav] : []
+    // The "More" sheet is always present — it hosts Sign out (essential on the
+    // shared truck iPads, which otherwise have no way to log out) plus any nav
+    // overflow. Reserve its slot so the bar never exceeds MAX.
+    const primary  = mobileItems.slice(0, MAX - 1)
+    const overflow = [...mobileItems.slice(MAX - 1), ...moreNav]
 
     const badgeCount = (to) => (to === '/safety' ? alertCount : to === '/requests' ? pendingRequests : 0)
     const badgeColor = (to) => (to === '/safety' ? '#e53935' : '#D4851A')
@@ -161,19 +163,32 @@ export default function Layout() {
             <div style={m.moreBackdrop} onClick={() => setShowMore(false)} />
             <div style={m.moreSheet}>
               <div style={m.moreHandle} />
-              <div style={m.moreGrid}>
-                {overflow.map(({ to, label, icon: Icon }) => (
-                  <NavLink key={to} to={to} onClick={() => setShowMore(false)}
-                    style={({ isActive }) => ({ ...m.moreItem, ...(isActive ? m.moreItemActive : {}) })}>
-                    {({ isActive }) => (
-                      <>
-                        {iconWithBadge(to, Icon, isActive)}
-                        <span style={m.moreLabel}>{label}</span>
-                      </>
-                    )}
-                  </NavLink>
-                ))}
+              <div style={m.acctHeader}>
+                <div style={m.acctAvatar}>{profile?.name?.[0]?.toUpperCase() ?? '?'}</div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={m.acctName}>{profile?.name ?? '—'}</div>
+                  <div style={m.acctRole}>{isFullAccess ? 'Full access' : isStaff ? 'Office' : isTruck ? 'Truck' : 'Crew'}</div>
+                </div>
               </div>
+              {overflow.length > 0 && (
+                <div style={m.moreGrid}>
+                  {overflow.map(({ to, label, icon: Icon }) => (
+                    <NavLink key={to} to={to} onClick={() => setShowMore(false)}
+                      style={({ isActive }) => ({ ...m.moreItem, ...(isActive ? m.moreItemActive : {}) })}>
+                      {({ isActive }) => (
+                        <>
+                          {iconWithBadge(to, Icon, isActive)}
+                          <span style={m.moreLabel}>{label}</span>
+                        </>
+                      )}
+                    </NavLink>
+                  ))}
+                </div>
+              )}
+              <button onClick={() => { setShowMore(false); handleSignOut() }} style={m.signOutRow}>
+                <LogoutIcon size={18} />
+                Sign out
+              </button>
             </div>
           </>
         )}
@@ -189,17 +204,15 @@ export default function Layout() {
               )}
             </NavLink>
           ))}
-          {useMore && (
-            <button onClick={() => setShowMore(v => !v)} style={{ ...m.tabItem, ...(showMore ? m.tabActive : {}), background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font)' }}>
-              <div style={{ position: 'relative', display: 'inline-flex' }}>
-                <MoreIcon active={showMore} />
-                {overflowBadge > 0 && !showMore && (
-                  <span style={{ ...m.badge, background: '#D4851A' }}>{overflowBadge > 9 ? '9+' : overflowBadge}</span>
-                )}
-              </div>
-              <span style={m.tabLabel}>More</span>
-            </button>
-          )}
+          <button onClick={() => setShowMore(v => !v)} style={{ ...m.tabItem, ...(showMore ? m.tabActive : {}), background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font)' }}>
+            <div style={{ position: 'relative', display: 'inline-flex' }}>
+              <MoreIcon active={showMore} />
+              {overflowBadge > 0 && !showMore && (
+                <span style={{ ...m.badge, background: '#D4851A' }}>{overflowBadge > 9 ? '9+' : overflowBadge}</span>
+              )}
+            </div>
+            <span style={m.tabLabel}>More</span>
+          </button>
         </nav>
       </div>
     )
@@ -369,6 +382,14 @@ function StaffHubIcon({ active, size = 22 }) {
     </svg>
   )
 }
+function LogoutIcon({ active, size = 22 }) {
+  const c = 'currentColor'
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+    </svg>
+  )
+}
 function SettingsIcon({ active, size = 22 }) {
   const c = 'currentColor'
   return (
@@ -462,6 +483,24 @@ const m = {
   },
   moreItemActive: { background: 'var(--terra-wash)', color: 'var(--terra)' },
   moreLabel: { fontSize: '11px', fontWeight: '600', textAlign: 'center' },
+  acctHeader: {
+    display: 'flex', alignItems: 'center', gap: '10px', padding: '4px 8px 12px',
+    marginBottom: '10px', borderBottom: '1px solid var(--line)',
+  },
+  acctAvatar: {
+    width: '38px', height: '38px', borderRadius: '50%', background: 'var(--moss)',
+    color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    fontWeight: '700', fontSize: '15px', flexShrink: 0,
+  },
+  acctName: { fontSize: '14px', fontWeight: '700', color: 'var(--ink)', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  acctRole: { fontSize: '11px', fontWeight: '600', color: 'var(--ink-3, #8a7f72)', marginTop: '2px' },
+  signOutRow: {
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+    width: '100%', marginTop: '12px', padding: '13px 0',
+    background: 'none', border: '1px solid var(--line)', borderRadius: '12px',
+    color: '#B23A2E', fontSize: '15px', fontWeight: '700', cursor: 'pointer',
+    fontFamily: 'var(--font)',
+  },
 }
 
 // ── Desktop styles ────────────────────────────────────────────────────────
