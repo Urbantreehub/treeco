@@ -45,6 +45,7 @@ from datetime import datetime, timezone
 
 import requests
 from playwright.async_api import async_playwright
+from downer_common import flag_downer_mfa, downer_session_ok
 
 # ── Config ────────────────────────────────────────────────────────────────────
 SUPABASE_URL  = os.environ.get("SUPABASE_URL", "https://zagwhnnxjtimzvvjaujm.supabase.co")
@@ -361,8 +362,10 @@ async def process_downer(context, action):
     page = await context.new_page()
     # Confirm the session is still authenticated (MFA sessions expire).
     await page.goto(DOWNER_URL, wait_until="networkidle", timeout=30_000)
-    if await page.get_by_text(re.compile("Sign in", re.I)).count() > 0:
+    if not await downer_session_ok(page):
+        flag_downer_mfa(True)   # tell TreeCo to show the reconnect banner
         raise RuntimeError("Downer session expired — re-capture with --capture-downer")
+    flag_downer_mfa(False)      # login works — clear any standing alert
 
     # VERIFY: Service Orders → search the WO → open it.
     await page.get_by_text(re.compile("Service Orders", re.I)).first.click()
@@ -476,6 +479,7 @@ async def drain_once():
                     if source == "downer":
                         if downer_ctx is None:
                             if not os.path.exists(DOWNER_STORAGE_STATE):
+                                flag_downer_mfa(True)
                                 raise RuntimeError(f"no Downer session ({DOWNER_STORAGE_STATE}) — run --capture-downer first")
                             downer_ctx = await browser.new_context(storage_state=DOWNER_STORAGE_STATE)
                         note = await process_downer(downer_ctx, action)

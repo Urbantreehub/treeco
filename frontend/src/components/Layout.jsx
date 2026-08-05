@@ -5,6 +5,7 @@ import { useIsMobile } from '../hooks/useIsMobile'
 import { useScheduledChecks } from '../hooks/useScheduledChecks'
 import { usePendingRequests } from '../hooks/usePendingRequests'
 import { useOpenAlerts } from '../hooks/useOpenAlerts'
+import DownerSessionBanner from './DownerSessionBanner'
 
 // ── Brand mark — the terracotta starburst from the redesign ───────────────────
 function Starburst({ size = 22 }) {
@@ -34,12 +35,19 @@ function resolveTitle(pathname) {
 }
 
 // Branded banner header shown at the top of every page.
-function PageBanner({ title }) {
+function PageBanner({ title, alerts = 0, onAlerts }) {
   return (
     <div style={bannerStyles.bar}>
       <Starburst size={22} />
       <span style={bannerStyles.word}>TreeCo</span>
-      {title && <span style={bannerStyles.section}>{title}</span>}
+      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
+        {title && <span style={{ ...bannerStyles.section, marginLeft: 0 }}>{title}</span>}
+        {alerts > 0 && (
+          <button onClick={onAlerts} title={`${alerts} to action`} style={bannerStyles.alertBtn}>
+            🔔 <span style={bannerStyles.alertCount}>{alerts > 9 ? '9+' : alerts}</span>
+          </button>
+        )}
+      </div>
     </div>
   )
 }
@@ -58,6 +66,12 @@ const bannerStyles = {
     marginLeft: 'auto', fontSize: '12px', fontWeight: 700, letterSpacing: '0.06em',
     textTransform: 'uppercase', color: 'var(--terra)',
   },
+  alertBtn: {
+    display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 9px 3px 7px',
+    borderRadius: 20, border: 'none', background: '#C0392B', color: '#fff',
+    fontSize: 12, fontWeight: 800, cursor: 'pointer', fontFamily: 'var(--font)', lineHeight: 1,
+  },
+  alertCount: { fontVariantNumeric: 'tabular-nums' },
 }
 
 function AlertsIcon({ active, size = 22 }) {
@@ -167,7 +181,8 @@ export default function Layout() {
     return (
       <div style={m.shell}>
         <main style={m.main}>
-          <PageBanner title={pageTitle} />
+          <PageBanner title={pageTitle} alerts={actionCount} onAlerts={() => navigate('/actions')} />
+          <DownerSessionBanner />
           <Suspense fallback={<div style={pageFallback}>Loading…</div>}>
             <Outlet />
           </Suspense>
@@ -286,7 +301,8 @@ export default function Layout() {
         </div>
       </nav>
       <main style={d.main}>
-        <PageBanner title={pageTitle} />
+        <PageBanner title={pageTitle} alerts={actionCount} onAlerts={() => navigate('/actions')} />
+        <DownerSessionBanner />
         <Suspense fallback={<div style={pageFallback}>Loading…</div>}>
           <Outlet />
         </Suspense>
