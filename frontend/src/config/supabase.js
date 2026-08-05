@@ -147,12 +147,14 @@ const mockClient = {
   from:    (table) => mockChain({ data: DEMO_TABLES[table] ? DEMO_TABLES[table]() : null, error: null }),
   auth: {
     getSession:         () => Promise.resolve({ data: { session: null } }),
-    getUser:            () => Promise.resolve({ data: { user: null }, error: null }),
+    // Pages that stamp actioned_by / completed_by ask for the current user.
+    getUser:            () => Promise.resolve({ data: { user: { id: 'demo-user', email: 'demo@treeco.app' } }, error: null }),
+    // From origin #20 — settings/account pages reach for these in demo mode.
+    updateUser:         () => Promise.resolve({ data: { user: null }, error: null }),
+    resetPasswordForEmail: () => Promise.resolve({ data: {}, error: null }),
     onAuthStateChange:  () => ({ data: { subscription: { unsubscribe: () => {} } } }),
     signInWithPassword: () => Promise.resolve({ error: null }),
     signOut:            () => Promise.resolve(),
-    updateUser:         () => Promise.resolve({ data: { user: null }, error: null }),
-    resetPasswordForEmail: () => Promise.resolve({ data: {}, error: null }),
   },
   storage: {
     from: () => ({
