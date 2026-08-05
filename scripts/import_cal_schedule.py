@@ -16,8 +16,8 @@ DRY = "--dry-run" in sys.argv
 # and the live truck-progress rail can track them. resource_id must match
 # RESOURCES in frontend/src/pages/Calendar.jsx; vehicle_reg matches the Cartrack
 # registrations in frontend/src/components/CartrackMap.jsx.
-TRUCK_RESOURCE = {"Big Truck": "isuzu", "Small Truck": "nissan"}
-TRUCK_REG      = {"Big Truck": "GWL756", "Small Truck": "WA2244"}
+TRUCK_RESOURCE = {"Big Truck": "nissan", "Small Truck": "isuzu"}
+TRUCK_REG      = {"Big Truck": "WA2244", "Small Truck": "GWL756"}
 
 def parse_iso(s):
     m = re.match(r"(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})", s)
