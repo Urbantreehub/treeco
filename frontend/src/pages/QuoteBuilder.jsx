@@ -969,7 +969,7 @@ export default function QuoteBuilder() {
   useEffect(() => {
     if (!isNew) {
       supabase.from('quotes')
-        .select(`*, jobs (id, address, job_type, title, status, clients (id, name, email, phone))`)
+        .select(`*, jobs (id, address, job_type, title, status, category, ko_reference, clients (id, name, email, phone))`)
         .eq('id', id).single()
         .then(({ data }) => {
           if (!data) return
@@ -1112,7 +1112,7 @@ export default function QuoteBuilder() {
       if (error) { showToast(error.message, 'error'); setSaving(false); return }
       showToast(newStatus === 'sent' ? 'Marked as sent' : 'Saved')
       const { data } = await supabase.from('quotes')
-        .select(`*, jobs (id, address, job_type, title, status, clients (id, name, email, phone))`)
+        .select(`*, jobs (id, address, job_type, title, status, category, ko_reference, clients (id, name, email, phone))`)
         .eq('id', id).single()
       if (data) { setQuote(data); setJob(data.jobs) }
     }
@@ -1164,7 +1164,7 @@ export default function QuoteBuilder() {
         .eq('id', quote.job_id)
     }
     const { data } = await supabase.from('quotes')
-      .select(`*, jobs (id, address, job_type, title, status, clients (id, name, email, phone))`)
+      .select(`*, jobs (id, address, job_type, title, status, category, ko_reference, clients (id, name, email, phone))`)
       .eq('id', id).single()
     if (data) { setQuote(data); setJob(data.jobs) }
     showToast('Marked complete')
@@ -1183,7 +1183,7 @@ export default function QuoteBuilder() {
       .eq('id', id)
     if (error) { showToast(error.message, 'error'); setSaving(false); return }
     const { data } = await supabase.from('quotes')
-      .select(`*, jobs (id, address, job_type, title, status, clients (id, name, email, phone))`)
+      .select(`*, jobs (id, address, job_type, title, status, category, ko_reference, clients (id, name, email, phone))`)
       .eq('id', id).single()
     if (data) { setQuote(data); setJob(data.jobs) }
     showToast('Quote reopened for editing')
@@ -1224,7 +1224,7 @@ export default function QuoteBuilder() {
         : 'Invoice created in Xero — job moved to Invoiced ✓')
       // Refresh quote data
       const { data } = await supabase.from('quotes')
-        .select(`*, jobs (id, address, job_type, title, status, clients (id, name, email, phone))`)
+        .select(`*, jobs (id, address, job_type, title, status, category, ko_reference, clients (id, name, email, phone))`)
         .eq('id', quote.id).single()
       if (data) { setQuote(data); setJob(data.jobs) }
     } catch (err) {
