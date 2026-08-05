@@ -410,6 +410,12 @@ export default function QuoteView() {
                           {isOptional && <span style={p.optInlineTag}>Optional</span>}
                         </div>
                         {item.detail && <DetailBlock text={item.detail} onOpenGlossary={() => setShowGlossary(true)} />}
+                        {item.breakdown && (
+                          <div style={p.breakdown}>
+                            <span style={p.breakdownLabel}>Breakdown of Costs</span>
+                            {item.breakdown}
+                          </div>
+                        )}
                         {(() => {
                           const imgs = item.images?.length ? item.images : (item.image_url ? [item.image_url] : [])
                           return imgs.length > 0 && (
@@ -851,6 +857,8 @@ const p = {
   itemDesc: { flex: 1 },
   itemTitle: { fontSize: '16px', fontWeight: '600', color: 'var(--bark)', marginBottom: '4px' },
   itemDetail: { fontSize: '13px', color: '#777', lineHeight: 1.5 },
+  breakdown: { fontSize: '13px', color: 'var(--bark)', lineHeight: 1.5, marginTop: '6px', padding: '7px 10px', background: 'var(--cream)', border: '1px solid var(--border)', borderRadius: '6px' },
+  breakdownLabel: { display: 'block', fontSize: '10px', fontWeight: '700', color: '#8A7CA8', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '2px' },
   itemSubTitle: { fontSize: '14px', fontWeight: '700', color: 'var(--bark)', marginBottom: '4px' },
   // Disposal / Grindings add-ons on the client quote
   addonFixed: { display: 'flex', gap: '6px', alignItems: 'flex-start', fontSize: '13px', color: '#777', lineHeight: 1.5, marginTop: '6px' },

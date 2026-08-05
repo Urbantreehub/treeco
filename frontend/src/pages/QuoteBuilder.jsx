@@ -19,7 +19,7 @@ import { supabase } from '../config/supabase'
 import { useAuth } from '../context/AuthContext'
 import { v4 as uuid } from 'uuid'
 import { GST, calcTotals, lineExtras, DISPOSAL_OPTIONS, GRINDINGS_OPTIONS } from '../utils/pricing'
-import { isSpencersJob } from '../config/statuses'
+import { isSpencersJob, jobCategory } from '../config/statuses'
 import { SPENCERS_LOCATION_GROUPS } from '../config/spencersLocations'
 
 const COMPANY = {
@@ -303,7 +303,13 @@ function AddonGroup({ label, catalog, value, onChange }) {
   )
 }
 
-function LineItem({ item, onChange, onDelete, onMarkup, spencers }) {
+// Spencers non-agreed-rate lines are priced as crew hours at a fixed rate: the
+// quoter enters hours, the price is hours × $320 ex GST, and a "Breakdown of
+// Costs" line is generated for the quote/portal.
+const BREAKDOWN_RATE = 320  // $/hr ex GST
+const breakdownText = h => `3 man truck & chipper charged @ $320+GST per hour × ${h} hour${Number(h) === 1 ? '' : 's'}`
+
+function LineItem({ item, onChange, onDelete, onMarkup, spencers, spencersOnly }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: item.id })
 
@@ -347,6 +353,12 @@ function LineItem({ item, onChange, onDelete, onMarkup, spencers }) {
               qty: CHARGE_CODES.has(sor.code) ? 1 : item.qty,
               // Prefill the rate-card price; quote-required codes (rate null) keep manual entry
               rate: sor.rate != null ? sor.rate : item.rate,
+              // A quote-required SOR code (no fixed rate) is a non-agreed-rate line
+              // on a Spencers job → switch on the $320/hr cost breakdown so the
+              // quoter just enters hours.
+              ...(spencersOnly && sor.rate == null
+                ? { breakdown_on: true, quotable: true, sor: false, rate: BREAKDOWN_RATE }
+                : {}),
             })}
           />
           {/* Fixed / Optional segmented control — labelled so it's easy to find */}
@@ -462,6 +474,46 @@ function LineItem({ item, onChange, onDelete, onMarkup, spencers }) {
             value={item.grindings} onChange={gg => onChange({ ...item, grindings: gg })} />
         </div>
 
+        {/* ── Cost breakdown ($320/hr) — Spencers non-agreed-rate lines ── */}
+        {spencersOnly && (
+          <div style={b.breakdownBox}>
+            <label style={b.breakdownToggle}>
+              <input
+                type="checkbox"
+                checked={!!item.breakdown_on}
+                onChange={e => onChange(e.target.checked
+                  ? { ...item, breakdown_on: true, quotable: true, sor: false, rate: BREAKDOWN_RATE,
+                      qty: item.breakdown_hours || item.qty || 1,
+                      breakdown: item.breakdown_hours ? breakdownText(item.breakdown_hours) : '' }
+                  : { ...item, breakdown_on: false })}
+              />
+              <span>Cost breakdown — crew hours @ $320+GST/hr <span style={b.breakdownNote}>(non-agreed-rate)</span></span>
+            </label>
+            {item.breakdown_on && (
+              <div style={b.breakdownBody}>
+                <span style={b.priceLabel}>Hours</span>
+                <input
+                  style={{ ...b.priceInput, width: '72px', textAlign: 'center', paddingLeft: '8px' }}
+                  type="number" min="0" step="0.5" placeholder="0"
+                  value={item.breakdown_hours ?? ''}
+                  onChange={e => {
+                    const h = e.target.value
+                    onChange({ ...item, breakdown_hours: h, quotable: true, sor: false, rate: BREAKDOWN_RATE,
+                      qty: h === '' ? '' : Math.max(0, Number(h)),
+                      breakdown: h === '' ? '' : breakdownText(h) })
+                  }}
+                />
+                <span style={b.breakdownRate}>× $320 ex GST</span>
+                {item.breakdown_hours != null && item.breakdown_hours !== '' && (
+                  <div style={b.breakdownPreview}>
+                    <strong>Breakdown of Costs</strong> — {breakdownText(item.breakdown_hours)}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* ── Pricing row ── */}
         <div style={b.linePrice}>
           <div style={b.priceCol}>
@@ -469,20 +521,24 @@ function LineItem({ item, onChange, onDelete, onMarkup, spencers }) {
             <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
               <span style={b.priceDollar}>$</span>
               <input
-                style={b.priceInput}
+                style={{ ...b.priceInput, ...(item.breakdown_on ? b.priceLocked : {}) }}
                 type="number" min="0" placeholder="0.00"
                 value={item.rate}
+                disabled={item.breakdown_on}
+                title={item.breakdown_on ? 'Set by the cost breakdown ($320/hr)' : undefined}
                 onChange={e => onChange({ ...item, rate: e.target.value })}
               />
             </div>
           </div>
 
           <div style={b.priceCol}>
-            <div style={b.priceLabel}>Qty</div>
+            <div style={b.priceLabel}>{item.breakdown_on ? 'Hours' : 'Qty'}</div>
             <input
-              style={{ ...b.priceInput, width: '60px', textAlign: 'center', paddingLeft: '8px' }}
+              style={{ ...b.priceInput, width: '60px', textAlign: 'center', paddingLeft: '8px', ...(item.breakdown_on ? b.priceLocked : {}) }}
               type="number" min="0"
               value={item.qty}
+              disabled={item.breakdown_on}
+              title={item.breakdown_on ? 'Set by the hours above' : undefined}
               onChange={e => onChange({ ...item, qty: e.target.value })}
             />
           </div>
@@ -922,6 +978,9 @@ export default function QuoteBuilder() {
   // Spencers (DBS / Kāinga Ora) jobs get a per-line property-element location
   // picker (PE1 = Property Exterior 1, etc.) — mirrors the portal's location_id.
   const spencers = isSpencersJob(job)
+  // Spencers-only (not Downer): the $320/hr cost-breakdown pricing is a Spencers
+  // requirement for non-agreed-rate codes.
+  const spencersOnly = jobCategory(job) === 'spencers'
 
   function handleDragStart({ active }) { setActiveId(active.id) }
   function handleDragEnd({ active, over }) {
@@ -1310,12 +1369,12 @@ export default function QuoteBuilder() {
                 <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px' }}>
                     {items.map(item => (
-                      <LineItem key={item.id} item={item} onChange={updateItem} onDelete={deleteItem} onMarkup={setMarkupItem} spencers={spencers} />
+                      <LineItem key={item.id} item={item} onChange={updateItem} onDelete={deleteItem} onMarkup={setMarkupItem} spencers={spencers} spencersOnly={spencersOnly} />
                     ))}
                   </div>
                 </SortableContext>
                 <DragOverlay>
-                  {activeItem && <LineItem item={activeItem} onChange={() => {}} onDelete={() => {}} spencers={spencers} />}
+                  {activeItem && <LineItem item={activeItem} onChange={() => {}} onDelete={() => {}} spencers={spencers} spencersOnly={spencersOnly} />}
                 </DragOverlay>
               </DndContext>
 
@@ -1670,6 +1729,14 @@ const b = {
   priceLabel: { fontSize: '10px', fontWeight: '700', color: '#aaa', textTransform: 'uppercase' },
   priceDollar: { position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', color: '#aaa', fontSize: '12px', pointerEvents: 'none' },
   priceInput: { padding: '7px 8px 7px 20px', borderRadius: '6px', border: '1.5px solid var(--border)', fontSize: '13px', fontFamily: 'var(--font)', color: 'var(--ink)', width: '110px', textAlign: 'right' },
+  priceLocked: { background: '#F3F1EC', color: '#999', cursor: 'not-allowed' },
+  // Spencers cost breakdown ($320/hr)
+  breakdownBox: { marginTop: '4px', padding: '10px 12px', background: '#F7F4FB', border: '1px solid #E4DCF0', borderRadius: '8px' },
+  breakdownToggle: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: '600', color: '#6D4AA8', cursor: 'pointer' },
+  breakdownNote: { fontWeight: '500', color: '#A99CC0' },
+  breakdownBody: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '8px' },
+  breakdownRate: { fontSize: '12px', color: '#8A7CA8', fontWeight: '600' },
+  breakdownPreview: { flexBasis: '100%', marginTop: '6px', fontSize: '12px', color: 'var(--ink)', background: '#fff', border: '1px solid #E4DCF0', borderRadius: '6px', padding: '7px 10px', lineHeight: 1.5 },
   lineTotal: { fontSize: '15px', fontWeight: '700', color: 'var(--ink)', transition: 'opacity 0.2s' },
   lineTotalEx: { fontSize: '10px', color: '#aaa' },
   removeBtn: { background: 'none', border: 'none', color: '#C0392B', fontSize: '12px', cursor: 'pointer', fontFamily: 'var(--font)', padding: '3px 6px' },
