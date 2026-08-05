@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../config/supabase'
 import { useScheduledChecks } from '../hooks/useScheduledChecks'
 import DashboardFollowUps from '../components/DashboardFollowUps'
+import DashboardWorkload from '../components/DashboardWorkload'
 
 const CREW_DAY_RATE = 2500   // $ per crew per day
 
@@ -524,6 +525,9 @@ export default function Dashboard() {
           <span>{advice.text}</span>
         </div>
       )}
+
+      {/* Live workload — new jobs by type + to-do list */}
+      <DashboardWorkload />
 
       {/* ── KPI row ── */}
       <Section title={`Revenue snapshot${usingXero ? ' — from Xero' : ' — from accepted quotes'}`}>
