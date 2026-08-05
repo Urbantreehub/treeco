@@ -51,13 +51,17 @@ shots go in the "Additional photos" box.
 
 **3. Mark the job Complete** in TreeCo.
 
-**4. Press "Push to Spencers/Downer portal."**
-It uploads every line's photos (Before→Before, During→WIP, After→After) and the
-quote PDF into the portal, in the right spots.
+**4. Stage it to the portal — two buttons (both appear once the job is Complete):**
+- **Upload photos to portal** — puts every line's photos in place (Before→Before,
+  During→WIP, After→After).
+- **Upload to Portal** — puts the quote PDF into the Documents tab under "Other"
+  (agreed-rate codes are left off).
 
-**5. Open the portal and hit Submit / Claim yourself.**
-The worker gets everything *ready* — you do the final click after a quick look.
-(That last step stays with a human on purpose.)
+**5. Finish in the portal yourself (admin final steps):**
+- **Mark each item complete, and who did it** — Spencer's requires every line be
+  ticked complete with the person recorded. The worker never does this.
+- **Submit / Claim.**
+The worker gets everything *ready*; these last steps stay with admin on purpose.
 
 ---
 

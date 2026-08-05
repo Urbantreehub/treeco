@@ -291,6 +291,9 @@ async def dbs_upload_document(page, filepath, category="Other", description=""):
 async def process_spencers(context, action):
     payload = action.get("payload") or {}
     job_id = action["job_id"]
+    act = action.get("action")
+    do_photos = act in ("push_photos", "push_to_portal")
+    do_docs   = act in ("upload_documents", "push_to_portal")
 
     # shl_job_id (portal id) comes from the portal_sync mirror the scraper wrote.
     sync = sb_get("portal_sync", {"select": "shl_job_id", "source": "eq.dbs", "job_id": f"eq.{job_id}", "limit": "1"})
@@ -305,34 +308,40 @@ async def process_spencers(context, action):
     await dbs_login(page)
     await dbs_open_job(page, shl_job_id)
 
-    staged, skipped = 0, 0
-    for phase in ("before", "during", "after"):
-        category = PHASE_TO_PORTAL[phase]
-        for ph in photos.get(phase, []) or []:
-            code = line_code_by_ref(quote, ph.get("line_ref"))
-            ord_job_id = await dbs_find_line_by_code(page, code)
-            if not ord_job_id:
-                log(f"    · no portal line matched code '{code}' — skipping a {phase} photo")
-                skipped += 1
-                continue
-            fp = download_to_tmp(ph["url"], ".jpg")
-            try:
-                await dbs_upload_line_photo(page, ord_job_id, category, fp)
-                staged += 1
-            finally:
-                os.unlink(fp)
+    parts = []
+    if do_photos:
+        staged, skipped = 0, 0
+        for phase in ("before", "during", "after"):
+            category = PHASE_TO_PORTAL[phase]
+            for ph in photos.get(phase, []) or []:
+                code = line_code_by_ref(quote, ph.get("line_ref"))
+                ord_job_id = await dbs_find_line_by_code(page, code)
+                if not ord_job_id:
+                    log(f"    · no portal line matched code '{code}' — skipping a {phase} photo")
+                    skipped += 1
+                    continue
+                fp = download_to_tmp(ph["url"], ".jpg")
+                try:
+                    await dbs_upload_line_photo(page, ord_job_id, category, fp)
+                    staged += 1
+                finally:
+                    os.unlink(fp)
+        parts.append(f"{staged} photo(s) staged ({skipped} skipped)")
 
-    # Quote PDF → Documents tab, category "Other".
-    if quote:
-        pdf = await render_quote_pdf(context, quote.get("client_view_token"))
+    if do_docs and quote:
+        # Quote PDF (agreed-rate codes excluded) → Documents tab, category "Other".
+        pdf = await render_quote_pdf(context, quote.get("client_view_token"), portal=True)
         if pdf:
             try:
                 await dbs_upload_document(page, pdf, category="Other", description="TreeCo quote")
+                parts.append("quote PDF → Documents/Other")
             finally:
                 os.unlink(pdf)
 
     await page.close()
-    return f"staged {staged} photo(s), {skipped} skipped; quote PDF uploaded. Not submitted — review + submit in the portal."
+    # Final steps are deliberately left to admin in the portal.
+    return (", ".join(parts) or "nothing to stage") + \
+        ". Admin still marks each item complete (and by who) and submits in the portal."
 
 
 # ── Downer (MyWork) ───────────────────────────────────────────────────────────
@@ -343,6 +352,9 @@ async def process_downer(context, action):
     wo = action.get("ko_reference")
     if not wo:
         raise RuntimeError("no ko_reference (Work Order number) on this Downer job")
+    act = action.get("action")
+    do_photos = act in ("push_photos", "push_to_portal")
+    do_docs   = act in ("upload_documents", "push_to_portal")
     quote = fetch_quote(payload.get("quote_id"))
     photos = group_photos(payload, quote)
 
@@ -361,7 +373,6 @@ async def process_downer(context, action):
         await page.keyboard.press("Enter")
         await page.wait_for_timeout(2500)
 
-    staged = 0
     # Guide: general Before/WIP/After photos + PDFs go on the Attachments tab,
     # labelled with the SOR code + phase (SPCA format), e.g. "B1 - After".
     attach = page.get_by_text(re.compile(r"^\s*Attachments\s*$", re.I)).first
@@ -370,28 +381,34 @@ async def process_downer(context, action):
     await attach.click()
     await page.wait_for_timeout(1500)
 
-    for phase in ("before", "during", "after"):
-        cat = PHASE_TO_PORTAL[phase]
-        for ph in photos.get(phase, []) or []:
-            code = line_code_by_ref(quote, ph.get("line_ref"))
-            desc = f"{code} - {cat}".strip(" -")
-            fp = download_to_tmp(ph["url"], ".jpg")
-            try:
-                await downer_add_attachment(page, fp, kind="Photograph", description=desc)
-                staged += 1
-            finally:
-                os.unlink(fp)
+    parts = []
+    if do_photos:
+        staged = 0
+        for phase in ("before", "during", "after"):
+            cat = PHASE_TO_PORTAL[phase]
+            for ph in photos.get(phase, []) or []:
+                code = line_code_by_ref(quote, ph.get("line_ref"))
+                desc = f"{code} - {cat}".strip(" -")
+                fp = download_to_tmp(ph["url"], ".jpg")
+                try:
+                    await downer_add_attachment(page, fp, kind="Photograph", description=desc)
+                    staged += 1
+                finally:
+                    os.unlink(fp)
+        parts.append(f"{staged} photo(s) staged")
 
-    if quote:
-        pdf = await render_quote_pdf(context, quote.get("client_view_token"))
+    if do_docs and quote:
+        pdf = await render_quote_pdf(context, quote.get("client_view_token"), portal=True)
         if pdf:
             try:
                 await downer_add_attachment(page, pdf, kind="Document", description="TreeCo quote")
+                parts.append("quote PDF attached")
             finally:
                 os.unlink(pdf)
 
     await page.close()
-    return f"staged {staged} attachment(s) + quote PDF on WO {wo}. Not completed/claimed — review + finish in MyWork."
+    return (", ".join(parts) or "nothing to stage") + \
+        f" on WO {wo}. Admin still completes + claims in MyWork."
 
 
 async def downer_add_attachment(page, filepath, kind="Photograph", description=""):

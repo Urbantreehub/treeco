@@ -86,10 +86,27 @@ including) Complete, and leaves Claim to a human.
 
 ---
 
-## What the worker stages vs. submits
+## Two staging actions (two buttons)
 
-Per Josh's "getting it ready to submit" requirement, the worker **stages**:
-uploads all photos to the right places, uploads the quote/invoice PDFs, and (on
-Downer) fills Items/Notes — then **stops before the final Claim/submit** so the
-office does a last check and clicks the final button. A `portal_actions` row is
-marked `done` when staging succeeds, `failed` (with `last_error`) otherwise.
+On a **complete** S&D job the panel offers two separate buttons, each queuing its
+own `portal_actions` row:
+
+| Button | Action | What the worker does |
+|---|---|---|
+| **Upload photos to portal** | `push_photos` | Per-line Before/During/After photos onto each line (Spencers streetlight popup / Downer Attachments). |
+| **Upload to Portal** (quote PDF → Documents) | `upload_documents` | The quote PDF (agreed-rate codes excluded) into the **Documents** tab under **Other**. |
+
+Both appear only once the job is at **Complete** status.
+
+## What the worker stages vs. what admin does
+
+The worker **stages** — uploads photos and the quote PDF to the right places —
+then stops. The following are **left to admin** as the final manual steps in the
+portal (never automated):
+
+- **Mark each line item complete, and by who** (Spencers requires each item be
+  ticked complete with the person recorded).
+- The final **Submit / Claim**.
+
+A `portal_actions` row is `done` when staging succeeds, `failed` (with
+`last_error`) otherwise.

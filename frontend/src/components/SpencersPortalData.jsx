@@ -9,6 +9,7 @@ const ACTION_LABEL = {
   accept: 'Accepted', schedule: 'Schedule sent', complete: 'Marked complete',
   upload_invoice: 'Invoice uploaded', preapproval_note: 'Pre-approval note',
   preapproval_request: 'Pre-approval requested', push_to_portal: 'Pushed to portal',
+  push_photos: 'Photos uploaded', upload_documents: 'Quote PDF uploaded',
 }
 
 function fmt(ts) {

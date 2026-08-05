@@ -86,7 +86,8 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
   const [changingStatus, setChangingStatus] = useState(false)
   const [editing, setEditing] = useState(false)
   const [xeroStatus, setXeroStatus] = useState(null) // null | 'pushing' | 'ok' | 'err' | 'not_connected'
-  const [portalPush, setPortalPush] = useState(null) // null | 'pushing' | 'done' | 'err'
+  const [photosPush, setPhotosPush] = useState(null) // null | 'pushing' | 'done' | 'err'
+  const [docsPush, setDocsPush] = useState(null)     // null | 'pushing' | 'done' | 'err'
   const [quoteFollowUp, setQuoteFollowUp] = useState(null) // { opened_count, last_opened_at, followup_count, last_followup_at, sent_at, id }
   const [followingUp, setFollowingUp] = useState(false)
   const [smsOpen, setSmsOpen] = useState(false)
@@ -201,11 +202,13 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
     }
   }
   // Stage the completed job for its client portal (Spencers = 'dbs', Downer =
-  // 'downer'): queue a portal_actions row carrying the quote + all Before/During/
-  // After/extra photos so the portal push has everything to submit. The worker
-  // that drains this queue performs the actual portal upload.
-  async function pushToPortal() {
-    setPortalPush('pushing')
+  // 'downer'). Two separate steps the admin runs from the panel:
+  //  · 'push_photos'      — per-line Before/During/After photos onto each line.
+  //  · 'upload_documents' — the quote PDF into the Documents tab under "Other".
+  // The worker drains the queue and stages the upload; the admin then marks each
+  // item complete (and by who) and submits/claims in the portal itself.
+  async function enqueuePortal(action, setState) {
+    setState('pushing')
     try {
       const quote = (job.quotes ?? []).find(q => ['accepted', 'complete', 'invoiced'].includes(q.status)) ?? job.quotes?.[0]
       const { data: ph } = await supabase.from('job_photos')
@@ -218,13 +221,13 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
         job_id: job.id,
         ko_reference: job.ko_reference || null,
         source: category === 'downer' ? 'downer' : 'dbs',
-        action: 'push_to_portal',
+        action,
         payload: { quote_id: quote?.id ?? null, total: quote?.total ?? null, category, address: job.address, photos },
       })
       if (error) throw error
-      setPortalPush('done')
+      setState('done')
     } catch {
-      setPortalPush('err')
+      setState('err')
     }
   }
 
@@ -575,25 +578,44 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
                       </button>
                     </div>
                   )}
-                  {/* Push to Portal — once the S&D job is complete, stage the
-                      quote + all photos for the Spencers/Downer portal. */}
+                  {/* Portal staging — two steps, once the S&D job is complete.
+                      Photos go per line; the quote PDF goes to Documents ("Other").
+                      Admin then marks each item complete + submits in the portal. */}
                   {isSpencersJob(job) && ['complete_to_invoice', 'invoiced'].includes(job.status) && (
-                    <div style={{ marginTop: '6px' }}>
+                    <div style={{ marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                       <button
                         style={{
                           ...styles.ghostBtn, width: '100%',
                           borderColor: '#6D4AA855',
-                          color: portalPush === 'done' ? '#1a7a4a' : portalPush === 'err' ? '#c0392b' : '#6D4AA8',
-                          background: portalPush === 'done' ? '#f0fff4' : portalPush === 'err' ? '#fff0ee' : '#F7F4FB',
+                          color: photosPush === 'done' ? '#1a7a4a' : photosPush === 'err' ? '#c0392b' : '#6D4AA8',
+                          background: photosPush === 'done' ? '#f0fff4' : photosPush === 'err' ? '#fff0ee' : '#F7F4FB',
                         }}
-                        disabled={portalPush === 'pushing'}
-                        onClick={pushToPortal}
+                        disabled={photosPush === 'pushing'}
+                        onClick={() => enqueuePortal('push_photos', setPhotosPush)}
                       >
-                        {portalPush === 'pushing' && '⏳ Staging for portal…'}
-                        {portalPush === 'done'    && '✅ Queued for portal push'}
-                        {portalPush === 'err'     && '❌ Failed — retry?'}
-                        {!portalPush              && `📤 Push to ${jobCategory(job) === 'downer' ? 'Downer' : 'Spencers'} portal`}
+                        {photosPush === 'pushing' && '⏳ Staging photos…'}
+                        {photosPush === 'done'    && '✅ Photos queued'}
+                        {photosPush === 'err'     && '❌ Failed — retry?'}
+                        {!photosPush              && '📷 Upload photos to portal'}
                       </button>
+                      <button
+                        style={{
+                          ...styles.ghostBtn, width: '100%',
+                          borderColor: '#6D4AA855',
+                          color: docsPush === 'done' ? '#1a7a4a' : docsPush === 'err' ? '#c0392b' : '#6D4AA8',
+                          background: docsPush === 'done' ? '#f0fff4' : docsPush === 'err' ? '#fff0ee' : '#F7F4FB',
+                        }}
+                        disabled={docsPush === 'pushing'}
+                        onClick={() => enqueuePortal('upload_documents', setDocsPush)}
+                      >
+                        {docsPush === 'pushing' && '⏳ Uploading quote PDF…'}
+                        {docsPush === 'done'    && '✅ Quote PDF queued'}
+                        {docsPush === 'err'     && '❌ Failed — retry?'}
+                        {!docsPush              && '📤 Upload to Portal (quote PDF → Documents)'}
+                      </button>
+                      <div style={{ fontSize: '11px', color: '#999', lineHeight: 1.4 }}>
+                        Final steps stay with admin in the portal: mark each item complete (and by who), then submit.
+                      </div>
                     </div>
                   )}
                 </div>
