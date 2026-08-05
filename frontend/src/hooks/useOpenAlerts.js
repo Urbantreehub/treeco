@@ -25,8 +25,13 @@ export function useOpenAlerts(enabled) {
     }
     refresh()
 
+    // Unique channel name per hook instance. This hook mounts in more than one
+    // place at once (the nav bar + the Jobs list), and a shared channel name
+    // makes the second subscriber attach `.on()` to an already-subscribed
+    // channel — Supabase throws "cannot add postgres_changes callbacks ... after
+    // subscribe()", which crashed the whole page. A per-instance name isolates them.
     const channel = supabase
-      .channel('open-alerts')
+      .channel(`open-alerts-${Math.random().toString(36).slice(2)}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'job_alerts' }, refresh)
       .subscribe()
 

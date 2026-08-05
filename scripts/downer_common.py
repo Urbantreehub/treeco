@@ -19,22 +19,30 @@ import os
 import requests
 from datetime import datetime, timezone
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://zagwhnnxjtimzvvjaujm.supabase.co")
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
+import re as _re
+
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://zagwhnnxjtimzvvjaujm.supabase.co").strip()
+
+# Be resilient to a mangled key (stray newlines / shell text pasted around it,
+# which is a very easy mistake to make when exporting a JWT in a terminal). The
+# service_role key is a JWT — extract just that so a messy paste can't produce an
+# illegal HTTP header value ("Invalid leading whitespace ... in header value").
+_raw_key = os.environ.get("SUPABASE_SERVICE_KEY", "")
+_jwt = _re.search(r"eyJ[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+", _raw_key)
+SUPABASE_KEY = _jwt.group(0) if _jwt else _raw_key.strip()
 DOWNER_URL           = os.environ.get("DOWNER_URL", "https://mywork.spotless.com.au")
 DOWNER_STORAGE_STATE = os.environ.get("DOWNER_STORAGE_STATE", "downer_session.json")
 
 # Shown verbatim in the TreeCo banner + Actions alert when the session dies.
 MFA_TITLE = "Downer (MyWork) login expired — reconnect"
 MFA_DETAIL = (
-    "Automated Downer sync and portal uploads are paused until the MyWork login "
-    "is refreshed.\n\n"
-    "To reconnect (on the office laptop):\n"
-    "1. Run:  python3 scripts/portal_actions_worker.py --capture-downer\n"
-    "2. Sign in to MyWork and approve the MFA prompt on your phone.\n"
-    "3. It saves a new session file (downer_session.json).\n"
-    "4. Update the worker's DOWNER_STORAGE_STATE secret and redeploy "
-    "(see docs/portal-setup-guide.md).\n\n"
+    "Automated Downer sync is paused until the MyWork login is refreshed.\n\n"
+    "To reconnect (on the office computer running Downer Desk):\n"
+    "1. Find the open Downer Desk browser/Terminal window.\n"
+    "2. Sign in to MyWork again and approve the MFA prompt on your phone.\n"
+    "3. Back in the Terminal window, press Enter — the sync resumes.\n\n"
+    "If Downer Desk isn't running, double-click 'Downer Desk.command' in the "
+    "scripts folder and sign in when the browser opens.\n\n"
     "This message clears itself once the login is working again."
 )
 
