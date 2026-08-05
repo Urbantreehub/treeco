@@ -74,3 +74,41 @@ DBS_HEADLESS=1 python3 dbs_to_treeco.py
 ```
 
 Add `RESEND_API_KEY=...` to `scripts/.env` first if you want to test the email.
+
+---
+
+# portal_actions worker (write-back / "Push to Portal")
+
+`portal_actions_worker.py` is the outbound counterpart: it drains the
+`portal_actions` queue (rows the app's "Push to Portal" button inserts) and
+**stages** each completed job into its portal — per-line Before/During/After
+photos + the quote PDF — stopping before the final Claim/submit. Mapping spec:
+`docs/portal-upload-mapping.md`.
+
+- **Spencers** (`source = 'dbs'`) — reuses the same login as the scraper; opens the
+  job, uploads each line's photos via its "streetlight" popup (Before/WIP/After),
+  and uploads the quote PDF to the Documents tab under **Other**.
+- **Downer** (`source = 'downer'`) — MyWork has **MFA**, so capture a session once:
+  ```bash
+  cd scripts && python3 portal_actions_worker.py --capture-downer
+  # finish the login + MFA in the window, press Enter → saves downer_session.json
+  ```
+  Then set `DOWNER_STORAGE_STATE` to that file (a Fly.io secret/volume in prod).
+
+Run it:
+```bash
+cd scripts && set -a && . .env && set +a
+python3 portal_actions_worker.py            # single drain pass (prints {"done":N,"failed":N})
+POLL_SECONDS=120 python3 portal_actions_worker.py   # forever loop
+```
+
+Secrets it reads: `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `APP_BASE_URL`,
+`DBS_URL`/`DBS_USERNAME`/`DBS_PASSWORD` (Spencers), `DOWNER_URL`/`DOWNER_STORAGE_STATE`
+(Downer), `POLL_SECONDS`, `HEADLESS`.
+
+> ⚠️ First-run verification: the login, job-open and per-line "streetlight"
+> selectors are proven (shared with the scraper), but the **upload-popup internals**
+> (category dropdown + file input), the **Documents tab**, and the **entire Downer
+> MyWork DOM** are not yet confirmed against the live portals. Those steps use
+> robust text selectors and **fail loudly** (never silently) — do the first run
+> **headful** (`HEADLESS=0`) on one job and adjust the `# VERIFY` selectors as needed.

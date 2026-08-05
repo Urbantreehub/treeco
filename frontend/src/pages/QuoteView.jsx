@@ -76,45 +76,35 @@ function fmtDate(d) {
 //   • Legacy (any line starts with "-", "•" or "*"): marked lines are bullets,
 //     unmarked lines are plain — preserves how older quotes were written.
 // Each line still runs through the glossary annotator.
-function DetailBlock({ text, onOpenGlossary }) {
+function DetailBlock({ text, bold, bullets, onOpenGlossary }) {
   if (!text) return null
-  const lines = String(text).split('\n').map(l => l.trim()).filter(Boolean)
+  const lines = String(text).split('\n').map(l => l.trim().replace(/^[-•*]\s+/, '')).filter(Boolean)
   if (!lines.length) return null
-  const hasMarkers = lines.some(l => /^[-•*]\s+/.test(l))
 
-  if (!hasMarkers) {
-    const [head, ...actions] = lines
-    return (
-      <div style={p.itemDetail}>
-        <div style={p.itemSubTitle}><AnnotatedText text={head} onOpenGlossary={onOpenGlossary} /></div>
-        {actions.length > 0 && (
+  // No auto-format. The line's own toggles decide: `bold` bolds the first line
+  // (the heading); `bullets` shows the following lines as dot points. Off = the
+  // text exactly as typed.
+  const [head, ...body] = lines
+  return (
+    <div style={p.itemDetail}>
+      <div style={bold ? p.itemSubTitle : p.detailLine}>
+        <AnnotatedText text={head} onOpenGlossary={onOpenGlossary} />
+      </div>
+      {body.length > 0 && (
+        bullets ? (
           <ul style={p.bulletList}>
-            {actions.map((l, i) => (
+            {body.map((l, i) => (
               <li key={i} style={p.bulletItem}><AnnotatedText text={l} onOpenGlossary={onOpenGlossary} /></li>
             ))}
           </ul>
-        )}
-      </div>
-    )
-  }
-
-  const out = []
-  let bullets = null
-  const flush = () => {
-    if (bullets) { out.push(<ul key={`u${out.length}`} style={p.bulletList}>{bullets}</ul>); bullets = null }
-  }
-  lines.forEach((line, i) => {
-    const m = /^[-•*]\s+(.*)$/.exec(line)
-    if (m) {
-      bullets = bullets || []
-      bullets.push(<li key={i} style={p.bulletItem}><AnnotatedText text={m[1]} onOpenGlossary={onOpenGlossary} /></li>)
-    } else {
-      flush()
-      out.push(<div key={`l${i}`} style={p.detailLine}><AnnotatedText text={line} onOpenGlossary={onOpenGlossary} /></div>)
-    }
-  })
-  flush()
-  return <div style={p.itemDetail}>{out}</div>
+        ) : (
+          body.map((l, i) => (
+            <div key={i} style={p.detailLine}><AnnotatedText text={l} onOpenGlossary={onOpenGlossary} /></div>
+          ))
+        )
+      )}
+    </div>
+  )
 }
 
 function AnnotatedText({ text, onOpenGlossary }) {
@@ -153,6 +143,10 @@ export default function QuoteView() {
   const searchParams = new URLSearchParams(window.location.search)
   const isPreview = searchParams.get('preview') === '1'
   const isDownload = searchParams.get('download') === '1'
+  // Portal mode: the PDF uploaded to Spencers must EXCLUDE agreed-rate (schedule-
+  // of-rates) codes — those are paid on the schedule, not quoted. Only non-agreed
+  // -rate lines belong on the portal quote/invoice.
+  const isPortal = searchParams.get('portal') === '1'
   const [quote, setQuote] = useState(null)
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
@@ -215,7 +209,10 @@ export default function QuoteView() {
       : i))
   }
 
-  const totals = calcTotals(items)
+  // In portal mode, drop agreed-rate SOR lines (i.sor === true) from both the
+  // rendered document and the totals.
+  const displayItems = isPortal ? items.filter(i => i.sor !== true) : items
+  const totals = calcTotals(displayItems)
 
   async function respond(action, reason = '') {
     if (isPreview) return
@@ -374,7 +371,7 @@ export default function QuoteView() {
 
           {/* ── Line items ── */}
           <div style={p.itemsSection}>
-            {items.map((item) => {
+            {displayItems.map((item) => {
               const isOptional = item.optional
               const isActive = !isOptional || item.selected
               const lineTotal = (Number(item.qty) || 0) * (Number(item.rate) || 0) + lineExtras(item)
@@ -409,7 +406,13 @@ export default function QuoteView() {
                           <AnnotatedText text={item.description || '—'} onOpenGlossary={() => setShowGlossary(true)} />
                           {isOptional && <span style={p.optInlineTag}>Optional</span>}
                         </div>
-                        {item.detail && <DetailBlock text={item.detail} onOpenGlossary={() => setShowGlossary(true)} />}
+                        {item.detail && <DetailBlock text={item.detail} bold={item.bold} bullets={item.bullets} onOpenGlossary={() => setShowGlossary(true)} />}
+                        {item.breakdown && (
+                          <div style={p.breakdown}>
+                            <span style={p.breakdownLabel}>Breakdown of Costs</span>
+                            {item.breakdown}
+                          </div>
+                        )}
                         {(() => {
                           const imgs = item.images?.length ? item.images : (item.image_url ? [item.image_url] : [])
                           return imgs.length > 0 && (
@@ -851,6 +854,8 @@ const p = {
   itemDesc: { flex: 1 },
   itemTitle: { fontSize: '16px', fontWeight: '600', color: 'var(--bark)', marginBottom: '4px' },
   itemDetail: { fontSize: '13px', color: '#777', lineHeight: 1.5 },
+  breakdown: { fontSize: '13px', color: 'var(--bark)', lineHeight: 1.5, marginTop: '6px', padding: '7px 10px', background: 'var(--cream)', border: '1px solid var(--border)', borderRadius: '6px' },
+  breakdownLabel: { display: 'block', fontSize: '10px', fontWeight: '700', color: '#8A7CA8', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '2px' },
   itemSubTitle: { fontSize: '14px', fontWeight: '700', color: 'var(--bark)', marginBottom: '4px' },
   // Disposal / Grindings add-ons on the client quote
   addonFixed: { display: 'flex', gap: '6px', alignItems: 'flex-start', fontSize: '13px', color: '#777', lineHeight: 1.5, marginTop: '6px' },

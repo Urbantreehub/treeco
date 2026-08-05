@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { useScheduledChecks } from '../hooks/useScheduledChecks'
 import { usePendingRequests } from '../hooks/usePendingRequests'
+import { useOpenAlerts } from '../hooks/useOpenAlerts'
 
 // ── Brand mark — the terracotta starburst from the redesign ───────────────────
 function Starburst({ size = 22 }) {
@@ -24,6 +25,7 @@ const ROUTE_TITLES = {
   '/planner': 'Planner', '/mulch': 'Mulch', '/requests': 'Tools', '/safety': 'Safety',
   '/staff': 'Team', '/clients': 'Clients', '/settings': 'Settings', '/quotes': 'Quotes',
   '/quote': 'Quote', '/workorder': 'Work Order', '/jobpack': 'Job Pack', '/my-docs': 'My Docs',
+  '/actions': 'Actions',
 }
 function resolveTitle(pathname) {
   const keys = Object.keys(ROUTE_TITLES).sort((a, b) => b.length - a.length)
@@ -58,9 +60,20 @@ const bannerStyles = {
   },
 }
 
+function AlertsIcon({ active, size = 22 }) {
+  const c = 'currentColor'
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+    </svg>
+  )
+}
+
 const FULL_NAV = [
   { to: '/dashboard', label: 'Dashboard', icon: DashboardIcon },
   { to: '/pipeline',  label: 'Jobs',      icon: PipelineIcon },
+  { to: '/actions',   label: 'Actions',   icon: AlertsIcon },
   { to: '/calendar',  label: 'Calendar',  icon: CalendarIcon },
   { to: '/planner',   label: 'Planner',   icon: PlannerIcon },
   { to: '/mulch',     label: 'Mulch',     icon: MulchIcon },
@@ -72,6 +85,7 @@ const FULL_NAV = [
 
 const OFFICE_NAV = [
   { to: '/pipeline',  label: 'Jobs',      icon: PipelineIcon },
+  { to: '/actions',   label: 'Actions',   icon: AlertsIcon },
   { to: '/calendar',  label: 'Calendar',  icon: CalendarIcon },
   { to: '/planner',   label: 'Planner',   icon: PlannerIcon },
   { to: '/mulch',     label: 'Mulch',     icon: MulchIcon },
@@ -112,6 +126,7 @@ export default function Layout() {
   const { overdue, dueSoon } = useScheduledChecks()
   const alertCount = overdue.length + dueSoon.length
   const pendingRequests = usePendingRequests(isStaff)
+  const { count: actionCount } = useOpenAlerts(isStaff)
   const [showMore, setShowMore] = useState(false)
   const location = useLocation()
   const pageTitle = resolveTitle(location.pathname)
@@ -136,8 +151,8 @@ export default function Layout() {
     const primary  = mobileItems.slice(0, MAX - 1)
     const overflow = [...mobileItems.slice(MAX - 1), ...moreNav]
 
-    const badgeCount = (to) => (to === '/safety' ? alertCount : to === '/requests' ? pendingRequests : 0)
-    const badgeColor = (to) => (to === '/safety' ? '#e53935' : '#D4851A')
+    const badgeCount = (to) => (to === '/safety' ? alertCount : to === '/requests' ? pendingRequests : to === '/actions' ? actionCount : 0)
+    const badgeColor = (to) => (to === '/actions' ? '#C0392B' : to === '/safety' ? '#e53935' : '#D4851A')
     const overflowBadge = overflow.reduce((n, it) => n + badgeCount(it.to), 0)
 
     const iconWithBadge = (to, Icon, active) => (
@@ -238,6 +253,9 @@ export default function Layout() {
                   )}
                   {to === '/requests' && pendingRequests > 0 && (
                     <span style={{ marginLeft: 'auto', background: '#D4851A', color: '#fff', borderRadius: 10, padding: '1px 6px', fontSize: 10, fontWeight: 700 }}>{pendingRequests > 9 ? '9+' : pendingRequests}</span>
+                  )}
+                  {to === '/actions' && actionCount > 0 && (
+                    <span style={{ marginLeft: 'auto', background: '#C0392B', color: '#fff', borderRadius: 10, padding: '1px 6px', fontSize: 10, fontWeight: 700 }}>{actionCount > 9 ? '9+' : actionCount}</span>
                   )}
                 </NavLink>
               </li>

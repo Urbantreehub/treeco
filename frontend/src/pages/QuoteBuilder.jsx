@@ -19,7 +19,8 @@ import { supabase } from '../config/supabase'
 import { useAuth } from '../context/AuthContext'
 import { v4 as uuid } from 'uuid'
 import { GST, calcTotals, lineExtras, DISPOSAL_OPTIONS, GRINDINGS_OPTIONS } from '../utils/pricing'
-import { isSpencersJob } from '../config/statuses'
+import { stampImage, buildStamp } from '../utils/imageStamp'
+import { isSpencersJob, jobCategory } from '../config/statuses'
 import { SPENCERS_LOCATION_GROUPS } from '../config/spencersLocations'
 
 const COMPANY = {
@@ -62,21 +63,31 @@ function nzd(v, dp = 2) {
 // GST maths + quote totals now live in ../utils/pricing (imported above).
 
 // ── Image gallery (multiple images per line item) ──────────────────────────
-function ImageGallery({ images, onAdd, onRemove, onMarkup }) {
+function ImageGallery({ images, onAdd, onRemove, onMarkup, stampAddress }) {
   const ref = useRef()
   const [uploading, setUploading] = useState(false)
   const [hoverIdx, setHoverIdx] = useState(null)
 
   async function handleFile(e) {
-    const file = e.target.files[0]
-    if (!file) return
+    const files = Array.from(e.target.files || [])
     e.target.value = ''
+    if (!files.length) return
     setUploading(true)
-    const path = `${uuid()}.${file.name.split('.').pop()}`
-    const { error } = await supabase.storage.from('quote-images').upload(path, file)
-    if (!error) {
-      const { data } = supabase.storage.from('quote-images').getPublicUrl(path)
-      onAdd(data.publicUrl)
+    for (const file of files) {
+      // On Downer jobs, stamp the Before photo with the job address + date/time
+      // (+ GPS). Spencers/residential photos are uploaded untouched.
+      let body = file, contentType = undefined
+      if (stampAddress != null) {
+        body = await stampImage(file, await buildStamp(stampAddress))
+        contentType = 'image/jpeg'
+      }
+      const ext = stampAddress != null ? 'jpg' : file.name.split('.').pop()
+      const path = `${uuid()}.${ext}`
+      const { error } = await supabase.storage.from('quote-images').upload(path, body, contentType ? { contentType } : undefined)
+      if (!error) {
+        const { data } = supabase.storage.from('quote-images').getPublicUrl(path)
+        onAdd(data.publicUrl)
+      }
     }
     setUploading(false)
   }
@@ -100,7 +111,7 @@ function ImageGallery({ images, onAdd, onRemove, onMarkup }) {
         </div>
       ))}
       <div style={iu.zone} onClick={() => ref.current?.click()}>
-        <input ref={ref} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFile} />
+        <input ref={ref} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={handleFile} />
         <span style={iu.plus}>+</span>
         <span style={iu.hint}>{uploading ? 'Uploading…' : 'Add attachment'}</span>
       </div>
@@ -136,7 +147,7 @@ const iu = {
 }
 
 // ── Line item (builder) ────────────────────────────────────────────────────
-function SorAutocomplete({ value, onChange, onSelect }) {
+function SorAutocomplete({ value, onChange, onSelect, provider }) {
   const [results, setResults] = useState([])
   const [open, setOpen]       = useState(false)
   const [cursor, setCursor]   = useState(-1)
@@ -145,7 +156,7 @@ function SorAutocomplete({ value, onChange, onSelect }) {
   function handleChange(e) {
     const v = e.target.value
     onChange(v)
-    const hits = searchSor(v)
+    const hits = searchSor(v, provider)
     setResults(hits)
     setOpen(hits.length > 0)
     setCursor(-1)
@@ -303,7 +314,13 @@ function AddonGroup({ label, catalog, value, onChange }) {
   )
 }
 
-function LineItem({ item, onChange, onDelete, onMarkup, spencers }) {
+// Spencers non-agreed-rate lines are priced as crew hours at a fixed rate: the
+// quoter enters hours, the price is hours × $320 ex GST, and a "Breakdown of
+// Costs" line is generated for the quote/portal.
+const BREAKDOWN_RATE = 320  // $/hr ex GST
+const breakdownText = h => `3 man truck & chipper charged @ $320+GST per hour × ${h} hour${Number(h) === 1 ? '' : 's'}`
+
+function LineItem({ item, onChange, onDelete, onMarkup, spencers, spencersOnly, sitePhotos, stampAddress, provider }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: item.id })
 
@@ -338,6 +355,7 @@ function LineItem({ item, onChange, onDelete, onMarkup, spencers }) {
         {/* ── Header row: description + Fixed/Optional toggle ── */}
         <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
           <SorAutocomplete
+            provider={provider}
             value={item.description}
             onChange={desc => onChange({ ...item, description: desc })}
             onSelect={sor => onChange({
@@ -347,6 +365,13 @@ function LineItem({ item, onChange, onDelete, onMarkup, spencers }) {
               qty: CHARGE_CODES.has(sor.code) ? 1 : item.qty,
               // Prefill the rate-card price; quote-required codes (rate null) keep manual entry
               rate: sor.rate != null ? sor.rate : item.rate,
+              // Flag agreed-rate (fixed schedule) vs non-agreed-rate (quote-required)
+              // so the Spencers invoice + portal quote PDF can exclude agreed-rate
+              // codes (paid on the schedule, never quoted). A non-agreed-rate code
+              // on a Spencers job also switches on the $320/hr cost breakdown.
+              ...(sor.rate != null
+                ? { sor: true, quotable: false }
+                : { sor: false, quotable: true, ...(spencersOnly ? { breakdown_on: true, rate: BREAKDOWN_RATE } : {}) }),
             })}
           />
           {/* Fixed / Optional segmented control — labelled so it's easy to find */}
@@ -403,27 +428,36 @@ function LineItem({ item, onChange, onDelete, onMarkup, spencers }) {
           onChange={e => onChange({ ...item, detail: e.target.value })}
           rows={3}
         />
+        {/* No auto-format — the client sees the text exactly as typed. Two
+            optional toggles: bold the first line, and/or bullet the rest. */}
+        <div style={b.formatRow}>
+          <button
+            type="button"
+            style={{ ...b.formatBtn, ...(item.bold ? b.formatBtnOn : {}) }}
+            onClick={() => onChange({ ...item, bold: !item.bold })}
+            title="Bold the first line (the heading)"
+          >
+            <strong>B</strong> {item.bold ? 'Bold on' : 'Bold'}
+          </button>
+          <button
+            type="button"
+            style={{ ...b.formatBtn, ...(item.bullets ? b.formatBtnOn : {}) }}
+            onClick={() => onChange({ ...item, bullets: !item.bullets })}
+            title="Show the lines after the first as dot points"
+          >
+            • {item.bullets ? 'Dot points on' : 'Dot points'}
+          </button>
+        </div>
         {item.detail?.trim() && (
           <div style={b.detailPreview}>
             <div style={b.detailPreviewLabel}>Client sees</div>
             {(() => {
               const lines = item.detail.split('\n').map(l => l.trim()).filter(Boolean)
-              const hasMarkers = lines.some(l => /^[-•*]\s+/.test(l))
-              if (!hasMarkers) {
-                const [head, ...actions] = lines
-                return (
-                  <>
-                    <div style={b.previewTitle}>{head}</div>
-                    {actions.map((l, i) => (
-                      <div key={i} style={b.previewBullet}><span style={b.previewDot}>•</span>{l}</div>
-                    ))}
-                  </>
-                )
-              }
               return lines.map((line, i) => {
-                const m = /^[-•*]\s+(.*)$/.exec(line)
-                if (m) return <div key={i} style={b.previewBullet}><span style={b.previewDot}>•</span>{m[1]}</div>
-                return <div key={i} style={b.previewLine}>{line}</div>
+                const clean = line.replace(/^[-•*]\s+/, '')
+                if (i === 0) return <div key={i} style={item.bold ? b.previewTitle : b.previewLine}>{clean}</div>
+                if (item.bullets) return <div key={i} style={b.previewBullet}><span style={b.previewDot}>•</span>{clean}</div>
+                return <div key={i} style={b.previewLine}>{clean}</div>
               })
             })()}
           </div>
@@ -447,20 +481,93 @@ function LineItem({ item, onChange, onDelete, onMarkup, spencers }) {
         )}
 
         {/* ── Image gallery ── */}
-        <ImageGallery
-          images={images}
-          onAdd={addImage}
-          onRemove={removeImage}
-          onMarkup={(idx, url) => onMarkup({ item, imageIndex: idx, imageUrl: url })}
-        />
+        {spencers ? (
+          <div style={b.phaseWrap}>
+            <div style={b.phaseLabel}>Before <span style={b.phaseHint}>· site assessment</span></div>
+            <ImageGallery
+              images={images}
+              onAdd={addImage}
+              onRemove={removeImage}
+              onMarkup={(idx, url) => onMarkup({ item, imageIndex: idx, imageUrl: url })}
+              stampAddress={stampAddress}
+            />
+            {/* During / After come from the crew's Work Order (read-only here) */}
+            {['during', 'after'].map(stage => {
+              const urls = sitePhotos?.[stage] ?? []
+              return (
+                <div key={stage} style={b.phaseRow}>
+                  <div style={b.phaseLabel}>{stage === 'during' ? 'During' : 'After'} <span style={b.phaseHint}>· added on site by crew</span></div>
+                  {urls.length > 0 ? (
+                    <div style={b.phaseThumbs}>
+                      {urls.map((url, i) => <img key={`${i}-${url}`} src={url} alt="" style={b.phaseThumb} />)}
+                    </div>
+                  ) : (
+                    <div style={b.phaseEmpty}>None yet</div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        ) : (
+          <ImageGallery
+            images={images}
+            onAdd={addImage}
+            onRemove={removeImage}
+            onMarkup={(idx, url) => onMarkup({ item, imageIndex: idx, imageUrl: url })}
+          />
+        )}
 
         {/* ── Disposal / Grindings add-ons ── */}
-        <div style={b.addonGroups}>
-          <AddonGroup label="Disposal" catalog={DISPOSAL_OPTIONS}
-            value={item.disposal} onChange={dg => onChange({ ...item, disposal: dg })} />
-          <AddonGroup label="Grindings" catalog={GRINDINGS_OPTIONS}
-            value={item.grindings} onChange={gg => onChange({ ...item, grindings: gg })} />
-        </div>
+        {/* Disposal / Grindings waste add-ons are residential-only — Spencers &
+            Downer price waste through their own SOR codes. */}
+        {!spencers && (
+          <div style={b.addonGroups}>
+            <AddonGroup label="Disposal" catalog={DISPOSAL_OPTIONS}
+              value={item.disposal} onChange={dg => onChange({ ...item, disposal: dg })} />
+            <AddonGroup label="Grindings" catalog={GRINDINGS_OPTIONS}
+              value={item.grindings} onChange={gg => onChange({ ...item, grindings: gg })} />
+          </div>
+        )}
+
+        {/* ── Cost breakdown ($320/hr) — Spencers non-agreed-rate lines ── */}
+        {spencersOnly && (
+          <div style={b.breakdownBox}>
+            <label style={b.breakdownToggle}>
+              <input
+                type="checkbox"
+                checked={!!item.breakdown_on}
+                onChange={e => onChange(e.target.checked
+                  ? { ...item, breakdown_on: true, quotable: true, sor: false, rate: BREAKDOWN_RATE,
+                      qty: item.breakdown_hours || item.qty || 1,
+                      breakdown: item.breakdown_hours ? breakdownText(item.breakdown_hours) : '' }
+                  : { ...item, breakdown_on: false })}
+              />
+              <span>Cost breakdown — crew hours @ $320+GST/hr <span style={b.breakdownNote}>(non-agreed-rate)</span></span>
+            </label>
+            {item.breakdown_on && (
+              <div style={b.breakdownBody}>
+                <span style={b.priceLabel}>Hours</span>
+                <input
+                  style={{ ...b.priceInput, width: '72px', textAlign: 'center', paddingLeft: '8px' }}
+                  type="number" min="0" step="0.5" placeholder="0"
+                  value={item.breakdown_hours ?? ''}
+                  onChange={e => {
+                    const h = e.target.value
+                    onChange({ ...item, breakdown_hours: h, quotable: true, sor: false, rate: BREAKDOWN_RATE,
+                      qty: h === '' ? '' : Math.max(0, Number(h)),
+                      breakdown: h === '' ? '' : breakdownText(h) })
+                  }}
+                />
+                <span style={b.breakdownRate}>× $320 ex GST</span>
+                {item.breakdown_hours != null && item.breakdown_hours !== '' && (
+                  <div style={b.breakdownPreview}>
+                    <strong>Breakdown of Costs</strong> — {breakdownText(item.breakdown_hours)}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ── Pricing row ── */}
         <div style={b.linePrice}>
@@ -469,20 +576,24 @@ function LineItem({ item, onChange, onDelete, onMarkup, spencers }) {
             <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
               <span style={b.priceDollar}>$</span>
               <input
-                style={b.priceInput}
+                style={{ ...b.priceInput, ...(item.breakdown_on ? b.priceLocked : {}) }}
                 type="number" min="0" placeholder="0.00"
                 value={item.rate}
+                disabled={item.breakdown_on}
+                title={item.breakdown_on ? 'Set by the cost breakdown ($320/hr)' : undefined}
                 onChange={e => onChange({ ...item, rate: e.target.value })}
               />
             </div>
           </div>
 
           <div style={b.priceCol}>
-            <div style={b.priceLabel}>Qty</div>
+            <div style={b.priceLabel}>{item.breakdown_on ? 'Hours' : 'Qty'}</div>
             <input
-              style={{ ...b.priceInput, width: '60px', textAlign: 'center', paddingLeft: '8px' }}
+              style={{ ...b.priceInput, width: '60px', textAlign: 'center', paddingLeft: '8px', ...(item.breakdown_on ? b.priceLocked : {}) }}
               type="number" min="0"
               value={item.qty}
+              disabled={item.breakdown_on}
+              title={item.breakdown_on ? 'Set by the hours above' : undefined}
               onChange={e => onChange({ ...item, qty: e.target.value })}
             />
           </div>
@@ -820,6 +931,7 @@ export default function QuoteBuilder() {
   const [quote, setQuote] = useState(null)
   const [owners, setOwners] = useState([])   // [{ id, name }] — attributes activity events
   const [job, setJob] = useState(null)
+  const [sitePhotos, setSitePhotos] = useState({}) // { [line_ref]: { during:[], after:[] } } — crew photos
   const [items, setItems] = useState([])
   const [notes, setNotes] = useState(DEFAULT_SIGNATURE)
   const [privateNotes, setPrivateNotes] = useState('')
@@ -862,7 +974,7 @@ export default function QuoteBuilder() {
         .then(({ data }) => {
           if (!data) return
           setQuote(data); setJob(data.jobs); setJobId(data.job_id)
-          setItems((data.line_items ?? []).map(i => ({ ...i, id: i.id ?? uuid() })))
+          setItems((Array.isArray(data.line_items) ? data.line_items : []).map(i => ({ ...i, id: i.id ?? uuid() })))
           setNotes(data.notes ?? DEFAULT_SIGNATURE)
           setPrivateNotes(data.private_notes ?? '')
           setJobPack(data.job_pack ?? {})
@@ -875,6 +987,24 @@ export default function QuoteBuilder() {
         .then(({ data }) => setJobs(data ?? []))
     }
   }, [id, isNew])
+
+  // Crew During/After photos (job_photos) so the office sees them per line item
+  // in the builder alongside the quoter's Before photos. Spencers/Downer only.
+  useEffect(() => {
+    if (!job?.id || !isSpencersJob(job)) { setSitePhotos({}); return }
+    supabase.from('job_photos').select('url, phase, line_ref').eq('job_id', job.id)
+      .in('phase', ['during', 'after'])
+      .then(({ data }) => {
+        const byLine = {}
+        for (const p of (data ?? [])) {
+          if (!p.line_ref) continue
+          const cur = byLine[p.line_ref] ?? { during: [], after: [] }
+          if (cur[p.phase]) cur[p.phase].push(p.url)
+          byLine[p.line_ref] = cur
+        }
+        setSitePhotos(byLine)
+      })
+  }, [job?.id])
 
   // Team roster — used to attribute activity events (created/edited/sent by …).
   useEffect(() => {
@@ -922,6 +1052,13 @@ export default function QuoteBuilder() {
   // Spencers (DBS / Kāinga Ora) jobs get a per-line property-element location
   // picker (PE1 = Property Exterior 1, etc.) — mirrors the portal's location_id.
   const spencers = isSpencersJob(job)
+  // Spencers-only (not Downer): the $320/hr cost-breakdown pricing is a Spencers
+  // requirement for non-agreed-rate codes.
+  const spencersOnly = jobCategory(job) === 'spencers'
+  // Downer photos are stamped with the job address + date/time; Spencers are not.
+  const downerJob = jobCategory(job) === 'downer'
+  // SOR code book to offer in the autocomplete — exclusive to the job type.
+  const sorProvider = downerJob ? 'DW' : spencersOnly ? 'SP' : null
 
   function handleDragStart({ active }) { setActiveId(active.id) }
   function handleDragEnd({ active, over }) {
@@ -1310,12 +1447,12 @@ export default function QuoteBuilder() {
                 <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px' }}>
                     {items.map(item => (
-                      <LineItem key={item.id} item={item} onChange={updateItem} onDelete={deleteItem} onMarkup={setMarkupItem} spencers={spencers} />
+                      <LineItem key={item.id} item={item} onChange={updateItem} onDelete={deleteItem} onMarkup={setMarkupItem} spencers={spencers} spencersOnly={spencersOnly} sitePhotos={sitePhotos[item.id]} stampAddress={downerJob ? (job?.address || '') : null} provider={sorProvider} />
                     ))}
                   </div>
                 </SortableContext>
                 <DragOverlay>
-                  {activeItem && <LineItem item={activeItem} onChange={() => {}} onDelete={() => {}} spencers={spencers} />}
+                  {activeItem && <LineItem item={activeItem} onChange={() => {}} onDelete={() => {}} spencers={spencers} spencersOnly={spencersOnly} sitePhotos={sitePhotos[activeItem.id]} stampAddress={downerJob ? (job?.address || '') : null} provider={sorProvider} />}
                 </DragOverlay>
               </DndContext>
 
@@ -1659,6 +1796,9 @@ const b = {
   lineBody: { flex: 1, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '8px' },
   lineTitle: { padding: '7px 9px', borderRadius: '6px', border: '1.5px solid var(--border)', fontSize: '14px', fontFamily: 'var(--font)', color: 'var(--ink)', fontWeight: '500', boxSizing: 'border-box' },
   lineDetail: { width: '100%', padding: '6px 9px', borderRadius: '6px', border: '1.5px solid var(--border)', fontSize: '12px', fontFamily: 'var(--font)', color: '#666', resize: 'vertical', boxSizing: 'border-box' },
+  formatRow: { display: 'flex', gap: '6px', flexWrap: 'wrap', margin: '2px 0 6px' },
+  formatBtn: { padding: '5px 11px', borderRadius: '7px', border: '1.5px solid var(--border)', background: '#fff', color: '#888', fontSize: '11px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
+  formatBtnOn: { borderColor: 'var(--moss)', color: 'var(--moss)', background: '#F0F7EE' },
   detailPreview: { background: '#FAFAF7', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 10px', fontSize: '12px', color: 'var(--bark)', lineHeight: 1.5 },
   detailPreviewLabel: { fontSize: '9.5px', fontWeight: '700', color: '#bbb', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' },
   previewTitle: { fontWeight: '700', color: 'var(--bark)', marginBottom: '2px' },
@@ -1670,6 +1810,22 @@ const b = {
   priceLabel: { fontSize: '10px', fontWeight: '700', color: '#aaa', textTransform: 'uppercase' },
   priceDollar: { position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', color: '#aaa', fontSize: '12px', pointerEvents: 'none' },
   priceInput: { padding: '7px 8px 7px 20px', borderRadius: '6px', border: '1.5px solid var(--border)', fontSize: '13px', fontFamily: 'var(--font)', color: 'var(--ink)', width: '110px', textAlign: 'right' },
+  priceLocked: { background: '#F3F1EC', color: '#999', cursor: 'not-allowed' },
+  // Before / During / After photo labelling (Spencers/Downer)
+  phaseWrap: { display: 'flex', flexDirection: 'column', gap: '8px' },
+  phaseRow: { display: 'flex', flexDirection: 'column', gap: '5px' },
+  phaseLabel: { fontSize: '11px', fontWeight: '700', color: '#6D4AA8', textTransform: 'uppercase', letterSpacing: '0.04em' },
+  phaseHint: { fontWeight: '500', color: '#A99CC0', textTransform: 'none', letterSpacing: 0 },
+  phaseThumbs: { display: 'flex', flexWrap: 'wrap', gap: '6px' },
+  phaseThumb: { width: 64, height: 48, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--border)' },
+  phaseEmpty: { fontSize: '12px', color: '#bbb', fontStyle: 'italic' },
+  // Spencers cost breakdown ($320/hr)
+  breakdownBox: { marginTop: '4px', padding: '10px 12px', background: '#F7F4FB', border: '1px solid #E4DCF0', borderRadius: '8px' },
+  breakdownToggle: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: '600', color: '#6D4AA8', cursor: 'pointer' },
+  breakdownNote: { fontWeight: '500', color: '#A99CC0' },
+  breakdownBody: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '8px' },
+  breakdownRate: { fontSize: '12px', color: '#8A7CA8', fontWeight: '600' },
+  breakdownPreview: { flexBasis: '100%', marginTop: '6px', fontSize: '12px', color: 'var(--ink)', background: '#fff', border: '1px solid #E4DCF0', borderRadius: '6px', padding: '7px 10px', lineHeight: 1.5 },
   lineTotal: { fontSize: '15px', fontWeight: '700', color: 'var(--ink)', transition: 'opacity 0.2s' },
   lineTotalEx: { fontSize: '10px', color: '#aaa' },
   removeBtn: { background: 'none', border: 'none', color: '#C0392B', fontSize: '12px', cursor: 'pointer', fontFamily: 'var(--font)', padding: '3px 6px' },

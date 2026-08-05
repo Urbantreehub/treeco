@@ -40,11 +40,14 @@ export const SOR_BY_CODE = Object.fromEntries(SOR_CODES.map(c => [c.code, c]))
 // Charge items ($ UOM) — enter total value directly, qty = 1
 export const CHARGE_CODES = new Set(SOR_CODES.filter(c => c.uom === '$').map(c => c.code))
 
-export function searchSor(query) {
-  if (!query || query.length < 2) return []
+// The SOR codes are commercial rate cards, exclusive to their job type: Spencers
+// (SP-) codes only show on Spencers jobs, Downer (DW-) only on Downer jobs.
+// `provider` is 'SP' | 'DW' | null; null (residential) returns no codes.
+export function searchSor(query, provider = null) {
+  if (!query || query.length < 2 || !provider) return []
   const q = query.toUpperCase()
   return SOR_CODES.filter(c =>
-    c.code.includes(q) ||
-    c.desc.toUpperCase().includes(q)
+    c.code.startsWith(`${provider}-`) &&
+    (c.code.includes(q) || c.desc.toUpperCase().includes(q))
   ).slice(0, 10)
 }

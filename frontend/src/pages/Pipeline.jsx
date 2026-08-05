@@ -3,6 +3,7 @@ import { supabase } from '../config/supabase'
 import { JOB_STATUSES, STATUS_ORDER, isSpencersJob, categoryMeta } from '../config/statuses'
 import { jobHeading, koCode, kpiCountdown } from '../utils/jobDisplay'
 import { useJobs } from '../hooks/useJobs'
+import { useOpenAlerts } from '../hooks/useOpenAlerts'
 import { useAuth } from '../context/AuthContext'
 import { useIsMobile } from '../hooks/useIsMobile'
 import JobDetailPanel from '../components/JobDetailPanel'
@@ -27,6 +28,7 @@ function bestQuote(job) {
 export default function Pipeline() {
   const { jobs, loading, fetchJobs } = useJobs()
   const { isStaff } = useAuth()
+  const { jobIds: alertJobIds } = useOpenAlerts(isStaff)
   const isMobile = useIsMobile()
   // Deep-link support: /pipeline?job=<id> (e.g. opened from the calendar) auto-opens that job.
   const [selectedJobId, setSelectedJobId] = useState(() => new URLSearchParams(window.location.search).get('job'))
@@ -196,6 +198,8 @@ export default function Pipeline() {
                       it instantly clear whether this is a Private, Spencers or
                       Downer job. */}
                   <div style={{ ...s.categoryBar, background: cat.color }}>{cat.label}</div>
+                  {/* Red bubble when this job has something waiting in Actions. */}
+                  {alertJobIds.has(job.id) && <span style={s.alertDot} title="Needs actioning — see Actions" />}
                   <div style={{ ...s.rowBody, ...(isMobile ? s.rowBodyMobile : {}) }}>
                   <div style={{ ...s.rowMain, ...(isMobile ? { width: '100%' } : {}) }}>
                     <div style={s.client}>{primary}</div>
@@ -343,7 +347,13 @@ const s = {
   row: {
     background: '#fff', borderRadius: '16px', border: '1px solid var(--border)',
     overflow: 'hidden', display: 'flex', flexDirection: 'column', cursor: 'pointer',
-    transition: 'box-shadow 0.15s',
+    transition: 'box-shadow 0.15s', position: 'relative',
+  },
+  // Red bubble on the card's top-right when the job has an open Actions alert.
+  alertDot: {
+    position: 'absolute', top: '6px', right: '10px', width: '11px', height: '11px',
+    borderRadius: '50%', background: '#C0392B', border: '2px solid #fff',
+    boxShadow: '0 0 0 1px rgba(0,0,0,0.08)', zIndex: 2,
   },
   // Full-width colour band across the top of the pill naming the job kind
   // (Private / Spencers / Downer) — background is the category colour.

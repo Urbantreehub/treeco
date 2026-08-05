@@ -6,9 +6,10 @@ import StatusBadge from './StatusBadge'
 import QuoteReference from './QuoteReference'
 import SpencersInvoice from './SpencersInvoice'
 import SpencersPortalData from './SpencersPortalData'
+import ErrorBoundary from './ErrorBoundary'
 import AddressInput from './AddressInput'
 import { useIsMobile } from '../hooks/useIsMobile'
-import { JOB_STATUSES, STATUS_ORDER, isSpencersJob, showsQuoteReference } from '../config/statuses'
+import { JOB_STATUSES, STATUS_ORDER, isSpencersJob, jobCategory, showsQuoteReference } from '../config/statuses'
 import { mapsHref } from '../utils/geo'
 
 // Contextual forward-only transitions per status.
@@ -85,6 +86,8 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
   const [changingStatus, setChangingStatus] = useState(false)
   const [editing, setEditing] = useState(false)
   const [xeroStatus, setXeroStatus] = useState(null) // null | 'pushing' | 'ok' | 'err' | 'not_connected'
+  const [photosPush, setPhotosPush] = useState(null) // null | 'pushing' | 'done' | 'err'
+  const [docsPush, setDocsPush] = useState(null)     // null | 'pushing' | 'done' | 'err'
   const [quoteFollowUp, setQuoteFollowUp] = useState(null) // { opened_count, last_opened_at, followup_count, last_followup_at, sent_at, id }
   const [followingUp, setFollowingUp] = useState(false)
   const [smsOpen, setSmsOpen] = useState(false)
@@ -198,6 +201,36 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
       setXeroStatus('err')
     }
   }
+  // Stage the completed job for its client portal (Spencers = 'dbs', Downer =
+  // 'downer'). Two separate steps the admin runs from the panel:
+  //  · 'push_photos'      — per-line Before/During/After photos onto each line.
+  //  · 'upload_documents' — the quote PDF into the Documents tab under "Other".
+  // The worker drains the queue and stages the upload; the admin then marks each
+  // item complete (and by who) and submits/claims in the portal itself.
+  async function enqueuePortal(action, setState) {
+    setState('pushing')
+    try {
+      const quote = (job.quotes ?? []).find(q => ['accepted', 'complete', 'invoiced'].includes(q.status)) ?? job.quotes?.[0]
+      const { data: ph } = await supabase.from('job_photos')
+        .select('url, phase, line_ref').eq('job_id', job.id)
+        .in('phase', ['before', 'during', 'after', 'extra'])
+      const photos = { before: [], during: [], after: [], extra: [] }
+      for (const p of (ph ?? [])) { if (photos[p.phase]) photos[p.phase].push({ url: p.url, line_ref: p.line_ref }) }
+      const category = jobCategory(job)
+      const { error } = await supabase.from('portal_actions').insert({
+        job_id: job.id,
+        ko_reference: job.ko_reference || null,
+        source: category === 'downer' ? 'downer' : 'dbs',
+        action,
+        payload: { quote_id: quote?.id ?? null, total: quote?.total ?? null, category, address: job.address, photos },
+      })
+      if (error) throw error
+      setState('done')
+    } catch {
+      setState('err')
+    }
+  }
+
   const [form, setForm] = useState({
     title: job.title,
     address: job.address ?? '',
@@ -209,13 +242,16 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
 
   // Spencers/DBS jobs are now titled by address, so detect via ko_reference too.
   const isSD = !!job.ko_reference || /spencer|downer/i.test(job.clients?.name ?? '') || /spencer|downer/i.test(job.title ?? '')
-  const sdPhotosReady = !isSD || (() => {
-    try {
-      const during = JSON.parse(localStorage.getItem(`treeco_wo_during_${job.id}`) ?? '[]')
-      const after  = JSON.parse(localStorage.getItem(`treeco_wo_after_${job.id}`)  ?? '[]')
-      return during.length > 0 && after.length > 0
-    } catch { return false }
-  })()
+
+  // Completion gate: Spencers/Downer jobs need During + After photos (persisted
+  // in job_photos by the crew Work Order) before they can be marked complete.
+  async function sdPhotosReady() {
+    if (!isSD) return true
+    const { data } = await supabase.from('job_photos')
+      .select('phase').eq('job_id', job.id).in('phase', ['during', 'after'])
+    const phases = new Set((data ?? []).map(p => p.phase))
+    return phases.has('during') && phases.has('after')
+  }
 
   // Status-change permissions. Office/full access can move to any status;
   // crew can only move between the operational statuses (CREW_STATUSES).
@@ -230,7 +266,7 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
     // Crew can only make the one permitted move for the current status.
     if (!canChangeStatusTo(newStatus)) return
     const isComplete = newStatus === 'complete_to_invoice'
-    if (isComplete && !sdPhotosReady) {
+    if (isComplete && !(await sdPhotosReady())) {
       alert('During and After photos must be uploaded in the Work Order before this job can be marked complete.')
       return
     }
@@ -542,6 +578,46 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
                       </button>
                     </div>
                   )}
+                  {/* Portal staging — two steps, once the S&D job is complete.
+                      Photos go per line; the quote PDF goes to Documents ("Other").
+                      Admin then marks each item complete + submits in the portal. */}
+                  {isSpencersJob(job) && ['complete_to_invoice', 'invoiced'].includes(job.status) && (
+                    <div style={{ marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <button
+                        style={{
+                          ...styles.ghostBtn, width: '100%',
+                          borderColor: '#6D4AA855',
+                          color: photosPush === 'done' ? '#1a7a4a' : photosPush === 'err' ? '#c0392b' : '#6D4AA8',
+                          background: photosPush === 'done' ? '#f0fff4' : photosPush === 'err' ? '#fff0ee' : '#F7F4FB',
+                        }}
+                        disabled={photosPush === 'pushing'}
+                        onClick={() => enqueuePortal('push_photos', setPhotosPush)}
+                      >
+                        {photosPush === 'pushing' && '⏳ Staging photos…'}
+                        {photosPush === 'done'    && '✅ Photos queued'}
+                        {photosPush === 'err'     && '❌ Failed — retry?'}
+                        {!photosPush              && '📷 Upload photos to portal'}
+                      </button>
+                      <button
+                        style={{
+                          ...styles.ghostBtn, width: '100%',
+                          borderColor: '#6D4AA855',
+                          color: docsPush === 'done' ? '#1a7a4a' : docsPush === 'err' ? '#c0392b' : '#6D4AA8',
+                          background: docsPush === 'done' ? '#f0fff4' : docsPush === 'err' ? '#fff0ee' : '#F7F4FB',
+                        }}
+                        disabled={docsPush === 'pushing'}
+                        onClick={() => enqueuePortal('upload_documents', setDocsPush)}
+                      >
+                        {docsPush === 'pushing' && '⏳ Uploading quote PDF…'}
+                        {docsPush === 'done'    && '✅ Quote PDF queued'}
+                        {docsPush === 'err'     && '❌ Failed — retry?'}
+                        {!docsPush              && '📤 Upload to Portal (quote PDF → Documents)'}
+                      </button>
+                      <div style={{ fontSize: '11px', color: '#999', lineHeight: 1.4 }}>
+                        Final steps stay with admin in the portal: mark each item complete (and by who), then submit.
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <button
@@ -588,11 +664,16 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
             </button>
           </div>
 
-          {/* Portal data pulled from the Spencers/Downer portal */}
-          {isSpencersJob(job) && <SpencersPortalData job={job} />}
-
-          {/* Spencers invoice — non-SOR quotable items + pre-approval + upload */}
-          {isSpencersJob(job) && <SpencersInvoice job={job} />}
+          {/* Portal panels are wrapped so a data-shape error in either one
+              degrades to an inline notice instead of white-screening the whole
+              job (the app-wide boundary would otherwise blank the page). */}
+          {isSpencersJob(job) && (
+            <ErrorBoundary variant="section" label="Portal data">
+              <SpencersPortalData job={job} />
+              {/* Spencers invoice — non-SOR quotable items + pre-approval + upload */}
+              <SpencersInvoice job={job} />
+            </ErrorBoundary>
+          )}
 
           {/* Text the client */}
           {job.clients?.phone && (

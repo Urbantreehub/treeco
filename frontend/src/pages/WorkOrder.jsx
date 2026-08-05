@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../config/supabase'
 import { v4 as uuid } from 'uuid'
 import { mapsHref } from '../utils/geo'
+import { stampImage, buildStamp } from '../utils/imageStamp'
+import { useAuth } from '../context/AuthContext'
 
 const GST = 0.15
 function nzd(v) { return '$' + Number(v || 0).toLocaleString('en-NZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
@@ -33,54 +35,6 @@ const JOB_FORMS = [
   { id: 'risk_assessment', label: 'SSSP',             url: '/forms/risk-assessment.html', icon: '📋', required: true },
 ]
 
-// ── Image processing ──────────────────────────────────────────────────────────
-
-function getGPS() {
-  return new Promise(res => {
-    if (!navigator.geolocation) { res(null); return }
-    navigator.geolocation.getCurrentPosition(
-      p => res({ lat: p.coords.latitude.toFixed(6), lng: p.coords.longitude.toFixed(6) }),
-      () => res(null),
-      { timeout: 8000, enableHighAccuracy: true },
-    )
-  })
-}
-
-// Resize + optional GPS/timestamp watermark, returns a Blob (JPEG, quality 0.75, max 1600px)
-function processImage(file, stamp = null) {
-  return new Promise(resolve => {
-    const img = new Image()
-    const url = URL.createObjectURL(file)
-    img.onload = () => {
-      const MAX = 1600
-      let { naturalWidth: w, naturalHeight: h } = img
-      if (w > MAX) { h = Math.round(h * MAX / w); w = MAX }
-      const canvas = document.createElement('canvas')
-      canvas.width = w; canvas.height = h
-      const ctx = canvas.getContext('2d')
-      ctx.drawImage(img, 0, 0, w, h)
-
-      if (stamp) {
-        const text  = `${stamp.coords}  ·  ${stamp.datetime}`
-        const pad   = 8
-        const fh    = Math.max(14, Math.round(w / 50))
-        ctx.font    = `bold ${fh}px monospace`
-        // Dark strip at bottom
-        ctx.fillStyle = 'rgba(0,0,0,0.72)'
-        ctx.fillRect(0, h - fh - pad * 2, w, fh + pad * 2)
-        // White text
-        ctx.fillStyle = '#ffffff'
-        ctx.textBaseline = 'middle'
-        ctx.fillText(text, pad, h - fh / 2 - pad, w - pad * 2)
-      }
-
-      canvas.toBlob(blob => { URL.revokeObjectURL(url); resolve(blob) }, 'image/jpeg', 0.75)
-    }
-    img.onerror = () => { URL.revokeObjectURL(url); resolve(file) }
-    img.src = url
-  })
-}
-
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function WorkOrder() {
@@ -110,44 +64,62 @@ export default function WorkOrder() {
   // Crew private notes (local only)
   const [crewNotes, setCrewNotes] = useState(() => localStorage.getItem(`treeco_wo_crew_notes_${jobId}`) ?? '')
 
-  // Generic site photos (non-S&D jobs)
+  // Generic site photos (non-S&D jobs) — still local-only
   const [photos,    setPhotos]    = useState(() => {
     try { return JSON.parse(localStorage.getItem(`treeco_wo_photos_${jobId}`) ?? '[]') } catch { return [] }
   })
 
-  // S&D photo sections — job-level aggregates kept for the "mark complete" gate
-  const [duringPhotos, setDuringPhotos] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(`treeco_wo_during_${jobId}`) ?? '[]') } catch { return [] }
-  })
-  const [afterPhotos, setAfterPhotos] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(`treeco_wo_after_${jobId}`) ?? '[]') } catch { return [] }
-  })
+  // Current user id — job_photos RLS requires uploaded_by = auth.uid().
+  const [userId, setUserId] = useState(null)
 
-  // S&D per-line-item photos: { [itemId]: { before:[], during:[], after:[] } }.
-  const [linePhotos, setLinePhotos] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(`treeco_wo_linephotos_${jobId}`) ?? '{}') } catch { return {} }
-  })
+  // Spencers/Downer photos, persisted to job_photos so the office can see them
+  // and they can be pushed to the portal. Per-line Before/During/After:
+  // { [itemId]: { before:[], during:[], after:[] } }, plus job-level "extra".
+  const [linePhotos, setLinePhotos] = useState({})
+  const [extraPhotos, setExtraPhotos] = useState([])
+  const [photoErr, setPhotoErr] = useState(null)
 
-  const [uploading,    setUploading]    = useState(null) // null | 'general' | `${itemId}:${stage}`
+  const [uploading,    setUploading]    = useState(null) // null | 'general' | 'extra' | `${itemId}:${stage}`
   const generalRef = useRef()
+  const extraRef = useRef()
   const lineInputRef = useRef()
   const lineTarget = useRef(null) // { itemId, stage } for the shared per-item picker
   const [lightbox, setLightbox] = useState(null)
+  const { isStaff } = useAuth()
+  const [completing, setCompleting] = useState(false)
 
   // ── Load job + quote ──────────────────────────────────────────────────────
   useEffect(() => {
     async function load() {
-      const [{ data: jobData }, { data: quoteData }] = await Promise.all([
+      const [{ data: jobData }, { data: quoteData }, { data: auth }] = await Promise.all([
         supabase.from('jobs').select('*, clients(name, phone)').eq('id', jobId).single(),
         supabase.from('quotes').select('line_items, notes, job_pack')
           .eq('job_id', jobId)
           .order('created_at', { ascending: false })
           .limit(1).maybeSingle(),
+        supabase.auth.getUser(),
       ])
       if (jobData) setJob(jobData)
-      if (quoteData?.line_items?.length) setItems(quoteData.line_items)
+      if (Array.isArray(quoteData?.line_items) && quoteData.line_items.length) setItems(quoteData.line_items)
       if (quoteData?.notes) setQuoteNotes(quoteData.notes)
       if (quoteData?.job_pack)  setJobPack(quoteData.job_pack)
+      setUserId(auth?.user?.id ?? null)
+
+      // Persisted Before/During/After + extra photos (job_photos).
+      const { data: ph } = await supabase.from('job_photos')
+        .select('url, phase, line_ref').eq('job_id', jobId)
+        .in('phase', ['before', 'during', 'after', 'extra'])
+      if (ph) {
+        const byLine = {}, extra = []
+        for (const p of ph) {
+          if (p.phase === 'extra' || !p.line_ref) { if (p.phase === 'extra') extra.push(p.url); continue }
+          const cur = byLine[p.line_ref] ?? { before: [], during: [], after: [] }
+          if (cur[p.phase]) cur[p.phase].push(p.url)
+          byLine[p.line_ref] = cur
+        }
+        setLinePhotos(byLine)
+        setExtraPhotos(extra)
+      }
       setLoading(false)
     }
     load()
@@ -180,85 +152,90 @@ export default function WorkOrder() {
   const formsComplete     = JOB_FORMS.filter(f => f.required).every(f => formStatus[f.id]?.completed)
   const lineDuring = Object.values(linePhotos).flatMap(p => p?.during ?? [])
   const lineAfter  = Object.values(linePhotos).flatMap(p => p?.after ?? [])
-  const sdPhotosComplete  = isSD && (duringPhotos.length + lineDuring.length) > 0 && (afterPhotos.length + lineAfter.length) > 0
+  const sdPhotosComplete  = isSD && lineDuring.length > 0 && lineAfter.length > 0
   const readyToComplete   = formsComplete && (!isSD || sdPhotosComplete)
 
   const quotePhotos = items.flatMap(i => i.images?.length ? i.images : (i.image_url ? [i.image_url] : []))
   const selectedItems = items.filter(i => !i.optional || i.selected)
 
   // ── Photo upload ──────────────────────────────────────────────────────────
-  async function handleUpload(file, type) {
-    if (!file) return
-    setUploading(type)
-
-    let stamp = null
-    if (isDowner) {
-      const gps = await getGPS()
-      const now = new Date()
-      const datetime = now.toLocaleString('en-NZ', {
-        day: '2-digit', month: '2-digit', year: 'numeric',
-        hour: '2-digit', minute: '2-digit', second: '2-digit',
-        hour12: false,
-      })
-      stamp = { coords: gps ? `${gps.lat}, ${gps.lng}` : 'GPS unavailable', datetime }
-    }
-
-    const blob = await processImage(file, stamp)
-    const path = `site/${jobId}/${type}/${uuid()}.jpg`
-    const { error } = await supabase.storage.from('quote-images').upload(path, blob, { contentType: 'image/jpeg' })
-
-    if (!error) {
-      const { data } = supabase.storage.from('quote-images').getPublicUrl(path)
-      const url = data.publicUrl
-
-      if (type === 'during') {
-        const next = [...duringPhotos, url]
-        setDuringPhotos(next)
-        localStorage.setItem(`treeco_wo_during_${jobId}`, JSON.stringify(next))
-      } else if (type === 'after') {
-        const next = [...afterPhotos, url]
-        setAfterPhotos(next)
-        localStorage.setItem(`treeco_wo_after_${jobId}`, JSON.stringify(next))
-      } else {
-        const next = [...photos, url]
-        setPhotos(next)
-        localStorage.setItem(`treeco_wo_photos_${jobId}`, JSON.stringify(next))
+  // Generic site photos for non-S&D jobs — local-only, unstamped.
+  async function handleUpload(files) {
+    if (!files || !files.length) return
+    setUploading('general')
+    for (const file of Array.from(files)) {
+      const blob = await stampImage(file)
+      const path = `site/${jobId}/general/${uuid()}.jpg`
+      const { error } = await supabase.storage.from('quote-images').upload(path, blob, { contentType: 'image/jpeg' })
+      if (!error) {
+        const url = supabase.storage.from('quote-images').getPublicUrl(path).data.publicUrl
+        setPhotos(prev => {
+          const next = [...prev, url]
+          localStorage.setItem(`treeco_wo_photos_${jobId}`, JSON.stringify(next))
+          return next
+        })
       }
     }
-
     setUploading(null)
   }
 
-  async function downerStamp() {
-    const gps = await getGPS()
-    const now = new Date()
-    const datetime = now.toLocaleString('en-NZ', {
-      day: '2-digit', month: '2-digit', year: 'numeric',
-      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
-    })
-    return { coords: gps ? `${gps.lat}, ${gps.lng}` : 'GPS unavailable', datetime }
+  // Persist a photo to job_photos (Spencers/Downer). Returns the public URL or null.
+  // Downer photos are stamped with the job address + date/time (+ GPS) — the
+  // MyWork guide requires it. Spencers photos are NOT tagged.
+  async function uploadPhoto(file, { phase, lineRef, storageKey }) {
+    const blob = await stampImage(file, isDowner ? await buildStamp(job?.address) : null)
+    const path = `site/${jobId}/${storageKey}/${uuid()}.jpg`
+    const { error } = await supabase.storage.from('quote-images').upload(path, blob, { contentType: 'image/jpeg' })
+    if (error) { setPhotoErr('Photo upload failed — check your connection and try again.'); return null }
+    const url = supabase.storage.from('quote-images').getPublicUrl(path).data.publicUrl
+    const { error: insErr } = await supabase.from('job_photos')
+      .insert({ job_id: jobId, url, phase, line_ref: lineRef ?? null, kind: 'site', uploaded_by: userId })
+    if (insErr) {
+      setPhotoErr('Photo saved to storage but not recorded — you may not be assigned to this job.')
+      return null
+    }
+    setPhotoErr(null)
+    return url
   }
 
   // Per-line-item before/during/after upload (Spencers/Downer jobs).
   function openLineUpload(itemId, stage) { lineTarget.current = { itemId, stage }; lineInputRef.current?.click() }
-  async function handleLineUpload(file, itemId, stage) {
-    if (!file || !itemId) return
+  async function handleLineUpload(files, itemId, stage) {
+    if (!files || !files.length || !itemId) return
     setUploading(`${itemId}:${stage}`)
-    const stamp = isDowner ? await downerStamp() : null
-    const blob = await processImage(file, stamp)
-    const path = `site/${jobId}/${itemId}/${stage}/${uuid()}.jpg`
-    const { error } = await supabase.storage.from('quote-images').upload(path, blob, { contentType: 'image/jpeg' })
-    if (!error) {
-      const url = supabase.storage.from('quote-images').getPublicUrl(path).data.publicUrl
-      setLinePhotos(prev => {
-        const cur = prev[itemId] ?? { before: [], during: [], after: [] }
-        const next = { ...prev, [itemId]: { ...cur, [stage]: [...(cur[stage] ?? []), url] } }
-        localStorage.setItem(`treeco_wo_linephotos_${jobId}`, JSON.stringify(next))
-        return next
-      })
-      // Mirror into the job-level aggregate so the "mark complete" gate still sees it.
-      if (stage === 'during') { const n = [...duringPhotos, url]; setDuringPhotos(n); localStorage.setItem(`treeco_wo_during_${jobId}`, JSON.stringify(n)) }
-      if (stage === 'after')  { const n = [...afterPhotos, url];  setAfterPhotos(n);  localStorage.setItem(`treeco_wo_after_${jobId}`, JSON.stringify(n)) }
+    for (const file of Array.from(files)) {
+      const url = await uploadPhoto(file, { phase: stage, lineRef: itemId, storageKey: `${itemId}/${stage}` })
+      if (url) {
+        setLinePhotos(prev => {
+          const cur = prev[itemId] ?? { before: [], during: [], after: [] }
+          return { ...prev, [itemId]: { ...cur, [stage]: [...(cur[stage] ?? []), url] } }
+        })
+      }
+    }
+    setUploading(null)
+  }
+
+  // Mark the job complete from the Work Order. Gated: Spencers/Downer jobs can't
+  // be closed until During + After photos are uploaded (readyToComplete). Only
+  // office/full can change job status (crew have read-only on jobs), so the
+  // button is staff-only; crew upload the photos and the office closes the job.
+  async function markComplete() {
+    setCompleting(true)
+    const { error } = await supabase.from('jobs')
+      .update({ status: 'complete_to_invoice', status_changed_at: new Date().toISOString() })
+      .eq('id', jobId)
+    setCompleting(false)
+    if (error) { alert(`Couldn’t mark complete: ${error.message}`); return }
+    setJob(j => ({ ...j, status: 'complete_to_invoice' }))
+  }
+
+  // Extra site photos not tied to a specific line item (Spencers/Downer jobs).
+  async function handleExtraUpload(files) {
+    if (!files || !files.length) return
+    setUploading('extra')
+    for (const file of Array.from(files)) {
+      const url = await uploadPhoto(file, { phase: 'extra', lineRef: null, storageKey: 'extra' })
+      if (url) setExtraPhotos(prev => [...prev, url])
     }
     setUploading(null)
   }
@@ -371,7 +348,7 @@ export default function WorkOrder() {
           )}
           {isDowner && (
             <div style={s.downerNotice}>
-              📍 Downer job — GPS coordinates &amp; timestamp will be embedded in all photos automatically.
+              📍 Downer job — the job address, date/time &amp; GPS are embedded into every photo automatically.
             </div>
           )}
         </div>
@@ -500,12 +477,41 @@ export default function WorkOrder() {
               )
             })}
 
-            {/* shared hidden picker — target is set by openLineUpload */}
+            {/* shared hidden picker — target is set by openLineUpload. `multiple`
+                (no capture) lets the crew add several photos at once per phase. */}
             <input
-              ref={lineInputRef} type="file" accept="image/*" capture="environment"
+              ref={lineInputRef} type="file" accept="image/*" multiple
               style={{ display: 'none' }}
-              onChange={e => { const t = lineTarget.current; if (t) handleLineUpload(e.target.files[0], t.itemId, t.stage); e.target.value = '' }}
+              onChange={e => { const t = lineTarget.current; if (t) handleLineUpload(e.target.files, t.itemId, t.stage); e.target.value = '' }}
             />
+
+            {photoErr && <div style={{ ...s.photoGate, marginTop: 12 }}>{photoErr}</div>}
+
+            {/* Extra photos not tied to a line item */}
+            <div style={s.extraPhotos}>
+              <div style={s.extraHead}>
+                <span style={s.sectionLabel}>Additional photos</span>
+                <span style={{ fontSize: 12, color: '#999' }}>optional</span>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                {extraPhotos.map((url, i) => (
+                  <img key={`${i}-${url}`} src={url} alt="" onClick={() => setLightbox(url)} style={s.thumb} />
+                ))}
+                <input ref={extraRef} type="file" accept="image/*" multiple
+                  style={{ display: 'none' }}
+                  onChange={e => { handleExtraUpload(e.target.files); e.target.value = '' }}
+                />
+                <button onClick={() => extraRef.current?.click()} disabled={uploading === 'extra'} style={{
+                  width: 80, height: 60, borderRadius: 8, border: '2px dashed #C8D4C4',
+                  background: '#FAFAF8', cursor: 'pointer', display: 'flex', flexDirection: 'column',
+                  alignItems: 'center', justifyContent: 'center', gap: 2, flexShrink: 0,
+                }}>
+                  {uploading === 'extra'
+                    ? <span style={{ fontSize: 10, color: '#888' }}>…</span>
+                    : <><span style={{ fontSize: 20 }}>📷</span><span style={{ fontSize: 10, fontWeight: 600, color: '#888' }}>Add</span></>}
+                </button>
+              </div>
+            </div>
 
             {!sdPhotosComplete && (
               <div style={s.photoGate}>
@@ -524,9 +530,9 @@ export default function WorkOrder() {
                 ))}
               </div>
             )}
-            <input ref={generalRef} type="file" accept="image/*" capture="environment"
+            <input ref={generalRef} type="file" accept="image/*" multiple
               style={{ display: 'none' }}
-              onChange={e => { handleUpload(e.target.files[0], 'general'); e.target.value = '' }}
+              onChange={e => { handleUpload(e.target.files); e.target.value = '' }}
             />
             <button onClick={() => generalRef.current?.click()} disabled={uploading === 'general'} style={{ ...s.photoBtn, marginTop: photos.length ? 12 : 12 }}>
               {uploading === 'general' ? 'Uploading…' : '📷 Add site photo'}
@@ -625,9 +631,26 @@ export default function WorkOrder() {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <CheckItem done={formsComplete} label="Required forms completed" />
-            {isSD && <CheckItem done={duringPhotos.length > 0} label="During photos uploaded" />}
-            {isSD && <CheckItem done={afterPhotos.length > 0} label="After photos uploaded" />}
+            {isSD && <CheckItem done={lineDuring.length > 0} label="During photos uploaded" />}
+            {isSD && <CheckItem done={lineAfter.length > 0} label="After photos uploaded" />}
           </div>
+
+          {isStaff && !['complete_to_invoice', 'invoiced', 'declined'].includes(job.status) && (
+            <button
+              onClick={markComplete}
+              disabled={!readyToComplete || completing}
+              title={readyToComplete ? 'Mark this job complete' : 'Upload During and After photos first'}
+              style={{
+                marginTop: 14, width: '100%', padding: '13px', borderRadius: 10, border: 'none',
+                fontSize: 15, fontWeight: 700, fontFamily: 'var(--font)',
+                cursor: readyToComplete && !completing ? 'pointer' : 'not-allowed',
+                background: readyToComplete ? 'var(--moss)' : '#E6E2DB',
+                color: readyToComplete ? '#fff' : '#9a948b',
+              }}
+            >
+              {completing ? 'Marking complete…' : readyToComplete ? '✓ Mark job complete' : '🔒 During & After photos required'}
+            </button>
+          )}
         </div>
 
         <div style={{ height: 32 }} />
@@ -825,6 +848,8 @@ const s = {
     marginTop: 12, padding: '12px 14px', background: '#FFF8F8', border: '1.5px solid #C0392B33',
     borderRadius: 8, fontSize: 13, color: '#C0392B', fontWeight: 500, lineHeight: 1.5,
   },
+  extraPhotos: { marginTop: 14, paddingTop: 14, borderTop: '1px solid #F0EEE9' },
+  extraHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
   photoGrid: { display: 'flex', flexWrap: 'wrap', gap: 10 },
   thumb:     { width: 80, height: 60, objectFit: 'cover', borderRadius: 8, cursor: 'zoom-in', border: '1px solid var(--border)' },
   photoBtn:  {
