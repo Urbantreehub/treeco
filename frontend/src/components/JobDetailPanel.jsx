@@ -210,13 +210,16 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
 
   // Spencers/DBS jobs are now titled by address, so detect via ko_reference too.
   const isSD = !!job.ko_reference || /spencer|downer/i.test(job.clients?.name ?? '') || /spencer|downer/i.test(job.title ?? '')
-  const sdPhotosReady = !isSD || (() => {
-    try {
-      const during = JSON.parse(localStorage.getItem(`treeco_wo_during_${job.id}`) ?? '[]')
-      const after  = JSON.parse(localStorage.getItem(`treeco_wo_after_${job.id}`)  ?? '[]')
-      return during.length > 0 && after.length > 0
-    } catch { return false }
-  })()
+
+  // Completion gate: Spencers/Downer jobs need During + After photos (persisted
+  // in job_photos by the crew Work Order) before they can be marked complete.
+  async function sdPhotosReady() {
+    if (!isSD) return true
+    const { data } = await supabase.from('job_photos')
+      .select('phase').eq('job_id', job.id).in('phase', ['during', 'after'])
+    const phases = new Set((data ?? []).map(p => p.phase))
+    return phases.has('during') && phases.has('after')
+  }
 
   // Status-change permissions. Office/full access can move to any status;
   // crew can only move between the operational statuses (CREW_STATUSES).
@@ -231,7 +234,7 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
     // Crew can only make the one permitted move for the current status.
     if (!canChangeStatusTo(newStatus)) return
     const isComplete = newStatus === 'complete_to_invoice'
-    if (isComplete && !sdPhotosReady) {
+    if (isComplete && !(await sdPhotosReady())) {
       alert('During and After photos must be uploaded in the Work Order before this job can be marked complete.')
       return
     }

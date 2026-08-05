@@ -309,7 +309,7 @@ function AddonGroup({ label, catalog, value, onChange }) {
 const BREAKDOWN_RATE = 320  // $/hr ex GST
 const breakdownText = h => `3 man truck & chipper charged @ $320+GST per hour × ${h} hour${Number(h) === 1 ? '' : 's'}`
 
-function LineItem({ item, onChange, onDelete, onMarkup, spencers, spencersOnly }) {
+function LineItem({ item, onChange, onDelete, onMarkup, spencers, spencersOnly, sitePhotos }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: item.id })
 
@@ -459,12 +459,40 @@ function LineItem({ item, onChange, onDelete, onMarkup, spencers, spencersOnly }
         )}
 
         {/* ── Image gallery ── */}
-        <ImageGallery
-          images={images}
-          onAdd={addImage}
-          onRemove={removeImage}
-          onMarkup={(idx, url) => onMarkup({ item, imageIndex: idx, imageUrl: url })}
-        />
+        {spencers ? (
+          <div style={b.phaseWrap}>
+            <div style={b.phaseLabel}>Before <span style={b.phaseHint}>· site assessment</span></div>
+            <ImageGallery
+              images={images}
+              onAdd={addImage}
+              onRemove={removeImage}
+              onMarkup={(idx, url) => onMarkup({ item, imageIndex: idx, imageUrl: url })}
+            />
+            {/* During / After come from the crew's Work Order (read-only here) */}
+            {['during', 'after'].map(stage => {
+              const urls = sitePhotos?.[stage] ?? []
+              return (
+                <div key={stage} style={b.phaseRow}>
+                  <div style={b.phaseLabel}>{stage === 'during' ? 'During' : 'After'} <span style={b.phaseHint}>· added on site by crew</span></div>
+                  {urls.length > 0 ? (
+                    <div style={b.phaseThumbs}>
+                      {urls.map((url, i) => <img key={`${i}-${url}`} src={url} alt="" style={b.phaseThumb} />)}
+                    </div>
+                  ) : (
+                    <div style={b.phaseEmpty}>None yet</div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        ) : (
+          <ImageGallery
+            images={images}
+            onAdd={addImage}
+            onRemove={removeImage}
+            onMarkup={(idx, url) => onMarkup({ item, imageIndex: idx, imageUrl: url })}
+          />
+        )}
 
         {/* ── Disposal / Grindings add-ons ── */}
         <div style={b.addonGroups}>
@@ -876,6 +904,7 @@ export default function QuoteBuilder() {
   const [quote, setQuote] = useState(null)
   const [owners, setOwners] = useState([])   // [{ id, name }] — attributes activity events
   const [job, setJob] = useState(null)
+  const [sitePhotos, setSitePhotos] = useState({}) // { [line_ref]: { during:[], after:[] } } — crew photos
   const [items, setItems] = useState([])
   const [notes, setNotes] = useState(DEFAULT_SIGNATURE)
   const [privateNotes, setPrivateNotes] = useState('')
@@ -931,6 +960,24 @@ export default function QuoteBuilder() {
         .then(({ data }) => setJobs(data ?? []))
     }
   }, [id, isNew])
+
+  // Crew During/After photos (job_photos) so the office sees them per line item
+  // in the builder alongside the quoter's Before photos. Spencers/Downer only.
+  useEffect(() => {
+    if (!job?.id || !isSpencersJob(job)) { setSitePhotos({}); return }
+    supabase.from('job_photos').select('url, phase, line_ref').eq('job_id', job.id)
+      .in('phase', ['during', 'after'])
+      .then(({ data }) => {
+        const byLine = {}
+        for (const p of (data ?? [])) {
+          if (!p.line_ref) continue
+          const cur = byLine[p.line_ref] ?? { during: [], after: [] }
+          if (cur[p.phase]) cur[p.phase].push(p.url)
+          byLine[p.line_ref] = cur
+        }
+        setSitePhotos(byLine)
+      })
+  }, [job?.id])
 
   // Team roster — used to attribute activity events (created/edited/sent by …).
   useEffect(() => {
@@ -1369,12 +1416,12 @@ export default function QuoteBuilder() {
                 <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px' }}>
                     {items.map(item => (
-                      <LineItem key={item.id} item={item} onChange={updateItem} onDelete={deleteItem} onMarkup={setMarkupItem} spencers={spencers} spencersOnly={spencersOnly} />
+                      <LineItem key={item.id} item={item} onChange={updateItem} onDelete={deleteItem} onMarkup={setMarkupItem} spencers={spencers} spencersOnly={spencersOnly} sitePhotos={sitePhotos[item.id]} />
                     ))}
                   </div>
                 </SortableContext>
                 <DragOverlay>
-                  {activeItem && <LineItem item={activeItem} onChange={() => {}} onDelete={() => {}} spencers={spencers} spencersOnly={spencersOnly} />}
+                  {activeItem && <LineItem item={activeItem} onChange={() => {}} onDelete={() => {}} spencers={spencers} spencersOnly={spencersOnly} sitePhotos={sitePhotos[activeItem.id]} />}
                 </DragOverlay>
               </DndContext>
 
@@ -1730,6 +1777,14 @@ const b = {
   priceDollar: { position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', color: '#aaa', fontSize: '12px', pointerEvents: 'none' },
   priceInput: { padding: '7px 8px 7px 20px', borderRadius: '6px', border: '1.5px solid var(--border)', fontSize: '13px', fontFamily: 'var(--font)', color: 'var(--ink)', width: '110px', textAlign: 'right' },
   priceLocked: { background: '#F3F1EC', color: '#999', cursor: 'not-allowed' },
+  // Before / During / After photo labelling (Spencers/Downer)
+  phaseWrap: { display: 'flex', flexDirection: 'column', gap: '8px' },
+  phaseRow: { display: 'flex', flexDirection: 'column', gap: '5px' },
+  phaseLabel: { fontSize: '11px', fontWeight: '700', color: '#6D4AA8', textTransform: 'uppercase', letterSpacing: '0.04em' },
+  phaseHint: { fontWeight: '500', color: '#A99CC0', textTransform: 'none', letterSpacing: 0 },
+  phaseThumbs: { display: 'flex', flexWrap: 'wrap', gap: '6px' },
+  phaseThumb: { width: 64, height: 48, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--border)' },
+  phaseEmpty: { fontSize: '12px', color: '#bbb', fontStyle: 'italic' },
   // Spencers cost breakdown ($320/hr)
   breakdownBox: { marginTop: '4px', padding: '10px 12px', background: '#F7F4FB', border: '1px solid #E4DCF0', borderRadius: '8px' },
   breakdownToggle: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: '600', color: '#6D4AA8', cursor: 'pointer' },
