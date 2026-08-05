@@ -157,25 +157,30 @@ export default function WorkOrder() {
 
   // ── Photo upload ──────────────────────────────────────────────────────────
   // Generic site photos for non-S&D jobs — local-only, unstamped.
-  async function handleUpload(file) {
-    if (!file) return
+  async function handleUpload(files) {
+    if (!files || !files.length) return
     setUploading('general')
-    const blob = await stampImage(file)
-    const path = `site/${jobId}/general/${uuid()}.jpg`
-    const { error } = await supabase.storage.from('quote-images').upload(path, blob, { contentType: 'image/jpeg' })
-    if (!error) {
-      const url = supabase.storage.from('quote-images').getPublicUrl(path).data.publicUrl
-      const next = [...photos, url]
-      setPhotos(next)
-      localStorage.setItem(`treeco_wo_photos_${jobId}`, JSON.stringify(next))
+    for (const file of Array.from(files)) {
+      const blob = await stampImage(file)
+      const path = `site/${jobId}/general/${uuid()}.jpg`
+      const { error } = await supabase.storage.from('quote-images').upload(path, blob, { contentType: 'image/jpeg' })
+      if (!error) {
+        const url = supabase.storage.from('quote-images').getPublicUrl(path).data.publicUrl
+        setPhotos(prev => {
+          const next = [...prev, url]
+          localStorage.setItem(`treeco_wo_photos_${jobId}`, JSON.stringify(next))
+          return next
+        })
+      }
     }
     setUploading(null)
   }
 
   // Persist a photo to job_photos (Spencers/Downer). Returns the public URL or null.
-  // Every S&D photo is stamped with the job address + date/time (+ GPS).
+  // Downer photos are stamped with the job address + date/time (+ GPS) — the
+  // MyWork guide requires it. Spencers photos are NOT tagged.
   async function uploadPhoto(file, { phase, lineRef, storageKey }) {
-    const blob = await stampImage(file, isSD ? await buildStamp(job?.address) : null)
+    const blob = await stampImage(file, isDowner ? await buildStamp(job?.address) : null)
     const path = `site/${jobId}/${storageKey}/${uuid()}.jpg`
     const { error } = await supabase.storage.from('quote-images').upload(path, blob, { contentType: 'image/jpeg' })
     if (error) { setPhotoErr('Photo upload failed — check your connection and try again.'); return null }
@@ -192,25 +197,29 @@ export default function WorkOrder() {
 
   // Per-line-item before/during/after upload (Spencers/Downer jobs).
   function openLineUpload(itemId, stage) { lineTarget.current = { itemId, stage }; lineInputRef.current?.click() }
-  async function handleLineUpload(file, itemId, stage) {
-    if (!file || !itemId) return
+  async function handleLineUpload(files, itemId, stage) {
+    if (!files || !files.length || !itemId) return
     setUploading(`${itemId}:${stage}`)
-    const url = await uploadPhoto(file, { phase: stage, lineRef: itemId, storageKey: `${itemId}/${stage}` })
-    if (url) {
-      setLinePhotos(prev => {
-        const cur = prev[itemId] ?? { before: [], during: [], after: [] }
-        return { ...prev, [itemId]: { ...cur, [stage]: [...(cur[stage] ?? []), url] } }
-      })
+    for (const file of Array.from(files)) {
+      const url = await uploadPhoto(file, { phase: stage, lineRef: itemId, storageKey: `${itemId}/${stage}` })
+      if (url) {
+        setLinePhotos(prev => {
+          const cur = prev[itemId] ?? { before: [], during: [], after: [] }
+          return { ...prev, [itemId]: { ...cur, [stage]: [...(cur[stage] ?? []), url] } }
+        })
+      }
     }
     setUploading(null)
   }
 
   // Extra site photos not tied to a specific line item (Spencers/Downer jobs).
-  async function handleExtraUpload(file) {
-    if (!file) return
+  async function handleExtraUpload(files) {
+    if (!files || !files.length) return
     setUploading('extra')
-    const url = await uploadPhoto(file, { phase: 'extra', lineRef: null, storageKey: 'extra' })
-    if (url) setExtraPhotos(prev => [...prev, url])
+    for (const file of Array.from(files)) {
+      const url = await uploadPhoto(file, { phase: 'extra', lineRef: null, storageKey: 'extra' })
+      if (url) setExtraPhotos(prev => [...prev, url])
+    }
     setUploading(null)
   }
 
@@ -320,9 +329,9 @@ export default function WorkOrder() {
               </a>
             </MetaRow>
           )}
-          {isSD && (
+          {isDowner && (
             <div style={s.downerNotice}>
-              📍 {isDowner ? 'Downer' : 'Spencers'} job — the job address, date/time &amp; GPS are embedded into every photo automatically.
+              📍 Downer job — the job address, date/time &amp; GPS are embedded into every photo automatically.
             </div>
           )}
         </div>
@@ -451,11 +460,12 @@ export default function WorkOrder() {
               )
             })}
 
-            {/* shared hidden picker — target is set by openLineUpload */}
+            {/* shared hidden picker — target is set by openLineUpload. `multiple`
+                (no capture) lets the crew add several photos at once per phase. */}
             <input
-              ref={lineInputRef} type="file" accept="image/*" capture="environment"
+              ref={lineInputRef} type="file" accept="image/*" multiple
               style={{ display: 'none' }}
-              onChange={e => { const t = lineTarget.current; if (t) handleLineUpload(e.target.files[0], t.itemId, t.stage); e.target.value = '' }}
+              onChange={e => { const t = lineTarget.current; if (t) handleLineUpload(e.target.files, t.itemId, t.stage); e.target.value = '' }}
             />
 
             {photoErr && <div style={{ ...s.photoGate, marginTop: 12 }}>{photoErr}</div>}
@@ -470,9 +480,9 @@ export default function WorkOrder() {
                 {extraPhotos.map((url, i) => (
                   <img key={`${i}-${url}`} src={url} alt="" onClick={() => setLightbox(url)} style={s.thumb} />
                 ))}
-                <input ref={extraRef} type="file" accept="image/*" capture="environment"
+                <input ref={extraRef} type="file" accept="image/*" multiple
                   style={{ display: 'none' }}
-                  onChange={e => { handleExtraUpload(e.target.files[0]); e.target.value = '' }}
+                  onChange={e => { handleExtraUpload(e.target.files); e.target.value = '' }}
                 />
                 <button onClick={() => extraRef.current?.click()} disabled={uploading === 'extra'} style={{
                   width: 80, height: 60, borderRadius: 8, border: '2px dashed #C8D4C4',
@@ -503,9 +513,9 @@ export default function WorkOrder() {
                 ))}
               </div>
             )}
-            <input ref={generalRef} type="file" accept="image/*" capture="environment"
+            <input ref={generalRef} type="file" accept="image/*" multiple
               style={{ display: 'none' }}
-              onChange={e => { handleUpload(e.target.files[0]); e.target.value = '' }}
+              onChange={e => { handleUpload(e.target.files); e.target.value = '' }}
             />
             <button onClick={() => generalRef.current?.click()} disabled={uploading === 'general'} style={{ ...s.photoBtn, marginTop: photos.length ? 12 : 12 }}>
               {uploading === 'general' ? 'Uploading…' : '📷 Add site photo'}

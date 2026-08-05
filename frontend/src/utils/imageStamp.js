@@ -1,7 +1,7 @@
 // Resize a photo and (optionally) burn a location + date/time stamp into it,
-// returning a JPEG Blob. Spencers & Downer jobs stamp every uploaded image with
-// the job address and the capture date/time (plus GPS when available) — Spencers
-// doesn't require it, but we do it on all portal jobs for our own records.
+// returning a JPEG Blob. Downer jobs stamp every uploaded image with the job
+// address and capture date/time (plus GPS) — the MyWork guide requires it.
+// Spencers (and residential) photos are uploaded without a stamp.
 
 export function getGPS() {
   return new Promise(resolve => {

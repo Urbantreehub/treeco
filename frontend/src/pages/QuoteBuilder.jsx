@@ -69,23 +69,25 @@ function ImageGallery({ images, onAdd, onRemove, onMarkup, stampAddress }) {
   const [hoverIdx, setHoverIdx] = useState(null)
 
   async function handleFile(e) {
-    const file = e.target.files[0]
-    if (!file) return
+    const files = Array.from(e.target.files || [])
     e.target.value = ''
+    if (!files.length) return
     setUploading(true)
-    // On Spencers/Downer jobs, stamp the Before photo with the job address +
-    // date/time (+ GPS) so every portal image carries its location & capture time.
-    let body = file, contentType = undefined
-    if (stampAddress != null) {
-      body = await stampImage(file, await buildStamp(stampAddress))
-      contentType = 'image/jpeg'
-    }
-    const ext = stampAddress != null ? 'jpg' : file.name.split('.').pop()
-    const path = `${uuid()}.${ext}`
-    const { error } = await supabase.storage.from('quote-images').upload(path, body, contentType ? { contentType } : undefined)
-    if (!error) {
-      const { data } = supabase.storage.from('quote-images').getPublicUrl(path)
-      onAdd(data.publicUrl)
+    for (const file of files) {
+      // On Downer jobs, stamp the Before photo with the job address + date/time
+      // (+ GPS). Spencers/residential photos are uploaded untouched.
+      let body = file, contentType = undefined
+      if (stampAddress != null) {
+        body = await stampImage(file, await buildStamp(stampAddress))
+        contentType = 'image/jpeg'
+      }
+      const ext = stampAddress != null ? 'jpg' : file.name.split('.').pop()
+      const path = `${uuid()}.${ext}`
+      const { error } = await supabase.storage.from('quote-images').upload(path, body, contentType ? { contentType } : undefined)
+      if (!error) {
+        const { data } = supabase.storage.from('quote-images').getPublicUrl(path)
+        onAdd(data.publicUrl)
+      }
     }
     setUploading(false)
   }
@@ -109,7 +111,7 @@ function ImageGallery({ images, onAdd, onRemove, onMarkup, stampAddress }) {
         </div>
       ))}
       <div style={iu.zone} onClick={() => ref.current?.click()}>
-        <input ref={ref} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFile} />
+        <input ref={ref} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={handleFile} />
         <span style={iu.plus}>+</span>
         <span style={iu.hint}>{uploading ? 'Uploading…' : 'Add attachment'}</span>
       </div>
@@ -1039,6 +1041,8 @@ export default function QuoteBuilder() {
   // Spencers-only (not Downer): the $320/hr cost-breakdown pricing is a Spencers
   // requirement for non-agreed-rate codes.
   const spencersOnly = jobCategory(job) === 'spencers'
+  // Downer photos are stamped with the job address + date/time; Spencers are not.
+  const downerJob = jobCategory(job) === 'downer'
 
   function handleDragStart({ active }) { setActiveId(active.id) }
   function handleDragEnd({ active, over }) {
@@ -1427,12 +1431,12 @@ export default function QuoteBuilder() {
                 <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px' }}>
                     {items.map(item => (
-                      <LineItem key={item.id} item={item} onChange={updateItem} onDelete={deleteItem} onMarkup={setMarkupItem} spencers={spencers} spencersOnly={spencersOnly} sitePhotos={sitePhotos[item.id]} stampAddress={spencers ? (job?.address || '') : null} />
+                      <LineItem key={item.id} item={item} onChange={updateItem} onDelete={deleteItem} onMarkup={setMarkupItem} spencers={spencers} spencersOnly={spencersOnly} sitePhotos={sitePhotos[item.id]} stampAddress={downerJob ? (job?.address || '') : null} />
                     ))}
                   </div>
                 </SortableContext>
                 <DragOverlay>
-                  {activeItem && <LineItem item={activeItem} onChange={() => {}} onDelete={() => {}} spencers={spencers} spencersOnly={spencersOnly} sitePhotos={sitePhotos[activeItem.id]} stampAddress={spencers ? (job?.address || '') : null} />}
+                  {activeItem && <LineItem item={activeItem} onChange={() => {}} onDelete={() => {}} spencers={spencers} spencersOnly={spencersOnly} sitePhotos={sitePhotos[activeItem.id]} stampAddress={downerJob ? (job?.address || '') : null} />}
                 </DragOverlay>
               </DndContext>
 
