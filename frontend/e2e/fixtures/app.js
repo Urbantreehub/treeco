@@ -89,7 +89,25 @@ export const test = base.extend({
       await page.getByLabel('Email').fill(email)
       await page.getByLabel('Password', { exact: true }).fill(password)
       await page.getByRole('button', { name: /sign in/i }).click()
-      await expect(page.locator(APP_SHELL_SELECTOR).first()).toBeVisible({ timeout: 20000 })
+      // Wait for either the app shell (success) or the login-error message
+      // (rejected credentials) — whichever appears first — so a bad secret fails
+      // in ~1s with an actionable message instead of a 20s timeout per test.
+      const shell = page.locator(APP_SHELL_SELECTOR).first()
+      const loginError = page.getByText(/incorrect email or password|invalid login/i)
+      try {
+        await expect(shell.or(loginError)).toBeVisible({ timeout: 20000 })
+      } catch {
+        throw new Error(
+          `Live login never resolved for ${emailVar} (${email}). Still at ${page.url()}. ` +
+            `Check the ${emailVar} / password secret values and that the account is confirmed.`
+        )
+      }
+      if (await loginError.isVisible()) {
+        throw new Error(
+          `Live login was rejected for ${emailVar} (${email}) — the app returned "incorrect email or password". ` +
+            `Fix the ${emailVar} / password secret values (and confirm the account can sign in at ${process.env.E2E_BASE_URL}).`
+        )
+      }
       authed = true
     }
 
