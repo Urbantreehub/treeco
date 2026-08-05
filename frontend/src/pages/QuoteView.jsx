@@ -153,6 +153,10 @@ export default function QuoteView() {
   const searchParams = new URLSearchParams(window.location.search)
   const isPreview = searchParams.get('preview') === '1'
   const isDownload = searchParams.get('download') === '1'
+  // Portal mode: the PDF uploaded to Spencers must EXCLUDE agreed-rate (schedule-
+  // of-rates) codes — those are paid on the schedule, not quoted. Only non-agreed
+  // -rate lines belong on the portal quote/invoice.
+  const isPortal = searchParams.get('portal') === '1'
   const [quote, setQuote] = useState(null)
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
@@ -215,7 +219,10 @@ export default function QuoteView() {
       : i))
   }
 
-  const totals = calcTotals(items)
+  // In portal mode, drop agreed-rate SOR lines (i.sor === true) from both the
+  // rendered document and the totals.
+  const displayItems = isPortal ? items.filter(i => i.sor !== true) : items
+  const totals = calcTotals(displayItems)
 
   async function respond(action, reason = '') {
     if (isPreview) return
@@ -374,7 +381,7 @@ export default function QuoteView() {
 
           {/* ── Line items ── */}
           <div style={p.itemsSection}>
-            {items.map((item) => {
+            {displayItems.map((item) => {
               const isOptional = item.optional
               const isActive = !isOptional || item.selected
               const lineTotal = (Number(item.qty) || 0) * (Number(item.rate) || 0) + lineExtras(item)

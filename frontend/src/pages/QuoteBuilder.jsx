@@ -353,12 +353,13 @@ function LineItem({ item, onChange, onDelete, onMarkup, spencers, spencersOnly, 
               qty: CHARGE_CODES.has(sor.code) ? 1 : item.qty,
               // Prefill the rate-card price; quote-required codes (rate null) keep manual entry
               rate: sor.rate != null ? sor.rate : item.rate,
-              // A quote-required SOR code (no fixed rate) is a non-agreed-rate line
-              // on a Spencers job → switch on the $320/hr cost breakdown so the
-              // quoter just enters hours.
-              ...(spencersOnly && sor.rate == null
-                ? { breakdown_on: true, quotable: true, sor: false, rate: BREAKDOWN_RATE }
-                : {}),
+              // Flag agreed-rate (fixed schedule) vs non-agreed-rate (quote-required)
+              // so the Spencers invoice + portal quote PDF can exclude agreed-rate
+              // codes (paid on the schedule, never quoted). A non-agreed-rate code
+              // on a Spencers job also switches on the $320/hr cost breakdown.
+              ...(sor.rate != null
+                ? { sor: true, quotable: false }
+                : { sor: false, quotable: true, ...(spencersOnly ? { breakdown_on: true, rate: BREAKDOWN_RATE } : {}) }),
             })}
           />
           {/* Fixed / Optional segmented control — labelled so it's easy to find */}

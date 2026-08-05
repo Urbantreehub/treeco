@@ -139,13 +139,16 @@ def download_to_tmp(url, suffix):
 
 
 # ── Quote PDF (rendered from the public client quote page) ────────────────────
-async def render_quote_pdf(context, token):
-    """Print the public quote page to a PDF via headless Chromium."""
+async def render_quote_pdf(context, token, portal=True):
+    """Print the public quote page to a PDF via headless Chromium. portal=True adds
+    ?portal=1 so agreed-rate SOR codes are EXCLUDED from the uploaded quote PDF
+    (they're paid on the schedule, never quoted to the portal)."""
     if not token:
         return None
     page = await context.new_page()
     try:
-        await page.goto(f"{APP_BASE_URL}/q/{token}?preview=1", wait_until="networkidle", timeout=30_000)
+        url = f"{APP_BASE_URL}/q/{token}?preview=1" + ("&portal=1" if portal else "")
+        await page.goto(url, wait_until="networkidle", timeout=30_000)
         await page.wait_for_timeout(1500)
         fd, path = tempfile.mkstemp(suffix=".pdf")
         os.close(fd)

@@ -32,7 +32,10 @@ Confirmed by Josh:
   **Before → Before, During → WIP, After → After** — and upload the image(s) for
   that line.
 - **Quote & invoice PDFs** — uploaded in the **Documents tab**, under category
-  **"Other"**.
+  **"Other"**. **Both exclude agreed-rate (schedule-of-rates) codes** — those are
+  paid on the schedule, never quoted. The uploaded quote PDF is rendered with
+  `?portal=1` (drops any line flagged `sor`), and the Spencers invoice already
+  shows only non-agreed-rate (`quotable`) lines.
 
 Worker sequence (`source = 'dbs'`):
 1. Log in (username/password — no MFA; reuse `dbs_login`).
