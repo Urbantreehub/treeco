@@ -30,8 +30,11 @@ export default function DownerSessionBanner() {
     }
     refresh()
 
+    // Unique per instance — this banner renders twice (mobile + desktop headers),
+    // and a shared channel name would make the second mount attach `.on()` to an
+    // already-subscribed channel, which Supabase rejects (crashing the page).
     const channel = supabase
-      .channel('downer-mfa-banner')
+      .channel(`downer-mfa-banner-${Math.random().toString(36).slice(2)}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'job_alerts' }, refresh)
       .subscribe()
 
