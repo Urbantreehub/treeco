@@ -328,6 +328,13 @@ function LineItem({ item, onChange, onDelete, onMarkup, spencers, spencersOnly, 
   const exTotal = (Number(item.qty) || 0) * (Number(item.rate) || 0) + lineExtras(item)
   const inclTotal = exTotal * (1 + GST)
 
+  // Collapsible card (F8.3): once a line has a title and a price it renders as
+  // a compact "title · line total" row; new/empty items start expanded. Layout
+  // only — the full editor stays mounted (display:none) so nothing is lost, and
+  // the ⠿ drag handle sits outside the toggled area so reorder keeps working.
+  const hasTitleAndPrice = !!(item.description || '').trim() && item.rate !== '' && item.rate != null
+  const [collapsed, setCollapsed] = useState(() => hasTitleAndPrice)
+
   function addImage(url) {
     const next = [...images, url]
     onChange({ ...item, images: next, image_url: next[0] ?? null })
@@ -351,7 +358,27 @@ function LineItem({ item, onChange, onDelete, onMarkup, spencers, spencersOnly, 
         <span style={{ color: '#ccc', fontSize: '14px' }}>⠿</span>
       </div>
 
-      <div style={b.lineBody}>
+      {/* Collapsed single-row view — tap anywhere to expand and edit */}
+      {collapsed && (
+        <button
+          type="button"
+          style={b.collapsedRow}
+          onClick={() => setCollapsed(false)}
+          title="Expand to edit this item"
+          aria-expanded={false}
+        >
+          <span style={b.collapsedTitle}>{(item.description || '').trim() || 'Untitled item'}</span>
+          {item.optional && (
+            <span style={b.collapsedOpt}>{item.selected ? 'Optional · in' : 'Optional · out'}</span>
+          )}
+          <span style={{ ...b.collapsedTotal, opacity: (item.optional && !item.selected) ? 0.4 : 1 }}>
+            {nzd(inclTotal)}
+          </span>
+          <span style={b.collapsedChevron}>▾</span>
+        </button>
+      )}
+
+      <div style={{ ...b.lineBody, ...(collapsed ? { display: 'none' } : {}) }}>
         {/* ── Header row: description + Fixed/Optional toggle ── */}
         <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
           <SorAutocomplete
@@ -394,6 +421,17 @@ function LineItem({ item, onChange, onDelete, onMarkup, spencers, spencersOnly, 
               </button>
             </div>
           </div>
+          {hasTitleAndPrice && (
+            <button
+              type="button"
+              style={b.collapseBtn}
+              onClick={() => setCollapsed(true)}
+              title="Collapse to a single row"
+              aria-label="Collapse item"
+            >
+              ▴
+            </button>
+          )}
         </div>
 
         {/* ── Spencers property-element location (PE1, PE2 …) ── */}
@@ -918,6 +956,83 @@ function ComposeEmailModal({ quote, onClose, onSend, sending, onMarkSent, saving
   )
 }
 
+// ── Formatting-tip dismissal (F8.4) ─────────────────────────────────────────
+// Module-level so the dismissal survives route changes within the session.
+// Deliberately not persisted (localStorage unsupported in this environment);
+// the "?" button next to "+ Add line item" re-shows the tip on demand.
+let formatHintDismissed = false
+
+// ── Staged sections (F8.1) ──────────────────────────────────────────────────
+// Accordion stage with a one-line live summary in its header. Defined at
+// module level so React keeps the same component type across renders — closed
+// stages are hidden with display:none, never unmounted, so the dnd line-item
+// editor, activity feed, version history and discussion all keep their state
+// and effects.
+function StageSection({ step, title, summary, open, onToggle, children }) {
+  return (
+    <section style={stg.section}>
+      <button
+        type="button"
+        style={{ ...stg.head, ...(open ? stg.headOpen : {}) }}
+        onClick={onToggle}
+        aria-expanded={open}
+      >
+        <span style={{ ...stg.stepDot, ...(open ? stg.stepDotOpen : {}) }}>{step}</span>
+        <span style={stg.headText}>
+          <span style={stg.headTitle}>{title}</span>
+          <span style={stg.headSummary}>{summary}</span>
+        </span>
+        <span style={stg.chevron}>{open ? '▴' : '▾'}</span>
+      </button>
+      <div style={{ display: open ? 'flex' : 'none', flexDirection: 'column', gap: '14px' }}>
+        {children}
+      </div>
+    </section>
+  )
+}
+
+const stg = {
+  section: { display: 'flex', flexDirection: 'column', gap: '12px' },
+  head: {
+    width: '100%', display: 'flex', alignItems: 'center', gap: '10px',
+    padding: '10px 14px', minHeight: '52px',
+    background: '#fff', border: '1px solid var(--border)', borderRadius: '10px',
+    cursor: 'pointer', fontFamily: 'var(--font)', textAlign: 'left',
+  },
+  headOpen: { borderColor: 'var(--terra)', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' },
+  stepDot: {
+    width: '22px', height: '22px', borderRadius: '50%', flexShrink: 0,
+    background: 'var(--cream)', border: '1px solid var(--border)', color: '#8A857D',
+    fontSize: '11px', fontWeight: '700',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+  },
+  stepDotOpen: { background: 'var(--terra)', borderColor: 'var(--terra)', color: '#fff' },
+  headText: { flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' },
+  headTitle: { fontSize: '13px', fontWeight: '700', color: 'var(--ink)' },
+  headSummary: { fontSize: '11.5px', color: '#8A857D', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  chevron: { fontSize: '12px', color: '#bbb', flexShrink: 0 },
+  // Compact stepper header — sticks to the top of the scroll area
+  stepper: {
+    position: 'sticky', top: 0, zIndex: 20,
+    display: 'flex', gap: '6px',
+    background: 'var(--cream)', padding: '4px 0 8px', margin: '-4px 0 0',
+  },
+  stepBtn: {
+    flex: 1, minWidth: 0, minHeight: '40px',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+    padding: '6px 4px', borderRadius: '8px', border: '1px solid var(--border)',
+    background: '#fff', color: '#8A857D', fontSize: '12px', fontWeight: '600',
+    cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap', overflow: 'hidden',
+  },
+  stepBtnActive: { borderColor: 'var(--terra)', color: 'var(--terra)', background: '#FBF4EF' },
+  stepNum: {
+    width: '18px', height: '18px', borderRadius: '50%', flexShrink: 0,
+    background: 'var(--cream)', color: '#8A857D', fontSize: '10.5px', fontWeight: '700',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+  },
+  stepNumActive: { background: 'var(--terra)', color: '#fff' },
+}
+
 // ── Main builder ────────────────────────────────────────────────────────────
 export default function QuoteBuilder() {
   const { id } = useParams()
@@ -946,6 +1061,10 @@ export default function QuoteBuilder() {
   const [showEmailModal, setShowEmailModal] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
   const [markupItem, setMarkupItem] = useState(null)
+  // F8.1 staged sections — accordion, one open at a time, never persisted.
+  const [openStage, setOpenStage] = useState('items')
+  // F8.4 formatting tip — dismissible; module flag survives route changes.
+  const [showFormatHint, setShowFormatHint] = useState(() => !formatHintDismissed)
   const [xeroLoading, setXeroLoading] = useState(false)
   const [emailLoading, setEmailLoading] = useState(false)
   const [smsLoading, setSmsLoading] = useState(false)
@@ -1320,6 +1439,31 @@ export default function QuoteBuilder() {
   const awaiting    = ['sent', 'viewed'].includes(quote?.status)
   const expired     = awaiting && quote?.valid_until && new Date(quote.valid_until) < new Date(new Date().toDateString())
 
+  // ── Stage summaries (F8.1) — one-line live summaries for collapsed stages ──
+  const itemsSummary = items.length === 0
+    ? 'No items yet'
+    : `${items.length} item${items.length === 1 ? '' : 's'} · ${nzd(totals.total)} incl GST`
+  const crewParts = []
+  if (jobPack.time_required?.trim()) crewParts.push(jobPack.time_required.trim())
+  if (jobPack.staff_count) crewParts.push(`${jobPack.staff_count} staff`)
+  if (jobPack.chipper && jobPack.chipper !== 'None') crewParts.push(`${jobPack.chipper.toLowerCase()} chipper`)
+  if (jobPack.avant === true) crewParts.push('Avant')
+  if (jobPack.stump_grinder === true) crewParts.push('stump grinder')
+  if (jobPack.difficulty) crewParts.push(`difficulty ${jobPack.difficulty}`)
+  const toolCount = Object.values(jobPack.tools ?? {}).filter(Boolean).length
+  if (toolCount > 0) crewParts.push(`${toolCount} tool${toolCount === 1 ? '' : 's'}`)
+  const crewSummary = crewParts.length ? crewParts.join(' · ') : 'Not filled in yet'
+  const termsSummary = (!notes?.trim() || notes === DEFAULT_SIGNATURE)
+    ? 'Default terms'
+    : (notes.split('\n').find(l => l.trim())?.trim() ?? 'Default terms')
+  const reviewSummary = isNew ? 'New quote — not sent yet' : (ST[quote?.status]?.label ?? 'Draft')
+  const STAGES = [
+    { key: 'items',  step: 1, title: 'Items',         summary: itemsSummary },
+    { key: 'crew',   step: 2, title: 'Crew pack',     summary: crewSummary },
+    { key: 'terms',  step: 3, title: 'Terms',         summary: termsSummary },
+    { key: 'review', step: 4, title: 'Review & send', summary: reviewSummary },
+  ]
+
   return (
     <>
       <div style={s.page}>
@@ -1387,7 +1531,9 @@ export default function QuoteBuilder() {
         </div>
 
         {/* ── Body ── single column, phone-first ── */}
-        <div style={s.body}>
+        {/* Extra bottom padding on compact width so the fixed total bar never
+            covers the last card. */}
+        <div style={{ ...s.body, ...(isMobile ? { paddingBottom: 'calc(132px + env(safe-area-inset-bottom))' } : {}) }}>
           <div style={s.main}>
 
             {/* Locked banner — accepted/complete/invoiced quotes are frozen */}
@@ -1424,13 +1570,7 @@ export default function QuoteBuilder() {
               </div>
             )}
 
-            {/* Activity timeline — Quotient-style Overview / All Activity feed */}
-            {!isNew && quote && <QuoteActivity quote={quote} owners={owners} />}
-
-            {/* Version history — appears once a quote has been accepted/reopened */}
-            {!isNew && <QuoteVersionHistory quoteId={id} refreshKey={quote?.status} />}
-
-            {/* Job selector */}
+            {/* Job selector — prerequisite for a new quote, so it stays above the stages */}
             {isNew && (
               <div style={s.card}>
                 <div style={s.cardTitle}>Job</div>
@@ -1443,6 +1583,31 @@ export default function QuoteBuilder() {
               </div>
             )}
 
+            {/* ── Sticky in-page stepper (F8.1) ── */}
+            <div style={stg.stepper}>
+              {STAGES.map(st2 => {
+                const active = openStage === st2.key
+                return (
+                  <button
+                    key={st2.key}
+                    type="button"
+                    style={{ ...stg.stepBtn, ...(active ? stg.stepBtnActive : {}) }}
+                    onClick={() => setOpenStage(st2.key)}
+                    aria-current={active ? 'step' : undefined}
+                  >
+                    <span style={{ ...stg.stepNum, ...(active ? stg.stepNumActive : {}) }}>{st2.step}</span>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{st2.title}</span>
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* ── Stage 1 · Items — line items + common items + GST summary ── */}
+            <StageSection
+              step={1} title="Items" summary={itemsSummary}
+              open={openStage === 'items'}
+              onToggle={() => setOpenStage(o => o === 'items' ? null : 'items')}
+            >
             {/* Line items — the focus of the screen on mobile */}
             <div style={{ ...s.card, ...s.itemsCard }}>
               <div style={s.cardTitle}>Line items</div>
@@ -1484,10 +1649,34 @@ export default function QuoteBuilder() {
                     {DISPOSAL_PRESETS.map(p => <option key={p.key} value={p.key}>{p.label}</option>)}
                   </optgroup>
                 </select>
+                {!showFormatHint && (
+                  <button
+                    type="button"
+                    style={s.hintShowBtn}
+                    onClick={() => { formatHintDismissed = false; setShowFormatHint(true) }}
+                    title="Show formatting tips"
+                    aria-label="Show formatting tips"
+                  >
+                    ?
+                  </button>
+                )}
               </div>
-              <div style={s.formatHint}>
-                💡 Title = location (e.g. front yard). In the details, the first line — the tree name or group — shows in <strong>bold</strong>, and every line after it becomes a bullet automatically. No need to type dashes or asterisks.
-              </div>
+              {/* F8.4 — formatting tip is a dismissible note, not a permanent paragraph */}
+              {showFormatHint && (
+                <div style={s.formatHintNote}>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    💡 Title = location (e.g. front yard). In the details, the first line — the tree name or group — shows in <strong>bold</strong>, and every line after it becomes a bullet automatically. No need to type dashes or asterisks.
+                  </span>
+                  <button
+                    type="button"
+                    style={s.hintDismissBtn}
+                    onClick={() => { formatHintDismissed = true; setShowFormatHint(false) }}
+                    aria-label="Dismiss formatting tip"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Summary + primary action, right under the line items */}
@@ -1507,13 +1696,15 @@ export default function QuoteBuilder() {
                 <div style={s.tRow}><span>GST (15%)</span><span>{nzd(totals.gst)}</span></div>
                 <div style={{ ...s.tRow, ...s.tBig }}><span>Total (incl GST)</span><span>{nzd(totals.total)}</span></div>
               </div>
-              {!locked && (
-                <button style={s.previewSendBig} onClick={previewAndSend} disabled={saving}>
-                  {saving ? 'Saving…' : 'Preview & Send →'}
-                </button>
-              )}
             </div>
+            </StageSection>
 
+            {/* ── Stage 2 · Crew pack — the Job Pack block ── */}
+            <StageSection
+              step={2} title="Crew pack" summary={crewSummary}
+              open={openStage === 'crew'}
+              onToggle={() => setOpenStage(o => o === 'crew' ? null : 'crew')}
+            >
             {/* Job Pack — crew-facing ops checklist */}
             <div style={{ ...s.card, border: '1.5px solid #4A674133', background: '#F8FAF7' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
@@ -1616,25 +1807,45 @@ export default function QuoteBuilder() {
                 </div>
               </div>
 
-              {/* Tools */}
+              {/* Tools — wrap-around tappable chips (F9); same jobPack.tools state */}
               <div>
                 <div style={jpLabel}>Tools needed</div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
-                  {JP_TOOLS.map(tool => (
-                    <label key={tool.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: 'var(--ink)' }}>
-                      <input
-                        type="checkbox"
-                        checked={!!((jobPack.tools ?? {})[tool.id])}
-                        onChange={e => { const checked = e.target.checked; setJobPack(p => ({ ...p, tools: { ...(p.tools ?? {}), [tool.id]: checked } })) }}
-                        style={{ width: '15px', height: '15px', cursor: 'pointer', accentColor: '#4A6741' }}
-                      />
-                      {tool.label}
-                    </label>
-                  ))}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {JP_TOOLS.map(tool => {
+                    const on = !!((jobPack.tools ?? {})[tool.id])
+                    return (
+                      <button
+                        key={tool.id}
+                        type="button"
+                        aria-pressed={on}
+                        onClick={() => setJobPack(p => ({ ...p, tools: { ...(p.tools ?? {}), [tool.id]: !((p.tools ?? {})[tool.id]) } }))}
+                        style={{
+                          minHeight: '44px', padding: '10px 16px', borderRadius: '22px',
+                          border: `1.5px solid ${on ? '#4A6741' : 'var(--border)'}`,
+                          background: on ? '#E8F0E6' : '#fff',
+                          color: on ? '#4A6741' : '#8A857D',
+                          fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)',
+                          display: 'inline-flex', alignItems: 'center', gap: '6px',
+                          transition: 'all 0.15s',
+                        }}
+                      >
+                        {on && <span aria-hidden="true">✓</span>}
+                        {tool.label}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
             </div>
 
+            </StageSection>
+
+            {/* ── Stage 3 · Terms — private notes + payment terms/signature ── */}
+            <StageSection
+              step={3} title="Terms" summary={termsSummary}
+              open={openStage === 'terms'}
+              onToggle={() => setOpenStage(o => o === 'terms' ? null : 'terms')}
+            >
             {/* Private notes */}
             <div style={{ ...s.card, border: '1.5px solid #F5C842', background: '#FFFDF0' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
@@ -1665,13 +1876,53 @@ export default function QuoteBuilder() {
                 Your signature is included here and appears on the printed document.
               </div>
             </div>
+            </StageSection>
 
-            {/* Discussion — at the very bottom of the page. Allows image
-                attachments; internal notes never reach the client. */}
+            {/* ── Stage 4 · Review & send — activity, history, discussion, send ── */}
+            <StageSection
+              step={4} title="Review & send" summary={reviewSummary}
+              open={openStage === 'review'}
+              onToggle={() => setOpenStage(o => o === 'review' ? null : 'review')}
+            >
+            {/* Activity timeline — Quotient-style Overview / All Activity feed */}
+            {!isNew && quote && <QuoteActivity quote={quote} owners={owners} />}
+
+            {/* Version history — appears once a quote has been accepted/reopened */}
+            {!isNew && <QuoteVersionHistory quoteId={id} refreshKey={quote?.status} />}
+
+            {/* Discussion — allows image attachments; internal notes never reach the client. */}
             {!isNew && <QuoteComments quoteId={id} />}
+
+            {/* Final send action — same previewAndSend handler as the header button */}
+            {!locked && (
+              <button style={s.previewSendBig} onClick={previewAndSend} disabled={saving}>
+                {saving ? 'Saving…' : 'Preview & Send →'}
+              </button>
+            )}
+            </StageSection>
           </div>
         </div>
       </div>
+
+      {/* ── Sticky bottom bar (F8.2) — compact width only. Running total incl
+          GST + the page's existing primary action (same handlers as above). ── */}
+      {isMobile && !showPreview && (
+        <div style={s.stickyBar}>
+          <div style={{ minWidth: 0 }}>
+            <div style={s.stickyBarLabel}>Total incl GST</div>
+            <div style={s.stickyBarTotal}>{nzd(totals.total)}</div>
+          </div>
+          {locked ? (
+            <button style={s.stickyBarBtn} onClick={reopen} disabled={saving}>
+              {saving ? 'Saving…' : 'Reopen to edit'}
+            </button>
+          ) : (
+            <button style={s.stickyBarBtn} onClick={previewAndSend} disabled={saving}>
+              {saving ? 'Saving…' : 'Preview & Send →'}
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Preview overlay */}
       {/* Image markup tool */}
@@ -1785,6 +2036,22 @@ const s = {
   addBtn: { background: 'none', border: '1px dashed var(--border)', borderRadius: '7px', padding: '10px', fontSize: '13px', color: 'var(--terra)', cursor: 'pointer', fontFamily: 'var(--font)', flex: '1 1 200px', fontWeight: '600' },
   presetSelect: { background: '#fff', border: '1px solid var(--border)', borderRadius: '7px', padding: '10px', fontSize: '13px', color: 'var(--ink)', cursor: 'pointer', fontFamily: 'var(--font)', fontWeight: '600', flex: '0 1 auto' },
   formatHint: { marginTop: '10px', fontSize: '11.5px', color: 'var(--ink-3)', lineHeight: 1.5 },
+  // F8.4 — dismissible formatting tip + "?" re-show button
+  formatHintNote: { marginTop: '10px', display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '11.5px', color: 'var(--ink-3)', lineHeight: 1.5, background: 'var(--cream)', border: '1px solid var(--border)', borderRadius: '8px', padding: '8px 10px' },
+  hintDismissBtn: { background: 'none', border: 'none', color: '#aaa', cursor: 'pointer', fontSize: '12px', lineHeight: 1, padding: '2px 4px', flexShrink: 0, fontFamily: 'var(--font)' },
+  hintShowBtn: { width: '32px', height: '32px', borderRadius: '50%', border: '1px solid var(--border)', background: '#fff', color: '#8A857D', fontSize: '13px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)', flexShrink: 0 },
+  // F8.2 — sticky bottom total bar (compact width)
+  stickyBar: {
+    position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 90,
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px',
+    padding: '10px 16px calc(10px + env(safe-area-inset-bottom))',
+    background: 'rgba(252,245,236,0.85)',
+    backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
+    borderTop: '1px solid var(--border)',
+  },
+  stickyBarLabel: { fontSize: '10px', fontWeight: '700', color: '#8A857D', textTransform: 'uppercase', letterSpacing: '0.05em' },
+  stickyBarTotal: { fontSize: '17px', fontWeight: '800', color: 'var(--ink)', whiteSpace: 'nowrap' },
+  stickyBarBtn: { background: 'var(--terra)', color: '#fff', border: 'none', borderRadius: '10px', padding: '12px 18px', minHeight: '44px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap', flexShrink: 0 },
   textarea: { width: '100%', padding: '10px 12px', borderRadius: '7px', border: '1.5px solid var(--border)', fontSize: '13px', fontFamily: 'var(--font)', color: 'var(--ink)', resize: 'vertical', boxSizing: 'border-box', lineHeight: 1.6 },
   totalsCard: { background: '#fff', borderRadius: '10px', border: '1px solid var(--border)', padding: '16px 18px' },
   optNote: { fontSize: '11px', color: '#D4851A', background: '#FDF3E3', borderRadius: '6px', padding: '6px 10px', marginBottom: '10px' },

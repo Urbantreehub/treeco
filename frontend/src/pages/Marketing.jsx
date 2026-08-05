@@ -472,7 +472,8 @@ export default function Marketing() {
       <div style={st.header}>
         <h1 style={st.h1}>Marketing</h1>
         <div style={st.tabs}>
-          {[['posts', 'Posts'], ['blog', 'Blog']].map(([id, label]) => (
+          {/* Blog tab removed per audit (Section 4 cut) — BlogEditor stays in the codebase. */}
+          {[['posts', 'Posts']].map(([id, label]) => (
             <button key={id} style={{ ...st.tab, ...(tab === id ? st.tabActive : {}) }} onClick={() => setTab(id)}>{label}</button>
           ))}
         </div>
