@@ -28,6 +28,9 @@ const JobPack      = lazy(() => import('./pages/JobPack'))
 const BookQuote    = lazy(() => import('./pages/BookQuote'))
 const MyDocs       = lazy(() => import('./pages/MyDocs'))
 const Actions      = lazy(() => import('./pages/Actions'))
+const Marketing    = lazy(() => import('./pages/Marketing'))
+const Blog         = lazy(() => import('./pages/Blog'))
+const BlogPost     = lazy(() => import('./pages/BlogPost'))
 
 const PageFallback = () => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100dvh', color: 'var(--bark)' }}>Loading…</div>
@@ -99,6 +102,10 @@ export default function App() {
           {/* Public quote-request / self-booking form — no auth */}
           <Route path="/book" element={<BookQuote />} />
 
+          {/* Public blog — no auth (social posts link here) */}
+          <Route path="/blog" element={<Blog />} />
+          <Route path="/blog/:slug" element={<BlogPost />} />
+
           <Route
             path="/"
             element={
@@ -117,6 +124,7 @@ export default function App() {
             <Route path="clients"   element={<RequireStaff><Clients /></RequireStaff>} />
             <Route path="quotes"    element={<Navigate to="/pipeline" replace />} />
             <Route path="quotes/:id" element={<RequireStaff><QuoteBuilder /></RequireStaff>} />
+            <Route path="marketing" element={<RequireStaff><Marketing /></RequireStaff>} />
             <Route path="settings"  element={<RequireFullAccess><Settings /></RequireFullAccess>} />
             <Route path="safety"          element={<Safety />} />
             <Route path="chat"            element={<Chat />} />

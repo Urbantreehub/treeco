@@ -1,0 +1,32 @@
+;; urbantreeservices.net — full zone inventory captured 2026-07-02
+;; Import into Cloudflare: Dashboard -> urbantreeservices.net -> DNS -> Records -> Import and Export -> Import zone file
+;; All records below are currently live on Media Giant's Cloudflare (darl/jill nameservers).
+;; IMPORTANT: after import, set apex + www to "DNS only" (grey cloud) to match current behaviour.
+
+;; --- Website (hosted on Media Giant's server) ---
+urbantreeservices.net.      300  IN  A      202.180.78.1
+www.urbantreeservices.net.  300  IN  CNAME  urbantreeservices.net.
+
+;; --- TreeCo app (Josh's Vercel account) ---
+app.urbantreeservices.net.  300  IN  CNAME  bf56aef9ccfb4949.vercel-dns-017.com.
+
+;; --- Email (Google Workspace — josh@ / office@ mail flow depends on these) ---
+urbantreeservices.net.      300  IN  MX     10 aspmx.l.google.com.
+urbantreeservices.net.      300  IN  MX     20 alt1.aspmx.l.google.com.
+urbantreeservices.net.      300  IN  MX     30 alt2.aspmx.l.google.com.
+urbantreeservices.net.      300  IN  MX     40 alt3.aspmx.l.google.com.
+urbantreeservices.net.      300  IN  MX     50 alt4.aspmx.l.google.com.
+urbantreeservices.net.      300  IN  TXT    "v=spf1 include:_spf.google.com ~all"
+
+;; --- Google site verification (Search Console) ---
+urbantreeservices.net.      300  IN  TXT    "google-site-verification=83Vb2PBdebp6TQ08K5pZukllu_JeTVXsD_XQa3ptizs"
+
+;; --- Verified ABSENT (nothing to copy) ---
+;; No AAAA, no CAA, no DMARC (_dmarc), no DKIM (google/default/selector1/selector2 _domainkey),
+;; no SRV, no other subdomains found (mail/webmail/smtp/ftp/cpanel/autodiscover/staging/dev/api/etc all empty).
+;; urbantreeservices.co.nz and urbantreeservices.nz have NO nameservers at all — registered but inactive, nothing to migrate.
+
+;; --- Post-migration recommendations (do AFTER nameserver switch is confirmed working) ---
+;; 1. Add DKIM: Google Admin -> Apps -> Google Workspace -> Gmail -> Authenticate email -> generate key,
+;;    then add the google._domainkey TXT record it gives you. Currently missing = worse deliverability for quotes.
+;; 2. Add DMARC: _dmarc TXT "v=DMARC1; p=none; rua=mailto:josh@urbantreeservices.net" to start monitoring.

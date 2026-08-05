@@ -26,6 +26,20 @@ export const LEAD_INTAKE_EMAIL = 'leads@urbantreeservices.net'
 // Public quote-request form (also embeddable via /embed.js).
 export const BOOKING_URL = 'https://app.urbantreeservices.net/book'
 
+// Marketing programme defaults — the social composer and blog editor read these.
+// ⚠️ Confirm the URLs match your live site before auto-posting goes on.
+export const MARKETING = {
+  siteUrl: 'https://www.urbantreeservices.net',
+  // Public blog articles are served by the app itself at /blog/:slug, so social
+  // posts link here. Point at wherever the app is hosted.
+  blogBaseUrl: 'https://app.urbantreeservices.net/blog',
+  // Default call-to-action added to new posts — sends people to the quote form.
+  defaultCtaLabel: 'Get a free quote',
+  defaultCtaUrl: BOOKING_URL,
+  // Channels pre-selected when composing a new post.
+  defaultPlatforms: ['facebook', 'instagram', 'google_business'],
+}
+
 // Google Business rating — shown as social proof. Confirm against your live
 // Google Business Profile and update as reviews accumulate.
 export const REVIEWS = {

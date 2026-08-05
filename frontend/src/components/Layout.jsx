@@ -94,6 +94,7 @@ const FULL_NAV = [
   { to: '/requests',  label: 'Tools',     icon: ToolIcon },
   { to: '/safety',    label: 'Safety',    icon: SafetyIcon },
   { to: '/chat',      label: 'Chat',      icon: ChatIcon },
+  { to: '/marketing', label: 'Marketing', icon: MarketingIcon },
   { to: '/staff',     label: 'Team',      icon: StaffHubIcon },
 ]
 
@@ -106,6 +107,7 @@ const OFFICE_NAV = [
   { to: '/requests',  label: 'Tools',     icon: ToolIcon },
   { to: '/safety',    label: 'Safety',    icon: SafetyIcon },
   { to: '/chat',      label: 'Chat',      icon: ChatIcon },
+  { to: '/marketing', label: 'Marketing', icon: MarketingIcon },
   { to: '/staff',     label: 'Team',      icon: StaffHubIcon },
 ]
 
@@ -349,6 +351,14 @@ function MulchIcon({ active, size = 22 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 18h13v-5l4 2v3h1" /><circle cx="7" cy="18" r="2" /><circle cx="17" cy="18" r="2" /><path d="M3 18V8h9l4 5" />
+    </svg>
+  )
+}
+function MarketingIcon({ active, size = 22 }) {
+  const c = 'currentColor'
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 11v2a1 1 0 0 0 1 1h2l3.5 4a.5.5 0 0 0 .9-.3V6.3a.5.5 0 0 0-.9-.3L6 10H4a1 1 0 0 0-1 1z"/><path d="M15 8a4 4 0 0 1 0 8"/><path d="M18 5a8 8 0 0 1 0 14"/>
     </svg>
   )
 }
