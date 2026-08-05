@@ -427,10 +427,20 @@ function LineItem({ item, onChange, onDelete, onMarkup, spencers, spencersOnly, 
           onChange={e => onChange({ ...item, detail: e.target.value })}
           rows={3}
         />
+        {/* Auto-format is off by default — the client sees the text exactly as
+            typed. Turn it on to bold the first line and bullet the rest. */}
+        <button
+          type="button"
+          style={{ ...b.formatBtn, ...(item.format ? b.formatBtnOn : {}) }}
+          onClick={() => onChange({ ...item, format: !item.format })}
+          title="Bold the first line and turn the following lines into bullet points"
+        >
+          {item.format ? '✓ Auto-format: bold heading + bullets' : '✨ Auto-format (bold heading + bullets)'}
+        </button>
         {item.detail?.trim() && (
           <div style={b.detailPreview}>
             <div style={b.detailPreviewLabel}>Client sees</div>
-            {(() => {
+            {item.format ? (() => {
               const lines = item.detail.split('\n').map(l => l.trim()).filter(Boolean)
               const hasMarkers = lines.some(l => /^[-•*]\s+/.test(l))
               if (!hasMarkers) {
@@ -449,7 +459,9 @@ function LineItem({ item, onChange, onDelete, onMarkup, spencers, spencersOnly, 
                 if (m) return <div key={i} style={b.previewBullet}><span style={b.previewDot}>•</span>{m[1]}</div>
                 return <div key={i} style={b.previewLine}>{line}</div>
               })
-            })()}
+            })() : (
+              item.detail.split('\n').map((line, i) => <div key={i} style={b.previewLine}>{line || ' '}</div>)
+            )}
           </div>
         )}
 
@@ -508,12 +520,16 @@ function LineItem({ item, onChange, onDelete, onMarkup, spencers, spencersOnly, 
         )}
 
         {/* ── Disposal / Grindings add-ons ── */}
-        <div style={b.addonGroups}>
-          <AddonGroup label="Disposal" catalog={DISPOSAL_OPTIONS}
-            value={item.disposal} onChange={dg => onChange({ ...item, disposal: dg })} />
-          <AddonGroup label="Grindings" catalog={GRINDINGS_OPTIONS}
-            value={item.grindings} onChange={gg => onChange({ ...item, grindings: gg })} />
-        </div>
+        {/* Disposal / Grindings waste add-ons are residential-only — Spencers &
+            Downer price waste through their own SOR codes. */}
+        {!spencers && (
+          <div style={b.addonGroups}>
+            <AddonGroup label="Disposal" catalog={DISPOSAL_OPTIONS}
+              value={item.disposal} onChange={dg => onChange({ ...item, disposal: dg })} />
+            <AddonGroup label="Grindings" catalog={GRINDINGS_OPTIONS}
+              value={item.grindings} onChange={gg => onChange({ ...item, grindings: gg })} />
+          </div>
+        )}
 
         {/* ── Cost breakdown ($320/hr) — Spencers non-agreed-rate lines ── */}
         {spencersOnly && (
@@ -1780,6 +1796,8 @@ const b = {
   lineBody: { flex: 1, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '8px' },
   lineTitle: { padding: '7px 9px', borderRadius: '6px', border: '1.5px solid var(--border)', fontSize: '14px', fontFamily: 'var(--font)', color: 'var(--ink)', fontWeight: '500', boxSizing: 'border-box' },
   lineDetail: { width: '100%', padding: '6px 9px', borderRadius: '6px', border: '1.5px solid var(--border)', fontSize: '12px', fontFamily: 'var(--font)', color: '#666', resize: 'vertical', boxSizing: 'border-box' },
+  formatBtn: { alignSelf: 'flex-start', margin: '2px 0 6px', padding: '5px 11px', borderRadius: '7px', border: '1.5px solid var(--border)', background: '#fff', color: '#888', fontSize: '11px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font)' },
+  formatBtnOn: { borderColor: 'var(--moss)', color: 'var(--moss)', background: '#F0F7EE' },
   detailPreview: { background: '#FAFAF7', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 10px', fontSize: '12px', color: 'var(--bark)', lineHeight: 1.5 },
   detailPreviewLabel: { fontSize: '9.5px', fontWeight: '700', color: '#bbb', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' },
   previewTitle: { fontWeight: '700', color: 'var(--bark)', marginBottom: '2px' },

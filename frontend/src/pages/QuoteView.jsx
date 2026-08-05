@@ -76,10 +76,23 @@ function fmtDate(d) {
 //   • Legacy (any line starts with "-", "•" or "*"): marked lines are bullets,
 //     unmarked lines are plain — preserves how older quotes were written.
 // Each line still runs through the glossary annotator.
-function DetailBlock({ text, onOpenGlossary }) {
+function DetailBlock({ text, format, onOpenGlossary }) {
   if (!text) return null
   const lines = String(text).split('\n').map(l => l.trim()).filter(Boolean)
   if (!lines.length) return null
+
+  // Auto-format is opt-in per line. Off (default): show the text exactly as
+  // typed. On: bold the first line and bullet the rest.
+  if (!format) {
+    return (
+      <div style={p.itemDetail}>
+        {lines.map((l, i) => (
+          <div key={i} style={p.detailLine}><AnnotatedText text={l} onOpenGlossary={onOpenGlossary} /></div>
+        ))}
+      </div>
+    )
+  }
+
   const hasMarkers = lines.some(l => /^[-•*]\s+/.test(l))
 
   if (!hasMarkers) {
@@ -416,7 +429,7 @@ export default function QuoteView() {
                           <AnnotatedText text={item.description || '—'} onOpenGlossary={() => setShowGlossary(true)} />
                           {isOptional && <span style={p.optInlineTag}>Optional</span>}
                         </div>
-                        {item.detail && <DetailBlock text={item.detail} onOpenGlossary={() => setShowGlossary(true)} />}
+                        {item.detail && <DetailBlock text={item.detail} format={item.format} onOpenGlossary={() => setShowGlossary(true)} />}
                         {item.breakdown && (
                           <div style={p.breakdown}>
                             <span style={p.breakdownLabel}>Breakdown of Costs</span>
