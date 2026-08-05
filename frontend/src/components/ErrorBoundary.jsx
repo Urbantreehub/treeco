@@ -28,6 +28,18 @@ export default class ErrorBoundary extends Component {
 
   render() {
     if (this.state.error) {
+      // Section variant: contain the failure to one panel so the rest of the
+      // page stays usable, instead of blanking the whole app. Used to wrap
+      // auxiliary panels (e.g. the Spencers/Downer portal panels on a job).
+      if (this.props.variant === 'section') {
+        return (
+          <div role="alert" data-testid="error-boundary-section" style={sectionStyles.box}>
+            <div style={sectionStyles.title}>{this.props.label || 'This section'} couldn’t load</div>
+            <div style={sectionStyles.msg}>The rest of the job is unaffected. It’s been reported so we can fix it.</div>
+            <button type="button" onClick={this.handleReset} style={sectionStyles.btn}>Retry</button>
+          </div>
+        )
+      }
       return (
         <div
           role="alert"
@@ -88,4 +100,11 @@ export default class ErrorBoundary extends Component {
 
     return this.props.children
   }
+}
+
+const sectionStyles = {
+  box: { margin: '16px', padding: '14px 16px', background: '#FFF8F8', border: '1px solid #E6C9C4', borderRadius: 10 },
+  title: { fontSize: 13, fontWeight: 700, color: '#A8402F', marginBottom: 4 },
+  msg: { fontSize: 12, color: '#8a5a52', lineHeight: 1.5 },
+  btn: { marginTop: 10, padding: '7px 14px', borderRadius: 8, border: '1px solid #E0B0AA', background: '#fff', color: '#A8402F', fontWeight: 600, fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font)' },
 }

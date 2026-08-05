@@ -43,7 +43,7 @@ export default function SpencersInvoice({ job }) {
           .eq('job_id', job.id).order('created_at', { ascending: false }),
       ])
       if (!live) return
-      setItems(q?.line_items ?? [])
+      setItems(Array.isArray(q?.line_items) ? q.line_items : [])
       setActions(acts ?? [])
     })()
     return () => { live = false }

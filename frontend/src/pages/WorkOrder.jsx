@@ -145,7 +145,7 @@ export default function WorkOrder() {
           .limit(1).maybeSingle(),
       ])
       if (jobData) setJob(jobData)
-      if (quoteData?.line_items?.length) setItems(quoteData.line_items)
+      if (Array.isArray(quoteData?.line_items) && quoteData.line_items.length) setItems(quoteData.line_items)
       if (quoteData?.notes) setQuoteNotes(quoteData.notes)
       if (quoteData?.job_pack)  setJobPack(quoteData.job_pack)
       setLoading(false)

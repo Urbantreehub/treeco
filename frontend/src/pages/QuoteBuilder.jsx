@@ -862,7 +862,7 @@ export default function QuoteBuilder() {
         .then(({ data }) => {
           if (!data) return
           setQuote(data); setJob(data.jobs); setJobId(data.job_id)
-          setItems((data.line_items ?? []).map(i => ({ ...i, id: i.id ?? uuid() })))
+          setItems((Array.isArray(data.line_items) ? data.line_items : []).map(i => ({ ...i, id: i.id ?? uuid() })))
           setNotes(data.notes ?? DEFAULT_SIGNATURE)
           setPrivateNotes(data.private_notes ?? '')
           setJobPack(data.job_pack ?? {})

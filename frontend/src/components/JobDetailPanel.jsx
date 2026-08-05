@@ -6,6 +6,7 @@ import StatusBadge from './StatusBadge'
 import QuoteReference from './QuoteReference'
 import SpencersInvoice from './SpencersInvoice'
 import SpencersPortalData from './SpencersPortalData'
+import ErrorBoundary from './ErrorBoundary'
 import AddressInput from './AddressInput'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { JOB_STATUSES, STATUS_ORDER, isSpencersJob, showsQuoteReference } from '../config/statuses'
@@ -588,11 +589,16 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
             </button>
           </div>
 
-          {/* Portal data pulled from the Spencers/Downer portal */}
-          {isSpencersJob(job) && <SpencersPortalData job={job} />}
-
-          {/* Spencers invoice — non-SOR quotable items + pre-approval + upload */}
-          {isSpencersJob(job) && <SpencersInvoice job={job} />}
+          {/* Portal panels are wrapped so a data-shape error in either one
+              degrades to an inline notice instead of white-screening the whole
+              job (the app-wide boundary would otherwise blank the page). */}
+          {isSpencersJob(job) && (
+            <ErrorBoundary variant="section" label="Portal data">
+              <SpencersPortalData job={job} />
+              {/* Spencers invoice — non-SOR quotable items + pre-approval + upload */}
+              <SpencersInvoice job={job} />
+            </ErrorBoundary>
+          )}
 
           {/* Text the client */}
           {job.clients?.phone && (
