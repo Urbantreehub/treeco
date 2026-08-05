@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../config/supabase'
 import { v4 as uuid } from 'uuid'
 import { mapsHref } from '../utils/geo'
+import { stampImage, buildStamp } from '../utils/imageStamp'
 
 const GST = 0.15
 function nzd(v) { return '$' + Number(v || 0).toLocaleString('en-NZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
@@ -32,54 +33,6 @@ const COMMON_ADDITIONS = [
 const JOB_FORMS = [
   { id: 'risk_assessment', label: 'SSSP',             url: '/forms/risk-assessment.html', icon: '📋', required: true },
 ]
-
-// ── Image processing ──────────────────────────────────────────────────────────
-
-function getGPS() {
-  return new Promise(res => {
-    if (!navigator.geolocation) { res(null); return }
-    navigator.geolocation.getCurrentPosition(
-      p => res({ lat: p.coords.latitude.toFixed(6), lng: p.coords.longitude.toFixed(6) }),
-      () => res(null),
-      { timeout: 8000, enableHighAccuracy: true },
-    )
-  })
-}
-
-// Resize + optional GPS/timestamp watermark, returns a Blob (JPEG, quality 0.75, max 1600px)
-function processImage(file, stamp = null) {
-  return new Promise(resolve => {
-    const img = new Image()
-    const url = URL.createObjectURL(file)
-    img.onload = () => {
-      const MAX = 1600
-      let { naturalWidth: w, naturalHeight: h } = img
-      if (w > MAX) { h = Math.round(h * MAX / w); w = MAX }
-      const canvas = document.createElement('canvas')
-      canvas.width = w; canvas.height = h
-      const ctx = canvas.getContext('2d')
-      ctx.drawImage(img, 0, 0, w, h)
-
-      if (stamp) {
-        const text  = `${stamp.coords}  ·  ${stamp.datetime}`
-        const pad   = 8
-        const fh    = Math.max(14, Math.round(w / 50))
-        ctx.font    = `bold ${fh}px monospace`
-        // Dark strip at bottom
-        ctx.fillStyle = 'rgba(0,0,0,0.72)'
-        ctx.fillRect(0, h - fh - pad * 2, w, fh + pad * 2)
-        // White text
-        ctx.fillStyle = '#ffffff'
-        ctx.textBaseline = 'middle'
-        ctx.fillText(text, pad, h - fh / 2 - pad, w - pad * 2)
-      }
-
-      canvas.toBlob(blob => { URL.revokeObjectURL(url); resolve(blob) }, 'image/jpeg', 0.75)
-    }
-    img.onerror = () => { URL.revokeObjectURL(url); resolve(file) }
-    img.src = url
-  })
-}
 
 // ── Main component ────────────────────────────────────────────────────────────
 
@@ -203,11 +156,11 @@ export default function WorkOrder() {
   const selectedItems = items.filter(i => !i.optional || i.selected)
 
   // ── Photo upload ──────────────────────────────────────────────────────────
-  // Generic site photos for non-S&D jobs — local-only, unchanged.
+  // Generic site photos for non-S&D jobs — local-only, unstamped.
   async function handleUpload(file) {
     if (!file) return
     setUploading('general')
-    const blob = await processImage(file, isDowner ? await downerStamp() : null)
+    const blob = await stampImage(file)
     const path = `site/${jobId}/general/${uuid()}.jpg`
     const { error } = await supabase.storage.from('quote-images').upload(path, blob, { contentType: 'image/jpeg' })
     if (!error) {
@@ -219,19 +172,10 @@ export default function WorkOrder() {
     setUploading(null)
   }
 
-  async function downerStamp() {
-    const gps = await getGPS()
-    const now = new Date()
-    const datetime = now.toLocaleString('en-NZ', {
-      day: '2-digit', month: '2-digit', year: 'numeric',
-      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
-    })
-    return { coords: gps ? `${gps.lat}, ${gps.lng}` : 'GPS unavailable', datetime }
-  }
-
   // Persist a photo to job_photos (Spencers/Downer). Returns the public URL or null.
+  // Every S&D photo is stamped with the job address + date/time (+ GPS).
   async function uploadPhoto(file, { phase, lineRef, storageKey }) {
-    const blob = await processImage(file, isDowner ? await downerStamp() : null)
+    const blob = await stampImage(file, isSD ? await buildStamp(job?.address) : null)
     const path = `site/${jobId}/${storageKey}/${uuid()}.jpg`
     const { error } = await supabase.storage.from('quote-images').upload(path, blob, { contentType: 'image/jpeg' })
     if (error) { setPhotoErr('Photo upload failed — check your connection and try again.'); return null }
@@ -376,9 +320,9 @@ export default function WorkOrder() {
               </a>
             </MetaRow>
           )}
-          {isDowner && (
+          {isSD && (
             <div style={s.downerNotice}>
-              📍 Downer job — GPS coordinates &amp; timestamp will be embedded in all photos automatically.
+              📍 {isDowner ? 'Downer' : 'Spencers'} job — the job address, date/time &amp; GPS are embedded into every photo automatically.
             </div>
           )}
         </div>

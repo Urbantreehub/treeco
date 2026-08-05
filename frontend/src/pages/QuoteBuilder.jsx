@@ -19,6 +19,7 @@ import { supabase } from '../config/supabase'
 import { useAuth } from '../context/AuthContext'
 import { v4 as uuid } from 'uuid'
 import { GST, calcTotals, lineExtras, DISPOSAL_OPTIONS, GRINDINGS_OPTIONS } from '../utils/pricing'
+import { stampImage, buildStamp } from '../utils/imageStamp'
 import { isSpencersJob, jobCategory } from '../config/statuses'
 import { SPENCERS_LOCATION_GROUPS } from '../config/spencersLocations'
 
@@ -62,7 +63,7 @@ function nzd(v, dp = 2) {
 // GST maths + quote totals now live in ../utils/pricing (imported above).
 
 // ── Image gallery (multiple images per line item) ──────────────────────────
-function ImageGallery({ images, onAdd, onRemove, onMarkup }) {
+function ImageGallery({ images, onAdd, onRemove, onMarkup, stampAddress }) {
   const ref = useRef()
   const [uploading, setUploading] = useState(false)
   const [hoverIdx, setHoverIdx] = useState(null)
@@ -72,8 +73,16 @@ function ImageGallery({ images, onAdd, onRemove, onMarkup }) {
     if (!file) return
     e.target.value = ''
     setUploading(true)
-    const path = `${uuid()}.${file.name.split('.').pop()}`
-    const { error } = await supabase.storage.from('quote-images').upload(path, file)
+    // On Spencers/Downer jobs, stamp the Before photo with the job address +
+    // date/time (+ GPS) so every portal image carries its location & capture time.
+    let body = file, contentType = undefined
+    if (stampAddress != null) {
+      body = await stampImage(file, await buildStamp(stampAddress))
+      contentType = 'image/jpeg'
+    }
+    const ext = stampAddress != null ? 'jpg' : file.name.split('.').pop()
+    const path = `${uuid()}.${ext}`
+    const { error } = await supabase.storage.from('quote-images').upload(path, body, contentType ? { contentType } : undefined)
     if (!error) {
       const { data } = supabase.storage.from('quote-images').getPublicUrl(path)
       onAdd(data.publicUrl)
@@ -309,7 +318,7 @@ function AddonGroup({ label, catalog, value, onChange }) {
 const BREAKDOWN_RATE = 320  // $/hr ex GST
 const breakdownText = h => `3 man truck & chipper charged @ $320+GST per hour × ${h} hour${Number(h) === 1 ? '' : 's'}`
 
-function LineItem({ item, onChange, onDelete, onMarkup, spencers, spencersOnly, sitePhotos }) {
+function LineItem({ item, onChange, onDelete, onMarkup, spencers, spencersOnly, sitePhotos, stampAddress }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: item.id })
 
@@ -468,6 +477,7 @@ function LineItem({ item, onChange, onDelete, onMarkup, spencers, spencersOnly, 
               onAdd={addImage}
               onRemove={removeImage}
               onMarkup={(idx, url) => onMarkup({ item, imageIndex: idx, imageUrl: url })}
+              stampAddress={stampAddress}
             />
             {/* During / After come from the crew's Work Order (read-only here) */}
             {['during', 'after'].map(stage => {
@@ -1417,12 +1427,12 @@ export default function QuoteBuilder() {
                 <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px' }}>
                     {items.map(item => (
-                      <LineItem key={item.id} item={item} onChange={updateItem} onDelete={deleteItem} onMarkup={setMarkupItem} spencers={spencers} spencersOnly={spencersOnly} sitePhotos={sitePhotos[item.id]} />
+                      <LineItem key={item.id} item={item} onChange={updateItem} onDelete={deleteItem} onMarkup={setMarkupItem} spencers={spencers} spencersOnly={spencersOnly} sitePhotos={sitePhotos[item.id]} stampAddress={spencers ? (job?.address || '') : null} />
                     ))}
                   </div>
                 </SortableContext>
                 <DragOverlay>
-                  {activeItem && <LineItem item={activeItem} onChange={() => {}} onDelete={() => {}} spencers={spencers} spencersOnly={spencersOnly} sitePhotos={sitePhotos[activeItem.id]} />}
+                  {activeItem && <LineItem item={activeItem} onChange={() => {}} onDelete={() => {}} spencers={spencers} spencersOnly={spencersOnly} sitePhotos={sitePhotos[activeItem.id]} stampAddress={spencers ? (job?.address || '') : null} />}
                 </DragOverlay>
               </DndContext>
 

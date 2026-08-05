@@ -64,7 +64,17 @@ export default function SpencersPortalData({ job }) {
   }, [job.id])
 
   const notes = descriptionNotes(job.description)
-  const rawNotes = sync?.raw_snapshot?.notes || null
+  // Portal comments are scraped as an array of { date, author, text } (this is
+  // how approvals come through). Normalise to renderable entries — rendering the
+  // raw array/objects as a React child throws.
+  const rawSnap = sync?.raw_snapshot?.notes
+  const portalNotes = Array.isArray(rawSnap)
+    ? rawSnap.filter(n => n && n.text).map(n => ({
+        date: typeof n.date === 'string' ? n.date : '',
+        author: typeof n.author === 'string' ? n.author : '',
+        text: typeof n.text === 'string' ? n.text : String(n.text ?? ''),
+      }))
+    : (typeof rawSnap === 'string' ? [{ date: '', author: '', text: rawSnap }] : [])
   const rows = snapshotRows(sync?.raw_snapshot)
   const kpiRows = sync?.kpi && typeof sync.kpi === 'object'
     ? Object.entries(sync.kpi).filter(([, v]) => v != null && v !== '') : []
@@ -94,12 +104,26 @@ export default function SpencersPortalData({ job }) {
         </div>
       )}
 
-      {(rawNotes || notes) && (
+      {portalNotes.length > 0 ? (
+        <div style={s.block}>
+          <div style={s.blockLabel}>Notes from Spencers <span style={s.notesHint}>(approvals show here)</span></div>
+          <div style={s.notesList}>
+            {portalNotes.map((n, i) => (
+              <div key={i} style={s.noteItem}>
+                {(n.date || n.author) && (
+                  <div style={s.noteMeta}>{[n.date, n.author].filter(Boolean).join(' · ')}</div>
+                )}
+                <div style={s.notes}>{n.text}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : notes ? (
         <div style={s.block}>
           <div style={s.blockLabel}>Notes</div>
-          <div style={s.notes}>{rawNotes || notes}</div>
+          <div style={s.notes}>{notes}</div>
         </div>
-      )}
+      ) : null}
 
       {rows.length > 0 && (
         <div style={s.block}>
@@ -150,6 +174,10 @@ const s = {
   rowLabel: { fontSize: '10px', color: '#A99CC0', fontWeight: '600', textTransform: 'capitalize' },
   rowValue: { fontSize: '13px', color: 'var(--ink)', wordBreak: 'break-word' },
   notes: { fontSize: '13px', color: 'var(--ink)', whiteSpace: 'pre-wrap', lineHeight: 1.5, background: '#fff', border: '1px solid #E4DCF0', borderRadius: '7px', padding: '9px 11px' },
+  notesHint: { fontWeight: '500', color: '#A99CC0', textTransform: 'none', letterSpacing: 0 },
+  notesList: { display: 'flex', flexDirection: 'column', gap: '7px' },
+  noteItem: { display: 'flex', flexDirection: 'column', gap: '2px' },
+  noteMeta: { fontSize: '10px', color: '#A99CC0', fontWeight: '600' },
   actRow: { display: 'flex', alignItems: 'center', gap: '8px', padding: '5px 0', borderTop: '1px solid #EBE4F5', fontSize: '12px' },
   actName: { flex: 1, color: 'var(--ink)', fontWeight: '600' },
   actStatus: { fontWeight: '700', whiteSpace: 'nowrap' },
