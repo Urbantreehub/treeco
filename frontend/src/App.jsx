@@ -27,6 +27,7 @@ const MulchDump    = lazy(() => import('./pages/MulchDump'))
 const JobPack      = lazy(() => import('./pages/JobPack'))
 const BookQuote    = lazy(() => import('./pages/BookQuote'))
 const MyDocs       = lazy(() => import('./pages/MyDocs'))
+const Actions      = lazy(() => import('./pages/Actions'))
 
 const PageFallback = () => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100dvh', color: 'var(--bark)' }}>Loading…</div>
@@ -109,6 +110,7 @@ export default function App() {
             <Route index element={<DefaultRedirect />} />
             <Route path="dashboard" element={<RequireFullAccess><Dashboard /></RequireFullAccess>} />
             <Route path="pipeline"  element={<RequireStaff><Pipeline /></RequireStaff>} />
+            <Route path="actions"   element={<RequireStaff><Actions /></RequireStaff>} />
             <Route path="calendar"  element={<RequireSchedule><Calendar /></RequireSchedule>} />
             <Route path="planner"   element={<RequireStaff><Planner /></RequireStaff>} />
             <Route path="sent-quotes" element={<RequireStaff><SentQuotes /></RequireStaff>} />

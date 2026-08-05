@@ -72,7 +72,9 @@ def map_status(portal_status, approved, notes):
         return "on_hold"
     if s == "started":
         return "scheduled"
-    return "accepted_to_schedule" if has_approval else "new_lead"
+    # Never auto-accept on an approval note — that's raised as an alert for the
+    # office to confirm instead of the sync moving the job itself.
+    return "new_lead"
 
 
 # ── Supabase helpers ──────────────────────────────────────────────────────────
@@ -736,6 +738,25 @@ def notify_new_jobs(new_jobs):
                 pass
 
 
+def create_alert(job_id, kind, title, detail=None, suggested_status=None, dedupe_key=None, source="portal"):
+    """Raise an office 'to be actioned' alert (Ashley's to-do list). Deduped by
+    dedupe_key via ignore-duplicates, so repeated polls don't pile up or re-open a
+    dismissed alert. No-ops (with a warning) if the job_alerts table isn't there."""
+    if not job_id:
+        return
+    try:
+        r = requests.post(
+            f"{SUPABASE_URL}/rest/v1/job_alerts",
+            headers={**sb_headers(), "Prefer": "resolution=ignore-duplicates,return=minimal"},
+            json={"job_id": job_id, "kind": kind, "title": title, "detail": detail,
+                  "suggested_status": suggested_status, "dedupe_key": dedupe_key, "source": source},
+        )
+        if r.status_code not in (200, 201, 204):
+            log(f"    ⚠  alert '{kind}' not saved ({r.status_code}) — apply migration 032")
+    except Exception as e:
+        log(f"    ⚠  alert '{kind}' error: {e}")
+
+
 def sync_jobs_to_supabase(dbs_jobs):
     # Existing TreeCo jobs, matched by the KO Ref tag in their description.
     existing = sb_get("jobs", {
@@ -780,9 +801,11 @@ def sync_jobs_to_supabase(dbs_jobs):
 
         if ko in ko_to_id:
             job_id = ko_to_id[ko]
+            # NOTE: status is deliberately NOT synced onto existing jobs — the
+            # sync never moves a job. Portal changes/approvals raise alerts (below)
+            # for the office to confirm.
             _try_patch(job_id, {
                 "title":           row["title"],
-                "status":          row["status"],
                 "estimated_value": row["estimated_value"],
                 "description":     row["description"],
                 "private_notes":   row.get("private_notes"),
@@ -807,6 +830,23 @@ def sync_jobs_to_supabase(dbs_jobs):
         if is_changed:
             changed += 1
             log(f"    ↻ Portal status: {prev.get('portal_status')!r} → {cur_status!r}")
+            create_alert(
+                job_id, "portal_status",
+                f"Portal status changed to “{cur_status}”",
+                detail=f"Was “{prev.get('portal_status')}”. Review in the portal.",
+                dedupe_key=f"{job_id}:status:{cur_status}",
+            )
+
+        # Approval → raise an alert for the office to confirm (never auto-move).
+        approval_note = next((n["text"] for n in dbs.get("notes", []) if re.search(r"approv", n.get("text", ""), re.I)), None)
+        if (dbs.get("approved") or approval_note) and job_id:
+            create_alert(
+                job_id, "portal_approval",
+                "Quote approved in the portal — confirm & schedule?",
+                detail=approval_note or "Portal shows this quote as approved.",
+                suggested_status="accepted_to_schedule",
+                dedupe_key=f"{job_id}:approval",
+            )
 
         # A job is "new" (email-worthy) the first time we see it in the portal.
         should_notify = NOTIFY_NEW and job_id and not already_notified and (prev is None or was_created)
