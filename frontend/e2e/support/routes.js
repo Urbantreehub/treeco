@@ -27,6 +27,8 @@ export const PUBLIC_ROUTES = [
   { name: 'login', path: '/login', auth: false, redirects: true, access: 'public' }, // demo auto-login bounces to /pipeline
   { name: 'public-quote', path: '/q/demo-quote-token', auth: false, access: 'public' },
   { name: 'book-quote', path: '/book', auth: false, access: 'public' },
+  { name: 'blog', path: '/blog', auth: false, access: 'public' },
+  { name: 'blog-post', path: '/blog/demo-post', auth: false, access: 'public' },
 ]
 
 /** @type {AppRoute[]} */
@@ -34,12 +36,14 @@ export const APP_ROUTES = [
   { name: 'root', path: '/', auth: true, redirects: true, access: 'any' }, // index → role-based redirect
   { name: 'dashboard', path: '/dashboard', auth: true, access: 'full' },
   { name: 'pipeline', path: '/pipeline', auth: true, access: 'staff' },
+  { name: 'actions', path: '/actions', auth: true, access: 'staff' },
   { name: 'calendar', path: '/calendar', auth: true, access: 'schedule' },
   { name: 'planner', path: '/planner', auth: true, access: 'staff' },
   { name: 'sent-quotes', path: '/sent-quotes', auth: true, access: 'staff' },
   { name: 'clients', path: '/clients', auth: true, access: 'staff' },
   { name: 'quotes-redirect', path: '/quotes', auth: true, redirects: true, access: 'staff' }, // → /pipeline
   { name: 'quote-builder', path: '/quotes/q1', auth: true, access: 'staff' },
+  { name: 'marketing', path: '/marketing', auth: true, access: 'staff' },
   { name: 'settings', path: '/settings', auth: true, access: 'full' },
   { name: 'safety', path: '/safety', auth: true, access: 'any' },
   { name: 'chat', path: '/chat', auth: true, access: 'any' },
