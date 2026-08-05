@@ -981,12 +981,20 @@ export default function QuoteBuilder() {
         })
     } else {
       supabase.from('jobs')
-        .select('id, address, job_type, clients (name)')
+        .select('id, address, job_type, title, category, ko_reference, clients (name)')
         .in('status', ['new_lead', 'quote_scheduled', 'quote_sent', 'accepted_to_schedule'])
         .order('created_at', { ascending: false })
         .then(({ data }) => setJobs(data ?? []))
     }
   }, [id, isNew])
+
+  // New-quote flow: the job picker only sets `jobId`. Mirror the chosen job into
+  // `job` state so portal detection (Spencers/Downer) — Before/During/After
+  // photos and hidden waste add-ons — works before the quote is first saved.
+  useEffect(() => {
+    if (!isNew) return
+    setJob(jobs.find(j => j.id === jobId) ?? null)
+  }, [isNew, jobId, jobs])
 
   // Crew During/After photos (job_photos) so the office sees them per line item
   // in the builder alongside the quoter's Before photos. Spencers/Downer only.
