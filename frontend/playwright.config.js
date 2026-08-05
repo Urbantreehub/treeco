@@ -59,6 +59,13 @@ export default defineConfig({
       testMatch: /pages\.spec\.js/,
       use: { ...devices['Desktop Chrome'], role, tenant: 'seeded', launchOptions },
     })),
+    // Aug-26 overhaul behaviours (status menu, day-run view, quote builder
+    // stages) — role-specific assertions live inside the spec.
+    ...['full', 'office', 'truck'].map((role) => ({
+      name: `overhaul-${role}`,
+      testMatch: /overhaul\.spec\.js/,
+      use: { ...devices['Desktop Chrome'], role, tenant: 'seeded', launchOptions },
+    })),
   ],
 
   // Only stand up a local server for the demo target. Against a live deployment

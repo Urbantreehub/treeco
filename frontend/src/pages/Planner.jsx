@@ -3,6 +3,7 @@ import { supabase } from '../config/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { getStatusColor, getStatusLabel } from '../config/statuses'
+import { displayCase } from '../utils/jobDisplay'
 import {
   clusterByProximity,
   routeDistanceKm,
@@ -14,7 +15,7 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const ANON = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 const JOB_SELECT =
-  'id, title, address, job_type, status, lat, lng, client_id, clients(name, phone)'
+  'id, title, address, job_type, status, meeting_status, lat, lng, client_id, clients(name, phone)'
 
 // ---------- small helpers ----------
 
@@ -121,10 +122,34 @@ function PlannerMap({ points, centroid }) {
 
 // ---------- Run card ----------
 
+const MEETING_OPTIONS = [
+  { value: 'meeting', label: '🤝 Meeting the client' },
+  { value: 'not_meeting', label: '🚪 Not meeting — quote from street' },
+]
+
 function RunCard({ index, cluster, mode, onSaveRun, onTextClients, savingRun, texting }) {
   const items = cluster.items
+  const isMobile = useIsMobile()
   const distance = useMemo(() => routeDistanceKm(items), [items])
   const [runDate, setRunDate] = useState(defaultRunDate())
+
+  // F28: per-stop meeting status (job id → 'meeting' | 'not_meeting').
+  // Deliberately no default — the office must decide for every stop. Jobs
+  // that already carry a meeting_status (e.g. re-planned) are prefilled.
+  const [meetingChoices, setMeetingChoices] = useState(() => {
+    const init = {}
+    for (const j of items) {
+      if (j.meeting_status) init[j.id] = j.meeting_status
+    }
+    return init
+  })
+  const setMeetingChoice = (jobId, value) =>
+    setMeetingChoices(prev => ({ ...prev, [jobId]: value }))
+
+  // Every stop needs a choice before the run can be saved. Quote runs and
+  // crew days share this card and save flow, so both are gated the same way.
+  const meetingComplete = items.every(j => meetingChoices[j.id])
+  const saveBlocked = !meetingComplete
 
   return (
     <div style={s.card}>
@@ -143,24 +168,56 @@ function RunCard({ index, cluster, mode, onSaveRun, onTextClients, savingRun, te
       <PlannerMap points={items} centroid={cluster.centroid} />
 
       <ol style={s.stopList}>
-        {items.map((j, i) => (
-          <li key={j.id} style={s.stopRow}>
-            <span style={s.stopNum}>{i + 1}</span>
-            <div style={s.stopInfo}>
-              <div style={s.stopClient}>{j.clients?.name || j.title || 'Unnamed job'}</div>
-              {j.address && <div style={s.stopAddr}>{j.address}</div>}
-            </div>
-            <span
-              style={{
-                ...s.stopPill,
-                background: getStatusColor(j.status) + '18',
-                color: getStatusColor(j.status),
-              }}
+        {items.map((j, i) => {
+          const choice = meetingChoices[j.id] || null
+          const unset = !choice
+          const highlight = saveBlocked && unset
+          return (
+            <li
+              key={j.id}
+              style={{ ...s.stopRow, ...(highlight ? s.stopRowUnset : {}) }}
             >
-              {getStatusLabel(j.status)}
-            </span>
-          </li>
-        ))}
+              <div style={s.stopTop}>
+                <span style={s.stopNum}>{i + 1}</span>
+                <div style={s.stopInfo}>
+                  <div style={s.stopClient}>{j.clients?.name || j.title || 'Unnamed job'}</div>
+                  {j.address && <div style={s.stopAddr}>{j.address}</div>}
+                </div>
+                <span
+                  style={{
+                    ...s.stopPill,
+                    background: getStatusColor(j.status) + '18',
+                    color: getStatusColor(j.status),
+                  }}
+                >
+                  {getStatusLabel(j.status)}
+                </span>
+              </div>
+              <div
+                style={{ ...s.segWrap, ...(highlight ? s.segWrapUnset : {}) }}
+                role="radiogroup"
+                aria-label={`Meeting status for ${j.clients?.name || j.title || 'stop ' + (i + 1)}`}
+              >
+                {MEETING_OPTIONS.map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={choice === opt.value}
+                    style={{
+                      ...s.segBtn,
+                      ...(isMobile ? s.segBtnTouch : {}),
+                      ...(choice === opt.value ? s.segBtnActive : {}),
+                    }}
+                    onClick={() => setMeetingChoice(j.id, opt.value)}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </li>
+          )
+        })}
       </ol>
 
       <div style={s.cardActions}>
@@ -175,9 +232,9 @@ function RunCard({ index, cluster, mode, onSaveRun, onTextClients, savingRun, te
         </label>
         <div style={s.actionBtns}>
           <button
-            style={{ ...s.primaryBtn, ...(savingRun ? s.btnDisabled : {}) }}
-            disabled={savingRun}
-            onClick={() => onSaveRun(cluster, runDate)}
+            style={{ ...s.primaryBtn, ...(savingRun || saveBlocked ? s.btnDisabled : {}) }}
+            disabled={savingRun || saveBlocked}
+            onClick={() => onSaveRun(cluster, runDate, meetingChoices)}
           >
             {savingRun ? 'Saving…' : mode === 'quote' ? 'Save as quote run' : 'Save as run'}
           </button>
@@ -191,6 +248,9 @@ function RunCard({ index, cluster, mode, onSaveRun, onTextClients, savingRun, te
             </button>
           )}
         </div>
+        {saveBlocked && (
+          <div style={s.gateHint}>Set meeting status for every stop to save this run</div>
+        )}
       </div>
 
       {mode === 'work' && (
@@ -281,8 +341,14 @@ export default function Planner() {
     []
   )
 
-  async function handleSaveRun(cluster, runDate) {
+  async function handleSaveRun(cluster, runDate, meetingChoices = {}) {
     const key = clusterKey(cluster)
+    // F28: saving a run requires an explicit meeting status on every stop.
+    // The Save button is disabled until then — this is a belt-and-braces guard.
+    if (!cluster.items.every(j => meetingChoices[j.id])) {
+      showToast('Set meeting status for every stop to save this run')
+      return
+    }
     setSavingKey(key)
     try {
       const { error } = await supabase.from('quote_runs').insert({
@@ -296,7 +362,31 @@ export default function Planner() {
       if (error) {
         showToast('Could not save run — please try again')
       } else {
-        showToast(`Run saved for ${niceDate(runDate)} (${cluster.items.length} stops)`)
+        // Persist each stop's meeting choice to the job (drives the crew/owner
+        // meeting banner, F27).
+        const meetingIds = cluster.items
+          .filter(j => meetingChoices[j.id] === 'meeting')
+          .map(j => j.id)
+        const notMeetingIds = cluster.items
+          .filter(j => meetingChoices[j.id] === 'not_meeting')
+          .map(j => j.id)
+        const updates = []
+        if (meetingIds.length) {
+          updates.push(
+            supabase.from('jobs').update({ meeting_status: 'meeting' }).in('id', meetingIds)
+          )
+        }
+        if (notMeetingIds.length) {
+          updates.push(
+            supabase.from('jobs').update({ meeting_status: 'not_meeting' }).in('id', notMeetingIds)
+          )
+        }
+        const results = await Promise.all(updates)
+        if (results.some(r => r && r.error)) {
+          showToast(`Run saved for ${niceDate(runDate)} — but meeting statuses didn't save`)
+        } else {
+          showToast(`Run saved for ${niceDate(runDate)} (${cluster.items.length} stops)`)
+        }
       }
     } catch {
       showToast('Could not save run — please try again')
@@ -462,12 +552,24 @@ export default function Planner() {
             </div>
             <div style={s.ungeoHint}>Add or fix the address so these can be clustered into a run.</div>
             <ul style={s.ungeoList}>
-              {ungeocoded.map(j => (
-                <li key={j.id} style={s.ungeoItem}>
-                  <span style={s.ungeoClient}>{j.clients?.name || j.title || 'Unnamed job'}</span>
-                  <span style={s.ungeoAddr}>{j.address || 'No address on file'}</span>
-                </li>
-              ))}
+              {ungeocoded.map(j => {
+                // F25: portal jobs often carry the address as the title, so the
+                // two columns duplicated the same string. Show the address only
+                // when it actually differs from the primary label.
+                const primary = displayCase(j.clients?.name || j.title) || 'Unnamed job'
+                const addr = displayCase(j.address)
+                const secondary = !j.address
+                  ? 'No address on file'
+                  : String(addr).trim().toLowerCase() === String(primary).trim().toLowerCase()
+                    ? null
+                    : addr
+                return (
+                  <li key={j.id} style={s.ungeoItem}>
+                    <span style={s.ungeoClient}>{primary}</span>
+                    {secondary && <span style={s.ungeoAddr}>{secondary}</span>}
+                  </li>
+                )
+              })}
             </ul>
           </div>
         )}
@@ -552,8 +654,13 @@ const s = {
     background: 'var(--moss-pale)', color: '#8a8478', fontSize: '12px',
   },
 
-  stopList: { listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '6px', margin: 0, padding: 0 },
-  stopRow: { display: 'flex', alignItems: 'center', gap: '10px' },
+  stopList: { listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '8px', margin: 0, padding: 0 },
+  stopRow: {
+    display: 'flex', flexDirection: 'column', gap: '6px',
+    borderRadius: '8px', padding: '4px', border: '1.5px solid transparent',
+  },
+  stopRowUnset: { border: '1.5px solid var(--amber)', background: 'var(--amber-pale)' },
+  stopTop: { display: 'flex', alignItems: 'center', gap: '10px' },
   stopNum: {
     width: '20px', height: '20px', borderRadius: '50%', background: 'var(--moss-pale)',
     color: 'var(--moss)', fontSize: '11px', fontWeight: '700', display: 'flex',
@@ -563,6 +670,23 @@ const s = {
   stopClient: { fontSize: '13px', fontWeight: '600', color: 'var(--bark)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   stopAddr: { fontSize: '11px', color: '#aaa', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   stopPill: { fontSize: '10px', fontWeight: '600', borderRadius: '20px', padding: '2px 8px', whiteSpace: 'nowrap', flexShrink: 0 },
+
+  segWrap: {
+    display: 'flex', flexWrap: 'wrap', gap: '3px', marginLeft: '30px',
+    background: 'var(--cream)', border: '1px solid var(--border)',
+    borderRadius: '8px', padding: '2px', alignSelf: 'flex-start',
+  },
+  segWrapUnset: { borderColor: 'var(--amber)' },
+  segBtn: {
+    border: 'none', background: 'transparent', color: '#8a8478',
+    fontSize: '11px', fontWeight: '600', padding: '4px 10px',
+    borderRadius: '6px', cursor: 'pointer', fontFamily: 'var(--font)',
+    whiteSpace: 'nowrap',
+  },
+  // Touch targets: keep the segmented options at least 44px tall on mobile.
+  segBtnTouch: { minHeight: '44px', padding: '10px 12px', fontSize: '12px' },
+  segBtnActive: { background: 'var(--moss)', color: '#fff' },
+  gateHint: { fontSize: '11px', color: 'var(--amber)', fontWeight: '600' },
 
   cardActions: {
     display: 'flex', flexDirection: 'column', gap: '10px',

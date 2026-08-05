@@ -69,20 +69,18 @@ export default function DashboardWorkload() {
           <span style={s.title}>To do</span>
           <button onClick={() => navigate('/actions')} style={s.link}>Open Actions →</button>
         </div>
+        {/* F1: Actions is the single inbox — this card is just the doorway,
+            not a second copy of the list. */}
         {alerts.length === 0 ? (
           <div style={s.empty}>🎉 Nothing waiting.</div>
         ) : (
-          <div style={s.todoList}>
-            {alerts.map(a => (
-              <button key={a.id} onClick={() => navigate('/actions')} style={s.todo}>
-                <span style={s.todoIcon}>{ALERT_ICON[a.kind] ?? '•'}</span>
-                <span style={s.todoText}>
-                  <span style={s.todoTitle}>{a.title}</span>
-                  <span style={s.todoJob}>{a.jobs?.address || a.jobs?.title || ''}</span>
-                </span>
-              </button>
-            ))}
-          </div>
+          <button onClick={() => navigate('/actions')} style={{ ...s.todo, justifyContent: 'space-between' }}>
+            <span style={s.todoText}>
+              <span style={s.todoTitle}>{alerts.length}{alerts.length === 6 ? '+' : ''} item{alerts.length === 1 ? '' : 's'} waiting to be actioned</span>
+              <span style={s.todoJob}>Portal updates, new leads & quote activity</span>
+            </span>
+            <span style={{ fontSize: 14, color: '#4A7FA5', flexShrink: 0 }}>→</span>
+          </button>
         )}
       </div>
     </div>

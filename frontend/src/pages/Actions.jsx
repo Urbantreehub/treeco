@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../config/supabase'
 import { getStatusLabel, categoryMeta } from '../config/statuses'
+import { displayCase } from '../utils/jobDisplay'
 
 // Ashley's "to be actioned" list. Portal syncs and quote activity raise alerts
 // here (they never move a job themselves); the office reviews each one and either
@@ -103,13 +104,13 @@ export default function Actions() {
                   <div style={s.jobLine}
                     onClick={() => navigate(`/pipeline?job=${job.id}`)}
                     title="Open job">
-                    {job.address || job.title || 'Job'}
-                    {job.clients?.name && <span style={s.client}> · {job.clients.name}</span>}
+                    {displayCase(job.address || job.title) || 'Job'}
+                    {job.clients?.name && <span style={s.client}> · {displayCase(job.clients.name)}</span>}
                   </div>
                 )}
 
                 <div style={s.alertTitle}>{a.title}</div>
-                {a.detail && <div style={s.detail}>{a.detail}</div>}
+                {a.detail && <AlertDetail detail={a.detail} />}
 
                 <div style={s.actions}>
                   {a.suggested_status ? (
@@ -133,6 +134,37 @@ export default function Actions() {
   )
 }
 
+// F5: portal work orders arrive as a raw text dump. Surface the facts that
+// matter as chips (order no, onsite date, complete-by, type) and tuck the full
+// original text behind a disclosure — progressive disclosure, not deletion.
+function AlertDetail({ detail }) {
+  const get = re => (detail.match(re) || [])[1]?.trim()
+  const order  = get(/Order:\s*([^\n]+)/i)
+  const onsite = get(/Onsite:\s*([^\n]+)/i)
+  const due    = get(/Complete by:\s*([^\n]+)/i)
+  const type   = get(/Type:\s*([^\n]+)/i)
+  const chips = [
+    due    && { icon: '⏱', text: `Complete by ${due}` },
+    onsite && { icon: '📅', text: `Onsite ${onsite}` },
+    type   && { icon: '🌲', text: type },
+    order  && { icon: '#', text: order },
+  ].filter(Boolean)
+  if (chips.length === 0) return <div style={s.detail}>{detail}</div>
+  return (
+    <div style={{ marginTop: 4 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        {chips.map(c => (
+          <span key={c.text} style={s.detailChip}>{c.icon} {c.text}</span>
+        ))}
+      </div>
+      <details style={{ marginTop: 6 }}>
+        <summary style={s.detailToggle}>View original</summary>
+        <div style={s.detail}>{detail}</div>
+      </details>
+    </div>
+  )
+}
+
 const s = {
   page: { maxWidth: 720, margin: '0 auto', padding: '20px 16px 60px', fontFamily: 'var(--font)' },
   loading: { color: '#888', padding: 40, textAlign: 'center' },
@@ -150,6 +182,8 @@ const s = {
   jobLine: { fontSize: 15, fontWeight: 700, color: 'var(--bark)', cursor: 'pointer', marginBottom: 6 },
   client: { fontWeight: 500, color: '#888' },
   alertTitle: { fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 3 },
+  detailChip: { display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600, color: 'var(--bark)', background: 'var(--cream)', border: '1px solid var(--border)', borderRadius: 20, padding: '4px 10px' },
+  detailToggle: { fontSize: 12, fontWeight: 600, color: '#4A7FA5', cursor: 'pointer' },
   detail: { fontSize: 13, color: '#666', lineHeight: 1.5, whiteSpace: 'pre-wrap', background: 'var(--cream)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px', marginTop: 4 },
   actions: { display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 },
   btn: { padding: '8px 14px', borderRadius: 8, border: '1px solid var(--border)', background: '#fff', color: 'var(--bark)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' },

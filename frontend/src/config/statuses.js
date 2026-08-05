@@ -130,6 +130,21 @@ export function showsQuoteReference(status) {
   return QUOTE_REFERENCE_STATUSES.includes(status)
 }
 
+// ── Manual pipeline moves (F2) ──────────────────────────────────────────────
+// Everything else is set by events, not menus: quote_scheduled when a run is
+// booked, quote_sent when the quote goes out (QuoteBuilder auto-advances),
+// accepted_to_schedule on client acceptance, invoiced when the invoice is
+// raised. stump_grinding is a crew close-out flag set from the Work Order (F3),
+// not an office menu choice — so the office menu offers only the decisions a
+// human actually makes.
+export const MANUAL_STATUSES = ['scheduled', 'on_hold', 'declined', 'complete_to_invoice']
+
+export function manualStatusOptions(current) {
+  const opts = MANUAL_STATUSES.filter(k => k !== current)
+  if (current === 'complete_to_invoice') opts.push('invoiced')
+  return opts
+}
+
 export function getStatus(key) {
   return JOB_STATUSES[key] ?? null
 }

@@ -9,7 +9,8 @@ import SpencersPortalData from './SpencersPortalData'
 import ErrorBoundary from './ErrorBoundary'
 import AddressInput from './AddressInput'
 import { useIsMobile } from '../hooks/useIsMobile'
-import { JOB_STATUSES, STATUS_ORDER, isSpencersJob, jobCategory, showsQuoteReference } from '../config/statuses'
+import { JOB_STATUSES, STATUS_ORDER, isSpencersJob, jobCategory, showsQuoteReference, manualStatusOptions } from '../config/statuses'
+import { displayCase, telHref } from '../utils/jobDisplay'
 import { mapsHref } from '../utils/geo'
 
 // Contextual forward-only transitions per status.
@@ -370,8 +371,8 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
           {/* Header */}
           <div style={styles.panelHeader}>
             <div>
-              <div style={styles.panelTitle}>{job.address || job.title}</div>
-              <div style={styles.panelClient}>{job.clients?.name ?? '—'}</div>
+              <div style={styles.panelTitle}>{displayCase(job.address || job.title)}</div>
+              <div style={styles.panelClient}>{displayCase(job.clients?.name) ?? '—'}</div>
             </div>
             <button onClick={onClose} style={styles.closeBtn}>✕</button>
           </div>
@@ -396,9 +397,7 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
                     style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', border: 'none', appearance: 'none', WebkitAppearance: 'none' }}
                   >
                     <option value="">Change status…</option>
-                    {Object.keys(JOB_STATUSES)
-                      .filter(k => k !== job.status)
-                      .filter(k => k !== 'invoiced' || job.status === 'complete_to_invoice')
+                    {manualStatusOptions(job.status)
                       .filter(canChangeStatusTo)
                       .map(key => (
                         <option key={key} value={key}>{JOB_STATUSES[key].label}</option>
@@ -492,7 +491,19 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
                 </div>
               )}
               <Row label="Job type" value={job.job_type} />
-              <Row label="Client phone" value={job.clients?.phone} />
+              {job.clients?.phone && (
+                <div style={{ marginBottom: '8px' }}>
+                  <div style={styles.rowLabel}>Client phone</div>
+                  {/* tap-to-call (F27b) — pill sized for thumbs */}
+                  <a href={telHref(job.clients.phone)} style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '7px',
+                    minHeight: '40px', padding: '7px 14px', marginTop: '2px',
+                    borderRadius: 'var(--radius-pill)', background: '#fff',
+                    border: '1.5px solid var(--border)', color: 'var(--moss)',
+                    fontWeight: 700, fontSize: '14px', textDecoration: 'none',
+                  }}>📞 {job.clients.phone}</a>
+                </div>
+              )}
               <Row label="Client email" value={job.clients?.email} />
               {job.description && (
                 <div style={{ marginTop: '8px' }}>
@@ -689,7 +700,7 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
                   }}
                 >
                   <div style={{ textAlign: 'left' }}>
-                    <div style={{ fontSize: '14px', fontWeight: '700', color: '#3A5C2E' }}>💬 Text {job.clients?.name?.split(' ')[0] || 'client'}</div>
+                    <div style={{ fontSize: '14px', fontWeight: '700', color: '#3A5C2E' }}>💬 Text client</div>
                     <div style={{ fontSize: '12px', color: '#6A8C61', marginTop: '2px' }}>{job.clients.phone}</div>
                   </div>
                   <span style={{ fontSize: '16px', color: '#4A6741' }}>→</span>
