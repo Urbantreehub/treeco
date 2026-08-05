@@ -147,7 +147,7 @@ const iu = {
 }
 
 // ── Line item (builder) ────────────────────────────────────────────────────
-function SorAutocomplete({ value, onChange, onSelect }) {
+function SorAutocomplete({ value, onChange, onSelect, provider }) {
   const [results, setResults] = useState([])
   const [open, setOpen]       = useState(false)
   const [cursor, setCursor]   = useState(-1)
@@ -156,7 +156,7 @@ function SorAutocomplete({ value, onChange, onSelect }) {
   function handleChange(e) {
     const v = e.target.value
     onChange(v)
-    const hits = searchSor(v)
+    const hits = searchSor(v, provider)
     setResults(hits)
     setOpen(hits.length > 0)
     setCursor(-1)
@@ -320,7 +320,7 @@ function AddonGroup({ label, catalog, value, onChange }) {
 const BREAKDOWN_RATE = 320  // $/hr ex GST
 const breakdownText = h => `3 man truck & chipper charged @ $320+GST per hour × ${h} hour${Number(h) === 1 ? '' : 's'}`
 
-function LineItem({ item, onChange, onDelete, onMarkup, spencers, spencersOnly, sitePhotos, stampAddress }) {
+function LineItem({ item, onChange, onDelete, onMarkup, spencers, spencersOnly, sitePhotos, stampAddress, provider }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: item.id })
 
@@ -355,6 +355,7 @@ function LineItem({ item, onChange, onDelete, onMarkup, spencers, spencersOnly, 
         {/* ── Header row: description + Fixed/Optional toggle ── */}
         <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
           <SorAutocomplete
+            provider={provider}
             value={item.description}
             onChange={desc => onChange({ ...item, description: desc })}
             onSelect={sor => onChange({
@@ -1059,6 +1060,8 @@ export default function QuoteBuilder() {
   const spencersOnly = jobCategory(job) === 'spencers'
   // Downer photos are stamped with the job address + date/time; Spencers are not.
   const downerJob = jobCategory(job) === 'downer'
+  // SOR code book to offer in the autocomplete — exclusive to the job type.
+  const sorProvider = downerJob ? 'DW' : spencersOnly ? 'SP' : null
 
   function handleDragStart({ active }) { setActiveId(active.id) }
   function handleDragEnd({ active, over }) {
@@ -1447,12 +1450,12 @@ export default function QuoteBuilder() {
                 <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px' }}>
                     {items.map(item => (
-                      <LineItem key={item.id} item={item} onChange={updateItem} onDelete={deleteItem} onMarkup={setMarkupItem} spencers={spencers} spencersOnly={spencersOnly} sitePhotos={sitePhotos[item.id]} stampAddress={downerJob ? (job?.address || '') : null} />
+                      <LineItem key={item.id} item={item} onChange={updateItem} onDelete={deleteItem} onMarkup={setMarkupItem} spencers={spencers} spencersOnly={spencersOnly} sitePhotos={sitePhotos[item.id]} stampAddress={downerJob ? (job?.address || '') : null} provider={sorProvider} />
                     ))}
                   </div>
                 </SortableContext>
                 <DragOverlay>
-                  {activeItem && <LineItem item={activeItem} onChange={() => {}} onDelete={() => {}} spencers={spencers} spencersOnly={spencersOnly} sitePhotos={sitePhotos[activeItem.id]} stampAddress={downerJob ? (job?.address || '') : null} />}
+                  {activeItem && <LineItem item={activeItem} onChange={() => {}} onDelete={() => {}} spencers={spencers} spencersOnly={spencersOnly} sitePhotos={sitePhotos[activeItem.id]} stampAddress={downerJob ? (job?.address || '') : null} provider={sorProvider} />}
                 </DragOverlay>
               </DndContext>
 

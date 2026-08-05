@@ -4,6 +4,7 @@ import { supabase } from '../config/supabase'
 import { v4 as uuid } from 'uuid'
 import { mapsHref } from '../utils/geo'
 import { stampImage, buildStamp } from '../utils/imageStamp'
+import { useAuth } from '../context/AuthContext'
 
 const GST = 0.15
 function nzd(v) { return '$' + Number(v || 0).toLocaleString('en-NZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
@@ -84,6 +85,8 @@ export default function WorkOrder() {
   const lineInputRef = useRef()
   const lineTarget = useRef(null) // { itemId, stage } for the shared per-item picker
   const [lightbox, setLightbox] = useState(null)
+  const { isStaff } = useAuth()
+  const [completing, setCompleting] = useState(false)
 
   // ── Load job + quote ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -210,6 +213,20 @@ export default function WorkOrder() {
       }
     }
     setUploading(null)
+  }
+
+  // Mark the job complete from the Work Order. Gated: Spencers/Downer jobs can't
+  // be closed until During + After photos are uploaded (readyToComplete). Only
+  // office/full can change job status (crew have read-only on jobs), so the
+  // button is staff-only; crew upload the photos and the office closes the job.
+  async function markComplete() {
+    setCompleting(true)
+    const { error } = await supabase.from('jobs')
+      .update({ status: 'complete_to_invoice', status_changed_at: new Date().toISOString() })
+      .eq('id', jobId)
+    setCompleting(false)
+    if (error) { alert(`Couldn’t mark complete: ${error.message}`); return }
+    setJob(j => ({ ...j, status: 'complete_to_invoice' }))
   }
 
   // Extra site photos not tied to a specific line item (Spencers/Downer jobs).
@@ -617,6 +634,23 @@ export default function WorkOrder() {
             {isSD && <CheckItem done={lineDuring.length > 0} label="During photos uploaded" />}
             {isSD && <CheckItem done={lineAfter.length > 0} label="After photos uploaded" />}
           </div>
+
+          {isStaff && !['complete_to_invoice', 'invoiced', 'declined'].includes(job.status) && (
+            <button
+              onClick={markComplete}
+              disabled={!readyToComplete || completing}
+              title={readyToComplete ? 'Mark this job complete' : 'Upload During and After photos first'}
+              style={{
+                marginTop: 14, width: '100%', padding: '13px', borderRadius: 10, border: 'none',
+                fontSize: 15, fontWeight: 700, fontFamily: 'var(--font)',
+                cursor: readyToComplete && !completing ? 'pointer' : 'not-allowed',
+                background: readyToComplete ? 'var(--moss)' : '#E6E2DB',
+                color: readyToComplete ? '#fff' : '#9a948b',
+              }}
+            >
+              {completing ? 'Marking complete…' : readyToComplete ? '✓ Mark job complete' : '🔒 During & After photos required'}
+            </button>
+          )}
         </div>
 
         <div style={{ height: 32 }} />
