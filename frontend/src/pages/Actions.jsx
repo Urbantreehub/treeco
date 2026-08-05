@@ -17,6 +17,7 @@ const KIND_META = {
   to_invoice:      { label: 'To invoice', color: '#2F5233', bg: '#E8F0E6' },
   unsent_quote:    { label: 'Quote not sent', color: '#B7791F', bg: '#FBF1DD' },
   not_pushed:      { label: 'Not pushed to portal', color: '#C77D1A', bg: '#FBEFDD' },
+  downer_mfa:      { label: 'Downer login', color: '#C0392B', bg: '#FBE9E7' },
 }
 
 function timeAgo(dateStr) {
@@ -98,12 +99,14 @@ export default function Actions() {
                   <span style={s.time}>{timeAgo(a.created_at)}</span>
                 </div>
 
-                <div style={s.jobLine}
-                  onClick={() => job && navigate(`/pipeline?job=${job.id}`)}
-                  title="Open job">
-                  {job?.address || job?.title || 'Job'}
-                  {job?.clients?.name && <span style={s.client}> · {job.clients.name}</span>}
-                </div>
+                {job && (
+                  <div style={s.jobLine}
+                    onClick={() => navigate(`/pipeline?job=${job.id}`)}
+                    title="Open job">
+                    {job.address || job.title || 'Job'}
+                    {job.clients?.name && <span style={s.client}> · {job.clients.name}</span>}
+                  </div>
+                )}
 
                 <div style={s.alertTitle}>{a.title}</div>
                 {a.detail && <div style={s.detail}>{a.detail}</div>}

@@ -112,3 +112,42 @@ Secrets it reads: `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `APP_BASE_URL`,
 > MyWork DOM** are not yet confirmed against the live portals. Those steps use
 > robust text selectors and **fail loudly** (never silently) — do the first run
 > **headful** (`HEADLESS=0`) on one job and adjust the `# VERIFY` selectors as needed.
+
+---
+
+# Downer inbound sync (`downer_to_treeco.py`)
+
+Pulls Downer (MyWork/Spotless) work orders into TreeCo as `category:'downer'`
+`new_lead` jobs — the Downer counterpart of `dbs_to_treeco.py`. MyWork needs MFA,
+so it runs off the **same persisted session** as the upload worker
+(`DOWNER_STORAGE_STATE` / `downer_session.json`, captured with `--capture-downer`).
+
+```bash
+cd scripts && set -a && . .env && set +a
+DOWNER_HEADLESS=0 DOWNER_FORCE=1 python3 downer_to_treeco.py   # first supervised run
+DOWNER_POLL_SECONDS=600 python3 downer_to_treeco.py            # always-on (deploy like the DBS worker)
+```
+
+- Gated by `app_settings.downer_sync_enabled` (migration 036, default **false**).
+  Flip it on once verified: `update app_settings set value='true'::jsonb where key='downer_sync_enabled';`
+- `DOWNER_FORCE=1` bypasses the pause gate for a manual run.
+- Secrets: `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `DOWNER_STORAGE_STATE`,
+  `DOWNER_POLL_SECONDS`, `DOWNER_HEADLESS`.
+- ⚠️ The MyWork list/row selectors are heuristic (`# VERIFY`) — do the first run
+  headful and tighten them against the live Issued screen.
+
+## When the Downer MFA session expires — the reconnect flow
+
+Both the inbound scraper and the upload worker share the MyWork session. When it
+expires (or is missing) they:
+1. **Raise a `downer_mfa` alert** in TreeCo → the office sees a **red banner on
+   every screen** + an entry on the **Actions** page with step-by-step fix
+   instructions, and stop (they never silently do nothing).
+2. **Auto-clear it** on the next successful login.
+
+To reconnect (what the in-app banner tells you):
+```bash
+python3 scripts/portal_actions_worker.py --capture-downer   # sign in + approve MFA
+```
+then update the worker's `DOWNER_STORAGE_STATE` secret / redeploy so the running
+workers pick up the fresh `downer_session.json`.

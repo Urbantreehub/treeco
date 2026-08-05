@@ -5,6 +5,7 @@ import { useIsMobile } from '../hooks/useIsMobile'
 import { useScheduledChecks } from '../hooks/useScheduledChecks'
 import { usePendingRequests } from '../hooks/usePendingRequests'
 import { useOpenAlerts } from '../hooks/useOpenAlerts'
+import DownerSessionBanner from './DownerSessionBanner'
 
 // ── Brand mark — the terracotta starburst from the redesign ───────────────────
 function Starburst({ size = 22 }) {
@@ -181,6 +182,7 @@ export default function Layout() {
       <div style={m.shell}>
         <main style={m.main}>
           <PageBanner title={pageTitle} alerts={actionCount} onAlerts={() => navigate('/actions')} />
+          <DownerSessionBanner />
           <Suspense fallback={<div style={pageFallback}>Loading…</div>}>
             <Outlet />
           </Suspense>
@@ -300,6 +302,7 @@ export default function Layout() {
       </nav>
       <main style={d.main}>
         <PageBanner title={pageTitle} alerts={actionCount} onAlerts={() => navigate('/actions')} />
+        <DownerSessionBanner />
         <Suspense fallback={<div style={pageFallback}>Loading…</div>}>
           <Outlet />
         </Suspense>
