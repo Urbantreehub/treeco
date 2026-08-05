@@ -13,6 +13,10 @@ const KIND_META = {
   portal_note:     { label: 'Portal note', color: '#6D4AA8', bg: '#F1ECF9' },
   acceptance:      { label: 'Accepted', color: '#2F5233', bg: '#E8F0E6' },
   comment:         { label: 'Comment', color: '#B7791F', bg: '#FBF1DD' },
+  new_lead:        { label: 'New lead', color: '#4A7FA5', bg: '#EBF3FA' },
+  to_invoice:      { label: 'To invoice', color: '#2F5233', bg: '#E8F0E6' },
+  unsent_quote:    { label: 'Quote not sent', color: '#B7791F', bg: '#FBF1DD' },
+  not_pushed:      { label: 'Not pushed to portal', color: '#C77D1A', bg: '#FBEFDD' },
 }
 
 function timeAgo(dateStr) {

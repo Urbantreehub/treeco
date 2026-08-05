@@ -33,7 +33,7 @@ const FORWARD_ACTIONS = {
 // put on hold, resume, flag stump grinding). They can change status only FROM
 // one of these, and only TO another of these — so the sales/quoting statuses
 // and, crucially, invoicing stay office/full-access only.
-const CREW_STATUSES = ['scheduled', 'stump_grinding', 'complete_to_invoice', 'on_hold']
+const CREW_STATUSES = ['complete_to_invoice', 'stump_grinding']
 
 const SUPABASE_URL  = import.meta.env.VITE_SUPABASE_URL
 const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY

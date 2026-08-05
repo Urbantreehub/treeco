@@ -85,8 +85,8 @@ export default function WorkOrder() {
   const lineInputRef = useRef()
   const lineTarget = useRef(null) // { itemId, stage } for the shared per-item picker
   const [lightbox, setLightbox] = useState(null)
-  const { isStaff } = useAuth()
-  const [completing, setCompleting] = useState(false)
+  const { isStaff, isTruck } = useAuth()
+  const [completing, setCompleting] = useState(null)
 
   // ── Load job + quote ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -215,18 +215,17 @@ export default function WorkOrder() {
     setUploading(null)
   }
 
-  // Mark the job complete from the Work Order. Gated: Spencers/Downer jobs can't
-  // be closed until During + After photos are uploaded (readyToComplete). Only
-  // office/full can change job status (crew have read-only on jobs), so the
-  // button is staff-only; crew upload the photos and the office closes the job.
-  async function markComplete() {
-    setCompleting(true)
+  // Change the job's status from the Work Order. Office/full + truck can do this;
+  // truck is limited by RLS to 'complete_to_invoice' / 'stump_grinding' only.
+  // Completing a Spencers/Downer job is gated on During + After photos.
+  async function setJobStatus(newStatus) {
+    setCompleting(newStatus)
     const { error } = await supabase.from('jobs')
-      .update({ status: 'complete_to_invoice', status_changed_at: new Date().toISOString() })
+      .update({ status: newStatus, status_changed_at: new Date().toISOString() })
       .eq('id', jobId)
-    setCompleting(false)
-    if (error) { alert(`Couldn’t mark complete: ${error.message}`); return }
-    setJob(j => ({ ...j, status: 'complete_to_invoice' }))
+    setCompleting(null)
+    if (error) { alert(`Couldn’t update status: ${error.message}`); return }
+    setJob(j => ({ ...j, status: newStatus }))
   }
 
   // Extra site photos not tied to a specific line item (Spencers/Downer jobs).
@@ -635,21 +634,36 @@ export default function WorkOrder() {
             {isSD && <CheckItem done={lineAfter.length > 0} label="After photos uploaded" />}
           </div>
 
-          {isStaff && !['complete_to_invoice', 'invoiced', 'declined'].includes(job.status) && (
-            <button
-              onClick={markComplete}
-              disabled={!readyToComplete || completing}
-              title={readyToComplete ? 'Mark this job complete' : 'Upload During and After photos first'}
-              style={{
-                marginTop: 14, width: '100%', padding: '13px', borderRadius: 10, border: 'none',
-                fontSize: 15, fontWeight: 700, fontFamily: 'var(--font)',
-                cursor: readyToComplete && !completing ? 'pointer' : 'not-allowed',
-                background: readyToComplete ? 'var(--moss)' : '#E6E2DB',
-                color: readyToComplete ? '#fff' : '#9a948b',
-              }}
-            >
-              {completing ? 'Marking complete…' : readyToComplete ? '✓ Mark job complete' : '🔒 During & After photos required'}
-            </button>
+          {(isStaff || isTruck) && !['complete_to_invoice', 'invoiced', 'declined'].includes(job.status) && (
+            <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <button
+                onClick={() => setJobStatus('complete_to_invoice')}
+                disabled={!readyToComplete || !!completing}
+                title={readyToComplete ? 'Mark this job complete' : 'Upload During and After photos first'}
+                style={{
+                  width: '100%', padding: '13px', borderRadius: 10, border: 'none',
+                  fontSize: 15, fontWeight: 700, fontFamily: 'var(--font)',
+                  cursor: readyToComplete && !completing ? 'pointer' : 'not-allowed',
+                  background: readyToComplete ? 'var(--moss)' : '#E6E2DB',
+                  color: readyToComplete ? '#fff' : '#9a948b',
+                }}
+              >
+                {completing === 'complete_to_invoice' ? 'Marking complete…' : readyToComplete ? '✓ Mark job complete' : '🔒 During & After photos required'}
+              </button>
+              {job.status !== 'stump_grinding' && (
+                <button
+                  onClick={() => setJobStatus('stump_grinding')}
+                  disabled={!!completing}
+                  style={{
+                    width: '100%', padding: '11px', borderRadius: 10, border: '1.5px solid #C8A24B',
+                    fontSize: 14, fontWeight: 700, fontFamily: 'var(--font)', cursor: completing ? 'not-allowed' : 'pointer',
+                    background: '#FBF6EA', color: '#8B6238',
+                  }}
+                >
+                  {completing === 'stump_grinding' ? 'Updating…' : '🌱 Stump grinding outstanding'}
+                </button>
+              )}
+            </div>
           )}
         </div>
 
