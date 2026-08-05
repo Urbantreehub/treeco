@@ -39,7 +39,6 @@ import os
 import re
 import sys
 import json
-import base64
 import asyncio
 import tempfile
 from datetime import datetime, timezone
@@ -165,9 +164,20 @@ def line_code_by_ref(quote, line_ref):
     return ""
 
 
-def group_photos(payload):
-    """payload.photos = {before:[{url,line_ref}], during:[...], after:[...], extra:[...]}"""
-    return (payload or {}).get("photos", {}) or {}
+def group_photos(payload, quote=None):
+    """payload.photos = {before:[{url,line_ref}], during:[...], after:[...], extra:[...]}.
+    Also fold the quoter's per-line site-assessment images (quotes.line_items[].images)
+    into the Before phase — those live on the quote, not in job_photos."""
+    photos = dict((payload or {}).get("photos", {}) or {})
+    photos.setdefault("before", list(photos.get("before", [])))
+    seen = {p.get("url") for p in photos["before"]}
+    for it in (quote.get("line_items") or []) if quote else []:
+        imgs = it.get("images") or ([it["image_url"]] if it.get("image_url") else [])
+        for url in imgs:
+            if url and url not in seen:
+                photos["before"].append({"url": url, "line_ref": it.get("id")})
+                seen.add(url)
+    return photos
 
 
 # ── Spencers (DBS) ────────────────────────────────────────────────────────────
@@ -286,7 +296,7 @@ async def process_spencers(context, action):
     shl_job_id = sync[0]["shl_job_id"]
 
     quote = fetch_quote(payload.get("quote_id"))
-    photos = group_photos(payload)
+    photos = group_photos(payload, quote)
 
     page = await context.new_page()
     await dbs_login(page)
@@ -331,7 +341,7 @@ async def process_downer(context, action):
     if not wo:
         raise RuntimeError("no ko_reference (Work Order number) on this Downer job")
     quote = fetch_quote(payload.get("quote_id"))
-    photos = group_photos(payload)
+    photos = group_photos(payload, quote)
 
     page = await context.new_page()
     # Confirm the session is still authenticated (MFA sessions expire).
