@@ -74,7 +74,7 @@ export default function DayRunView({ initialDate, myResourceId, resources, resou
 
   const weekStartYMD = toYMD(weekMonday(fromYMD(selectedDate)))
   const weekDays = useMemo(
-    () => Array.from({ length: 5 }, (_, i) => addDays(fromYMD(weekStartYMD), i)),
+    () => Array.from({ length: 6 }, (_, i) => addDays(fromYMD(weekStartYMD), i)),
     [weekStartYMD]
   )
 
@@ -88,7 +88,7 @@ export default function DayRunView({ initialDate, myResourceId, resources, resou
         .from('schedule')
         .select('*, jobs(*, clients(name, phone, email), quotes(id, status, total, subtotal, job_pack))')
         .gte('date', weekStartYMD)
-        .lte('date', toYMD(addDays(fromYMD(weekStartYMD), 4)))
+        .lte('date', toYMD(addDays(fromYMD(weekStartYMD), 5)))
         .order('date')
         .order('start_time')
       if (!cancelled) {
