@@ -18,7 +18,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { supabase } from '../config/supabase'
 import { mapsHref } from '../utils/geo'
 import { SPENCERS_COLOR, isSpencersJob, getStatusLabel, JOB_STATUSES } from '../config/statuses'
-import { jobHeading, koCode, kpiCountdown } from '../utils/jobDisplay'
+import { jobHeading, koCode, kpiCountdown, displayCase } from '../utils/jobDisplay'
 import CartrackMap from '../components/CartrackMap'
 import TruckProgress from '../components/TruckProgress'
 import JobDetailPanel from '../components/JobDetailPanel'
@@ -101,6 +101,13 @@ const JOB_TYPE_COLOR = {
   grinding: '#8B4513',
   planting: '#2E7D52',
   consult:  '#4A7FA5',
+}
+
+function fmtClock(t) {
+  if (!t) return null
+  const [h, m] = t.split(':').map(Number)
+  const hr = h % 12 === 0 ? 12 : h % 12
+  return `${hr}:${String(m).padStart(2, '0')}${h >= 12 ? 'pm' : 'am'}`
 }
 
 function jobColor(job) {
@@ -234,6 +241,54 @@ function SortableWeekRow({ res, ri, days, today, events, onEventClick, cols }) {
                 )}
               </div>
             ))}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// Mobile week view: everyone's jobs for the week as a vertical, day-grouped
+// agenda — full-width legible rows (no truncation, no horizontal scroll), one
+// section per weekday. Replaces the resource-timeline grid on phones (F11/F26).
+function MobileWeekAgenda({ weekStart, events, resources, onEventClick }) {
+  const days = Array.from({ length: 5 }, (_, i) => addDays(weekStart, i))
+  const today = toYMD(new Date())
+  const resTitle = id => resources.find(r => r.id === id)?.title ?? 'Unassigned'
+
+  return (
+    <div style={mwa.wrap}>
+      {days.map(d => {
+        const ymd = toYMD(d)
+        const isToday = ymd === today
+        const dayEvents = events
+          .filter(e => (e.start?.slice(0, 10) === ymd || e.start === ymd))
+          .sort((a, b) => String(a.start).localeCompare(String(b.start)))
+        return (
+          <div key={ymd} style={mwa.daySection}>
+            <div style={{ ...mwa.dayHeader, ...(isToday ? mwa.dayHeaderToday : {}) }}>
+              <span style={mwa.dayName}>{d.toLocaleDateString('en-NZ', { weekday: 'long' })}</span>
+              <span style={mwa.dayDate}>{d.toLocaleDateString('en-NZ', { day: 'numeric', month: 'short' })}{isToday ? ' · Today' : ''}</span>
+              <span style={mwa.dayCount}>{dayEvents.length || ''}</span>
+            </div>
+            {dayEvents.length === 0 ? (
+              <div style={mwa.empty}>No jobs</div>
+            ) : dayEvents.map(ev => {
+              const job = ev.extendedProps?.job
+              const time = ev.start?.length > 10 ? fmtClock(ev.start.slice(11, 16)) : null
+              return (
+                <button key={ev.id} style={mwa.row} onClick={() => onEventClick(ev)}>
+                  <span style={{ ...mwa.bar, background: ev.color ?? '#4A7FA5' }} />
+                  <span style={mwa.rowBody}>
+                    <span style={mwa.rowTitle}>{displayCase(ev.title)}</span>
+                    <span style={mwa.rowMeta}>
+                      {[time, job?.job_type, resTitle(ev.resourceId)].filter(Boolean).join(' · ')}
+                    </span>
+                  </span>
+                  <span style={{ ...mwa.crewDot, background: RESOURCE_COLOR[ev.resourceId] ?? '#bbb' }} />
+                </button>
+              )
+            })}
           </div>
         )
       })}
@@ -1207,6 +1262,16 @@ function FullCalendar_() {
 
         {/* Week custom grid */}
         {activeView === 'week' ? (
+          isMobile ? (
+            <div style={s.calWrapWeekMobile}>
+              <MobileWeekAgenda
+                weekStart={weekStart}
+                events={events}
+                resources={activeResources}
+                onEventClick={ev => setPopover({ weekEvent: ev })}
+              />
+            </div>
+          ) : (
           <div style={s.calWrapWeek}>
             <div style={{ minWidth: '680px' }}>
               <WeekGrid
@@ -1230,6 +1295,7 @@ function FullCalendar_() {
               />
             </div>
           </div>
+          )
         ) : (
           <div style={s.calWrap}>
             <FullCalendar
@@ -1594,6 +1660,7 @@ const s = {
   crewProgress: { flex: 1, minWidth: 0 },
   calWrap: { flex: 1, overflow: 'hidden', minHeight: 0 },
   calWrapWeek: { flex: 1, overflowX: 'auto', overflowY: 'auto', minHeight: 0 },
+  calWrapWeekMobile: { flex: 1, overflowY: 'auto', minHeight: 0, background: 'var(--cream)' },
   toast: {
     position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)',
     color: '#fff', padding: '10px 22px', borderRadius: '8px',
@@ -1722,4 +1789,33 @@ const fp = {
     fontSize: '11px', fontWeight: '700', cursor: 'pointer',
     fontFamily: 'var(--font)', transition: 'all 0.15s', flexShrink: 0,
   },
+}
+
+
+// Mobile week agenda styles
+const mwa = {
+  wrap: { padding: '4px 0 12px' },
+  daySection: { marginBottom: '10px' },
+  dayHeader: {
+    display: 'flex', alignItems: 'baseline', gap: '8px',
+    padding: '10px 16px 6px', position: 'sticky', top: 0, zIndex: 1,
+    background: 'var(--cream)',
+  },
+  dayHeaderToday: {},
+  dayName: { fontSize: '15px', fontWeight: 800, color: 'var(--bark)' },
+  dayDate: { fontSize: '13px', color: '#8A7A6B', flex: 1 },
+  dayCount: { fontSize: '12px', fontWeight: 700, color: '#8A7A6B', minWidth: 18, textAlign: 'center' },
+  empty: { padding: '4px 16px 8px', fontSize: '13px', color: '#B7A896' },
+  row: {
+    display: 'flex', alignItems: 'center', gap: '12px', width: '100%',
+    background: '#fff', border: '1px solid var(--border)', borderRadius: '14px',
+    margin: '0 12px 8px', padding: '12px 14px', minHeight: '64px',
+    cursor: 'pointer', fontFamily: 'var(--font)', textAlign: 'left',
+    boxSizing: 'border-box', width: 'calc(100% - 24px)',
+  },
+  bar: { width: '5px', alignSelf: 'stretch', borderRadius: '3px', flexShrink: 0 },
+  rowBody: { flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '3px' },
+  rowTitle: { fontSize: '15px', fontWeight: 700, color: 'var(--bark)', lineHeight: 1.25 },
+  rowMeta: { fontSize: '13px', color: '#8A7A6B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  crewDot: { width: 12, height: 12, borderRadius: '50%', flexShrink: 0 },
 }
