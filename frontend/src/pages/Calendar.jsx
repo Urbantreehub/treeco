@@ -1345,17 +1345,17 @@ function FullCalendar_() {
               <span style={s.totalsTitle}>Crew totals</span>
               <span style={s.totalsScope}>{totalsLabel} · ex GST</span>
             </div>
-            <div style={s.totalsCrews}>
+            <div style={s.totalsList}>
               {crewTotals.map(c => (
-                <div key={c.id} style={s.totalsChip}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: c.color, flexShrink: 0 }} />
-                  <span style={s.totalsCrewName}>{c.title}</span>
-                  <span style={s.totalsCrewVal}>{nzd(c.total) ?? '$0'}</span>
+                <div key={c.id} style={s.totalsRow}>
+                  <span style={{ width: 9, height: 9, borderRadius: '50%', background: c.color, flexShrink: 0 }} />
+                  <span style={s.totalsRowName}>{c.title}</span>
+                  <span style={s.totalsRowVal}>{nzd(c.total) ?? '$0'}</span>
                 </div>
               ))}
-              <div style={s.totalsGrand}>
-                <span style={s.totalsGrandLabel}>{totalsSingleDay ? 'Day total' : 'Week total'}</span>
-                <span style={s.totalsGrandVal}>{nzd(grandTotal) ?? '$0'}</span>
+              <div style={s.totalsTotalRow}>
+                <span style={s.totalsTotalLabel}>{totalsSingleDay ? 'Day total' : 'Week total'}</span>
+                <span style={s.totalsTotalVal}>{nzd(grandTotal) ?? '$0'}</span>
               </div>
             </div>
           </div>
@@ -1577,25 +1577,25 @@ const s = {
   main:    { flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#fff' },
   totalsBar: {
     flexShrink: 0, background: '#fff', borderTop: '1px solid var(--border)',
-    padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap',
+    padding: '12px 16px 14px',
   },
-  totalsHead: { display: 'flex', flexDirection: 'column', flexShrink: 0 },
-  totalsTitle: { fontSize: '12px', fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.01em' },
-  totalsScope: { fontSize: '10.5px', fontWeight: 600, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: '1px' },
-  totalsCrews: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', flex: 1 },
-  totalsChip: {
-    display: 'inline-flex', alignItems: 'center', gap: '7px',
-    background: 'var(--cream)', border: '1px solid var(--border)', borderRadius: 'var(--radius-pill)',
-    padding: '5px 12px',
+  totalsHead: { display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '8px' },
+  totalsTitle: { fontSize: '13px', fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.01em' },
+  totalsScope: { fontSize: '10.5px', fontWeight: 600, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.04em' },
+  // Clean aligned list — one crew per row, amount right-aligned, hairline dividers.
+  totalsList: { display: 'flex', flexDirection: 'column' },
+  totalsRow: {
+    display: 'flex', alignItems: 'center', gap: '10px',
+    padding: '9px 2px', borderBottom: '1px solid var(--border)',
   },
-  totalsCrewName: { fontSize: '12px', fontWeight: 600, color: 'var(--ink-2)' },
-  totalsCrewVal: { fontSize: '12.5px', fontWeight: 800, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' },
-  totalsGrand: {
-    display: 'inline-flex', alignItems: 'center', gap: '9px', marginLeft: 'auto',
-    background: 'var(--terra)', borderRadius: 'var(--radius-pill)', padding: '5px 14px',
+  totalsRowName: { flex: 1, fontSize: '14px', fontWeight: 600, color: 'var(--ink-2)' },
+  totalsRowVal: { fontSize: '14px', fontWeight: 700, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' },
+  totalsTotalRow: {
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    paddingTop: '11px', marginTop: '3px',
   },
-  totalsGrandLabel: { fontSize: '10.5px', fontWeight: 700, color: 'rgba(255,255,255,0.85)', textTransform: 'uppercase', letterSpacing: '0.04em' },
-  totalsGrandVal: { fontSize: '14px', fontWeight: 800, color: '#fff', fontVariantNumeric: 'tabular-nums' },
+  totalsTotalLabel: { fontSize: '12px', fontWeight: 800, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.05em' },
+  totalsTotalVal: { fontSize: '19px', fontWeight: 800, color: 'var(--terra)', fontVariantNumeric: 'tabular-nums' },
   trackerSection: { flexShrink: 0, borderTop: '1px solid var(--border)', background: '#fff' },
   trackerToggle: {
     width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
