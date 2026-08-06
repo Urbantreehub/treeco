@@ -7,16 +7,16 @@ import { test, expect } from './fixtures/app.js'
 // All run against the demo build (or live via E2E_BASE_URL) under the role each
 // project provides; specs guard console errors via the shared fixture.
 
-test.describe('status menu simplification (F2, F3)', () => {
-  test('pipeline status dropdown offers only manual moves', async ({ page, guard, login, role }) => {
+test.describe('pipeline status menu', () => {
+  test('pipeline status dropdown renders the full status list', async ({ page, guard, login, role }) => {
     test.skip(role !== 'full' && role !== 'office', 'staff-only page')
     await login('/pipeline')
     const select = page.locator('select[aria-label*="Status for"]').first()
     test.skip(!(await select.count()), 'no jobs seeded')
     const labels = await select.locator('option').allTextContents()
-    expect(labels).not.toContain('Stump Grinding')
-    // current status + at most 4 manual moves
-    expect(labels.length).toBeLessThanOrEqual(6)
+    // Reverted to the full status list (per owner request).
+    expect(labels).toContain('Scheduled')
+    expect(labels.length).toBeGreaterThanOrEqual(8)
     guard.assertClean('pipeline status menu')
   })
 })
