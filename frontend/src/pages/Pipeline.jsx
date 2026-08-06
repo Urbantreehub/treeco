@@ -236,10 +236,7 @@ export default function Pipeline() {
                           style={s.statusSelectOverlay}
                           aria-label={`Status for ${primary} — change`}
                         >
-                          {/* Current status + the few manual moves (F2) — derived
-                              statuses are set by events, not this menu. */}
-                          <option value={job.status}>{JOB_STATUSES[job.status]?.label ?? job.status}</option>
-                          {manualStatusOptions(job.status).map(key => (
+                          {Object.keys(JOB_STATUSES).map(key => (
                             <option key={key} value={key}>{JOB_STATUSES[key].label}</option>
                           ))}
                         </select>
