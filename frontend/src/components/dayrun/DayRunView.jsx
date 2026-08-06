@@ -61,7 +61,7 @@ export default function DayRunView({ initialDate, myResourceId, resources, resou
     ? myResourceId
     : (crew[0]?.id ?? null)
 
-  const [selectedDate, setSelectedDate] = useState(initialDate)
+  const [selectedDate, setSelectedDate] = useState(() => { const t = toYMD(new Date()); const ws = toYMD(weekMonday(fromYMD(initialDate))); return (t >= ws && t <= toYMD(addDays(fromYMD(ws), 5))) ? t : initialDate })
   const [viewResourceId, setViewResourceId] = useState(ownResourceId)
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
