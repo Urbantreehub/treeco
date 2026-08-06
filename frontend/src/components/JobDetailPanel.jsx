@@ -397,7 +397,9 @@ export default function JobDetailPanel({ job, onClose, onUpdated, onFieldSaved }
                     style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', border: 'none', appearance: 'none', WebkitAppearance: 'none' }}
                   >
                     <option value="">Change status…</option>
-                    {manualStatusOptions(job.status)
+                    {Object.keys(JOB_STATUSES)
+                      .filter(k => k !== job.status)
+                      .filter(k => k !== 'invoiced' || job.status === 'complete_to_invoice')
                       .filter(canChangeStatusTo)
                       .map(key => (
                         <option key={key} value={key}>{JOB_STATUSES[key].label}</option>
