@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../config/supabase'
 import { categoryMeta } from '../../config/statuses'
 import { displayCase } from '../../utils/jobDisplay'
+import { haversineKm, DEPOT } from '../../utils/geo'
 import NavArrow from './NavArrow'
 import QuoteSheet from './QuoteSheet'
 
@@ -42,6 +43,32 @@ function fmtTime(t) {
 const mapsLink = (addr) =>
   'https://maps.apple.com/?daddr=' + encodeURIComponent(`${addr ?? ''}, New Zealand`)
 
+// "$1,234.00" — same rule as SentQuotes; whole dollars for the summary tiles.
+function fmtMoney(n, dp = 2) {
+  const v = Number(n)
+  if (!Number.isFinite(v)) return '—'
+  return '$' + v.toLocaleString('en-NZ', { minimumFractionDigits: dp, maximumFractionDigits: dp })
+}
+// The amount this stop was quoted for (incl GST). Prefer a sent quote, else the
+// largest quote on the job — matches how the drawer shows a job's headline total.
+function stopAmount(job) {
+  const qs = (job?.quotes ?? []).filter(q => q?.total != null)
+  if (qs.length === 0) return null
+  const sent = qs.find(q => q.status === 'sent' || q.status === 'accepted')
+  if (sent) return Number(sent.total)
+  return Math.max(...qs.map(q => Number(q.total)))
+}
+// Round-trip km through the stops in run order, depot → stops → depot. Returns
+// null unless every stop is geocoded — a partial figure would mislead.
+function runRoundTripKm(orderedStops) {
+  const pts = orderedStops.map(s => ({ lat: s.job?.lat, lng: s.job?.lng }))
+  if (pts.length === 0 || pts.some(p => p.lat == null || p.lng == null)) return null
+  let d = haversineKm(DEPOT, pts[0]) ?? 0
+  for (let i = 1; i < pts.length; i++) d += haversineKm(pts[i - 1], pts[i]) ?? 0
+  d += haversineKm(pts[pts.length - 1], DEPOT) ?? 0
+  return d
+}
+
 function initials(title) {
   return (title || '?').split(/\s+/).filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase()
 }
@@ -70,7 +97,24 @@ export default function DayRunView({ initialDate, myResourceId, resources, resou
   const [sheetJob, setSheetJob] = useState(null)
   const [toast, setToast] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [finished, setFinished] = useState(false)   // end-of-run card — explicit finish only
   const scrollRef = useRef(null)
+
+  // Honour the OS "reduce motion" setting for the celebratory flourish.
+  const [reducedMotion, setReducedMotion] = useState(
+    () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
+  )
+  useEffect(() => {
+    const mq = window.matchMedia?.('(prefers-reduced-motion: reduce)')
+    if (!mq) return
+    const handler = e => setReducedMotion(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
+
+  // Never carry the finish card across days or crew — it only ever appears in
+  // response to an explicit finish tap on the day being viewed.
+  useEffect(() => { setFinished(false) }, [selectedDate, viewResourceId])
 
   const weekStartYMD = toYMD(weekMonday(fromYMD(selectedDate)))
   const weekDays = useMemo(
@@ -149,8 +193,14 @@ export default function DayRunView({ initialDate, myResourceId, resources, resou
     setRows(prev => prev.map(r =>
       r.job_id === job.id ? { ...r, jobs: { ...r.jobs, status: 'quote_sent' } } : r
     ))
-    showToast('Quote marked sent — next stop loaded')
-    scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+    // Was this the last outstanding stop? If so, marking it sent finishes the run.
+    const remaining = stops.filter(s => !isDone(s) && s.job?.id !== job.id).length
+    if (remaining === 0) {
+      setFinished(true)
+    } else {
+      showToast('Quote marked sent — next stop loaded')
+      scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+    }
   }
 
   // ── Sub-components (inline for cohesion) ─────────────────────────────────
@@ -404,13 +454,73 @@ export default function DayRunView({ initialDate, myResourceId, resources, resou
           ) : (
             <>
               <p style={dr.bottomHint}>This is the last stop of the run</p>
-              <button style={{ ...dr.btn, ...dr.btnPrimary, ...dr.bottomBtn }} onClick={onBack || (() => setShowWeek(true))}>
+              <button style={{ ...dr.btn, ...dr.btnPrimary, ...dr.bottomBtn }} onClick={() => setFinished(true)}>
                 🏁  Finish run
               </button>
             </>
           )}
         </div>
       )}
+
+      {/* ── End-of-run summary — Peak-End: give the run a closing moment ── */}
+      {finished && viewingOwn && stops.length > 0 && (() => {
+        const sentCount = doneStops.length
+        const totalQuoted = doneStops.reduce((sum, st) => sum + (stopAmount(st.job) ?? 0), 0)
+        const km = runRoundTripKm(stops)
+        const anim = reducedMotion ? 'none' : 'drRise .5s cubic-bezier(.2,.7,.3,1) both'
+        const tiles = [
+          { num: String(sentCount), label: sentCount === 1 ? 'quote sent' : 'quotes sent' },
+          { num: fmtMoney(totalQuoted, 0), label: 'total quoted' },
+          km != null ? { num: `${Math.round(km)}`, label: 'km round trip' } : null,
+        ].filter(Boolean)
+        const dismiss = () => (onBack ? onBack() : setFinished(false))
+        return (
+          <div style={dr.finishBackdrop} role="dialog" aria-label="Run complete">
+            <style>{'@keyframes drRise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}'}</style>
+            <div style={dr.finishCard}>
+              <div style={{ ...dr.finishBadge, animation: anim }}>{reducedMotion ? '✓' : '🎉'}</div>
+              <h2 style={dr.finishTitle}>Run complete</h2>
+              <div style={dr.finishDate}>{dateLabel}</div>
+
+              <div style={dr.statGrid}>
+                {tiles.map((t, i) => (
+                  <div
+                    key={t.label}
+                    style={{ ...dr.statTile, animation: reducedMotion ? 'none' : `drRise .5s cubic-bezier(.2,.7,.3,1) ${0.08 * (i + 1)}s both` }}
+                  >
+                    <div style={dr.statNum}>{t.num}</div>
+                    <div style={dr.statLabel}>{t.label}</div>
+                  </div>
+                ))}
+              </div>
+
+              {sentCount > 0 && (
+                <div style={dr.finishList}>
+                  {doneStops.map(st => (
+                    <div key={st.row.id} style={dr.finishRow}>
+                      <span style={dr.finishTick}>✓</span>
+                      <span style={dr.finishName}>{stopName(st.job)}</span>
+                      <span style={dr.finishAmt}>{stopAmount(st.job) != null ? fmtMoney(stopAmount(st.job)) : '—'}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div style={dr.finishBtns}>
+                <button style={{ ...dr.btn, ...dr.btnPrimary, ...dr.finishPrimary }} onClick={dismiss}>
+                  Back to calendar
+                </button>
+                <button
+                  style={{ ...dr.btn, ...dr.btnSecondary, ...dr.finishSecondary }}
+                  onClick={() => navigate('/pipeline')}
+                >
+                  View today’s jobs
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {sheetJob && <QuoteSheet job={sheetJob} onClose={() => setSheetJob(null)} />}
 
@@ -569,4 +679,38 @@ const dr = {
     fontSize: '14px', fontWeight: 600, zIndex: 600, pointerEvents: 'none',
     whiteSpace: 'nowrap', boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
   },
+
+  // End-of-run summary (Peak-End). Full-screen over the day at compact width;
+  // the inner card centres and caps at the mockup's phone width.
+  finishBackdrop: {
+    position: 'fixed', inset: 0, zIndex: 700, background: 'var(--cream)',
+    display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
+    padding: 'calc(24px + env(safe-area-inset-top, 0px)) 20px calc(24px + env(safe-area-inset-bottom, 0px))',
+    overflowY: 'auto',
+  },
+  finishCard: { width: '100%', maxWidth: '430px', textAlign: 'center' },
+  finishBadge: { fontSize: '52px', lineHeight: 1, marginBottom: '6px' },
+  finishTitle: { fontSize: '30px', margin: '0 0 2px', letterSpacing: '-0.02em', fontWeight: 800 },
+  finishDate: { color: 'var(--ink-2)', fontSize: '16px', marginBottom: '20px' },
+  statGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '20px' },
+  statTile: {
+    background: '#fff', border: '1px solid var(--line)', borderRadius: 'var(--radius)',
+    padding: '16px 8px', display: 'flex', flexDirection: 'column', gap: '4px',
+  },
+  statNum: { fontSize: '24px', fontWeight: 800, color: 'var(--terra)', letterSpacing: '-0.02em', lineHeight: 1.1 },
+  statLabel: { fontSize: '12px', fontWeight: 600, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.04em' },
+  finishList: {
+    background: '#fff', border: '1px solid var(--line)', borderRadius: 'var(--radius)',
+    padding: '6px 4px', marginBottom: '20px', textAlign: 'left',
+  },
+  finishRow: { display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px' },
+  finishTick: { color: GREEN, fontSize: '16px', fontWeight: 800, flexShrink: 0 },
+  finishName: {
+    flex: 1, minWidth: 0, fontSize: '15px', fontWeight: 600,
+    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+  },
+  finishAmt: { fontWeight: 700, color: GREEN, fontSize: '15px', flexShrink: 0 },
+  finishBtns: { display: 'flex', flexDirection: 'column', gap: '10px' },
+  finishPrimary: { width: '100%', minHeight: '56px', fontSize: '18px' },
+  finishSecondary: { width: '100%', minHeight: '52px', fontSize: '16px' },
 }
