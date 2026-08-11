@@ -142,6 +142,10 @@ export default function QuoteView() {
   const { token } = useParams()
   const searchParams = new URLSearchParams(window.location.search)
   const isPreview = searchParams.get('preview') === '1'
+  // The quote builder embeds this page in an iframe with its own "Continue
+  // Editing" / "Send" bar, so the inner preview bar would double up. Only show
+  // it for a standalone-tab preview (e.g. the sent-email "View" link).
+  const embedded = typeof window !== 'undefined' && window.self !== window.top
   const isDownload = searchParams.get('download') === '1'
   // Portal mode: the PDF uploaded to Spencers must EXCLUDE agreed-rate (schedule-
   // of-rates) codes — those are paid on the schedule, not quoted. Only non-agreed
@@ -289,7 +293,7 @@ export default function QuoteView() {
   return (
     <div style={p.page}>
       {/* Preview bar */}
-      {isPreview && (
+      {isPreview && !embedded && (
         <div style={p.previewBar}>
           <button style={p.previewBackBtn} onClick={() => window.history.back()}>
             ← Continue Editing

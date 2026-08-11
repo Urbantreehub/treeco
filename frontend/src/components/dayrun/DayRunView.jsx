@@ -336,7 +336,8 @@ export default function DayRunView({ initialDate, myResourceId, resources, resou
       {/* ── Header ── */}
       <header style={dr.header}>
         <div style={dr.headerRow}>
-          {onBack && <button style={dr.backBtn} onClick={onBack} aria-label="Back to calendar">‹</button>}
+          {onBack && <button style={dr.calBtn} onClick={onBack} aria-label="Back to calendar" title="Back to calendar">📅</button>}
+          <button style={dr.navArrowBtn} onClick={goPrevDay} aria-label="Previous day">‹</button>
           <div style={{ flex: 1, minWidth: 0 }}>
             <button style={dr.dateBtn} onClick={() => setShowWeek(v => !v)}>
               <h1 style={dr.dateTitle}>{dateLabel}</h1>
@@ -348,6 +349,7 @@ export default function DayRunView({ initialDate, myResourceId, resources, resou
                 : `${viewedResource?.title ?? ''} · ${stops.length} stop${stops.length === 1 ? '' : 's'} · viewing only`}
             </div>
           </div>
+          <button style={dr.navArrowBtn} onClick={goNextDay} aria-label="Next day">›</button>
           <div style={dr.crewSwitch}>
             {crew.map(r => {
               const on = r.id === viewResourceId
@@ -382,6 +384,8 @@ export default function DayRunView({ initialDate, myResourceId, resources, resou
                 <button
                   key={ymd}
                   onClick={() => { setSelectedDate(ymd); setShowWeek(false) }}
+                  aria-label={d.toLocaleDateString('en-NZ', { weekday: 'long', day: 'numeric', month: 'long' })}
+                  data-has-events={hasEvents ? 'true' : 'false'}
                   style={{
                     ...dr.weekDay,
                     background: sel ? 'var(--terra)' : 'transparent',
@@ -551,24 +555,28 @@ const dr = {
     padding: '14px 16px 10px', position: 'sticky', top: 0, zIndex: 5,
     background: 'linear-gradient(var(--cream) 85%, transparent)',
   },
-  headerRow: { display: 'flex', alignItems: 'center', gap: '10px' },
-  backBtn: {
-    appearance: 'none', background: 'none', border: 'none', padding: '4px 6px',
-    fontSize: '26px', lineHeight: 1, color: 'var(--ink)', cursor: 'pointer', flexShrink: 0,
+  headerRow: { display: 'flex', alignItems: 'center', gap: '4px' },
+  calBtn: {
+    appearance: 'none', background: '#fff', border: '1.5px solid var(--line)', borderRadius: '10px',
+    padding: '5px 7px', fontSize: '15px', lineHeight: 1, cursor: 'pointer', flexShrink: 0,
+  },
+  navArrowBtn: {
+    appearance: 'none', background: 'none', border: 'none', padding: '2px 2px',
+    fontSize: '26px', lineHeight: 1, color: 'var(--ink-2)', cursor: 'pointer', flexShrink: 0,
   },
   dateBtn: {
     appearance: 'none', background: 'none', border: 'none', padding: 0,
     display: 'flex', alignItems: 'baseline', gap: '8px', cursor: 'pointer',
     fontFamily: 'var(--font)', color: 'var(--ink)',
   },
-  dateTitle: { fontSize: '22px', margin: 0, letterSpacing: '-0.02em', fontWeight: 800 },
-  dateCaret: { fontSize: '14px', color: 'var(--ink-2)' },
-  subline: { color: 'var(--ink-2)', fontSize: '14px', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  crewSwitch: { display: 'flex', gap: '6px', flexShrink: 0 },
+  dateTitle: { fontSize: '19px', margin: 0, letterSpacing: '-0.02em', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  dateCaret: { fontSize: '13px', color: 'var(--ink-2)', flexShrink: 0 },
+  subline: { color: 'var(--ink-2)', fontSize: '13px', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  crewSwitch: { display: 'flex', gap: '4px', flexShrink: 0 },
   avatar: {
-    width: '40px', height: '40px', borderRadius: '50%', border: '2px solid var(--line)',
-    fontWeight: 800, fontSize: '13px', cursor: 'pointer', fontFamily: 'var(--font)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
+    width: '32px', height: '32px', borderRadius: '50%', border: '2px solid var(--line)',
+    fontWeight: 800, fontSize: '11px', cursor: 'pointer', fontFamily: 'var(--font)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, flexShrink: 0,
   },
   weekDrop: {
     display: 'flex', gap: '6px', marginTop: '12px',

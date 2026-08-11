@@ -607,13 +607,63 @@ export default function Calendar() {
   return <FullCalendar_ />
 }
 
+// ── Mobile month/date picker ────────────────────────────────────────────────
+// Compact month grid (Monday-first) that jumps the calendar to any picked day —
+// replaces the ‹ › arrows on the mobile toolbar.
+function MobileDatePicker({ valueYMD, onPick }) {
+  const initial = valueYMD ? new Date(valueYMD + 'T00:00:00') : new Date()
+  const [month, setMonth] = useState(new Date(initial.getFullYear(), initial.getMonth(), 1))
+  const monthLabel = month.toLocaleDateString('en-NZ', { month: 'long', year: 'numeric' })
+  const firstOfMonth = new Date(month.getFullYear(), month.getMonth(), 1)
+  const startOffset = (firstOfMonth.getDay() + 6) % 7        // Mon = 0
+  const gridStart = addDays(firstOfMonth, -startOffset)
+  const cells = Array.from({ length: 42 }, (_, i) => addDays(gridStart, i))
+  const todayYMD = toYMD(new Date())
+  const weekdays = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
+
+  return (
+    <div style={mp.pop} onClick={e => e.stopPropagation()}>
+      <div style={mp.head}>
+        <button style={mp.navBtn} onClick={() => setMonth(m => new Date(m.getFullYear(), m.getMonth() - 1, 1))} aria-label="Previous month">‹</button>
+        <span style={mp.monthLabel}>{monthLabel}</span>
+        <button style={mp.navBtn} onClick={() => setMonth(m => new Date(m.getFullYear(), m.getMonth() + 1, 1))} aria-label="Next month">›</button>
+      </div>
+      <div style={mp.grid}>
+        {weekdays.map((w, i) => <div key={`wd${i}`} style={mp.weekday}>{w}</div>)}
+        {cells.map(d => {
+          const ymd = toYMD(d)
+          const inMonth = d.getMonth() === month.getMonth()
+          const sel = ymd === valueYMD
+          const isToday = ymd === todayYMD
+          return (
+            <button
+              key={ymd}
+              onClick={() => onPick(ymd)}
+              style={{
+                ...mp.day,
+                color: sel ? '#fff' : inMonth ? 'var(--ink)' : '#cbc6be',
+                background: sel ? 'var(--ink)' : 'transparent',
+                ...(isToday && !sel ? { border: '1.5px solid var(--terra)' } : {}),
+              }}
+            >
+              {d.getDate()}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 function FullCalendar_() {
   const isMobile = useIsMobile()
   const navigate = useNavigate()
   const { profile } = useAuth()
   // Compact-width day-run mode (F26): the selected day rendered as a big
   // ordered stop list with one-tap navigation, instead of the calendar grid.
-  const [dayRun, setDayRun] = useState(null) // YYYY-MM-DD | null
+  // On mobile this is the default landing — office staff open straight into the
+  // day's run and tap the Calendar button to fall back to the grid.
+  const [dayRun, setDayRun] = useState(isMobile ? toYMD(new Date()) : null) // YYYY-MM-DD | null
   const calRef   = useRef()
   // Cache-then-refresh (F23): revisiting the calendar paints last-known events
   // instantly and refreshes behind — no skeleton on an already-loaded tab.
@@ -640,6 +690,11 @@ function FullCalendar_() {
   const [activeView,        setActiveView]        = useState(isMobile ? 'listWeek' : 'resourceTimelineDay')
   const [weekStart,         setWeekStart]         = useState(() => weekMonday(new Date()))
   const [showFilter,        setShowFilter]        = useState(false)
+  // Mobile toolbar: a month/date dropdown replaces the ‹ › arrows, and the crew
+  // totals bar collapses to a single grand-total row that expands on tap.
+  const [showDatePicker,    setShowDatePicker]    = useState(false)
+  const datePickerRef = useRef(null)
+  const [totalsOpen,        setTotalsOpen]        = useState(false)
   const [viewRange,         setViewRange]         = useState(() => { const t = toYMD(new Date()); return { start: t, end: t } })
   const [orderedResources,  setOrderedResources]  = useState(RESOURCES)
   const [visibleIds,        setVisibleIds]        = useState(new Set(RESOURCES.map(r => r.id)))
@@ -676,6 +731,16 @@ function FullCalendar_() {
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [showStatusMenu])
+
+  // Close the mobile date-picker dropdown on an outside click.
+  useEffect(() => {
+    if (!showDatePicker) return
+    function handler(e) {
+      if (datePickerRef.current && !datePickerRef.current.contains(e.target)) setShowDatePicker(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showDatePicker])
 
   // The status filter may be emptied entirely — an empty selection reads as
   // "show nothing", and the tray says so.
@@ -946,6 +1011,12 @@ function FullCalendar_() {
     if (activeView === 'week') setWeekStart(weekMonday(new Date()))
     else api()?.today()
   }
+  // Jump straight to a picked day (mobile date dropdown). Week view re-anchors to
+  // that day's Monday; the grid views navigate the FullCalendar api.
+  function jumpToDate(ymd) {
+    if (activeView === 'week') setWeekStart(weekMonday(new Date(ymd + 'T00:00:00')))
+    else api()?.gotoDate(ymd)
+  }
 
   const displayTitle = activeView === 'week' ? weekTitle : viewTitle
 
@@ -1115,20 +1186,40 @@ function FullCalendar_() {
         <div style={{ ...s.toolbar, flexWrap: isMobile ? 'wrap' : 'nowrap', gap: isMobile ? '6px' : '0' }}>
           <div style={s.tbLeft}>
             <button style={s.todayBtn} onClick={navToday}>Today</button>
-            <div style={s.navGroup}>
-              <button style={s.navBtn} onClick={navPrev}>‹</button>
-              <button style={s.navBtn} onClick={navNext}>›</button>
-            </div>
-            <h2 style={{ ...s.dateTitle, fontSize: isMobile ? '13px' : '16px' }}>{displayTitle}</h2>
+            {isMobile ? (
+              // Month/date dropdown replaces the ‹ › arrows on mobile.
+              <div style={{ position: 'relative' }} ref={datePickerRef}>
+                <button style={s.datePickerBtn} onClick={() => setShowDatePicker(v => !v)}>
+                  <span style={s.datePickerLabel}>{displayTitle}</span>
+                  <span style={s.datePickerCaret}>▾</span>
+                </button>
+                {showDatePicker && (
+                  <MobileDatePicker
+                    valueYMD={viewRange.start}
+                    onPick={(ymd) => { jumpToDate(ymd); setShowDatePicker(false) }}
+                  />
+                )}
+              </div>
+            ) : (
+              <>
+                <div style={s.navGroup}>
+                  <button style={s.navBtn} onClick={navPrev}>‹</button>
+                  <button style={s.navBtn} onClick={navNext}>›</button>
+                </div>
+                <h2 style={{ ...s.dateTitle, fontSize: '16px' }}>{displayTitle}</h2>
+              </>
+            )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <button
-              style={{ ...s.filterBtn, background: '#FDF3E3', borderColor: '#E9CF9E', color: '#B26B0E' }}
-              onClick={openDayAlert}
-              title="Text every client scheduled on the shown day"
-            >
-              📣 {!isMobile && 'Text day'}
-            </button>
+            {!isMobile && (
+              <button
+                style={{ ...s.filterBtn, background: '#FDF3E3', borderColor: '#E9CF9E', color: '#B26B0E' }}
+                onClick={openDayAlert}
+                title="Text every client scheduled on the shown day"
+              >
+                📣 Text day
+              </button>
+            )}
             {isMobile && (
               <button
                 onClick={() => setDayRun(viewRange.start || toYMD(new Date()))}
@@ -1281,25 +1372,42 @@ function FullCalendar_() {
         )}
 
         {/* ── Per-crew daily totals (ex GST) ── */}
+        {/* On mobile the bar collapses to a single grand-total row that expands
+            on tap; desktop always shows the full per-crew breakdown. */}
         {!loading && (
-          <div style={s.totalsBar}>
-            <div style={s.totalsHead}>
-              <span style={s.totalsTitle}>Crew totals</span>
-              <span style={s.totalsScope}>{totalsLabel} · ex GST</span>
-            </div>
-            <div style={s.totalsCrews}>
-              {crewTotals.map(c => (
-                <div key={c.id} style={s.totalsChip}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: c.color, flexShrink: 0 }} />
-                  <span style={s.totalsCrewName}>{c.title}</span>
-                  <span style={s.totalsCrewVal}>{nzd(c.total) ?? '$0'}</span>
-                </div>
-              ))}
-              <div style={s.totalsGrand}>
-                <span style={s.totalsGrandLabel}>{totalsSingleDay ? 'Day total' : 'Week total'}</span>
-                <span style={s.totalsGrandVal}>{nzd(grandTotal) ?? '$0'}</span>
+          <div style={{ ...s.totalsBar, ...(isMobile ? { flexDirection: 'column', alignItems: 'stretch', gap: 0 } : {}) }}>
+            {isMobile ? (
+              <button style={s.totalsCollapseBtn} onClick={() => setTotalsOpen(v => !v)}>
+                <span style={s.totalsTitle}>Crew totals</span>
+                <span style={{ ...s.totalsGrand, marginLeft: 'auto' }}>
+                  <span style={s.totalsGrandLabel}>{totalsSingleDay ? 'Day' : 'Week'}</span>
+                  <span style={s.totalsGrandVal}>{nzd(grandTotal) ?? '$0'}</span>
+                </span>
+                <span style={{ ...s.totalsChevron, transform: totalsOpen ? 'rotate(180deg)' : 'none' }}>⌄</span>
+              </button>
+            ) : (
+              <div style={s.totalsHead}>
+                <span style={s.totalsTitle}>Crew totals</span>
+                <span style={s.totalsScope}>{totalsLabel} · ex GST</span>
               </div>
-            </div>
+            )}
+            {(!isMobile || totalsOpen) && (
+              <div style={{ ...s.totalsCrews, ...(isMobile ? { marginTop: '10px' } : {}) }}>
+                {crewTotals.map(c => (
+                  <div key={c.id} style={s.totalsChip}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: c.color, flexShrink: 0 }} />
+                    <span style={s.totalsCrewName}>{c.title}</span>
+                    <span style={s.totalsCrewVal}>{nzd(c.total) ?? '$0'}</span>
+                  </div>
+                ))}
+                {!isMobile && (
+                  <div style={s.totalsGrand}>
+                    <span style={s.totalsGrandLabel}>{totalsSingleDay ? 'Day total' : 'Week total'}</span>
+                    <span style={s.totalsGrandVal}>{nzd(grandTotal) ?? '$0'}</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -1525,6 +1633,11 @@ const s = {
   totalsTitle: { fontSize: '12px', fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.01em' },
   totalsScope: { fontSize: '10.5px', fontWeight: 600, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: '1px' },
   totalsCrews: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', flex: 1 },
+  totalsCollapseBtn: {
+    display: 'flex', alignItems: 'center', gap: '10px', width: '100%',
+    background: 'none', border: 'none', padding: '2px 0', cursor: 'pointer', fontFamily: 'var(--font)',
+  },
+  totalsChevron: { fontSize: '18px', color: '#4A6741', lineHeight: 1, transition: 'transform 0.2s', flexShrink: 0 },
   totalsChip: {
     display: 'inline-flex', alignItems: 'center', gap: '7px',
     background: 'var(--cream)', border: '1px solid var(--border)', borderRadius: 'var(--radius-pill)',
@@ -1562,6 +1675,14 @@ const s = {
     padding: '5px 10px', borderRadius: '6px', border: '1px solid var(--border)',
     background: '#fff', color: '#666', fontSize: '17px', cursor: 'pointer', lineHeight: 1,
   },
+  datePickerBtn: {
+    display: 'flex', alignItems: 'center', gap: '5px',
+    padding: '6px 11px', borderRadius: '6px', border: '1px solid var(--border)',
+    background: '#fff', color: 'var(--ink)', fontSize: '13px', fontWeight: '700',
+    cursor: 'pointer', fontFamily: 'var(--font)', maxWidth: '170px',
+  },
+  datePickerLabel: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  datePickerCaret: { fontSize: '9px', color: '#999', flexShrink: 0 },
   dateTitle:{ fontSize: '15px', fontWeight: '700', color: 'var(--ink)', margin: '0 0 0 4px' },
   viewBtn: {
     padding: '5px 14px', borderRadius: '5px', border: 'none',
@@ -1607,6 +1728,25 @@ const s = {
     color: '#fff', padding: '10px 22px', borderRadius: '8px',
     fontSize: '13px', fontWeight: '600', zIndex: 9999,
     boxShadow: '0 4px 20px rgba(0,0,0,0.25)', whiteSpace: 'nowrap',
+  },
+}
+
+// ── Mobile date-picker styles ───────────────────────────────────────────────
+const mp = {
+  pop: {
+    position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 200,
+    background: '#fff', border: '1px solid var(--border)', borderRadius: '12px',
+    boxShadow: '0 8px 30px rgba(44,36,22,0.18)', padding: '10px', width: '258px',
+  },
+  head: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' },
+  navBtn: { background: 'none', border: 'none', fontSize: '20px', color: '#666', cursor: 'pointer', padding: '2px 12px', lineHeight: 1 },
+  monthLabel: { fontSize: '14px', fontWeight: 700, color: 'var(--ink)' },
+  grid: { display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px' },
+  weekday: { textAlign: 'center', fontSize: '10px', fontWeight: 700, color: '#aaa', padding: '2px 0' },
+  day: {
+    aspectRatio: '1', border: 'none', borderRadius: '8px', background: 'transparent',
+    fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
   },
 }
 
