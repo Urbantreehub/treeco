@@ -1,5 +1,4 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
-import { supabase } from '../config/supabase'
 import { JOB_STATUSES, STATUS_ORDER, isSpencersJob, categoryMeta, manualStatusOptions } from '../config/statuses'
 import { jobHeading, koCode, kpiCountdown } from '../utils/jobDisplay'
 import { useJobs } from '../hooks/useJobs'
@@ -8,6 +7,8 @@ import { useAuth } from '../context/AuthContext'
 import { useIsMobile } from '../hooks/useIsMobile'
 import JobDetailPanel from '../components/JobDetailPanel'
 import NewJobModal from '../components/NewJobModal'
+import Skeleton from '../components/Skeleton'
+import { Toast, useToast } from '../components/Toast'
 
 function nzd(v) {
   if (v == null) return null
@@ -26,7 +27,8 @@ function bestQuote(job) {
 }
 
 export default function Pipeline() {
-  const { jobs, loading, fetchJobs } = useJobs()
+  const { jobs, loading, fetchJobs, updateJobStatus } = useJobs()
+  const { toast, showToast } = useToast()
   const { isStaff } = useAuth()
   const { jobIds: alertJobIds } = useOpenAlerts(isStaff)
   const isMobile = useIsMobile()
@@ -69,17 +71,14 @@ export default function Pipeline() {
     })
   }
 
-  // Change a job's status straight from the list via the status dropdown.
+  // Change a job's status straight from the list via the status dropdown —
+  // optimistic (F22): the chip flips instantly, reverts + toasts on failure.
   const [savingStatus, setSavingStatus] = useState(null) // job id being saved
   async function changeStatus(jobId, newStatus) {
     setSavingStatus(jobId)
-    const { error } = await supabase
-      .from('jobs')
-      .update({ status: newStatus, status_changed_at: new Date().toISOString() })
-      .eq('id', jobId)
+    const { error } = await updateJobStatus(jobId, newStatus)
     setSavingStatus(null)
-    if (error) { alert('Could not update status: ' + error.message); return }
-    fetchJobs()
+    if (error) showToast('Could not update status — reverted', true)
   }
 
   const filterActive = statusFilter.size > 0
@@ -171,7 +170,18 @@ export default function Pipeline() {
       {/* List */}
       <div style={s.body}>
         {loading ? (
-          <div style={s.empty}>Loading…</div>
+          <div style={s.list} aria-busy="true" aria-label="Loading jobs">
+            {Array.from({ length: 7 }, (_, i) => (
+              <div key={i} style={{ ...s.row, cursor: 'default', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <Skeleton circle size={12} />
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <Skeleton line width="55%" height={13} />
+                  <Skeleton line width="35%" height={11} />
+                </div>
+                <Skeleton block width={92} height={28} radius="var(--radius-pill)" />
+              </div>
+            ))}
+          </div>
         ) : filtered.length === 0 ? (
           <div style={s.empty}>
             {textFilter || filterActive ? 'No jobs match.' : 'No jobs yet.'}
@@ -271,6 +281,8 @@ export default function Pipeline() {
           onCreated={() => { fetchJobs(); setShowNewJob(false) }}
         />
       )}
+
+      <Toast toast={toast} />
     </div>
   )
 }

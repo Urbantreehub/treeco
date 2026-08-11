@@ -4,6 +4,7 @@ import { supabase } from '../../config/supabase'
 import { categoryMeta } from '../../config/statuses'
 import { displayCase } from '../../utils/jobDisplay'
 import { haversineKm, DEPOT } from '../../utils/geo'
+import { Toast, useToast } from '../Toast'
 import NavArrow from './NavArrow'
 import QuoteSheet from './QuoteSheet'
 
@@ -95,7 +96,7 @@ export default function DayRunView({ initialDate, myResourceId, resources, resou
   const [showWeek, setShowWeek] = useState(false)
   const navigate = useNavigate()
   const [sheetJob, setSheetJob] = useState(null)
-  const [toast, setToast] = useState(null)
+  const { toast, showToast } = useToast()
   const [saving, setSaving] = useState(false)
   const [finished, setFinished] = useState(false)   // end-of-run card — explicit finish only
   const scrollRef = useRef(null)
@@ -115,6 +116,11 @@ export default function DayRunView({ initialDate, myResourceId, resources, resou
   // Never carry the finish card across days or crew — it only ever appears in
   // response to an explicit finish tap on the day being viewed.
   useEffect(() => { setFinished(false) }, [selectedDate, viewResourceId])
+
+  // Prev/next day arrows step the run one day at a time (staying in day-run);
+  // the Calendar button (onBack) is the escape hatch to the full grid.
+  function goPrevDay() { setShowWeek(false); setSelectedDate(prev => toYMD(addDays(fromYMD(prev), -1))) }
+  function goNextDay() { setShowWeek(false); setSelectedDate(prev => toYMD(addDays(fromYMD(prev), 1))) }
 
   const weekStartYMD = toYMD(weekMonday(fromYMD(selectedDate)))
   const weekDays = useMemo(
@@ -143,11 +149,6 @@ export default function DayRunView({ initialDate, myResourceId, resources, resou
     load()
     return () => { cancelled = true }
   }, [weekStartYMD])
-
-  function showToast(msg, err) {
-    setToast({ msg, err })
-    setTimeout(() => setToast(null), 2200)
-  }
 
   // ── Stops for the viewed day + resource, in start-time order ─────────────
   const stops = rows
@@ -181,25 +182,35 @@ export default function DayRunView({ initialDate, myResourceId, resources, resou
   const dateLabel = fromYMD(selectedDate).toLocaleDateString('en-NZ', { weekday: 'short', day: 'numeric', month: 'short' })
 
   // ── Mark the current stop's quote as sent, advance locally ───────────────
+  // Optimistic (F22): advance the run immediately, sync behind, revert + toast
+  // on failure so the driver never waits on the network between stops.
   async function markSent(job) {
     if (saving || !job?.id) return
     setSaving(true)
-    const { error } = await supabase
-      .from('jobs')
-      .update({ status: 'quote_sent', status_changed_at: new Date().toISOString() })
-      .eq('id', job.id)
-    setSaving(false)
-    if (error) { showToast(error.message, true); return }
+    const stamp = new Date().toISOString()
+    const prevRows = rows
+    const wasLast = stops.filter(s => !isDone(s) && s.job?.id !== job.id).length === 0
+
+    // Apply locally first.
     setRows(prev => prev.map(r =>
       r.job_id === job.id ? { ...r, jobs: { ...r.jobs, status: 'quote_sent' } } : r
     ))
-    // Was this the last outstanding stop? If so, marking it sent finishes the run.
-    const remaining = stops.filter(s => !isDone(s) && s.job?.id !== job.id).length
-    if (remaining === 0) {
+    if (wasLast) {
       setFinished(true)
     } else {
       showToast('Quote marked sent — next stop loaded')
       scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+
+    const { error } = await supabase
+      .from('jobs')
+      .update({ status: 'quote_sent', status_changed_at: stamp })
+      .eq('id', job.id)
+    setSaving(false)
+    if (error) {
+      setRows(prevRows)          // revert the optimistic advance
+      setFinished(false)
+      showToast('Couldn’t send — reverted', true)
     }
   }
 
@@ -524,11 +535,7 @@ export default function DayRunView({ initialDate, myResourceId, resources, resou
 
       {sheetJob && <QuoteSheet job={sheetJob} onClose={() => setSheetJob(null)} />}
 
-      {toast && (
-        <div style={{ ...dr.toast, background: toast.err ? 'var(--danger)' : 'var(--ink)' }}>
-          {toast.msg}
-        </div>
-      )}
+      <Toast toast={toast} />
     </div>
   )
 }
@@ -672,12 +679,6 @@ const dr = {
   bottomBtn: {
     width: '100%', fontSize: '18px', minHeight: '58px',
     boxShadow: '0 8px 20px rgba(193,90,52,0.25)',
-  },
-  toast: {
-    position: 'fixed', top: '14px', left: '50%', transform: 'translateX(-50%)',
-    color: '#fff', padding: '10px 18px', borderRadius: 'var(--radius-pill)',
-    fontSize: '14px', fontWeight: 600, zIndex: 600, pointerEvents: 'none',
-    whiteSpace: 'nowrap', boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
   },
 
   // End-of-run summary (Peak-End). Full-screen over the day at compact width;

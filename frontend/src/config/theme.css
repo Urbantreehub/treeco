@@ -94,6 +94,22 @@ a {
   }
 }
 
+/* Skeleton loading placeholder (F21) — one shimmer, used by <Skeleton>.
+   Reduced-motion users get a static tint instead of the sweep. */
+@keyframes skeleton-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--line) 25%, #F3ECE0 37%, var(--line) 63%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+  border-radius: 8px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; }
+}
+
 /* iOS Safari auto-zooms into any input whose font-size is < 16px. On touch
    devices force 16px so tapping a field never zooms/pans the page. Scoped to
    coarse pointers so desktop styling is unaffected; !important is needed to win

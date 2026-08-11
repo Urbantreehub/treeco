@@ -4,6 +4,10 @@ import { supabase } from '../config/supabase'
 import { useScheduledChecks } from '../hooks/useScheduledChecks'
 import DashboardFollowUps from '../components/DashboardFollowUps'
 import DashboardWorkload from '../components/DashboardWorkload'
+import Skeleton from '../components/Skeleton'
+import { hasCache, readCache, writeCache } from '../utils/queryCache'
+
+const DASH_CACHE = 'dashboard:bundle'
 
 const CREW_DAY_RATE = 2500   // $ per crew per day
 
@@ -372,28 +376,35 @@ function Section({ title, children }) {
 
 export default function Dashboard() {
   const nav = useNavigate()
-  const [quotes,   setQuotes]   = useState([])
-  const [jobs,     setJobs]     = useState([])
-  const [vehicles, setVehicles] = useState([])
-  const [xeroPnl,  setXeroPnl]  = useState(null)   // { revenue, expenses, netProfit, months, source }
+  // Cache-then-refresh (F23): paint last-known figures instantly on revisit.
+  const dashCache = readCache(DASH_CACHE) ?? {}
+  const [quotes,   setQuotes]   = useState(dashCache.quotes ?? [])
+  const [jobs,     setJobs]     = useState(dashCache.jobs ?? [])
+  const [vehicles, setVehicles] = useState(dashCache.vehicles ?? [])
+  const [xeroPnl,  setXeroPnl]  = useState(dashCache.xeroPnl ?? null)   // { revenue, expenses, netProfit, months, source }
   const [editVeh,  setEditVeh]  = useState(null)
   const [revenueRange, setRevenueRange] = useState('last6') // 'last6' | 'thisYear' | 'lastYear'
   const [savingVeh, setSavingVeh] = useState(false)
-  const [loading,  setLoading]  = useState(true)
+  const [loading,  setLoading]  = useState(!hasCache(DASH_CACHE))
 
   const load = useCallback(async () => {
-    setLoading(true)
+    if (!hasCache(DASH_CACHE)) setLoading(true)   // skeleton only on the cold load
 
+    const prev = readCache(DASH_CACHE) ?? {}
     const [qRes, jRes, vRes] = await Promise.all([
       supabase.from('quotes').select('id, status, subtotal, total, created_at, jobs(job_type)'),
       supabase.from('jobs').select('id, status, job_type, created_at'),
       supabase.from('vehicles').select('*').eq('active', true).order('name'),
     ])
-    if (qRes.data) setQuotes(qRes.data)
-    if (jRes.data) setJobs(jRes.data)
-    if (vRes.data) setVehicles(vRes.data)
+    const nextQuotes   = qRes.data ?? prev.quotes ?? []
+    const nextJobs     = jRes.data ?? prev.jobs ?? []
+    const nextVehicles = vRes.data ?? prev.vehicles ?? []
+    if (qRes.data) setQuotes(nextQuotes)
+    if (jRes.data) setJobs(nextJobs)
+    if (vRes.data) setVehicles(nextVehicles)
 
     // Try to load Xero P&L — silently skip if not connected
+    let nextXero = prev.xeroPnl ?? null
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const res = await fetch(
@@ -404,9 +415,13 @@ export default function Dashboard() {
       // F16: treat an all-zero P&L as not-connected — showing $0 revenue tiles
       // (and a false "pipeline thin" alarm derived from them) is worse than the
       // accepted-quotes fallback.
-      if (res.ok && body.revenue != null && (Number(body.revenue) !== 0 || Number(body.expenses) !== 0)) setXeroPnl(body)
+      if (res.ok && body.revenue != null && (Number(body.revenue) !== 0 || Number(body.expenses) !== 0)) {
+        nextXero = body
+        setXeroPnl(body)
+      }
     } catch { /* Xero not set up */ }
 
+    writeCache(DASH_CACHE, { quotes: nextQuotes, jobs: nextJobs, vehicles: nextVehicles, xeroPnl: nextXero })
     setLoading(false)
   }, [])
 
@@ -501,8 +516,18 @@ export default function Dashboard() {
   }
 
   if (loading) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', color: '#aaa', fontSize: '14px' }}>
-      Loading dashboard…
+    <div style={{ padding: '28px 32px', maxWidth: '1100px', margin: '0 auto' }} aria-busy="true" aria-label="Loading dashboard">
+      <Skeleton line width={220} height={24} style={{ marginBottom: 24 }} />
+      {/* KPI tile row */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 16, marginBottom: 24 }}>
+        {Array.from({ length: 4 }, (_, i) => <Skeleton key={i} block height={92} />)}
+      </div>
+      {/* Revenue chart frame */}
+      <Skeleton block height={220} style={{ marginBottom: 24 }} />
+      {/* To-do / follow-ups list */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {Array.from({ length: 4 }, (_, i) => <Skeleton key={i} block height={56} />)}
+      </div>
     </div>
   )
 

@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useIsMobile } from '../hooks/useIsMobile'
+import Skeleton, { SkeletonRows } from '../components/Skeleton'
+import { hasCache, readCache, writeCache } from '../utils/queryCache'
 import DayRunView from '../components/dayrun/DayRunView'
 import FullCalendar from '@fullcalendar/react'
 import resourceTimelinePlugin from '@fullcalendar/resource-timeline'
@@ -497,7 +499,7 @@ function CrewCalendarLegacy_unused() {
 
       <div style={cw.body}>
         {loading ? (
-          <div style={cw.empty}>Loading…</div>
+          <SkeletonRows count={4} height={72} style={{ padding: '4px 0' }} />
         ) : !resourceId ? (
           <div style={cw.empty}>No resource assigned — ask your manager to set up your account in Settings.</div>
         ) : events.length === 0 ? (
@@ -613,9 +615,12 @@ function FullCalendar_() {
   // ordered stop list with one-tap navigation, instead of the calendar grid.
   const [dayRun, setDayRun] = useState(null) // YYYY-MM-DD | null
   const calRef   = useRef()
-  const [unscheduled,       setUnscheduled]       = useState([])
-  const [events,            setEvents]            = useState([])
-  const [loading,           setLoading]           = useState(true)
+  // Cache-then-refresh (F23): revisiting the calendar paints last-known events
+  // instantly and refreshes behind — no skeleton on an already-loaded tab.
+  const calCache = readCache('calendar:main') ?? {}
+  const [unscheduled,       setUnscheduled]       = useState(calCache.unscheduled ?? [])
+  const [events,            setEvents]            = useState(calCache.events ?? [])
+  const [loading,           setLoading]           = useState(!hasCache('calendar:main'))
   const [popover,           setPopover]           = useState(null)
   const [detailJob,         setDetailJob]         = useState(null)
   const [toast,             setToast]             = useState(null)
@@ -732,7 +737,7 @@ function FullCalendar_() {
   })()
 
   async function load() {
-    setLoading(true)
+    if (!hasCache('calendar:main')) setLoading(true)   // skeleton only on cold load
     const [{ data: jobs }, { data: rows }] = await Promise.all([
       supabase
         .from('jobs')
@@ -748,9 +753,10 @@ function FullCalendar_() {
     ])
 
     const scheduledIds = new Set((rows ?? []).map(r => r.job_id))
-    setUnscheduled((jobs ?? []).filter(j => !scheduledIds.has(j.id)))
+    const nextUnscheduled = (jobs ?? []).filter(j => !scheduledIds.has(j.id))
+    setUnscheduled(nextUnscheduled)
 
-    setEvents((rows ?? []).map(row => {
+    const nextEvents = (rows ?? []).map(row => {
       const job = row.jobs ?? {}
       const rid = row.resource_id ?? 'unassigned'
       const start = row.start_time ? `${row.date}T${row.start_time}` : row.date
@@ -764,7 +770,9 @@ function FullCalendar_() {
         resourceId: rid,
         extendedProps: { job, scheduleId: row.id, resourceId: rid, vehicleReg: row.vehicle_reg ?? null, date: row.date },
       }
-    }))
+    })
+    setEvents(nextEvents)
+    writeCache('calendar:main', { events: nextEvents, unscheduled: nextUnscheduled })
 
     setLoading(false)
   }
@@ -1074,7 +1082,7 @@ function FullCalendar_() {
           </div>
 
           <div style={s.trayList}>
-            {loading && <div style={s.empty}>Loading…</div>}
+            {loading && <SkeletonRows count={5} height={64} style={{ padding: '4px 0' }} />}
             {!loading && filteredUnscheduled.length === 0 && (
               <div style={s.empty}>
                 {trayQ ? 'No matches'
