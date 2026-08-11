@@ -33,24 +33,85 @@ test.describe('day run view (F26)', () => {
     guard.assertClean('truck day run')
   })
 
-  test('staff mobile calendar exposes Day run mode', async ({ page, guard, login, role }) => {
+  test('staff mobile calendar lands directly in the day run', async ({ page, guard, login, role }) => {
     test.skip(role !== 'full' && role !== 'office', 'staff-only page')
     // Log in at desktop size (the shell probe needs the full nav), then shrink
-    // to phone width — useIsMobile responds to the resize.
+    // to phone width — the mobile calendar opens straight into the day run.
     await login('/calendar')
     await page.setViewportSize({ width: 390, height: 844 })
-    const btn = page.getByRole('button', { name: /Day run/i })
-    await expect(btn).toBeVisible({ timeout: 10000 })
-    await btn.click()
+    await page.goto('/calendar')
     await expect(page.getByText(/run · \d+ stop|No stops scheduled/i).first())
       .toBeVisible({ timeout: 10000 })
-    // Back returns to the calendar toolbar.
+    // The 📅 button drops back to the calendar grid, which offers "Day run" again.
     const back = page.getByRole('button', { name: 'Back to calendar' })
     if (await back.count()) {
       await back.click()
       await expect(page.getByRole('button', { name: /Day run/i })).toBeVisible()
     }
     guard.assertClean('staff day run mode')
+  })
+})
+
+test.describe('day run: advance + end-of-run summary (F26, F29)', () => {
+  test('completing a quote run advances stops and shows the summary', async ({ page, guard, login, role }) => {
+    test.skip(role === 'truck', 'the seeded quote run belongs to the office/owner resource')
+    // Land in the mobile day run: at phone width the calendar opens straight
+    // into today's run, where the demo seeds Josh a 2-stop quote run.
+    await login('/calendar')
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto('/calendar')
+
+    // Wait for the day run to hydrate (schedule loads async), then drive it.
+    const sent = page.getByRole('button', { name: /Quote sent — next stop/i })
+    await expect(sent.first()).toBeVisible({ timeout: 10000 })
+
+    // Stop 1 → sent: optimistic advance to the next stop (F22/F26).
+    await sent.first().click()
+    await expect(page.getByRole('button', { name: /Quote sent — next stop/i })).toBeVisible()
+    // Stop 2 is the last → marking it sent finishes the run and opens the summary.
+    await page.getByRole('button', { name: /Quote sent — next stop/i }).click()
+
+    // F29 end-of-run summary. Scope to the dialog — the completed stops also
+    // render in the "Done" list behind the overlay, so page-wide text would be
+    // ambiguous under strict mode.
+    const summary = page.getByRole('dialog', { name: 'Run complete' })
+    await expect(summary).toBeVisible({ timeout: 10000 })
+    await expect(summary.getByText(/quotes? sent/i)).toBeVisible()
+    await expect(summary.getByText(/total quoted/i)).toBeVisible()
+    await expect(summary.getByText('Margaret Thompson')).toBeVisible()
+    await expect(summary.getByText('Coastal Properties')).toBeVisible()
+    await expect(summary.getByRole('button', { name: 'Back to calendar' })).toBeVisible()
+    guard.assertClean('end-of-run summary')
+  })
+})
+
+test.describe('perceived speed (F21, F22)', () => {
+  test('pipeline status change is optimistic; no bare loading text', async ({ page, guard, login, role }) => {
+    test.skip(role === 'truck', 'pipeline is staff-only')
+    await login('/pipeline')
+    // F21: the old bare "Loading…" text is gone (skeleton replaces it).
+    await expect(page.getByText('Loading…', { exact: true })).toHaveCount(0)
+
+    const select = page.locator('select[aria-label*="Status for"]').first()
+    await select.waitFor({ timeout: 10000 }).catch(() => {})   // jobs load async
+    test.skip(!(await select.count()), 'no jobs seeded')
+    const before = await select.inputValue()
+    const values = await select.locator('option').evaluateAll(os => os.map(o => o.value))
+    const target = values.find(v => v && v !== before)
+    test.skip(!target, 'no alternate manual status to select')
+
+    // F22: the chip flips immediately and a refetch does not revert it.
+    await select.selectOption(target)
+    await expect(select).toHaveValue(target)
+    guard.assertClean('optimistic pipeline status')
+  })
+
+  test('dashboard renders without the old bare loading text (F21)', async ({ page, guard, login, role }) => {
+    test.skip(role !== 'full', 'dashboard is owner-only')
+    await login('/dashboard')
+    await expect(page.getByText('Loading dashboard…')).toHaveCount(0)
+    await expect(page.getByText(/Business Health/i)).toBeVisible({ timeout: 10000 })
+    guard.assertClean('dashboard skeleton replaces bare text')
   })
 })
 

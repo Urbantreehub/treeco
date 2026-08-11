@@ -47,6 +47,7 @@ export const DEMO_PROFILE = {
   name: 'Demo User',
   email: 'demo@treeco.app',
   access_level: 'full',
+  resource_id: 'josh',   // the demo owner drives Josh's lane (his run is the seeded quote run)
   avatar_url: null,
 }
 

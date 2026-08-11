@@ -113,20 +113,27 @@ function demoSchedule() {
   if (dow === 6) now.setDate(now.getDate() + 2)
   else if (dow === 0) now.setDate(now.getDate() + 1)
   const ymd = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-  const mk = (id, resource_id, start, end, name, job_type, subtotal) => ({
+  const mk = (id, resource_id, start, end, name, job_type, subtotal, opts = {}) => ({
     id, job_id: `sj-${id}`, date: ymd, start_time: start, end_time: end,
-    resource_id, status: 'scheduled', vehicle_reg: null,
+    resource_id, status: opts.status ?? 'scheduled', vehicle_reg: null,
     jobs: {
-      id: `sj-${id}`, title: name, status: 'scheduled', job_type,
-      address: `${name.split(' ')[0]} Rd, Wellington`, lat: null, lng: null,
+      id: `sj-${id}`, title: name, status: opts.status ?? 'scheduled', job_type,
+      address: `${name.split(' ')[0]} Rd, Wellington`,
+      lat: opts.lat ?? null, lng: opts.lng ?? null,
+      meeting_status: opts.meeting_status ?? null,
       ko_reference: null, sla_due_at: null, description: null,
       clients: { name, phone: null },
-      quotes: [{ id: `sq-${id}`, status: 'accepted', total: Math.round(subtotal * 1.15), subtotal }],
+      quotes: [{ id: `sq-${id}`, status: opts.quoteStatus ?? 'accepted', total: Math.round(subtotal * 1.15), subtotal }],
     },
   })
   return [
-    mk('1', 'josh',   '07:00:00', '10:00:00', 'Margaret Thompson', 'Tree Removal', 4850),
-    mk('2', 'josh',   '11:00:00', '14:00:00', 'Coastal Properties', 'Pruning',     2070),
+    // Josh's run is a quote run (both stops still to quote) — geocoded and with
+    // meeting status set — so the day-run flow, on-site quote sheet and the
+    // end-of-run summary (F26/F27/F29) all have live data to render and drive.
+    mk('1', 'josh',   '07:00:00', '10:00:00', 'Margaret Thompson', 'Tree Removal', 4850,
+       { status: 'quote_scheduled', meeting_status: 'meeting',     lat: -41.2900, lng: 174.7800, quoteStatus: 'draft' }),
+    mk('2', 'josh',   '11:00:00', '14:00:00', 'Coastal Properties', 'Pruning',     2070,
+       { status: 'new_lead',        meeting_status: 'not_meeting', lat: -41.3100, lng: 174.8020, quoteStatus: 'draft' }),
     mk('3', 'isuzu',  '07:30:00', '12:00:00', 'Richard Tait',       'Pruning',      748),
     mk('4', 'nissan', '08:00:00', '15:00:00', 'Heritage Homes',     'Tree Removal', 6210),
     mk('5', 'nissan', '15:30:00', '17:00:00', 'Jason Park',         'Pruning',      1380),
@@ -149,6 +156,9 @@ const mockClient = {
     getSession:         () => Promise.resolve({ data: { session: null } }),
     // Pages that stamp actioned_by / completed_by ask for the current user.
     getUser:            () => Promise.resolve({ data: { user: { id: 'demo-user', email: 'demo@treeco.app' } }, error: null }),
+    // From origin #20 — settings/account pages reach for these in demo mode.
+    updateUser:         () => Promise.resolve({ data: { user: null }, error: null }),
+    resetPasswordForEmail: () => Promise.resolve({ data: {}, error: null }),
     onAuthStateChange:  () => ({ data: { subscription: { unsubscribe: () => {} } } }),
     signInWithPassword: () => Promise.resolve({ error: null }),
     signOut:            () => Promise.resolve(),
