@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../config/supabase'
 import { getStatusLabel, categoryMeta } from '../config/statuses'
 import { displayCase } from '../utils/jobDisplay'
+import { Toast, useToast } from '../components/Toast'
 
 // Ashley's "to be actioned" list. Portal syncs and quote activity raise alerts
 // here (they never move a job themselves); the office reviews each one and either
@@ -36,6 +37,7 @@ export default function Actions() {
   const [alerts, setAlerts] = useState(null)
   const [userId, setUserId] = useState(null)
   const [busy, setBusy] = useState(null)
+  const { toast, showToast } = useToast()
 
   const load = useCallback(async () => {
     const { data } = await supabase
@@ -52,25 +54,38 @@ export default function Actions() {
   }, [load])
 
   async function confirm(a) {
+    // Optimistic (F22): clear the card immediately, restore + toast on failure.
+    const prevAlerts = alerts
     setBusy(a.id)
+    setAlerts(list => (list ?? []).filter(x => x.id !== a.id))
+    let err = null
     if (a.suggested_status && a.job_id) {
-      await supabase.from('jobs')
+      const r = await supabase.from('jobs')
         .update({ status: a.suggested_status, status_changed_at: new Date().toISOString() })
         .eq('id', a.job_id)
+      err = r.error
     }
-    await supabase.from('job_alerts')
-      .update({ status: 'done', actioned_at: new Date().toISOString(), actioned_by: userId })
-      .eq('id', a.id)
+    if (!err) {
+      const r = await supabase.from('job_alerts')
+        .update({ status: 'done', actioned_at: new Date().toISOString(), actioned_by: userId })
+        .eq('id', a.id)
+      err = r.error
+    }
     setBusy(null)
-    load()
+    if (err) { setAlerts(prevAlerts); showToast('Couldn’t confirm — reverted', true) }
+    else load()
   }
 
   async function dismiss(a) {
+    // Optimistic (F22): clear the card immediately, restore + toast on failure.
+    const prevAlerts = alerts
     setBusy(a.id)
-    await supabase.from('job_alerts')
+    setAlerts(list => (list ?? []).filter(x => x.id !== a.id))
+    const { error } = await supabase.from('job_alerts')
       .update({ status: 'dismissed', actioned_at: new Date().toISOString(), actioned_by: userId })
       .eq('id', a.id)
     setBusy(null)
+    if (error) { setAlerts(prevAlerts); showToast('Couldn’t dismiss — reverted', true); return }
     load()
   }
 
@@ -130,6 +145,7 @@ export default function Actions() {
           })}
         </div>
       )}
+      <Toast toast={toast} />
     </div>
   )
 }

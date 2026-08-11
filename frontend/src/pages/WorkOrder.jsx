@@ -5,6 +5,7 @@ import { v4 as uuid } from 'uuid'
 import { mapsHref } from '../utils/geo'
 import { stampImage, buildStamp } from '../utils/imageStamp'
 import { useAuth } from '../context/AuthContext'
+import { Toast, useToast } from '../components/Toast'
 
 const GST = 0.15
 function nzd(v) { return '$' + Number(v || 0).toLocaleString('en-NZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
@@ -46,6 +47,7 @@ export default function WorkOrder() {
   const [quoteNotes, setQuoteNotes] = useState('')
   const [jobPack,    setJobPack]    = useState({})
   const [loading,    setLoading]    = useState(true)
+  const { toast, showToast } = useToast()
 
   // Forms
   const [formStatus, setFormStatus] = useState(() => {
@@ -219,13 +221,18 @@ export default function WorkOrder() {
   // truck is limited by RLS to 'complete_to_invoice' / 'stump_grinding' only.
   // Completing a Spencers/Downer job is gated on During + After photos.
   async function setJobStatus(newStatus) {
+    // Optimistic (F22): flip the status immediately, revert + toast on failure.
+    const prevStatus = job?.status
     setCompleting(newStatus)
+    setJob(j => ({ ...j, status: newStatus }))
     const { error } = await supabase.from('jobs')
       .update({ status: newStatus, status_changed_at: new Date().toISOString() })
       .eq('id', jobId)
     setCompleting(null)
-    if (error) { alert(`Couldn’t update status: ${error.message}`); return }
-    setJob(j => ({ ...j, status: newStatus }))
+    if (error) {
+      setJob(j => ({ ...j, status: prevStatus }))
+      showToast('Couldn’t update status — reverted', true)
+    }
   }
 
   // Extra site photos not tied to a specific line item (Spencers/Downer jobs).
@@ -677,6 +684,7 @@ export default function WorkOrder() {
           <img src={lightbox} alt="" style={{ maxWidth: '95vw', maxHeight: '90vh', objectFit: 'contain', borderRadius: 4 }} onClick={e => e.stopPropagation()} />
         </div>
       )}
+      <Toast toast={toast} />
     </div>
   )
 }
