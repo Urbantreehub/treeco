@@ -11,7 +11,10 @@ import {
   renderPreview, mergeDataFor, formatDateNz, emptyTagsIn, unknownTagsIn,
   validateCampaign, describeAudience, matchesAudience, bucketFor,
   chooseSubject, suburbCoverage,
+  IMPORT_SOURCES, IMPORT_MAX_ROWS, importSource, parseQuotientPaste, pasteFingerprint,
+  summaryRows, mailableFromSummary, describeImportOutcome, sampleName, explainImportError,
 } from '../utils/campaigns'
+import { QUOTIENT_SNIPPET, QUOTIENT_CONSOLE_HOST } from '../config/quotientSnippet'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const FN = SUPABASE_URL + '/functions/v1'
@@ -286,6 +289,341 @@ function AudienceTab({ contacts, loading, audience, setAudience }) {
         </div>
       </div>
     </>
+  )
+}
+
+// ── Import ───────────────────────────────────────────────────────────────────
+// The mailing list has to come from somewhere, and that somewhere is three
+// systems: Xero (paid invoices, and the line items that produce a real job
+// summary), Quotient (the widest coverage of email addresses) and the app's own
+// clients table. This panel drives the import-marketing-contacts function.
+//
+// Two rules shape the whole thing:
+//
+//   1. A dry run always comes first. The function computes every insert, merge
+//      and classification and writes nothing, so the office can read the numbers
+//      and the sample rows before anything touches the list. "Import for real"
+//      stays disabled until that has happened for THIS source and THIS payload.
+//   2. The numbers need explaining. `scanned` is the whole customer history;
+//      what can actually be mailed is much smaller, because commercial accounts
+//      are imported and then permanently excluded, and anyone without a
+//      completed job is imported suppressed. Left unexplained, "4,357 scanned →
+//      1,900 mailable" reads like the import broke.
+const IMPORT_TIMEOUT_MS = 240_000
+
+function ImportPanel({ onImported, showToast }) {
+  const [source, setSource] = useState('xero')
+  const [paste, setPaste] = useState('')
+  const [pasteError, setPasteError] = useState('')
+  const [snippetOpen, setSnippetOpen] = useState(false)
+  const [busy, setBusy] = useState(null)          // 'dry' | 'live' | null
+  // Everything below is keyed by source, so a Xero dry run can never hand its
+  // approval to a Quotient import, and switching tabs doesn't lose a result.
+  const [dry, setDry] = useState({})              // source → { result, fingerprint }
+  const [live, setLive] = useState({})            // source → result
+  const [failure, setFailure] = useState({})      // source → { message, advice, settingsLink }
+
+  const meta = importSource(source)
+  const needsPaste = !!meta?.needsPaste
+
+  // For a pasted source the dry run approves one exact payload. Edit the
+  // textarea and that approval is void — otherwise a person could dry-run 40
+  // rows and then import 4,000 nobody has looked at.
+  const fingerprint = needsPaste ? pasteFingerprint(paste) : source
+  const held = dry[source]
+  const dryResult = held && held.fingerprint === fingerprint ? held.result : null
+  const staleDry = !!held && held.fingerprint !== fingerprint
+  const liveResult = live[source] ?? null
+  const err = failure[source] ?? null
+  const shown = liveResult ?? dryResult
+
+  const parsed = needsPaste && paste.trim() ? parseQuotientPaste(paste) : null
+
+  function pick(key) {
+    setSource(key)
+    setPasteError('')
+  }
+
+  async function copySnippet() {
+    try {
+      await navigator.clipboard.writeText(QUOTIENT_SNIPPET)
+      showToast('Snippet copied — paste it into the console on ' + QUOTIENT_CONSOLE_HOST)
+    } catch {
+      showToast('Could not reach the clipboard — select the snippet and copy it manually', true)
+    }
+  }
+
+  async function run(dryRun) {
+    const body = { source, dry_run: dryRun }
+    if (needsPaste) {
+      const check = parseQuotientPaste(paste)
+      if (!check.ok) { setPasteError(check.error); return }
+      setPasteError('')
+      body.contacts = check.contacts
+    }
+
+    setBusy(dryRun ? 'dry' : 'live')
+    setFailure(f => ({ ...f, [source]: null }))
+    if (dryRun) setLive(l => ({ ...l, [source]: null }))
+
+    // A full Xero import walks every contact and every invoice page; the
+    // function itself budgets 110s before it stops paging. Give it room, but
+    // don't leave a spinner up forever if the connection has quietly died.
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), IMPORT_TIMEOUT_MS)
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch(`${FN}/import-marketing-contacts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token ?? ''}` },
+        body: JSON.stringify(body),
+        signal: ctrl.signal,
+      })
+      const json = await res.json().catch(() => ({}))
+
+      if (!res.ok) {
+        setFailure(f => ({ ...f, [source]: explainImportError(res.status, json.error ?? `The import failed (HTTP ${res.status}).`) }))
+        return
+      }
+
+      if (dryRun) {
+        setDry(d => ({ ...d, [source]: { result: json, fingerprint } }))
+        showToast(`Dry run · ${describeImportOutcome(json)}`)
+      } else {
+        setLive(l => ({ ...l, [source]: json }))
+        // The list on this page is now out of date by exactly the number we
+        // just wrote, so refresh it rather than making anyone reload.
+        await onImported()
+        showToast(`Imported from ${meta?.label ?? source} · ${describeImportOutcome(json)}`)
+      }
+    } catch (e) {
+      const timedOut = e?.name === 'AbortError'
+      setFailure(f => ({
+        ...f,
+        [source]: explainImportError(0, timedOut
+          ? `No response after ${IMPORT_TIMEOUT_MS / 60000} minutes — the connection timed out.`
+          : (e?.message ?? 'The import could not be reached.')),
+      }))
+    } finally {
+      clearTimeout(timer)
+      setBusy(null)
+    }
+  }
+
+  const running = busy !== null
+  const canDryRun = !running && (!needsPaste || !!paste.trim())
+  const canImport = !running && !!dryResult && !liveResult
+
+  return (
+    <div style={s.card}>
+      <div style={s.cardHead}>
+        <div>
+          <div style={s.cardTitle}>Import contacts</div>
+          <div style={s.subtle}>
+            Pulls customer history into the mailing list. Safe to re-run — a contact already on the
+            list is merged, never duplicated, and consent is never overwritten by an import.
+          </div>
+        </div>
+      </div>
+
+      <div style={s.chipRow}>
+        {IMPORT_SOURCES.map(src => (
+          <button key={src.key} type="button" onClick={() => pick(src.key)}
+            style={{ ...s.chip, ...(source === src.key ? s.chipOn : {}) }}>
+            {src.label}
+          </button>
+        ))}
+      </div>
+
+      <div style={s.subtle}>{meta?.blurb}</div>
+
+      {/* Said once, up front, because it is the reason the mailable number is
+          so much smaller than the scanned one. */}
+      <div style={s.warnBox}>
+        Everything found gets imported, but not everything can be mailed.
+        Contacts classified <strong>commercial</strong> — councils, <em>Ltd</em> names, property managers,
+        schools, trusts, <em>*.govt.nz</em> — are kept on the record and <strong>never marketed to</strong>.
+        Contacts with <strong>no completed job</strong> are imported as <strong>suppressed</strong>: on the list,
+        but not mailable until a person decides otherwise. That is why “scanned 4,357” becomes a much
+        smaller audience.
+      </div>
+
+      {needsPaste && (
+        <>
+          <div style={s.field}>
+            <div style={s.inlineRow}>
+              <span style={s.label}>Step 1 — extract from Quotient</span>
+              <button type="button" style={s.smallBtn} onClick={copySnippet}>Copy snippet</button>
+              <button type="button" style={s.btnGhost} onClick={() => setSnippetOpen(o => !o)}>
+                {snippetOpen ? 'Hide snippet' : 'Show snippet'}
+              </button>
+            </div>
+            <div style={s.subtle}>
+              Sign in to <strong>{QUOTIENT_CONSOLE_HOST}</strong>, open DevTools → Console on that tab,
+              paste this and wait — there are around 4,400 contacts, so it takes a few minutes. It copies
+              the JSON to your clipboard when it finishes.
+            </div>
+            {snippetOpen && <pre style={s.code}>{QUOTIENT_SNIPPET}</pre>}
+          </div>
+
+          <div style={s.field}>
+            <label style={s.label}>Step 2 — paste the JSON array here</label>
+            <textarea style={{ ...s.textarea, fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 12, minHeight: 96 }}
+              rows={5} placeholder='[{"source_ref":"1001","first_name":"Colleen", …}]'
+              value={paste} onChange={e => { setPaste(e.target.value); setPasteError('') }} />
+            <div style={s.subtle}>
+              Maximum {IMPORT_MAX_ROWS.toLocaleString('en-NZ')} contacts per import — split a bigger export
+              into batches and paste one at a time.
+            </div>
+            {pasteError && <div style={s.errBox}>{pasteError}</div>}
+            {!pasteError && parsed?.ok && (
+              <div style={s.okBox}>
+                {parsed.count.toLocaleString('en-NZ')} contacts read
+                {parsed.withEmail < parsed.count && ` · ${parsed.withEmail.toLocaleString('en-NZ')} with an email address`}
+              </div>
+            )}
+            {!pasteError && parsed && !parsed.ok && <div style={s.errBox}>{parsed.error}</div>}
+          </div>
+        </>
+      )}
+
+      {err && (
+        <div style={s.gapBox}>
+          <div style={s.gapTitle}>The import didn’t run</div>
+          {/* Verbatim. The Xero scope failure names the exact missing scope and
+              paraphrasing it throws away the only actionable part. */}
+          <div style={s.gapSample}>{err.message}</div>
+          {err.advice && <div style={s.gapBody}>{err.advice}</div>}
+          {err.settingsLink && (
+            <Link to="/settings" style={s.killLink}>Open Settings → Integrations</Link>
+          )}
+        </div>
+      )}
+
+      <div style={s.sectionRule} />
+
+      <div style={s.inlineRow}>
+        <button type="button" style={s.btnGhost} disabled={!canDryRun} onClick={() => run(true)}>
+          {busy === 'dry' ? 'Dry running…' : dryResult ? 'Dry run again' : 'Dry run'}
+        </button>
+        <button type="button"
+          style={{ ...s.btnPrimary, ...(canImport ? {} : s.btnDisabled) }}
+          disabled={!canImport} onClick={() => run(false)}>
+          {busy === 'live'
+            ? 'Importing…'
+            : dryResult
+              ? `Import for real — ${Number(dryResult.inserted ?? 0).toLocaleString('en-NZ')} new, ${Number(dryResult.updated ?? 0).toLocaleString('en-NZ')} merged`
+              : 'Import for real'}
+        </button>
+      </div>
+
+      {!dryResult && !busy && (
+        <div style={s.subtle}>
+          A dry run works out every insert and merge and writes <strong>nothing</strong>. It has to happen
+          before an import — read the numbers and the sample rows first.
+        </div>
+      )}
+      {staleDry && (
+        <div style={s.warnBox}>
+          The pasted list changed since the last dry run, so those numbers no longer describe what would
+          be imported. Dry run again.
+        </div>
+      )}
+      {liveResult && (
+        <div style={s.okBox}>
+          Imported. {describeImportOutcome(liveResult)} The audience counts below have been refreshed.
+        </div>
+      )}
+
+      {shown && <ImportSummary result={shown} />}
+    </div>
+  )
+}
+
+// The function's response as a table rather than raw JSON, plus the sample rows
+// it returns so the office can eyeball real names, emails, suburbs and — above
+// all — last_job_summary, which is the field every personalised sentence in a
+// campaign is built out of.
+function ImportSummary({ result }) {
+  const rows = summaryRows(result)
+  const { scanned, dropped, commercial, suppressed, mailable } = mailableFromSummary(result)
+  const errors = Array.isArray(result.errors) ? result.errors : []
+  const sample = Array.isArray(result.sample) ? result.sample : []
+
+  return (
+    <div style={s.importResult}>
+      <div style={s.inlineRow}>
+        <span style={{ ...s.chipBadge, ...(result.dry_run ? s.badgeDry : s.badgeLive) }}>
+          {result.dry_run ? 'Dry run — nothing written' : 'Imported'}
+        </span>
+        <span style={s.subtle}>{importSource(result.source)?.label ?? result.source}</span>
+      </div>
+
+      <table style={s.sumTable}>
+        <tbody>
+          {rows.map(r => (
+            <tr key={r.key}>
+              <th scope="row" style={s.sumKey}>{r.label}</th>
+              <td style={{ ...s.sumVal, ...(r.key === 'error_count' && r.value > 0 ? s.sumValBad : {}) }}>
+                {r.value.toLocaleString('en-NZ')}
+              </td>
+              <td style={s.sumHint}>{r.hint}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {/* The arithmetic, spelled out, so nobody has to work out why the two
+          big numbers disagree. */}
+      <div style={s.warnBox}>
+        Of {scanned.toLocaleString('en-NZ')} scanned: {dropped.toLocaleString('en-NZ')} had no usable email
+        address, {commercial.toLocaleString('en-NZ')} are commercial and are never marketed to,
+        and {suppressed.toLocaleString('en-NZ')} have no completed job so arrive suppressed.
+        That leaves roughly <strong>{mailable.toLocaleString('en-NZ')}</strong> who could be emailed.
+      </div>
+
+      {errors.length > 0 && (
+        <div style={s.field}>
+          <div style={s.label}>
+            First {Math.min(5, errors.length)} of {Number(result.error_count ?? errors.length).toLocaleString('en-NZ')} row errors
+          </div>
+          {errors.slice(0, 5).map((e, i) => (
+            <div key={i} style={s.errRow}>
+              <span style={s.errRef}>{e.source_ref ? `#${e.source_ref}` : `row ${Number(e.index) + 1}`}</span>
+              <span>{e.error}</span>
+            </div>
+          ))}
+          <div style={s.subtle}>
+            Each bad row is reported on its own and the rest of the batch still imports.
+          </div>
+        </div>
+      )}
+
+      <div style={s.field}>
+        <div style={s.label}>Sample — the first {sample.length} contacts, exactly as they’ll be written</div>
+        {sample.length === 0 && <div style={s.subtle}>Nothing to write from this source.</div>}
+        {sample.map((row, i) => (
+          <div key={i} style={s.sampleCard}>
+            <div style={s.sampleTop}>
+              <span style={s.sampleName}>{sampleName(row)}</span>
+              <span style={s.countChip}>{row.action === 'update' ? 'merge' : 'new'}</span>
+              {row.contact_type && <span style={s.countChip}>{row.contact_type}</span>}
+              {row.consent_status && <span style={s.countChip}>{row.consent_status}</span>}
+            </div>
+            <div style={s.sampleLine}>{row.email ?? '(no email)'}</div>
+            <div style={s.sampleLine}>{[row.suburb, row.city].filter(Boolean).join(' · ') || 'no suburb on file'}</div>
+            {/* The whole point of the import: the copy says "we pruned your
+                magnolia in March 2023" out of this one field. */}
+            <div style={s.sampleSummary}>
+              {row.last_job_summary
+                ? <>last job: <strong>{row.last_job_summary}</strong></>
+                : <span style={s.sampleMissing}>no job summary — the templates read correctly without one</span>}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   )
 }
 
@@ -1236,6 +1574,13 @@ export default function Campaigns() {
           </div>
         )}
 
+        {/* Importing the mailing list has nothing to do with the campaign
+            being edited, so it sits outside the lock fieldset below — a
+            part-sent campaign must not stop the office topping up the list. */}
+        {tab === 'audience' && (
+          <ImportPanel onImported={loadAudience} showToast={showToast} />
+        )}
+
         {/* fieldset[disabled] disables every control inside it natively — the
             template picker, the chips and every input at once — so there is no
             way to type into a locked campaign and then be told "no" on save. */}
@@ -1386,6 +1731,26 @@ const s = {
 
   confirmBox:  { border: '1.5px solid #C0392B', borderRadius: 10, padding: 14, display: 'flex', flexDirection: 'column', gap: 10, background: '#FFF9F8' },
   confirmLine: { fontSize: 14, color: 'var(--ink)', lineHeight: 1.5 },
+
+  // Import panel
+  code:        { margin: 0, padding: '12px 14px', background: '#1E1B18', color: '#E8E2DA', borderRadius: 8, fontSize: 11, lineHeight: 1.55, fontFamily: 'ui-monospace, Menlo, monospace', whiteSpace: 'pre', overflowX: 'auto', maxHeight: 260, overflowY: 'auto' },
+  btnDisabled: { background: '#DCD6CE', color: '#fff', cursor: 'not-allowed' },
+  importResult:{ border: '1px solid var(--line)', borderRadius: 10, padding: 14, display: 'flex', flexDirection: 'column', gap: 12, background: '#FAF8F5' },
+  badgeDry:    { background: '#F3EFEA', color: '#777' },
+  badgeLive:   { background: '#E8F0E6', color: '#3A5C2E' },
+  sumTable:    { width: '100%', borderCollapse: 'collapse', fontSize: 12.5 },
+  sumKey:      { textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.05em', padding: '5px 10px 5px 0', whiteSpace: 'nowrap', verticalAlign: 'top' },
+  sumVal:      { fontSize: 14, fontWeight: 800, color: 'var(--ink)', padding: '5px 12px 5px 0', textAlign: 'right', whiteSpace: 'nowrap', verticalAlign: 'top' },
+  sumValBad:   { color: '#C0392B' },
+  sumHint:     { fontSize: 11.5, color: '#8a8a8a', lineHeight: 1.5, padding: '5px 0', width: '100%' },
+  errRow:      { display: 'flex', gap: 8, fontSize: 12, color: '#C0392B', lineHeight: 1.5 },
+  errRef:      { fontWeight: 800, flexShrink: 0 },
+  sampleCard:  { background: '#fff', border: '1px solid var(--line)', borderRadius: 8, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 3 },
+  sampleTop:   { display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' },
+  sampleName:  { fontSize: 13, fontWeight: 800, color: 'var(--ink)' },
+  sampleLine:  { fontSize: 12, color: '#777' },
+  sampleSummary: { fontSize: 12.5, color: 'var(--ink)', lineHeight: 1.5, marginTop: 2 },
+  sampleMissing: { color: '#bbb', fontStyle: 'italic' },
 
   actions:   { display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' },
   btnPrimary:{ padding: '9px 18px', borderRadius: 7, border: 'none', background: 'var(--terra)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)' },

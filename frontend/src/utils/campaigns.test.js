@@ -5,6 +5,8 @@ import {
   tagsIn, unknownTagsIn,
   validateCampaign, describeAudience, matchesAudience, bucketFor,
   suburbCoverage, chooseSubject,
+  IMPORT_SOURCES, IMPORT_MAX_ROWS, importSource, parseQuotientPaste, pasteFingerprint,
+  summaryRows, mailableFromSummary, describeImportOutcome, sampleName, explainImportError,
 } from './campaigns'
 
 // A campaign that passes every rule — each test below breaks exactly one thing,
@@ -669,5 +671,252 @@ describe('SEGMENT_PRESETS', () => {
         }
       }
     }
+  })
+})
+
+// ── Importing ────────────────────────────────────────────────────────────────
+
+describe('IMPORT_SOURCES', () => {
+  // The keys are the `source` values the edge function accepts. A typo here is
+  // a 400 from the function with no clue on the page as to why.
+  it('offers exactly the three sources the function supports', () => {
+    expect(IMPORT_SOURCES.map(s => s.key)).toEqual(['xero', 'quotient', 'clients'])
+  })
+  it('gives every source a label and an explanation', () => {
+    for (const s of IMPORT_SOURCES) {
+      expect(s.label).toBeTruthy()
+      expect(s.blurb.length).toBeGreaterThan(40)
+    }
+  })
+  it('marks only Quotient as needing a pasted payload', () => {
+    expect(IMPORT_SOURCES.filter(s => s.needsPaste).map(s => s.key)).toEqual(['quotient'])
+  })
+  it('looks a source up by key, and returns null for anything else', () => {
+    expect(importSource('xero').label).toBe('Xero')
+    expect(importSource('mailchimp')).toBeNull()
+  })
+  // MAX_ROWS in the edge function. If the two drift, the paste sails through
+  // here and comes back a 413 after the user has waited for the upload.
+  it('caps a batch at the same 5000 rows the function does', () => {
+    expect(IMPORT_MAX_ROWS).toBe(5000)
+  })
+})
+
+describe('parseQuotientPaste', () => {
+  const ROW = { source_ref: '1001', first_name: 'Colleen', last_name: 'Riches', email: 'colleen@example.co.nz' }
+
+  it('accepts a JSON array of contacts', () => {
+    const r = parseQuotientPaste(JSON.stringify([ROW, ROW]))
+    expect(r.ok).toBe(true)
+    expect(r.count).toBe(2)
+    expect(r.contacts[0].email).toBe('colleen@example.co.nz')
+  })
+  it('tolerates whitespace around the paste', () => {
+    expect(parseQuotientPaste(`\n  ${JSON.stringify([ROW])}  \n`).ok).toBe(true)
+  })
+  it('counts how many rows carry an email address', () => {
+    const r = parseQuotientPaste(JSON.stringify([ROW, { ...ROW, email: '' }, { ...ROW, email: undefined }]))
+    expect(r.count).toBe(3)
+    expect(r.withEmail).toBe(1)
+  })
+
+  it('rejects an empty paste without mentioning JSON', () => {
+    const r = parseQuotientPaste('   ')
+    expect(r.ok).toBe(false)
+    expect(r.error).toMatch(/Nothing pasted/)
+  })
+  // The most likely mistake: copying the console output, progress lines and all.
+  it('explains a parse failure instead of throwing', () => {
+    const r = parseQuotientPaste('contacts page 1: 100 (100 total)')
+    expect(r.ok).toBe(false)
+    expect(r.error).toMatch(/isn’t valid JSON/)
+  })
+  it('rejects a single object', () => {
+    const r = parseQuotientPaste(JSON.stringify(ROW))
+    expect(r.ok).toBe(false)
+    expect(r.error).toMatch(/a single object/)
+  })
+  it('rejects a bare string or number', () => {
+    expect(parseQuotientPaste('"hello"').error).toMatch(/a string/)
+    expect(parseQuotientPaste('42').error).toMatch(/a number/)
+    expect(parseQuotientPaste('null').error).toMatch(/null/)
+  })
+  it('rejects an empty array', () => {
+    const r = parseQuotientPaste('[]')
+    expect(r.ok).toBe(false)
+    expect(r.error).toMatch(/empty/)
+  })
+  it('rejects a batch over the cap and says to split it', () => {
+    const r = parseQuotientPaste(JSON.stringify(Array.from({ length: IMPORT_MAX_ROWS + 1 }, () => ROW)))
+    expect(r.ok).toBe(false)
+    expect(r.error).toMatch(/5,001/)
+    expect(r.error).toMatch(/batches/)
+  })
+  it('accepts a batch of exactly the cap', () => {
+    expect(parseQuotientPaste(JSON.stringify(Array.from({ length: IMPORT_MAX_ROWS }, () => ROW))).ok).toBe(true)
+  })
+  it('names the row when the array holds something that is not a contact', () => {
+    const r = parseQuotientPaste(JSON.stringify([ROW, 'nope', ROW]))
+    expect(r.ok).toBe(false)
+    expect(r.error).toMatch(/Row 2/)
+  })
+  it('never throws, whatever it is handed', () => {
+    for (const bad of [undefined, null, 0, {}, [], '{', '[{]']) {
+      expect(() => parseQuotientPaste(bad)).not.toThrow()
+      expect(parseQuotientPaste(bad).ok).toBe(false)
+    }
+  })
+})
+
+describe('pasteFingerprint', () => {
+  // The dry run approves one exact payload. If an edited paste kept the old
+  // fingerprint, "Import for real" would import rows nobody previewed.
+  it('is stable for identical text', () => {
+    expect(pasteFingerprint('[{"a":1}]')).toBe(pasteFingerprint('[{"a":1}]'))
+  })
+  it('changes when the text changes', () => {
+    expect(pasteFingerprint('[{"a":1}]')).not.toBe(pasteFingerprint('[{"a":2}]'))
+  })
+  it('changes when rows are appended', () => {
+    const a = JSON.stringify([{ email: 'a@b.co' }])
+    const b = JSON.stringify([{ email: 'a@b.co' }, { email: 'c@d.co' }])
+    expect(pasteFingerprint(a)).not.toBe(pasteFingerprint(b))
+  })
+  it('handles empty and nullish input', () => {
+    expect(pasteFingerprint('')).toBe(pasteFingerprint(null))
+    expect(typeof pasteFingerprint(undefined)).toBe('string')
+  })
+})
+
+// A response in the exact shape the function's README documents.
+const RESULT = {
+  ok: true, source: 'xero', dry_run: true,
+  scanned: 4357, inserted: 2810, updated: 1102,
+  skipped_no_email: 402, skipped_invalid: 43,
+  classified: { residential: 3689, commercial: 223 },
+  suppressed_no_history: 611,
+  sample: [], errors: [], error_count: 0,
+  meta: { xero_contacts: 4102, joined_on_quote_no: 318 },
+}
+
+describe('summaryRows', () => {
+  it('renders every count the function returns', () => {
+    expect(summaryRows(RESULT).map(r => r.key)).toEqual([
+      'scanned', 'inserted', 'updated', 'skipped_no_email', 'skipped_invalid',
+      'residential', 'commercial', 'suppressed_no_history', 'error_count',
+    ])
+  })
+  it('reads the nested classification split', () => {
+    const by = Object.fromEntries(summaryRows(RESULT).map(r => [r.key, r.value]))
+    expect(by.residential).toBe(3689)
+    expect(by.commercial).toBe(223)
+  })
+  it('gives every row a label and an explanation', () => {
+    for (const r of summaryRows(RESULT)) {
+      expect(r.label).toBeTruthy()
+      expect(r.hint).toBeTruthy()
+    }
+  })
+  // A missing key must render as 0, not NaN or "undefined" — the table is the
+  // thing the office reads before committing an import.
+  it('renders a missing or malformed count as zero', () => {
+    for (const r of summaryRows({})) expect(r.value).toBe(0)
+    expect(summaryRows({ scanned: 'lots' })[0].value).toBe(0)
+    expect(summaryRows().every(r => Number.isFinite(r.value))).toBe(true)
+  })
+  it('says commercial contacts are never marketed to', () => {
+    const row = summaryRows(RESULT).find(r => r.key === 'commercial')
+    expect(row.hint).toMatch(/excluded from marketing/i)
+  })
+  it('says a suppressed contact is not mailed without a human decision', () => {
+    const row = summaryRows(RESULT).find(r => r.key === 'suppressed_no_history')
+    expect(row.hint).toMatch(/human decision/i)
+  })
+})
+
+describe('mailableFromSummary', () => {
+  it('subtracts the unusable, the commercial and the suppressed', () => {
+    // 4357 - (402 + 43) - 223 - 611
+    expect(mailableFromSummary(RESULT)).toEqual({
+      scanned: 4357, dropped: 445, commercial: 223, suppressed: 611, mailable: 3078,
+    })
+  })
+  it('never reports a negative mailable count', () => {
+    const r = mailableFromSummary({ scanned: 10, skipped_no_email: 40, classified: { commercial: 20 } })
+    expect(r.mailable).toBe(0)
+  })
+  it('copes with an empty response', () => {
+    expect(mailableFromSummary({}).mailable).toBe(0)
+    expect(mailableFromSummary().scanned).toBe(0)
+  })
+})
+
+describe('describeImportOutcome', () => {
+  it('speaks in the conditional for a dry run', () => {
+    const line = describeImportOutcome(RESULT)
+    expect(line).toMatch(/would add 2,810/)
+    expect(line).toMatch(/would merge 1,102/)
+  })
+  it('speaks in the past tense for a real import', () => {
+    const line = describeImportOutcome({ ...RESULT, dry_run: false })
+    expect(line).toMatch(/added 2,810/)
+    expect(line).toMatch(/merged 1,102/)
+    expect(line).not.toMatch(/would/)
+  })
+  it('carries the mailable figure, not just the scanned one', () => {
+    expect(describeImportOutcome(RESULT)).toMatch(/3,078 of them mailable/)
+  })
+})
+
+describe('sampleName', () => {
+  it('joins first and last name', () => {
+    expect(sampleName({ first_name: 'Colleen', last_name: 'Riches' })).toBe('Colleen Riches')
+  })
+  it('falls back to full_name, which is what some sources write', () => {
+    expect(sampleName({ full_name: 'Coastal Properties Ltd' })).toBe('Coastal Properties Ltd')
+  })
+  it('prefers the split name when both are present', () => {
+    expect(sampleName({ first_name: 'Dave', full_name: 'Dave & Sue Wilson' })).toBe('Dave')
+  })
+  it('says so rather than rendering blank', () => {
+    expect(sampleName({})).toBe('(no name)')
+    expect(sampleName()).toBe('(no name)')
+    expect(sampleName({ first_name: '', last_name: null, full_name: '  ' })).toBe('(no name)')
+  })
+})
+
+describe('explainImportError', () => {
+  // The scope message names the exact scope that is missing. It must reach the
+  // screen unaltered — it is the only actionable part of the failure.
+  it('passes the Xero scope failure through verbatim and offers Settings', () => {
+    const msg = 'Xero connection is missing the "accounting.transactions.read" scope. '
+      + 'Reconnect Xero in Settings → Integrations and approve it — a token refresh cannot add a scope.'
+    const out = explainImportError(500, msg)
+    expect(out.message).toBe(msg)
+    expect(out.settingsLink).toBe(true)
+    expect(out.advice).toMatch(/cannot widen a scope/)
+  })
+  it('links to Settings when Xero is not connected at all', () => {
+    const out = explainImportError(500, 'Xero is not connected — connect it in Settings → Integrations first.')
+    expect(out.settingsLink).toBe(true)
+  })
+  it('explains a 401 as a dead session', () => {
+    expect(explainImportError(401, 'Unauthorized').advice).toMatch(/Sign out and back in/)
+  })
+  it('explains a 403 as an access level', () => {
+    expect(explainImportError(403, 'Forbidden — office access required').advice).toMatch(/office or full access/)
+  })
+  it('keeps the 413 message, which names the batch size', () => {
+    const msg = 'Too many contacts (7000). Max 5000 per request — split the batch.'
+    expect(explainImportError(413, msg).message).toBe(msg)
+  })
+  // Status 0 is the panel's own timeout/network failure. Re-running is safe —
+  // the importer is idempotent — and saying so is the whole point.
+  it('tells the user a timed-out import is safe to re-run', () => {
+    expect(explainImportError(0, 'No response after 4 minutes.').advice).toMatch(/safe to re-run/)
+  })
+  it('always produces a message, even given nothing', () => {
+    expect(explainImportError(500, '').message).toBeTruthy()
+    expect(explainImportError(500, null).message).toBeTruthy()
   })
 })

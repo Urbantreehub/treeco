@@ -468,3 +468,228 @@ export const SEGMENT_PRESETS = [
     audience: {},
   },
 ]
+
+// ── Importing the mailing list ───────────────────────────────────────────────
+// The Campaigns → Audience → Import panel drives the import-marketing-contacts
+// edge function. Everything below is the pure half of that panel: validating a
+// pasted Quotient export, and turning the function's JSON response into the
+// numbers a person can actually read. Kept here (and unit-tested) because the
+// arithmetic — why "scanned 4,357" becomes a much smaller mailable number — is
+// the part the office has to trust.
+
+// Must match MAX_ROWS in supabase/functions/import-marketing-contacts/index.ts.
+// Over this the function returns 413 rather than importing a partial batch, so
+// the paste is rejected here first with an instruction to split it.
+export const IMPORT_MAX_ROWS = 5000
+
+// The three sources the function accepts, with the copy the panel shows for
+// each. `needsPaste` is the one real behavioural difference: Quotient has no
+// read API, so its rows arrive from the browser console rather than from a
+// server-to-server call.
+export const IMPORT_SOURCES = [
+  {
+    key: 'xero',
+    label: 'Xero',
+    needsPaste: false,
+    blurb: 'Contacts and paid ACCREC invoices straight from the connected Xero organisation. '
+         + 'The invoice line items are what produce “we reduced the pōhutukawa” — run this last '
+         + 'so its detail wins the merge.',
+  },
+  {
+    key: 'quotient',
+    label: 'Quotient',
+    needsPaste: true,
+    blurb: 'Quotient has no read API, so the rows are pulled out of your logged-in browser '
+         + 'session with the snippet below and pasted back here. Widest coverage of email addresses.',
+  },
+  {
+    key: 'clients',
+    label: 'This app',
+    needsPaste: false,
+    blurb: 'The app’s own clients table, joined to jobs that actually got done and to their '
+         + 'accepted quotes. Small, and the only source that links a contact back to its client record.',
+  },
+]
+
+export function importSource(key) {
+  return IMPORT_SOURCES.find(s => s.key === key) ?? null
+}
+
+// Validate a pasted Quotient export before it costs a round trip. Returns
+// { ok: true, contacts, count } or { ok: false, error } — never throws, because
+// the whole point is to turn a bad paste into a sentence rather than a stack
+// trace. The checks run in the order a person makes the mistakes: nothing
+// pasted, pasted the console log instead of the JSON, pasted a single object,
+// pasted the whole 4,357-row export in one go.
+export function parseQuotientPaste(text) {
+  const raw = String(text ?? '').trim()
+  if (!raw) return { ok: false, error: 'Nothing pasted yet — run the snippet and paste its output here.' }
+
+  let parsed
+  try {
+    parsed = JSON.parse(raw)
+  } catch (err) {
+    return {
+      ok: false,
+      error: `That isn’t valid JSON (${err.message}). Copy the whole array the snippet prints — `
+           + 'it starts with “[” and ends with “]” — not the progress lines above it.',
+    }
+  }
+
+  if (!Array.isArray(parsed)) {
+    return {
+      ok: false,
+      error: `Expected a JSON array of contacts, got ${describeJsonShape(parsed)}. `
+           + 'Run copy(JSON.stringify(window.__qtExport)) in the console and paste that.',
+    }
+  }
+  if (parsed.length === 0) {
+    return { ok: false, error: 'That array is empty — the snippet found no contacts with an email address.' }
+  }
+  if (parsed.length > IMPORT_MAX_ROWS) {
+    return {
+      ok: false,
+      error: `${parsed.length.toLocaleString('en-NZ')} contacts is over the ${IMPORT_MAX_ROWS.toLocaleString('en-NZ')} limit `
+           + 'for one import. Split the export into batches (the README’s batching snippet does it) and paste one at a time.',
+    }
+  }
+
+  // One bad row is the function's problem — it reports it in `errors` and
+  // imports the rest. Rows that aren't objects at all are this side's problem:
+  // they mean the wrong thing was pasted, which is worth catching before the
+  // round trip rather than after it.
+  const badIndex = parsed.findIndex(r => !r || typeof r !== 'object' || Array.isArray(r))
+  if (badIndex !== -1) {
+    return {
+      ok: false,
+      error: `Row ${badIndex + 1} isn’t a contact object. This looks like the wrong array — `
+           + 'paste the one the snippet leaves on window.__qtExport.',
+    }
+  }
+
+  const withEmail = parsed.filter(r => String(r.email ?? '').trim()).length
+  return { ok: true, contacts: parsed, count: parsed.length, withEmail }
+}
+
+function describeJsonShape(v) {
+  if (v === null) return 'null'
+  if (Array.isArray(v)) return 'an array'
+  if (typeof v === 'object') return 'a single object'
+  return `a ${typeof v}`
+}
+
+// A cheap fingerprint of the pasted text. The panel uses it to notice that the
+// textarea changed after a dry run — a dry run describes one exact payload, and
+// letting a changed paste inherit that approval would import something nobody
+// previewed. djb2; collisions don't matter, only "did this change".
+export function pasteFingerprint(text) {
+  const str = String(text ?? '')
+  let h = 5381
+  for (let i = 0; i < str.length; i++) h = ((h * 33) ^ str.charCodeAt(i)) >>> 0
+  return `${str.length}:${h.toString(36)}`
+}
+
+// The function's response, as rows for a table. Every count it returns is here
+// — nothing is quietly dropped — in the order that explains the drop from
+// `scanned` to the number that can actually be mailed.
+export function summaryRows(result = {}) {
+  const r = result ?? {}
+  const cls = r.classified ?? {}
+  return [
+    { key: 'scanned',           label: 'Scanned',            value: num(r.scanned),
+      hint: 'Rows read from the source.' },
+    { key: 'inserted',          label: 'New contacts',       value: num(r.inserted),
+      hint: 'Added to the mailing list.' },
+    { key: 'updated',           label: 'Merged',             value: num(r.updated),
+      hint: 'Matched an existing contact and filled in what was missing. Consent is never overwritten.' },
+    { key: 'skipped_no_email',  label: 'No email address',   value: num(r.skipped_no_email),
+      hint: 'Nothing to mail — skipped entirely.' },
+    { key: 'skipped_invalid',   label: 'Unusable rows',      value: num(r.skipped_invalid),
+      hint: 'Malformed address, or a row that failed validation.' },
+    { key: 'residential',       label: 'Residential',        value: num(cls.residential),
+      hint: 'The only contacts a campaign can ever go to.' },
+    { key: 'commercial',        label: 'Commercial',         value: num(cls.commercial),
+      hint: 'Imported and kept, but permanently excluded from marketing — councils, Ltd names, property managers, schools, trusts.' },
+    { key: 'suppressed_no_history', label: 'Suppressed',     value: num(r.suppressed_no_history),
+      hint: 'No completed, paid job on record, or already on the do-not-email list. Imported as suppressed — never mailed without a human decision.' },
+    { key: 'error_count',       label: 'Row errors',         value: num(r.error_count),
+      hint: 'Rows the importer could not process. The first few are listed below.' },
+  ]
+}
+
+function num(v) {
+  const n = Number(v)
+  return Number.isFinite(n) ? n : 0
+}
+
+// The number the office actually cares about: of everything scanned, how many
+// could end up in a campaign. Commercial contacts and no-history contacts are
+// imported but not mailable, which is why the mailable figure is so much
+// smaller than the scanned one, and why the panel says so in words.
+export function mailableFromSummary(result = {}) {
+  const r = result ?? {}
+  const cls = r.classified ?? {}
+  const scanned    = num(r.scanned)
+  const commercial = num(cls.commercial)
+  const suppressed = num(r.suppressed_no_history)
+  const dropped    = num(r.skipped_no_email) + num(r.skipped_invalid)
+  // Never let rounding across the two independent tallies (classification runs
+  // over usable rows, the skips over everything) report a negative headline.
+  const mailable = Math.max(0, scanned - dropped - commercial - suppressed)
+  return { scanned, dropped, commercial, suppressed, mailable }
+}
+
+// One sentence for the toast and for the line above the table.
+export function describeImportOutcome(result = {}) {
+  const r = result ?? {}
+  const { scanned, mailable } = mailableFromSummary(r)
+  const verb = r.dry_run ? 'would add' : 'added'
+  const verb2 = r.dry_run ? 'would merge' : 'merged'
+  return `${scanned.toLocaleString('en-NZ')} scanned — ${verb} ${num(r.inserted).toLocaleString('en-NZ')}, `
+       + `${verb2} ${num(r.updated).toLocaleString('en-NZ')}, `
+       + `about ${mailable.toLocaleString('en-NZ')} of them mailable.`
+}
+
+// A sample row from the function rendered for the eyeball check. The importer
+// writes first_name/last_name on some sources and full_name on others, so the
+// name is assembled from whichever it used.
+export function sampleName(row = {}) {
+  const joined = [row.first_name, row.last_name].filter(Boolean).join(' ').trim()
+  return joined || (row.full_name ?? '').trim() || '(no name)'
+}
+
+// Turn an HTTP status and the function's own error message into something that
+// says what to do next. The message itself is always shown verbatim — the Xero
+// scope failure names the exact missing scope, and paraphrasing it would throw
+// away the only actionable part.
+export function explainImportError(status, message) {
+  const msg = String(message ?? '').trim() || 'The import failed.'
+  if (status === 401) {
+    return { message: msg, advice: 'Your session isn’t valid any more. Sign out and back in, then try again.' }
+  }
+  if (status === 403) {
+    return { message: msg, advice: 'Importing the mailing list needs office or full access on your account.' }
+  }
+  if (status === 413) {
+    return { message: msg, advice: 'Paste a smaller batch — 1,000 rows at a time is comfortable.' }
+  }
+  if (/scope/i.test(msg) && /xero/i.test(msg)) {
+    return {
+      message: msg,
+      advice: 'A token refresh cannot widen a scope — Xero has to be disconnected and reconnected '
+            + 'so the consent screen asks for it.',
+      settingsLink: true,
+    }
+  }
+  if (/xero is not connected/i.test(msg)) {
+    return { message: msg, advice: 'Connect Xero first, then run the dry run again.', settingsLink: true }
+  }
+  if (status === 0) {
+    return {
+      message: msg,
+      advice: 'Nothing was half-written — the import either finished or it didn’t. '
+            + 'Every source is safe to re-run, and the counts don’t drift.',
+    }
+  }
+  return { message: msg, advice: '' }
+}
