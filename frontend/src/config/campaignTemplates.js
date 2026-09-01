@@ -65,7 +65,15 @@ And because you've had us out before, mention this email when you book and I'll 
   {
     id: 'annual-hedge',
     name: 'Annual customers — hedges',
-    audience: { services: ['hedge', 'pruning'], min_months_since_job: 9 },
+    // Hedges ONLY — deliberately not ['hedge', 'pruning'].
+    //
+    // `pruning` is the widest tag the importer emits: prune, trim, reduce, thin,
+    // crown, lift, pollard. Including it took this audience from 223 to 1,087 and
+    // swept in 24 people whose only work was olive trees, plus hundreds of one-off
+    // canopy jobs. The entire argument of this email is "a hedge is the one thing
+    // that wants doing every year" — sent to someone who had a single olive tidied
+    // three years ago, that reads as a mailout that has not looked at its own data.
+    audience: { services: ['hedge'], min_months_since_job: 9 },
     subject: 'Booking in the annual trim',
     preheader: 'Getting the yearly hedge trims booked in.',
     body: `Hi {{first_name}},
@@ -113,54 +121,52 @@ Mention this email when you book and I'll knock 5% off.`,
 
   {
     id: 'storm-season',
-    name: 'Storm damage — the flagship send',
+    name: 'Wind damage — the flagship send',
     audience: { min_months_since_job: 12 },
-    subject: 'After February, worth a look at your trees',
-    subjectFallback: 'After February, worth a look at your trees',
-    preheader: 'The Council logged almost 900 tree jobs in a week. Damaged trees keep failing.',
-    // ── EVERY FACT BELOW IS SOURCED. DO NOT EMBELLISH. ────────────────────────
-    // A representation about risk has to be substantiable at the moment it is
-    // made (Fair Trading Act s12A), so each claim here is tied to a primary
-    // source and worded no stronger than that source supports:
+    subject: 'After all this wind, worth a look at your trees',
+    subjectFallback: 'After all this wind, worth a look at your trees',
+    preheader: 'It is rarely the big storm that actually brings a tree down.',
+    // ── WHY THIS VERSION CARRIES NO STATISTICS ───────────────────────────────
+    // This template used to be anchored to the 16 Feb 2026 storm: the 193 km/h
+    // Mt Kaukau gust, the ~900 WCC tree job tickets in the week after, and IAG's
+    // "46 storms in the 12 months to February". Every one of those was sourced
+    // and correctly worded, and the earlier draft carried an explicit warning
+    // that by late 2026 an undated "one storm every eight days" would be
+    // describing a period that had already ended.
     //
-    //  • 193 km/h Mt Kaukau, 128 km/h Wellington Airport, 16 Feb 2026; strongest
-    //    at both sites since 2013 — MetService via RNZ.
-    //  • WCC logged almost 900 tree job tickets in the ~5 days after that storm,
-    //    against about 2,000 in all of 2025 — Dr Bradley Schroder, WCC Parks and
-    //    Open Spaces Manager, WCC news release 21 Feb 2026.
-    //  • "Many trees are likely to be in an unstable state and may continue to
-    //    fall or drop branches over the next few weeks" — same source. This is
-    //    the Council saying it, not us, which is exactly why it belongs here.
-    //  • 46 storms in the 12 months to Feb 2026, one roughly every 8 days against
-    //    one every 19 across the previous 15 years — IAG Wild Weather Tracker
-    //    Issue 8 (the report itself, not the press release).
+    // That is now the case. So the anchor is gone rather than re-dated, and the
+    // copy argues from arboriculture instead of from numbers. This is the safer
+    // construction as well as the more durable one: a claim about how wind
+    // damages trees is general expertise, whereas a statistic about storm
+    // frequency is a representation that has to be substantiable at the moment
+    // it is made (Fair Trading Act s12A) and quietly stops being true with time.
     //
-    // ❌ THINGS THAT WERE IN AN EARLIER DRAFT AND MUST NOT COME BACK:
+    // The single retained fact — Wellington being the windiest of the main
+    // centres — is NIWA climate-normal material, is not a claim about risk, and
+    // does not decay.
+    //
+    // ❌ MUST NOT COME BACK, in this or any future revision:
     //  • "Fallen trees are among the leading causes of storm claims" — that line
     //    exists only in IAG's press release and on the evidence describes Cyclone
-    //    Vaianu's ~890 claims, not the 33,174 annual ones. There is NO published
-    //    annual cause breakdown. Not substantiable. Removed.
-    //  • "900 trees fell" — 900 is COUNCIL JOB TICKETS, which include hanging
-    //    branches and debris. Say "tree jobs".
-    //  • "Storms are up 256%" — 256% is the rise in CLAIMS. Storms went 29 → 46.
+    //    Vaianu's ~890 claims, not the 33,174 annual ones. Not substantiable.
+    //  • "900 trees fell" — 900 was COUNCIL JOB TICKETS, including hanging
+    //    branches and debris. If the figure ever returns, say "tree jobs".
+    //  • "Storms are up 256%" — 256% was the rise in CLAIMS. Storms went 29 → 46.
     //  • Never "prevent". Use "reduce the risk". A guarantee is an s13 problem.
     //  • The man killed by a falling branch in Mount Victoria in Oct 2025 is on
     //    the public record, but it does not go in a promotional email. Not ever.
-    //
-    // Always date the claims in the copy. By late 2026 "one storm every eight
-    // days" is describing a period that ended in February, and an undated version
-    // reads as a claim about right now.
+    //  • No new statistic goes in here without a primary source in this comment.
     body: `Hi {{first_name}},
 
 Josh from Urban Tree Services.
 
-You'll remember the February storm. Mt Kaukau recorded a 193 km/h gust and the airport 128 km/h — the strongest winds at both since 2013.
+Wellington gets more wind than anywhere else in the country, and it doesn't take a named storm to do the damage. It's the ordinary run of northerlies and southerlies, week after week, that works away at a tree.
 
-The part that stuck with me was afterwards. Wellington City Council logged almost 900 tree jobs in the week that followed. In all of 2025 they logged about two thousand. And their parks manager made the point that a lot of trees were left unstable and would keep dropping branches for weeks after the wind had gone.
+What that does isn't obvious from the ground. A branch union cracks and stays sitting exactly where it was. A root plate tears on one side and the tree keeps standing. Deadwood shakes loose and hangs up in the canopy where you'd never see it from the lawn. The tree looks completely normal.
 
-That's the bit people miss. A tree that survived a storm looking fine can be quietly compromised — a cracked union, a torn root plate, deadwood shaken loose and left hanging. It comes down in the next ordinary blow, not the big one.
+Then it comes down — usually not in the big blow everyone remembers afterwards, but in an ordinary gusty week a few months later, because the damage was already there and something finally let go.
 
-It's not just us imagining the weather is worse, either. In the twelve months to February, the country's largest insurer counted 46 storms — about one every eight days. Across the previous fifteen years it was one every nineteen.
+That's the part worth checking, and it's genuinely hard to judge from the ground.
 
 We {{last_job_summary}} when we were last at your place. If it's been a while, it's worth someone having a proper look — I'll tell you honestly if there's nothing that needs doing.
 
