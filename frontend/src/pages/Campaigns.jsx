@@ -1154,6 +1154,7 @@ const EVENT_LABELS = {
 function CampaignDetail({ campaign, onBack }) {
   const [events, setEvents] = useState(null)
   const [stats, setStats] = useState(campaign.stats ?? {})
+  const [quoteReqs, setQuoteReqs] = useState(null)
 
   useEffect(() => {
     let alive = true
@@ -1176,6 +1177,14 @@ function CampaignDetail({ campaign, onBack }) {
         rows = withContact.data ?? []
       }
       if (alive) setEvents(rows)
+
+      // Quote requests attributed to this campaign. The table is new (migration
+      // 040) so a missing table must not blank the whole panel — leave it null
+      // and the tile simply does not render.
+      const qr = await supabase.from('quote_requests')
+        .select('id, name, email, service, created_at, matched_by, job_id')
+        .eq('campaign_id', campaign.id).order('created_at', { ascending: false }).limit(100)
+      if (alive) setQuoteReqs(qr.error ? null : (qr.data ?? []))
     }
     load()
     return () => { alive = false }
@@ -1189,7 +1198,12 @@ function CampaignDetail({ campaign, onBack }) {
   const openEvents  = (events ?? []).filter(e => e.kind === 'opened').length
   const clickEvents = (events ?? []).filter(e => e.kind === 'clicked').length
 
+  // The only figure on this card that is worth money. Opens are inflated by
+  // Apple's Mail Privacy Protection and clicks stop at the website — a quote
+  // request is a person actually asking for work.
   const cells = [
+    ...(quoteReqs ? [['Quote requests', quoteReqs.length,
+        quoteReqs.length ? `${quoteReqs.filter(q => q.matched_by === 'utm').length} via the link` : null]] : []),
     ['Recipients', stats.recipients], ['Sent', stats.sent],
     ['Opened', stats.opened, openEvents > (stats.opened ?? 0) ? `${openEvents} opens in total` : null],
     ['Clicked', stats.clicked, clickEvents > (stats.clicked ?? 0) ? `${clickEvents} clicks in total` : null],

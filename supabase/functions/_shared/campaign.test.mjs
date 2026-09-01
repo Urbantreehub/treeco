@@ -408,11 +408,34 @@ try {
   ]) {
     ok(!pattern.test(html), `the letter has no ${what}`)
   }
-  // Exactly one destination is pushed: the CTA button + its text twin. Every
-  // other href is either the same destination, the signature, or compliance.
-  const ctaHrefs = hrefs(html).filter(h => h.includes('campaign-track') || h.includes(CTA_URL))
-  eq(ctaHrefs.length, 2, 'one CTA destination, offered twice (button + text link)')
-  eq(new Set(ctaHrefs).size, 1, 'and both go to exactly the same place')
+  // Exactly one destination is PUSHED: the CTA button + its text twin. The
+  // signature's website link now goes through the tracker too, so counting raw
+  // campaign-track hrefs no longer answers this — decode what each one actually
+  // redirects to and count destinations, which is what the rule was always
+  // about.
+  const dest = (raw) => {
+    // hrefs come straight out of the HTML, so the separators are still &amp;.
+    const h = raw.replace(/&amp;/g, '&')
+    const m = /[?&]u=([A-Za-z0-9_-]+)/.exec(h)
+    if (!m) return h
+    return Buffer.from(m[1].replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8')
+  }
+  const tracked = hrefs(html).filter(h => h.includes('campaign-track')).map(dest)
+  const toCta   = tracked.filter(u => u.startsWith(CTA_URL))
+  eq(toCta.length, 2, 'one CTA destination, offered twice (button + text link)')
+  eq(new Set(toCta).size, 1, 'and both go to exactly the same place')
+
+  // Every tracked link carries the campaign tag, or the website cannot tie an
+  // enquiry back to the email that produced it.
+  for (const u of tracked) {
+    ok(/[?&]utm_campaign=/.test(u), `tracked link carries utm_campaign: ${u.slice(0, 60)}`)
+    ok(/[?&]utm_source=email/.test(u), 'and identifies email as the source')
+  }
+  // The unsubscribe links are never tagged and never tracked.
+  ok(!hrefs(html).some(h => h.includes('unsubscribe') && h.includes('campaign-track')),
+    'unsubscribe is never routed through the click tracker')
+  ok(!hrefs(html).some(h => h.includes('unsubscribe') && h.includes('utm_')),
+    'and is never tagged as campaign traffic')
 
   // 14. Merge tags and escaping still work exactly as before.
   eq(r.subject, 'Checking in before the spring winds, Anna', 'merge tags render in the subject')

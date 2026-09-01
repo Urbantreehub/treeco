@@ -384,12 +384,42 @@ function openPixelUrl(trackToken: string): string {
 // The tracker only forwards to https on urbantreeservices.net, so wrapping a
 // Google reviews link, a Facebook page or any http:// URL would turn it into a
 // 400 in the customer's browser. Untracked-but-working beats tracked-but-dead.
-function makeLinkWrapper(trackToken: string | null, ...neverWrap: string[]) {
+// Stamp the campaign onto a link so the website can attribute an enquiry back
+// to the email that caused it.
+//
+// This is what closes the loop. campaign-track already records WHO clicked, but
+// the click lands on urbantreeservices.net and the trail ended there — the
+// quote form had no idea the visitor came from a campaign. The parameters ride
+// through the tracker (they are added to the destination BEFORE it is encoded
+// into the redirect), the site stores them on arrival, and /api/quote passes
+// them to record_quote_request().
+//
+// Existing parameters are never overwritten: if a link already carries its own
+// utm_source it was tagged on purpose, and clobbering it would silently break
+// whatever was being measured.
+function withCampaignUtm(url: string, campaignName: string | null): string {
+  if (!campaignName) return url
+  try {
+    const u = new URL(url)
+    if (u.searchParams.has('utm_source') || u.searchParams.has('utm_campaign')) return url
+    u.searchParams.set('utm_source', 'email')
+    u.searchParams.set('utm_medium', 'campaign')
+    u.searchParams.set('utm_campaign', campaignName)
+    return u.toString()
+  } catch {
+    return url   // not a parseable URL — leave it exactly as written
+  }
+}
+
+function makeLinkWrapper(trackToken: string | null, campaignName: string | null, ...neverWrap: string[]) {
   return (url: string): string => {
-    if (!trackToken) return url
+    // Checked BEFORE the utm stamp: the unsubscribe links go through here too,
+    // and tagging "stop emailing me" as campaign traffic would be grotesque.
     if (neverWrap.some(u => u && url.startsWith(u))) return url
     if (!isTrackableLink(url)) return url
-    return `${trackBaseUrl()}?c=${encodeURIComponent(trackToken)}&u=${b64urlEncode(url)}`
+    const dest = withCampaignUtm(url, campaignName)
+    if (!trackToken) return dest
+    return `${trackBaseUrl()}?c=${encodeURIComponent(trackToken)}&u=${b64urlEncode(dest)}`
   }
 }
 
@@ -673,7 +703,12 @@ export function signatureText(): string {
 // The website link is deliberately NOT click-wrapped. It is identity, not a
 // campaign CTA, and a tracker-wrapped href in a personal signature is exactly
 // the tell we are trying not to leave.
-function signatureHtml(): string {
+// Takes the link wrapper so the website link in the sign-off is tracked and
+// tagged like any other. It was the one prominent link in the email that went
+// out bare — and since the CTA points at the same homepage, a click here is
+// indistinguishable from a click on the button, except that it produced no
+// click event and no attribution.
+function signatureHtml(wrap: (u: string) => string = (u) => u): string {
   const detail = `font-family:${FONT};font-size:12px;line-height:1.65;color:${C.muted}`
   return `
         <tr><td bgcolor="${C.plate}" style="background-color:${C.plate};padding:26px 32px 4px 32px">
@@ -692,7 +727,7 @@ function signatureHtml(): string {
               <div style="font-family:${FONT};font-size:10px;line-height:1.6;color:${C.faint}">${esc(SIGNATURE.quals)}</div>
               <div style="${detail};margin-top:6px"><span style="color:${C.green}">M</span> ${esc(SIGNATURE.mobile)}</div>
               <div style="${detail}"><span style="color:${C.green}">W</span>
-                <a href="${esc(SIGNATURE.websiteUrl)}" style="color:${C.muted};text-decoration:none">${esc(SIGNATURE.website)}</a></div>
+                <a href="${esc(wrap(SIGNATURE.websiteUrl))}" style="color:${C.muted};text-decoration:none">${esc(SIGNATURE.website)}</a></div>
             </td>
           </tr></table>
         </td></tr>`
@@ -756,7 +791,7 @@ export function renderCampaignEmail(
   const merge     = mergeValues(campaign, contact)
   const unsub     = unsubscribeUrl(contact)
   const unsubPost = unsubscribePostUrl(contact)
-  const wrap      = makeLinkWrapper(trackToken, unsub, unsubPost)
+  const wrap      = makeLinkWrapper(trackToken, campaign.name ?? null, unsub, unsubPost)
 
   const subject   = applyMerge(campaign.subject, merge).trim()
   const preheader = applyMerge(campaign.preheader ?? '', merge).trim()
@@ -844,7 +879,7 @@ ${letterheadHtml()}
 ${bodyTop}
 ${ctaBlock}
 ${bodyRest}
-${signatureHtml()}
+${signatureHtml(wrap)}
         <tr><td bgcolor="${C.plate}" style="background-color:${C.plate};padding:0 32px 30px 32px;
                        font-family:${FONT}">
           ${footer.html}
