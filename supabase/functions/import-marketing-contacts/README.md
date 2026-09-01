@@ -81,15 +81,21 @@ descriptions of the most recent invoice (which become `last_job_summary`).
 
 ### Required Xero scopes
 
+> ⚠️ Xero replaced the broad `accounting.transactions` with granular scopes on
+> 2 Mar 2026 (`accounting.invoices`, `.payments`, `.banktransactions`,
+> `.manualjournals`). Apps created after that date reject the old name with
+> `invalid_scope` at the consent screen — asking for it is not a fix. Invoice
+> reads, including line items, come from **`accounting.invoices`**.
+
 | Scope | Used for |
 |---|---|
 | `accounting.contacts.read` | `GET /Contacts` |
-| `accounting.transactions.read` | `GET /Invoices` |
+| `accounting.invoices` | `GET /Invoices` (with line items) |
 
 The function decodes the `scope` claim out of the stored access token and fails
 **before** calling Xero if either is missing, naming the exact scope:
 
-> Xero connection is missing the "accounting.transactions.read" scope. Reconnect Xero
+> Xero connection is missing the "accounting.invoices" scope. Reconnect Xero
 > in Settings → Integrations and approve it — a token refresh cannot add a scope.
 
 A refresh token cannot widen a scope. The only fix is disconnecting and reconnecting

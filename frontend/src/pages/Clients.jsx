@@ -354,7 +354,7 @@ export default function Clients() {
       // Keep in step with connectXero() in Settings.jsx — two entry points
       // requesting different scopes meant the permissions you got depended on
       // which button you last clicked.
-      scope:         'openid profile email accounting.invoices accounting.contacts accounting.transactions.read offline_access',
+      scope:         'openid profile email accounting.invoices accounting.contacts offline_access',
     })
     window.location.href = `https://login.xero.com/identity/connect/authorize?${params}`
   }

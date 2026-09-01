@@ -661,10 +661,22 @@ async function getXeroAccess(supabase: any) {
   // Fail fast and specifically if the connection was granted without the
   // scopes this importer needs. A refresh cannot widen a scope — the only fix
   // is reconnecting and approving the extra permission.
+  // Xero replaced the broad `accounting.transactions` with granular scopes on
+  // 2 Mar 2026 — invoices now live under `accounting.invoices`, and apps created
+  // after that date reject the old name with invalid_scope at the consent
+  // screen, so asking for it is not a fix. Each entry below is a list of
+  // ALTERNATIVES: the connection satisfies the requirement if it holds any one
+  // of them. `.read` variants are read-only; the bare scope is read+write and
+  // therefore also grants the read.
+  const NEEDED: Array<{ label: string; any: string[] }> = [
+    { label: 'contacts', any: ['accounting.contacts.read', 'accounting.contacts'] },
+    { label: 'invoices', any: ['accounting.invoices.read', 'accounting.invoices', 'accounting.transactions.read', 'accounting.transactions'] },
+  ]
   const scopes = tokenScopes(accessToken)
   if (scopes) {
-    const missing = ['accounting.contacts.read', 'accounting.transactions.read']
-      .filter((need) => !scopes.some((s) => s === need || s === need.replace('.read', '')))
+    const missing = NEEDED
+      .filter((need) => !need.any.some((s) => scopes.includes(s)))
+      .map((need) => need.any[1] ?? need.any[0])
     if (missing.length) {
       throw new Error(
         `Xero connection is missing the ${missing.map((m) => `"${m}"`).join(' and ')} ` +

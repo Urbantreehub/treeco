@@ -902,14 +902,15 @@ function IntegrationsTab({ toast }) {
       // "accounting.transactions" is rejected as invalid_scope for new apps.
       // accounting.invoices = create/read invoices (Push to Xero);
       // accounting.contacts = read+write contacts (import + invoice contact
-      // matching/creation); accounting.transactions.read = read invoices WITH
-      // their line items, which is what the mailing-list importer needs to work
-      // out what work was actually done ("reduced the pohutukawa") — the
-      // contacts scope alone cannot see line items; offline_access = refresh
-      // token. Changing scopes requires the user to reconnect — a refresh
-      // can't grant a new scope, which is why the importer fails loudly and
-      // says to reconnect rather than trying to recover.
-      scope:         'openid profile email accounting.invoices accounting.contacts accounting.transactions.read offline_access',
+      // matching/creation); offline_access = refresh token.
+      // Do NOT add accounting.transactions[.read] here — Xero replaced it with
+      // the granular accounting.invoices / .payments / .banktransactions /
+      // .manualjournals, and apps created after 2 Mar 2026 reject the old name
+      // with invalid_scope at the consent screen. accounting.invoices is what
+      // grants invoice reads, including line items, which is what the
+      // mailing-list importer needs. Changing scopes requires a reconnect —
+      // a refresh token cannot widen a scope.
+      scope:         'openid profile email accounting.invoices accounting.contacts offline_access',
       state,
     })
     const url = `https://login.xero.com/identity/connect/authorize?${params}`
