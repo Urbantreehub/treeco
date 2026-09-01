@@ -1266,7 +1266,11 @@ export function matchExistingContact(
     if (hit && !index.takenIds.has(hit.id)) return { row: hit, matched_by: 'quote_no' }
   }
 
-  const nk = nameSuburbKey(contactName(c), c.suburb)
+  // Sources disagree on which field holds the suburb: Xero populates `suburb`,
+  // the Quotient extraction only emits `city`. Reading `suburb` alone made this
+  // key null for every Quotient row, so the whole name+suburb match silently
+  // caught nothing — 30 real people would have been imported twice.
+  const nk = nameSuburbKey(contactName(c), c.suburb ?? c.city)
   if (nk && !index.ambiguousKeys.has(nk)) {
     const hit = index.byNameSuburb.get(nk)
     if (hit && !index.takenIds.has(hit.id)) return { row: hit, matched_by: 'name_suburb' }
@@ -1462,7 +1466,8 @@ Deno.serve(async (req: Request) => {
       byEmail.set(normaliseEmail(r.email), r)
       if (r.source_ref) bySourceRef.set(`${r.source}:${r.source_ref}`, r)
       for (const q of parseTrailer(r.notes).quotes) if (!byQuoteNo.has(q)) byQuoteNo.set(q, r)
-      const nk = nameSuburbKey(contactName(r), r.suburb)
+      // Same fallback as the candidate side — see nameSuburbKey usage above.
+      const nk = nameSuburbKey(contactName(r), r.suburb ?? r.city)
       if (nk) {
         // Two existing people already share this name and suburb, so the key
         // cannot identify either of them. Never match on it.

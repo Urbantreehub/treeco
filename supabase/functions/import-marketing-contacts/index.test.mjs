@@ -250,7 +250,11 @@ try {
   //    cannot hand us the committed file — the rest of the suite still runs.
   let shipped = null
   try {
-    const head = execFileSync('git', ['show', 'HEAD:supabase/functions/import-marketing-contacts/index.ts'],
+    // Pinned to the last commit BEFORE the summariseJob fix, not HEAD. Pointing
+    // this at HEAD meant that the moment the fix was committed the guard started
+    // comparing the fixed code against itself and reported 13 false failures.
+    const PRE_FIX = '8d1a0bc'
+    const head = execFileSync('git', ['show', `${PRE_FIX}:supabase/functions/import-marketing-contacts/index.ts`],
       { cwd: REPO, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
     const p = join(work, 'head-src.ts')
     writeFileSync(p, head)
