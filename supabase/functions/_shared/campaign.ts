@@ -534,6 +534,10 @@ export const SIGNATURE = {
 // CDN shared with whoever else is on it. The logo is the only image in the
 // email, so this one hostname is the entire image-reputation surface — which
 // is a good reason to keep it that way.
+// NO "@" IN ASSET FILENAMES. It is legal in a URL path, but mail clients and
+// image proxies routinely parse it as the userinfo delimiter and fail the fetch —
+// the first send came through with broken-image markers in both the header and
+// the signature for exactly this reason. Keep asset names alphanumeric-and-dash.
 export function assetBaseUrl(): string {
   return (Deno.env.get('CAMPAIGN_ASSET_URL') ?? `${appUrl()}/email`).replace(/\/+$/, '')
 }
@@ -547,13 +551,13 @@ export function assetBaseUrl(): string {
 // disappears and the email arrives apparently unbranded. That is the single
 // most common dark-mode email failure there is.
 //
-// logo-email-safe@2x.png is 488x211 FLAT RGB WITH NO ALPHA CHANNEL, with the
+// logo-email-safe-2x.png is 488x211 FLAT RGB WITH NO ALPHA CHANNEL, with the
 // card's own #FDFDFD baked in behind the mark. There is nothing left for an
 // inverter to take away. It is #FDFDFD rather than pure white on purpose too,
 // so it matches the plate it sits on instead of reading as a floating white
 // box. Displayed at half its pixel size, so it stays sharp on a retina screen.
 export function logoUrl(): string {
-  return `${assetBaseUrl()}/logo-email-safe@2x.png`
+  return `${assetBaseUrl()}/logo-email-safe-2x.png`
 }
 
 const LOGO_W = 244, LOGO_H = 106     // 488x211 at half size

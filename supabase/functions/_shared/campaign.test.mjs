@@ -186,9 +186,10 @@ try {
   // The flat-RGB "-safe" export, not the RGBA original: a charcoal wordmark on
   // transparency disappears the instant an inverting client repaints the
   // container dark, and there is no CSS that fixes that.
-  const logo = imgTags(html).find(t => (attr(t, 'src') ?? '').includes('logo-email-safe@2x.png'))
-  ok(!!logo, 'the logo is the flat-RGB @2x PNG (Gmail webmail does not render SVG)')
-  ok(!html.includes('/logo-email@2x.png'), 'the RGBA original is never used')
+  const logo = imgTags(html).find(t => (attr(t, 'src') ?? '').includes('logo-email-safe-2x.png'))
+  ok(!!logo, 'the logo is the flat-RGB 2x PNG (Gmail webmail does not render SVG)')
+  ok(!html.includes('/logo-email-2x.png'), 'the RGBA original is never used')
+  ok(!/src="[^"]*@[^"]*"/.test(html), 'no asset URL contains "@" — clients mis-parse it as userinfo and the fetch fails')
   eq(attr(logo, 'alt'), 'Urban Tree Services', 'the letterhead logo has the brand as its alt text')
   eq(attr(logo, 'width'), '244', 'the letterhead logo is displayed at 244px')
   eq(attr(logo, 'height'), '106', 'with its matching height, so a blocked image reserves the space')
@@ -375,7 +376,7 @@ try {
   // 11. The light plate under the logo: an explicit background colour and real
   //     padding on the cell the charcoal wordmark sits in. This is the fix for
   //     the commonest dark-mode failure there is.
-  const plate = /<td bgcolor="#FDFDFD"[^>]*padding:30px 32px[^>]*>\s*<img[^>]*logo-email-safe@2x/.test(html)
+  const plate = /<td bgcolor="#FDFDFD"[^>]*padding:30px 32px[^>]*>\s*<img[^>]*logo-email-safe-2x/.test(html)
   ok(plate, 'the letterhead logo sits on a padded cell with an explicit light background')
 
   // 12. The signature, reproduced from Josh's real one.
@@ -448,7 +449,7 @@ try {
   ok(!/#E7E4DA/i.test(html), 'and no leftover photo placeholder cell')
   // A stored photo_url on the row is simply ignored, not rendered.
   const stray = renderCampaignEmail(
-    { ...CAMPAIGN, photo_url: 'https://app.urbantreeservices.net/email/job-climber@2x.jpg' },
+    { ...CAMPAIGN, photo_url: 'https://app.urbantreeservices.net/email/job-climber-2x.jpg' },
     CONTACT, TOKEN)
   eq(imgTags(stray.html).length, 3, 'a stray photo_url on the campaign row renders nothing')
 
@@ -478,33 +479,6 @@ try {
   ok(noCta.html.includes(`tel:${SIGNATURE.mobileTel}`), 'but there is still a call to action: ring the office')
   ok(noCta.html.includes(noCta.unsubscribe_url), 'the footer is there regardless')
   ok(noCta.html.includes('Josh Micallef'), 'so is the signature')
-
-  // 18. The photo columns exist in all three places, or the photo can never
-  //     appear. This is the one failure mode the renderer cannot catch: it
-  //     reads photo_url defensively off the row, so a column missing from the
-  //     migration, or from either function's select list, is indistinguishable
-  //     from "this campaign has no photo" — a silent, permanent no-op that
-  //     looks exactly like working code. Checked here rather than trusted.
-  const PHOTO_COLS = ['photo_url', 'photo_alt', 'photo_width', 'photo_height']
-
-  const migration = readFileSync(join(REPO, 'supabase', 'migrations', '040_campaign_photo.sql'), 'utf8')
-  for (const col of PHOTO_COLS) {
-    ok(new RegExp(`ADD COLUMN IF NOT EXISTS\\s+${col}\\b`).test(migration),
-      `migration 040 adds campaigns.${col}`)
-  }
-
-  // Both senders read the campaign row themselves, and their select lists are
-  // maintained by hand and by copy-paste — so they are checked separately
-  // rather than assumed identical.
-  for (const fn of ['campaign-send', 'campaign-scheduler']) {
-    const src = readFileSync(join(REPO, 'supabase', 'functions', fn, 'index.ts'), 'utf8')
-    const list = src.match(/const CAMPAIGN_COLUMNS\s*=([\s\S]*?)\n\n/)
-    ok(!!list, `${fn} declares CAMPAIGN_COLUMNS`)
-    const cols = (list?.[1] ?? '').replace(/['+\s]/g, '').split(',')
-    for (const col of PHOTO_COLS) {
-      ok(cols.includes(col), `${fn} selects ${col}`)
-    }
-  }
 
   console.log(`\nHTML: ${bytes} bytes (${(bytes / 1024).toFixed(1)}KB of the 80KB budget)`)
   console.log(`Preview written to ${PREVIEW}`)
