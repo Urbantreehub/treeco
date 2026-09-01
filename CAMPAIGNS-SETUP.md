@@ -10,19 +10,27 @@ Companion docs:
 
 ---
 
-## 1. Apply the migration
+## 1. Apply the migrations
 
 ```bash
 supabase db push
 ```
 
-Creates `marketing_contacts`, `campaigns`, `campaign_sends`, `campaign_events`,
-`email_suppressions`, the `campaign_audience_eligible` view, and the anon-callable
-RPCs for unsubscribe and open/click tracking. It also inserts two `app_settings` keys:
-`campaign_send_enabled = false` and `campaign_daily_cap = 200`.
+There are **two**, and both are required — the edge functions reference columns added by
+`039` and will fail at runtime without it.
+
+- **`038_campaigns.sql`** — `marketing_contacts`, `campaigns`, `campaign_sends`,
+  `campaign_events`, `email_suppressions`, the `campaign_audience_eligible` view, and the
+  anon-callable RPCs for unsubscribe and open/click tracking. Also inserts two
+  `app_settings` keys: `campaign_send_enabled = false` and `campaign_daily_cap = 200`.
+- **`039_campaign_send_retries.sql`** — `campaign_sends.attempts` / `claimed_at` /
+  `next_attempt_at` / `last_error_at` for retry and stale-claim handling,
+  `campaigns.run_lock_at` for the concurrency claim, and `campaign_unsubscribe_failures`,
+  which records an unsubscribe the database refused. That table is keyed by a SHA-256 of
+  the token, so the raw token — a permanent per-contact secret — is never stored.
 
 ⚠️ Migration numbering in this repo has some duplicates (two `015_`, two `016_`…).
-This one is `038_campaigns.sql` and `037_meeting_status.sql` was the previous highest.
+These are `038` and `039`; `037_meeting_status.sql` was the previous highest.
 
 ---
 
@@ -257,7 +265,32 @@ combine recency **with a service dimension** for this reason, and the templates 
 suit: the annual template targets hedge and pruning customers, not simply everyone who
 is overdue. Worth preserving that habit when new segments are added.
 
-## 11. Kill switch
+## 11. Inbox placement
+
+`docs/campaigns/deliverability.md` is the full write-up — what actually drives spam
+classification, why Microsoft rather than Gmail is the problem for an NZ list, why the
+Promotions tab isn't worth chasing, and which widely-repeated "tricks" are self-defeating.
+
+The five that matter, in order:
+
+1. **Verify and recency-segment the list before the first send.** About $20 for 2,000
+   addresses. Best-value step in the whole project.
+2. **Audit list provenance** — confirm quoted-but-declined leads didn't merge in with real
+   customers.
+3. **Keep the app's transactional mail on the same From domain.** Quote and invoice emails
+   are the trickle that keeps the domain warm between four seasonal sends. This is also
+   why we are *not* splitting marketing onto a separate subdomain — at ~30 emails a day,
+   two identities would each get too little signal to build a reputation at all.
+4. **Warm up most-recent-first, with a manual stop-gate** after day 1 and day 3.
+5. **Postmaster Tools + DMARC `rua=` now** — but Resend's per-domain data is the real
+   instrument. Expect Postmaster Tools to be mostly blank at this volume, and remember
+   blank is not the same as healthy.
+
+Two small ones with real effect: **schedule off-the-hour** (10:07, not 10:00 — providers
+throttle the top-of-hour bulk spike), and **leave open tracking off** (the pixel is an
+image, and post-Apple-MPP the data is close to worthless).
+
+## 12. Kill switch
 
 Set `campaign_send_enabled` back to `false` in Settings. `campaign-send` checks it on
 every invocation and refuses with a 409, and in-flight campaigns stop claiming new

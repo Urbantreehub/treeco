@@ -27,6 +27,14 @@ const RESOURCES = [
 
 const ACCESS_LABELS = { full: 'Full access', office: 'Office', restricted: 'Crew', truck: 'Truck' }
 
+// Campaign daily cap bounds. The default mirrors the seed in
+// supabase/migrations/038_campaigns.sql; the floor keeps the warm-up ramp
+// usable (you genuinely do start at 25–50 a day on a cold domain) and the
+// ceiling stops a typo turning 200 into 20000.
+const DEFAULT_CAMPAIGN_CAP = 200
+const MIN_CAMPAIGN_CAP     = 10
+const MAX_CAMPAIGN_CAP     = 2000
+
 // ── Team tab ───────────────────────────────────────────────────────────────
 function TeamTab({ toast }) {
   const [users,      setUsers]    = useState([])
@@ -688,6 +696,178 @@ function SocialCard({ toast }) {
   )
 }
 
+// ── Campaign sending kill switch ────────────────────────────────────────────
+// The control that `app_settings.campaign_send_enabled` has always needed and
+// never had: until this existed the only way to allow a campaign send was to
+// hand-edit the row in the SQL editor, which made the whole Campaigns page
+// inert and made campaign-send's "turn it on in Settings" error a lie.
+//
+// Shape follows DbsCard / SocialCard exactly — read the flag on mount, upsert
+// on change, update local state only after the write succeeds — with two
+// differences that the blast radius earns:
+//   * full access only. Office staff build and preview campaigns; only the
+//     owner decides that real email goes to real customers.
+//   * turning ON takes a deliberate confirm step. Turning OFF is one click and
+//     never asks anything: it is the emergency stop, and an emergency stop that
+//     argues with you is not an emergency stop.
+function CampaignSendCard({ toast }) {
+  const { isFullAccess } = useAuth()
+
+  const [enabled,  setEnabled]  = useState(false)
+  const [cap,      setCap]      = useState(DEFAULT_CAMPAIGN_CAP)
+  const [capDraft, setCapDraft] = useState(String(DEFAULT_CAMPAIGN_CAP))
+  const [eligible, setEligible] = useState(null)   // how many people this would reach
+  const [loaded,   setLoaded]   = useState(false)
+  const [saving,   setSaving]   = useState(false)
+  const [confirming, setConfirming] = useState(false)
+
+  useEffect(() => {
+    supabase.from('app_settings').select('key, value')
+      .in('key', ['campaign_send_enabled', 'campaign_daily_cap'])
+      .then(({ data }) => {
+        for (const r of data ?? []) {
+          if (r.key === 'campaign_send_enabled') setEnabled(r.value === true)
+          if (r.key === 'campaign_daily_cap') {
+            const n = Number(r.value)
+            if (Number.isFinite(n) && n > 0) { setCap(n); setCapDraft(String(n)) }
+          }
+        }
+        setLoaded(true)
+      })
+      .catch(() => setLoaded(true))
+
+    // Makes the danger concrete: "2,041 people" reads very differently from
+    // "the mailing list". Counted through the eligible view, so it is the
+    // number that could actually be mailed, not the raw contact count.
+    supabase.from('campaign_audience_eligible').select('id', { count: 'exact', head: true })
+      .then(({ count }) => setEligible(typeof count === 'number' ? count : null))
+      .catch(() => setEligible(null))
+  }, [])
+
+  async function writeSetting(key, value) {
+    const { error } = await supabase.from('app_settings')
+      .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' })
+    return error
+  }
+
+  async function setSending(next) {
+    setSaving(true)
+    const error = await writeSetting('campaign_send_enabled', next)
+    setSaving(false)
+    if (error) { toast(`Couldn't change campaign sending: ${error.message}`, true); return }
+    setEnabled(next)
+    setConfirming(false)
+    toast(next
+      ? `Campaign sending is ON — up to ${cap} real emails a day will go out`
+      : 'Campaign sending is OFF — nothing more will go out')
+  }
+
+  async function saveCap() {
+    const n = Math.floor(Number(capDraft))
+    if (!Number.isFinite(n) || n < MIN_CAMPAIGN_CAP) {
+      toast(`The daily cap has to be at least ${MIN_CAMPAIGN_CAP}`, true); return
+    }
+    if (n > MAX_CAMPAIGN_CAP) {
+      toast(`${MAX_CAMPAIGN_CAP} a day is the ceiling — more than that and the sending domain gets flagged`, true); return
+    }
+    setSaving(true)
+    const error = await writeSetting('campaign_daily_cap', n)
+    setSaving(false)
+    if (error) { toast(`Couldn't save the daily cap: ${error.message}`, true); return }
+    setCap(n)
+    setCapDraft(String(n))
+    toast(`Daily cap set to ${n} emails a day, across all campaigns`)
+  }
+
+  const capDirty = String(Math.floor(Number(capDraft))) !== String(cap)
+  const audienceText = eligible == null ? 'everyone on the mailing list' : `${eligible.toLocaleString('en-NZ')} people`
+
+  return (
+    <div style={{ ...t.integrationCard, flexDirection: 'column', alignItems: 'stretch', gap: 0,
+      borderColor: enabled ? '#F5C6C0' : 'var(--border)' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, paddingBottom: 12, borderBottom: '1px solid #F0EDE8' }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={t.intName}>
+            Campaign sending
+            <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20,
+              background: enabled ? '#FDECEA' : '#E8F0E6', color: enabled ? '#C0392B' : '#3A5C2E' }}>
+              {!loaded ? 'Checking…' : enabled ? 'ON — live email' : 'OFF — safe'}
+            </span>
+          </div>
+          <div style={t.intDesc}>
+            {enabled
+              ? <>Campaigns you send from the Campaigns page go to <strong>real customers</strong>, at most <strong>{cap} a day</strong> across every campaign.</>
+              : <>Nothing goes to a customer while this is off. Campaigns can still be written, previewed and test-sent to yourself. Turning it on means real email to <strong>{audienceText}</strong>.</>}
+          </div>
+        </div>
+
+        {isFullAccess && (
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: saving ? 'wait' : 'pointer', fontSize: 12, fontWeight: 600, color: '#555', flexShrink: 0 }}>
+            {enabled ? 'On' : 'Off'}
+            <span
+              /* Off is instant and unconditional — the emergency stop. On opens
+                 the confirm panel below instead of flipping anything. */
+              onClick={() => { if (saving) return; enabled ? setSending(false) : setConfirming(c => !c) }}
+              style={{ width: 40, height: 22, borderRadius: 22, background: enabled ? '#C0392B' : '#ccc', position: 'relative', transition: 'background .15s', flexShrink: 0 }}
+            >
+              <span style={{ position: 'absolute', top: 2, left: enabled ? 20 : 2, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left .15s' }} />
+            </span>
+          </label>
+        )}
+      </div>
+
+      {!isFullAccess && (
+        <div style={{ ...t.intDesc, paddingTop: 12 }}>
+          Only a full-access user can switch campaign sending on or off.
+        </div>
+      )}
+
+      {isFullAccess && confirming && !enabled && (
+        <div style={{ marginTop: 12, border: '1.5px solid #C0392B', borderRadius: 10, padding: 14, background: '#FFF9F8' }}>
+          <div style={{ fontSize: 13.5, fontWeight: 800, color: '#C0392B', marginBottom: 6 }}>
+            Turn on real email to customers?
+          </div>
+          <div style={{ fontSize: 12.5, color: '#8f3a30', lineHeight: 1.6 }}>
+            Every campaign sent from the Campaigns page will go to real inboxes — up to <strong>{cap} a day</strong>,
+            currently <strong>{audienceText}</strong> eligible. Unsubscribes and complaints are permanent, and a bad
+            send costs the sending domain's reputation. You can switch this straight back off at any time; anything
+            already handed to the mail provider is gone.
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+            <button
+              style={{ padding: '9px 18px', borderRadius: 7, border: 'none', background: '#C0392B', color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer', fontFamily: 'var(--font)' }}
+              disabled={saving} onClick={() => setSending(true)}>
+              {saving ? 'Turning on…' : 'Yes — allow campaign sending'}
+            </button>
+            <button style={t.cancelBtn} onClick={() => setConfirming(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, flexWrap: 'wrap', paddingTop: 14 }}>
+        <div style={{ ...t.fieldGroup, maxWidth: 150, flex: '0 0 auto' }}>
+          <label style={t.fieldLabel}>Daily cap (emails/day)</label>
+          <input
+            style={t.input} type="number" min={MIN_CAMPAIGN_CAP} max={MAX_CAMPAIGN_CAP} step="10"
+            value={capDraft}
+            disabled={!isFullAccess || saving}
+            onChange={e => setCapDraft(e.target.value)}
+          />
+        </div>
+        {isFullAccess && (
+          <button style={capDirty ? t.saveBtn : t.intBtnSecondary} disabled={!capDirty || saving} onClick={saveCap}>
+            {saving ? 'Saving…' : 'Save cap'}
+          </button>
+        )}
+        <div style={{ ...t.intDesc, flex: 1, minWidth: 200, marginTop: 0 }}>
+          Counted across every campaign, per NZ day. Raise it gradually — a cold domain that jumps
+          from 50 to 2,000 a day gets filtered. {MIN_CAMPAIGN_CAP}–{MAX_CAMPAIGN_CAP}.
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Integrations tab ───────────────────────────────────────────────────────
 function IntegrationsTab({ toast }) {
   const [xeroConn,      setXeroConn]     = useState(null)
@@ -816,6 +996,9 @@ function IntegrationsTab({ toast }) {
 
       {/* Social media & marketing */}
       <SocialCard toast={toast} />
+
+      {/* Email campaigns kill switch — the control the Campaigns page links to */}
+      <CampaignSendCard toast={toast} />
 
       {/* Social setup note */}
       <div style={t.deployNote}>
@@ -995,7 +1178,10 @@ const s = {
   title:  { fontSize: '20px', fontWeight: '800', color: 'var(--ink)', margin: '0 0 14px' },
   tabs:   { display: 'flex', gap: '0', background: '#fff', borderBottom: '1px solid var(--border)', padding: '0 32px', flexShrink: 0 },
   tab:    { padding: '10px 18px', border: 'none', borderBottom: '2px solid transparent', background: 'none', fontSize: '13px', fontWeight: '600', color: '#aaa', cursor: 'pointer', fontFamily: 'var(--font)', marginBottom: '-1px' },
-  tabActive: { color: 'var(--ink)', borderBottomColor: 'var(--ink)' },
+  // Repeats the whole `borderBottom` shorthand rather than overriding just the
+  // colour: mixing shorthand (in `tab`) with longhand here makes React warn on
+  // every rerender and can drop the border. Same fix as Campaigns.jsx.
+  tabActive: { color: 'var(--ink)', borderBottom: '2px solid var(--ink)' },
   body:   { flex: 1, overflowY: 'auto', padding: '24px 32px' },
   toast:  { position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)', color: '#fff', padding: '10px 22px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', zIndex: 9999, boxShadow: '0 4px 20px rgba(0,0,0,0.25)', whiteSpace: 'nowrap' },
 }

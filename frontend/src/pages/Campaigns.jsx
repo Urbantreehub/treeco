@@ -8,7 +8,7 @@ import { Toast, useToast } from '../components/Toast'
 import { CAMPAIGN_TEMPLATES, DEFAULT_OFFER, CTA_URL } from '../config/campaignTemplates'
 import {
   MERGE_TAGS, SERVICE_LABELS, CAMPAIGN_STATUS, MONTH_BUCKETS, SEGMENT_PRESETS,
-  renderPreview, mergeDataFor, formatDateNz, emptyTagsIn,
+  renderPreview, mergeDataFor, formatDateNz, emptyTagsIn, unknownTagsIn,
   validateCampaign, describeAudience, matchesAudience, bucketFor,
   chooseSubject, suburbCoverage,
 } from '../utils/campaigns'
@@ -19,7 +19,18 @@ const FN = SUPABASE_URL + '/functions/v1'
 // The only columns the page needs off campaign_audience_eligible. That view has
 // already applied every legal exclusion (consent, suppressions, commercial
 // accounts), so nothing else here needs to think about who may be emailed.
-const AUDIENCE_COLS = 'id, email, first_name, last_name, suburb, services, job_count, last_job_at, last_job_summary, months_since_job'
+// lifetime_value is here because the sender filters on it (min_lifetime_value);
+// without it the page couldn't count the same audience the send resolves.
+const AUDIENCE_COLS = 'id, email, first_name, last_name, suburb, services, job_count, lifetime_value, last_job_at, last_job_summary, months_since_job'
+
+// A campaign in one of these states must not have its copy or audience
+// overwritten. `sending` is the dangerous one: part of the list already has the
+// current copy in their inbox and campaign_sends.body_sent records it, so
+// editing now sends the second half something different from the first and the
+// compliance record no longer matches the campaign row. `sent` is the same
+// problem after the fact — the row IS the record of what went out.
+const EDIT_LOCKED = ['sending', 'sent']
+function isLocked(c) { return !!c?.id && EDIT_LOCKED.includes(c.status) }
 
 const TABS = [
   ['audience', 'Audience'],
@@ -65,13 +76,17 @@ function blankDraft() {
 // The subset of validateCampaign's rules that actually block a send. Everything
 // else is advice — the office can send a shouty subject line if they insist, but
 // they cannot send an email with no subject, no body, or no way to act on it.
+//
+// "The CTA url must appear in the body" used to block here too. It no longer
+// does: renderCampaignEmail appends the CTA line when the body doesn't already
+// carry the link, so a body without it still goes out with exactly one way to
+// act on the email. What remains blocking is cta_url being unset — that really
+// does produce an email with no link at all.
 function hardProblems(c) {
   const out = []
-  const body = (c.body ?? '').trim()
-  const url  = (c.cta_url ?? '').trim()
-  if (!(c.subject ?? '').trim()) out.push('no subject line')
-  if (!body) out.push('no body')
-  else if (!url || !body.includes(url)) out.push('no call-to-action link in the body')
+  if (!(c.subject ?? '').trim())  out.push('no subject line')
+  if (!(c.body ?? '').trim())     out.push('no body')
+  if (!(c.cta_url ?? '').trim())  out.push('no call-to-action link')
   return out
 }
 
@@ -115,8 +130,13 @@ function AudienceTab({ contacts, loading, audience, setAudience }) {
       const b = bucketFor(c.months_since_job)
       if (b) buckets[b] += 1; else noHistory += 1
       for (const sv of c.services ?? []) services[sv] = (services[sv] ?? 0) + 1
-      const sub = (c.suburb ?? '').trim()
-      if (sub) suburbs[sub] = (suburbs[sub] ?? 0) + 1
+      // Key on the RAW stored value. The chip's label becomes the audience
+      // filter, and the sender compares it to the column with plain SQL
+      // equality — so trimming here would build "Karori" out of " Karori " and
+      // then match nobody. Blank-only values are skipped; the label is trimmed
+      // for display below, never for the value.
+      const sub = c.suburb ?? ''
+      if (sub.trim()) suburbs[sub] = (suburbs[sub] ?? 0) + 1
     }
     return {
       buckets, noHistory,
@@ -214,6 +234,19 @@ function AudienceTab({ contacts, loading, audience, setAudience }) {
               value={audience.min_job_count ?? ''}
               onChange={e => set({ min_job_count: e.target.value === '' ? undefined : Number(e.target.value) })} />
           </div>
+          {/* The sender has always applied min_lifetime_value; it had no field
+              here, so a filter set any other way was invisible on this page. */}
+          <div style={s.field}>
+            <label style={s.label}>Minimum spend with us ($)</label>
+            <input style={s.input} type="number" min="0" step="50" placeholder="any"
+              value={audience.min_lifetime_value ?? ''}
+              onChange={e => set({ min_lifetime_value: e.target.value === '' ? undefined : Number(e.target.value) })} />
+          </div>
+        </div>
+
+        <div style={s.subtle}>
+          Suburbs are matched exactly as they're spelled on the contact record — the sender does a
+          plain comparison, so this count is the count that gets mailed.
         </div>
 
         <div style={s.field}>
@@ -236,8 +269,9 @@ function AudienceTab({ contacts, loading, audience, setAudience }) {
             {visibleSuburbs.length === 0 && <span style={s.subtle}>No suburbs on the list yet.</span>}
             {visibleSuburbs.map(([name, n]) => (
               <button key={name} type="button" onClick={() => toggleIn('suburbs', name)}
+                title={name !== name.trim() ? `Stored as "${name}" — matched exactly, spaces and all` : name}
                 style={{ ...s.chip, ...((audience.suburbs ?? []).includes(name) ? s.chipOn : {}) }}>
-                {name} · {n}
+                {name.trim()} · {n}
               </button>
             ))}
           </div>
@@ -258,6 +292,15 @@ function AudienceTab({ contacts, loading, audience, setAudience }) {
 // ── Compose ──────────────────────────────────────────────────────────────────
 function ComposeTab({ draft, set, problems, templateId, onApplyTemplate, onStartBlank, onApplyOffer, recipients }) {
   const bodyRef = useRef(null)
+
+  // Tags the sender cannot resolve, anywhere in the copy. Called out on its own
+  // rather than buried in the advisory list, because unlike everything else in
+  // that list this one is guaranteed to reach every single recipient as a hole.
+  const badTags = useMemo(() => [...new Set([
+    ...unknownTagsIn(draft.subject ?? ''),
+    ...unknownTagsIn(draft.preheader ?? ''),
+    ...unknownTagsIn(draft.body ?? ''),
+  ])], [draft.subject, draft.preheader, draft.body])
 
   function insertTag(tag) {
     const token = `{{${tag}}}`
@@ -341,6 +384,14 @@ function ComposeTab({ draft, set, problems, templateId, onApplyTemplate, onStart
         </div>
         <textarea ref={bodyRef} style={s.textarea} rows={16} value={draft.body}
           onChange={e => set({ body: e.target.value })} />
+        {badTags.length > 0 && (
+          <div style={s.errBox}>
+            ⚠ {badTags.map(t => `{{${t}}}`).join(', ')} {badTags.length === 1 ? 'is not a merge tag' : 'are not merge tags'} —
+            {' '}the sender doesn't know {badTags.length === 1 ? 'it' : 'them'}, so {badTags.length === 1 ? 'it arrives' : 'they arrive'} as
+            a blank for <em>every</em> recipient. Use the buttons above to insert a real one
+            ({MERGE_TAGS.map(t => `{{${t.tag}}}`).join(', ')}).
+          </div>
+        )}
         <div style={s.subtle}>
           Plain text on purpose — a note that reads like it came from a person outperforms a
           template blast, and is far less likely to be filtered.
@@ -528,12 +579,99 @@ function PreviewTab({ draft, sample, sampleIsReal, template, suburbGap, onUseFal
 }
 
 // ── Send ─────────────────────────────────────────────────────────────────────
-function SendTab({ draft, recipients, sendEnabled, dailyCap, problems, blockers, busy, onSendNow, onSchedule }) {
+// What the sender actually reported, in words. Everything shown here comes from
+// the campaign row's stats (maintained by campaign_stats after every run) or
+// from the send response — nothing is inferred, and nothing is promised.
+function SendProgress({ draft, lastSend, dailyCap }) {
+  const st = draft.stats ?? {}
+  const sent      = Number(st.sent ?? lastSend?.sent ?? 0)
+  const queued    = Number(st.queued ?? lastSend?.remaining ?? 0)
+  const failed    = Number(st.failed ?? lastSend?.failed ?? 0)
+  const skipped   = Number(st.skipped ?? lastSend?.skipped ?? 0)
+  const total     = Number(st.recipients ?? (sent + queued + failed + skipped))
+  const capped    = lastSend?.capped === true
+  const capNow    = lastSend?.daily_cap ?? dailyCap
+
+  // Only render once there is something real to report.
+  if (!lastSend && !st.recipients) return null
+
+  const pct = total > 0 ? Math.min(100, Math.round((sent / total) * 100)) : 0
+  const done = draft.status === 'sent' || (queued === 0 && total > 0)
+
+  return (
+    <div style={s.card}>
+      <div style={s.cardHead}>
+        <div style={s.cardTitle}>
+          {done ? 'This campaign has been sent'
+            : draft.status === 'paused' ? 'Paused part-way through'
+            : 'Part-way through sending'}
+        </div>
+        <StatusChip status={draft.status} />
+      </div>
+
+      <div style={s.progressTrack}>
+        <div style={{ ...s.progressFill, width: `${pct}%` }} />
+      </div>
+
+      <div style={s.tileRow}>
+        <div style={s.tile}>
+          <div style={s.tileNum}>{sent.toLocaleString('en-NZ')}</div>
+          <div style={s.tileLabel}>Sent</div>
+        </div>
+        <div style={s.tile}>
+          <div style={s.tileNum}>{queued.toLocaleString('en-NZ')}</div>
+          <div style={s.tileLabel}>Still to go</div>
+        </div>
+        {failed > 0 && (
+          <div style={s.tile}>
+            <div style={{ ...s.tileNum, color: '#C0392B' }}>{failed.toLocaleString('en-NZ')}</div>
+            <div style={s.tileLabel}>Failed</div>
+          </div>
+        )}
+        {skipped > 0 && (
+          <div style={s.tile}>
+            <div style={s.tileNum}>{skipped.toLocaleString('en-NZ')}</div>
+            <div style={s.tileLabel}>Skipped</div>
+          </div>
+        )}
+      </div>
+
+      {capped && (
+        <div style={s.warnBox}>
+          <strong>Paused on the daily cap.</strong>{' '}
+          {lastSend?.message
+            ?? `The cap of ${capNow} sends a day was reached, so the run stopped there.`}
+          {queued > 0 && ` ${queued.toLocaleString('en-NZ')} ${queued === 1 ? 'person is' : 'people are'} still queued.`}
+          {' '}They go out on the sender's next run, or when you press Send again.
+        </div>
+      )}
+      {!capped && queued > 0 && draft.status === 'sending' && (
+        <div style={s.subtle}>
+          {queued.toLocaleString('en-NZ')} still queued. The run stopped before the queue was empty
+          (time limit or per-run limit) — it picks up from here next time.
+        </div>
+      )}
+      {skipped > 0 && (
+        <div style={s.subtle}>
+          Skipped = queued earlier but no longer eligible when their turn came — they unsubscribed,
+          bounced or were suppressed in between.
+        </div>
+      )}
+    </div>
+  )
+}
+
+function SendTab({
+  draft, recipients, sendEnabled, dailyCap, problems, blockers, busy,
+  lastSend, locked, onSendNow, onSchedule, onPause,
+}) {
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [confirmText, setConfirmText] = useState('')
   const [when, setWhen] = useState('')
 
-  const blocked = blockers.length > 0 || recipients === 0 || !sendEnabled
+  const resuming  = draft.status === 'sending' && !!draft.id
+  const alreadySent = draft.status === 'sent' && !!draft.id
+  const blocked = (blockers.length > 0 && !resuming) || (recipients === 0 && !resuming) || !sendEnabled || alreadySent
   const confirmed = confirmText.trim().toUpperCase() === 'SEND'
 
   return (
@@ -543,14 +681,17 @@ function SendTab({ draft, recipients, sendEnabled, dailyCap, problems, blockers,
           <div style={s.killTitle}>Sending is switched OFF</div>
           <div style={s.killBody}>
             Nothing will go out while the campaign kill switch is off — you can build, preview and
-            schedule campaigns safely. Turn it on in{' '}
-            <Link to="/settings" style={s.killLink}>Settings</Link> when you're ready to mail people.
+            schedule campaigns safely. Turn on <strong>Allow campaign sending</strong> under{' '}
+            <Link to="/settings" style={s.killLink}>Settings → Integrations</Link> when you're ready
+            to mail people. Only a full-access user can switch it on.
           </div>
         </div>
       )}
 
+      <SendProgress draft={draft} lastSend={lastSend} dailyCap={dailyCap} />
+
       <div style={s.card}>
-        <div style={s.cardTitle}>Ready to send?</div>
+        <div style={s.cardTitle}>{resuming ? 'Send the rest' : alreadySent ? 'Already sent' : 'Ready to send?'}</div>
 
         <div style={s.summaryGrid}>
           <div style={s.summaryRow}><span style={s.summaryKey}>Campaign</span><span style={s.summaryVal}>{draft.name || <em style={{ color: '#bbb' }}>unnamed</em>}</span></div>
@@ -559,38 +700,58 @@ function SendTab({ draft, recipients, sendEnabled, dailyCap, problems, blockers,
           <div style={s.summaryRow}><span style={s.summaryKey}>Recipients</span><span style={s.summaryVal}><strong>{recipients.toLocaleString('en-NZ')}</strong></span></div>
         </div>
 
-        {blockers.length > 0 && (
+        {alreadySent && (
+          <div style={s.okBox}>
+            This campaign has already gone out. The sender refuses to send it a second time — start
+            a new campaign, or copy this one to a fresh draft from Compose.
+          </div>
+        )}
+        {!alreadySent && blockers.length > 0 && !resuming && (
           <div style={s.errBox}>Can't send yet — {blockers.join(', ')}.</div>
         )}
-        {blockers.length === 0 && recipients === 0 && (
+        {!alreadySent && blockers.length === 0 && recipients === 0 && !resuming && (
           <div style={s.errBox}>Can't send yet — the audience filter matches nobody.</div>
         )}
         {/* Advisory problems only once the blocking ones are cleared — otherwise
             the same fault is stated twice, in two different boxes. */}
-        {blockers.length === 0 && problems.length > 0 && (
+        {!alreadySent && blockers.length === 0 && problems.length > 0 && (
           <div style={s.problemBox}>
             <div style={s.problemHead}>Worth fixing first — you can send anyway</div>
             {problems.map(p => <div key={p} style={s.problemLine}>⚠ {p}</div>)}
           </div>
         )}
-        {dailyCap != null && recipients > dailyCap && (
+        {/* What the daily cap actually does, stated as mechanism rather than as
+            a promise. The sender mails up to the cap ACROSS ALL campaigns for
+            the NZ day, leaves the rest queued, and this campaign stays
+            "Sending…" until the queue is empty. The Send tab above reports the
+            real sent/remaining figures once a run has happened — so this box
+            only has to explain what is about to happen, not assert what did. */}
+        {!alreadySent && dailyCap != null && recipients > dailyCap && (
           <div style={s.warnBox}>
-            This is more than the daily cap of {dailyCap}. The sender will work through the list
-            over several days rather than mail everyone at once — that's deliberate, it protects
-            the sending domain's reputation.
+            {recipients.toLocaleString('en-NZ')} recipients is more than the daily cap of {dailyCap},
+            which applies across every campaign for the day. This run will mail at most {dailyCap} of
+            them — fewer if something else has already sent today — and leave the rest queued with the
+            campaign showing “Sending…”. The remainder goes out on the sender's next run, or when you
+            come back here and press Send again. You'll see the real sent / still-to-go figures on
+            this tab as soon as the first run finishes.
           </div>
         )}
 
         {!confirmOpen ? (
           <div style={s.actions}>
+            {resuming && (
+              <button style={s.btnGhost} disabled={busy} onClick={onPause}>Pause this campaign</button>
+            )}
             <button style={s.btnPrimary} disabled={blocked || busy} onClick={() => { setConfirmText(''); setConfirmOpen(true) }}>
-              Send now
+              {resuming ? 'Send the rest' : 'Send now'}
             </button>
           </div>
         ) : (
           <div style={s.confirmBox}>
             <div style={s.confirmLine}>
-              This will email <strong>{recipients.toLocaleString('en-NZ')} people</strong>. Type SEND to confirm.
+              {resuming
+                ? <>This will carry on sending <strong>the same copy</strong> to whoever is still queued. Type SEND to confirm.</>
+                : <>This will email <strong>{recipients.toLocaleString('en-NZ')} people</strong>. Type SEND to confirm.</>}
             </div>
             <div style={s.inlineRow}>
               <input style={{ ...s.input, maxWidth: 160, letterSpacing: '0.1em', fontWeight: 700 }}
@@ -598,7 +759,7 @@ function SendTab({ draft, recipients, sendEnabled, dailyCap, problems, blockers,
                 onChange={e => setConfirmText(e.target.value)} />
               <button style={s.btnDanger} disabled={!confirmed || busy}
                 onClick={() => { setConfirmOpen(false); setConfirmText(''); onSendNow() }}>
-                {busy ? 'Sending…' : `Email ${recipients.toLocaleString('en-NZ')} people`}
+                {busy ? 'Sending…' : resuming ? 'Carry on sending' : `Email ${recipients.toLocaleString('en-NZ')} people`}
               </button>
               <button style={s.btnGhost} onClick={() => { setConfirmOpen(false); setConfirmText('') }}>Cancel</button>
             </div>
@@ -606,21 +767,23 @@ function SendTab({ draft, recipients, sendEnabled, dailyCap, problems, blockers,
         )}
       </div>
 
-      <div style={s.card}>
-        <div style={s.cardTitle}>Schedule for later</div>
-        <div style={s.subtle}>Tuesday to Thursday, mid-morning, tends to land best.</div>
-        <div style={s.inlineRow}>
-          <input style={{ ...s.input, maxWidth: 240 }} type="datetime-local" value={when}
-            onChange={e => setWhen(e.target.value)} />
-          <button style={s.btnGhost} disabled={blocked || busy || !when}
-            onClick={() => onSchedule(localToIso(when))}>
-            Schedule
-          </button>
+      {!alreadySent && !resuming && (
+        <div style={s.card}>
+          <div style={s.cardTitle}>Schedule for later</div>
+          <div style={s.subtle}>Tuesday to Thursday, mid-morning, tends to land best.</div>
+          <div style={s.inlineRow}>
+            <input style={{ ...s.input, maxWidth: 240 }} type="datetime-local" value={when}
+              onChange={e => setWhen(e.target.value)} />
+            <button style={s.btnGhost} disabled={blocked || busy || !when || locked}
+              onClick={() => onSchedule(localToIso(when))}>
+              Schedule
+            </button>
+          </div>
+          {draft.status === 'scheduled' && draft.scheduled_at && (
+            <div style={s.okBox}>Scheduled for {fmtWhen(draft.scheduled_at)}.</div>
+          )}
         </div>
-        {draft.status === 'scheduled' && draft.scheduled_at && (
-          <div style={s.okBox}>Scheduled for {fmtWhen(draft.scheduled_at)}.</div>
-        )}
-      </div>
+      )}
     </>
   )
 }
@@ -761,6 +924,12 @@ export default function Campaigns() {
   const [loadingAudience, setLoadingAudience] = useState(true)
   const [loadingList, setLoadingList] = useState(true)
   const [busy, setBusy] = useState(false)
+  // The last thing the sender actually told us about this campaign. Kept so the
+  // Send tab can report `capped` / `message`, which the campaign row doesn't
+  // carry. Cleared whenever a different campaign is loaded.
+  const [lastSend, setLastSend] = useState(null)
+
+  const locked = isLocked(draft)
 
   function set(patch) { setDraft(d => ({ ...d, ...patch })) }
 
@@ -857,6 +1026,16 @@ export default function Campaigns() {
   // Persist the draft and return its id. Every send path goes through here, so
   // what went out is always the row that's on screen.
   async function persist(patch = {}) {
+    // Hard backstop for the edit lock. The UI disables the fields, but every
+    // send path funnels through here, so this is the one place that can
+    // guarantee a mid-send campaign's copy is never rewritten underneath the
+    // half of the list that already has it.
+    if (isLocked(draft)) {
+      throw new Error(draft.status === 'sending'
+        ? 'This campaign is part-way through sending. Pause it first if you need to change anything.'
+        : 'This campaign has already been sent — its row is the record of what went out. Copy it to a new draft instead.')
+    }
+
     const row = {
       name: draft.name || 'Untitled campaign',
       subject: draft.subject,
@@ -913,21 +1092,66 @@ export default function Campaigns() {
     setBusy(true)
     let id = draft.id
     try {
-      id = await persist()
+      // Resuming a part-sent campaign deliberately does NOT re-save: the copy
+      // the first half received has to be the copy the second half receives.
+      const resuming = !!draft.id && draft.status === 'sending'
+      id = resuming ? draft.id : await persist()
       const res = await callCampaignSend({ campaign_id: id })
-      const n = res.queued ?? res.sent ?? matched.length
-      showToast(`Queued for ${Number(n).toLocaleString('en-NZ')} recipients`)
-      setTab('results')
+      setLastSend(res)
+
+      // Report what the sender said happened, not what we hoped would.
+      const sent = Number(res.sent ?? 0)
+      const left = Number(res.remaining ?? 0)
+      if (res.capped) {
+        showToast(res.message
+          ?? `Sent ${sent.toLocaleString('en-NZ')} — daily cap reached, ${left.toLocaleString('en-NZ')} still queued`)
+      } else if (left > 0) {
+        showToast(`Sent ${sent.toLocaleString('en-NZ')} — ${left.toLocaleString('en-NZ')} still queued, it'll carry on`)
+      } else {
+        showToast(`Sent to ${sent.toLocaleString('en-NZ')} ${sent === 1 ? 'recipient' : 'recipients'}`)
+      }
     } catch (err) {
       showToast('Send failed: ' + err.message, true)
     } finally {
       setBusy(false)
       await loadCampaigns()
       if (id) {
-        const { data } = await supabase.from('campaigns').select('status').eq('id', id).maybeSingle()
-        if (data?.status) set({ status: data.status })
+        // Pull stats as well as status: the Send tab reports sent / still-to-go
+        // off this row, so a stale copy would show the wrong progress.
+        const { data } = await supabase.from('campaigns').select('status, stats').eq('id', id).maybeSingle()
+        if (data) set({ id, status: data.status ?? draft.status, stats: data.stats ?? {} })
       }
     }
+  }
+
+  // The explicit pause the edit lock asks for. Stops the scheduler picking the
+  // campaign back up (it only resumes rows with status 'sending'), and unlocks
+  // the composer.
+  async function pauseCampaign() {
+    if (!draft.id) return
+    setBusy(true)
+    try {
+      const { error } = await supabase.from('campaigns').update({ status: 'paused' }).eq('id', draft.id)
+      if (error) throw error
+      set({ status: 'paused' })
+      await loadCampaigns()
+      showToast('Paused — nothing more goes out. You can edit the copy now, but anyone already mailed got the old version.')
+    } catch (err) {
+      showToast('Could not pause: ' + err.message, true)
+    } finally { setBusy(false) }
+  }
+
+  // A sent campaign's row is the record of what went out, so it can't be
+  // edited. Reusing the copy means taking a fresh, unsaved draft from it.
+  function copyToNewDraft() {
+    setDraft(d => ({
+      ...d,
+      id: null,
+      name: `${d.name || 'Untitled campaign'} (copy)`,
+      status: 'draft', scheduled_at: null, started_at: null, sent_at: null, stats: {},
+    }))
+    setLastSend(null)
+    showToast('Copied to a new draft — nothing is saved until you hit Save draft')
   }
 
   async function schedule(iso) {
@@ -952,8 +1176,14 @@ export default function Campaigns() {
       offer_percent: c.offer_percent ?? '', offer_expires_on: c.offer_expires_on ?? '',
       offer_terms: c.offer_terms ?? '', audience: c.audience ?? {},
     })
+    setLastSend(null)
     setDetail(null)
     setTab('compose')
+    if (isLocked(c)) {
+      showToast(c.status === 'sending'
+        ? 'Open for reading only — this campaign is part-way through sending. Pause it on the Send tab to edit.'
+        : 'Open for reading only — this campaign has already gone out. Copy it to a new draft to reuse the copy.')
+    }
   }
 
   return (
@@ -963,10 +1193,11 @@ export default function Campaigns() {
           <h1 style={s.h1}>Campaigns</h1>
           <div style={s.headerRight}>
             {!sendEnabled && <span style={s.offPill}>Sending OFF</span>}
-            <button style={s.btnGhost} onClick={() => { setDraft(blankDraft()); setTemplateId(null); setDetail(null); setTab('compose') }}>
+            {locked && <span style={s.lockPill}>Read-only · {CAMPAIGN_STATUS[draft.status]?.label ?? draft.status}</span>}
+            <button style={s.btnGhost} onClick={() => { setDraft(blankDraft()); setTemplateId(null); setDetail(null); setLastSend(null); setTab('compose') }}>
               New campaign
             </button>
-            <button style={s.btnPrimary} onClick={saveDraft} disabled={busy}>{busy ? 'Saving…' : 'Save draft'}</button>
+            <button style={s.btnPrimary} onClick={saveDraft} disabled={busy || locked}>{busy ? 'Saving…' : 'Save draft'}</button>
           </div>
         </div>
         <div style={s.tabs}>
@@ -980,6 +1211,35 @@ export default function Campaigns() {
       </div>
 
       <div style={s.body}>
+        {/* One banner, shown on whichever editing tab you land on, so the
+            read-only state is never a mystery. */}
+        {locked && (tab === 'audience' || tab === 'compose' || tab === 'preview') && (
+          <div style={s.lockBox}>
+            <div style={s.lockTitle}>
+              {draft.status === 'sending'
+                ? 'Locked — this campaign is part-way through sending'
+                : 'Locked — this campaign has already been sent'}
+            </div>
+            <div style={s.lockBody}>
+              {draft.status === 'sending'
+                ? <>Some of the list already has this exact copy in their inbox, and each of those sends stores
+                    a copy of what it said. Changing the subject, body or audience now would send the rest of the
+                    list something different and break that record. Pause it first if you have to.</>
+                : <>This row is the record of what went out. Copy it to a new draft if you want to reuse the copy.</>}
+            </div>
+            <div style={s.inlineRow}>
+              {draft.status === 'sending'
+                ? <button style={s.btnDanger} disabled={busy} onClick={pauseCampaign}>Pause so I can edit</button>
+                : <button style={s.btnGhost} onClick={copyToNewDraft}>Copy to a new draft</button>}
+              <button style={s.btnGhost} onClick={() => setTab('send')}>See send progress</button>
+            </div>
+          </div>
+        )}
+
+        {/* fieldset[disabled] disables every control inside it natively — the
+            template picker, the chips and every input at once — so there is no
+            way to type into a locked campaign and then be told "no" on save. */}
+        <fieldset disabled={locked} style={s.lockFieldset}>
         {tab === 'audience' && (
           <AudienceTab
             contacts={contacts} loading={loadingAudience}
@@ -1011,11 +1271,14 @@ export default function Campaigns() {
           />
         )}
 
+        </fieldset>
+
         {tab === 'send' && (
           <SendTab
             draft={draft} recipients={matched.length} sendEnabled={sendEnabled} dailyCap={dailyCap}
             problems={problems} blockers={blockers} busy={busy}
-            onSendNow={sendNow} onSchedule={schedule}
+            lastSend={lastSend} locked={locked}
+            onSendNow={sendNow} onSchedule={schedule} onPause={pauseCampaign}
           />
         )}
 
@@ -1097,6 +1360,19 @@ const s = {
   errBox:   { background: '#FDECEA', border: '1px solid #F5C6C0', borderRadius: 10, padding: '10px 12px', fontSize: 12.5, color: '#C0392B', fontWeight: 600 },
   warnBox:  { background: '#FDF3E3', border: '1px solid #F0DCB8', borderRadius: 10, padding: '10px 12px', fontSize: 12.5, color: '#7a5a12', lineHeight: 1.55 },
   okBox:    { background: '#E8F0E6', border: '1px solid #CFE0C9', borderRadius: 10, padding: '10px 12px', fontSize: 12.5, color: '#3A5C2E', fontWeight: 600 },
+
+  // Progress bar for a part-sent campaign.
+  progressTrack: { height: 8, borderRadius: 'var(--radius-pill)', background: '#F0EDE8', overflow: 'hidden' },
+  progressFill:  { height: '100%', background: 'var(--terra)', borderRadius: 'var(--radius-pill)', transition: 'width .3s' },
+
+  // Read-only state for a campaign that is mid-send or already sent.
+  lockPill:  { fontSize: 11, fontWeight: 800, color: '#7a5a12', background: '#FDF3E3', padding: '4px 10px', borderRadius: 'var(--radius-pill)' },
+  // display:contents so the disabled wrapper adds no layout of its own; the
+  // `disabled` attribute still propagates to every control inside it.
+  lockFieldset: { display: 'contents', border: 'none', padding: 0, margin: 0, minWidth: 0 },
+  lockBox:   { background: '#FDF3E3', border: '1.5px solid #F0DCB8', borderRadius: 12, padding: 16, marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 10 },
+  lockTitle: { fontSize: 14, fontWeight: 800, color: '#7a5a12' },
+  lockBody:  { fontSize: 13, color: '#7a5a12', lineHeight: 1.6 },
 
   killBox:  { background: '#FDECEA', border: '1.5px solid #F5C6C0', borderRadius: 12, padding: 16, marginBottom: 20 },
   killTitle:{ fontSize: 14, fontWeight: 800, color: '#C0392B', marginBottom: 5 },

@@ -232,11 +232,40 @@ SELECT c.*,
 
 -- ── 7. Unsubscribe (public, no auth) ────────────────────────────────────────
 -- Called by the /unsubscribe/:token page. Idempotent: clicking twice is fine.
+--
+-- NAMING RULE FOR THE OUT PARAMETERS (this is not cosmetic)
+-- In plpgsql, a RETURNS TABLE column is an OUT parameter, and an OUT parameter
+-- is a variable in scope for the WHOLE function body. This used to return
+-- (email TEXT, already BOOLEAN), which put a variable called `email` in scope
+-- over an INSERT INTO email_suppressions (email, ...). Column lists are not
+-- resolved against variables, but an ON CONFLICT arbiter IS — it goes through
+-- transformExpr and the plpgsql column-ref hook — so under the default
+-- plpgsql.variable_conflict = 'error' that can raise
+--   42702  column reference "email" is ambiguous
+-- at RUN time, on every single call. A silently broken unsubscribe is the worst
+-- failure this system has: it is a legal obligation (UEMA s11), the person
+-- believes they have opted out, and we would keep mailing them.
+--
+-- So, belt and braces, three independent fixes:
+--   1. the OUT parameters are named out_email / out_already, which collide with
+--      no column of any table this body touches (marketing_contacts,
+--      email_suppressions, campaign_events, campaign_sends);
+--   2. the ON CONFLICT names no arbiter column at all — `DO NOTHING` with no
+--      target cannot be ambiguous, and email_suppressions.email is the primary
+--      key so the behaviour is identical;
+--   3. #variable_conflict use_column, so that if any other name in this body
+--      ever collides, the column wins instead of raising.
+--
+-- DROP first: CREATE OR REPLACE cannot rename OUT parameters (it is a change of
+-- return type), so a re-run over an older definition would fail without this.
+-- Safe here — 038 has never been applied to a database.
+DROP FUNCTION IF EXISTS campaign_unsubscribe(TEXT, TEXT);
 CREATE OR REPLACE FUNCTION campaign_unsubscribe(p_token TEXT, p_reason TEXT DEFAULT NULL)
-RETURNS TABLE (email TEXT, already BOOLEAN)
+RETURNS TABLE (out_email TEXT, out_already BOOLEAN)
 LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = public
 AS $$
+#variable_conflict use_column
 DECLARE
   v_contact marketing_contacts%ROWTYPE;
   v_already BOOLEAN;
@@ -255,9 +284,12 @@ BEGIN
          updated_at         = NOW()
    WHERE id = v_contact.id;
 
+  -- No arbiter column: email_suppressions.email is the primary key, so a bare
+  -- DO NOTHING covers the same conflict, and there is no expression left for
+  -- the plpgsql column-ref hook to find ambiguous.
   INSERT INTO email_suppressions (email, reason, detail)
   VALUES (lower(v_contact.email), 'unsubscribed', p_reason)
-  ON CONFLICT (email) DO NOTHING;
+  ON CONFLICT DO NOTHING;
 
   IF NOT v_already THEN
     INSERT INTO campaign_events (campaign_id, send_id, contact_id, kind, meta)
@@ -276,6 +308,15 @@ GRANT EXECUTE ON FUNCTION campaign_unsubscribe(TEXT, TEXT) TO anon, authenticate
 
 -- Lets the unsubscribe page greet the person and confirm the address, without
 -- exposing the table to anon.
+--
+-- AUDITED for the same OUT-parameter/column collision as campaign_unsubscribe
+-- above: its OUT names (email, first_name, unsubscribed) DO match columns of
+-- marketing_contacts, but this is LANGUAGE sql — there is no plpgsql column-ref
+-- hook and no variable_conflict setting — and every reference in the body is
+-- table-qualified (c.email, c.first_name, c.consent_status), so nothing can
+-- resolve ambiguously. Left as-is deliberately: these names are the RPC's
+-- response keys, which frontend/src/pages/Unsubscribe.jsx reads.
+-- KEEP THE REFERENCES QUALIFIED if this body is ever edited.
 CREATE OR REPLACE FUNCTION campaign_unsubscribe_info(p_token TEXT)
 RETURNS TABLE (email TEXT, first_name TEXT, unsubscribed BOOLEAN)
 LANGUAGE sql SECURITY DEFINER
@@ -288,10 +329,16 @@ $$;
 GRANT EXECUTE ON FUNCTION campaign_unsubscribe_info(TEXT) TO anon, authenticated;
 
 -- ── 8. Open / click tracking (public, no auth) ──────────────────────────────
+-- Audited for the OUT-parameter/column collision described above: both of these
+-- return VOID (no OUT parameters at all) and their only names are p_* arguments
+-- and v_* locals, none of which is a column of campaign_sends or
+-- campaign_events. #variable_conflict use_column is set anyway so that the
+-- house rule holds if either body grows.
 CREATE OR REPLACE FUNCTION register_campaign_open(p_token TEXT)
 RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = public
 AS $$
+#variable_conflict use_column
 DECLARE v_send campaign_sends%ROWTYPE;
 BEGIN
   UPDATE campaign_sends
@@ -312,6 +359,7 @@ CREATE OR REPLACE FUNCTION register_campaign_click(p_token TEXT, p_url TEXT)
 RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = public
 AS $$
+#variable_conflict use_column
 DECLARE v_send campaign_sends%ROWTYPE;
 BEGIN
   UPDATE campaign_sends
@@ -330,6 +378,9 @@ $$;
 GRANT EXECUTE ON FUNCTION register_campaign_click(TEXT, TEXT) TO anon, authenticated;
 
 -- ── 9. Campaign stats ───────────────────────────────────────────────────────
+-- Audited: LANGUAGE sql, one argument (p_campaign_id) that matches no column of
+-- campaign_sends or campaign_events, and no OUT parameters — the return is a
+-- scalar JSONB, so nothing is in scope over the body.
 CREATE OR REPLACE FUNCTION campaign_stats(p_campaign_id UUID)
 RETURNS JSONB LANGUAGE sql STABLE
 SET search_path = public

@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import {
-  MERGE_TAGS, SEGMENT_PRESETS, MONTH_BUCKETS, SUBURB_FALLBACK_THRESHOLD, SERVICE_LABELS,
+  MERGE_TAGS, MERGE_TAG_KEYS, SEGMENT_PRESETS, MONTH_BUCKETS, SUBURB_FALLBACK_THRESHOLD, SERVICE_LABELS,
   renderPreview, mergeDataFor, formatDateNz, greetingName, emptyTagsIn,
+  tagsIn, unknownTagsIn,
   validateCampaign, describeAudience, matchesAudience, bucketFor,
   suburbCoverage, chooseSubject,
 } from './campaigns'
@@ -78,6 +79,19 @@ describe('renderPreview', () => {
   })
   it('works with no contact at all', () => {
     expect(renderPreview('Hi {{first_name}}')).toBe('Hi ')
+  })
+  // The preview has to show what the sender produces. Leaving {{first-name}}
+  // visible here would tell the office the tag survives to the inbox, while the
+  // composer's warning right beside it says the opposite.
+  it('collapses a malformed tag, the same way the sender does', () => {
+    expect(renderPreview('Hi {{first-name}} and {{last.job}}!', contact)).toBe('Hi  and !')
+    expect(renderPreview('Hi {{first name}}.', contact)).toBe('Hi .')
+  })
+  it('does not render a value off the prototype chain', () => {
+    expect(renderPreview('{{constructor}}', contact)).toBe('')
+  })
+  it('leaves single braces and unclosed tags alone', () => {
+    expect(renderPreview('{first_name} {{unclosed', contact)).toBe('{first_name} {{unclosed')
   })
 })
 
@@ -170,6 +184,67 @@ describe('emptyTagsIn', () => {
   it('handles empty input', () => {
     expect(emptyTagsIn('', {})).toEqual([])
     expect(emptyTagsIn(null, {})).toEqual([])
+  })
+
+  // The regression this whole section exists for: the old [a-zA-Z0-9_]+ pattern
+  // matched the sender's resolver exactly, which meant every merge tag a human
+  // actually mistypes was invisible to the composer.
+  it.each(['first-name', 'first name', 'last.job', 'First_Name', 'suburb!'])(
+    'sees the malformed tag {{%s}}', bad => {
+      expect(emptyTagsIn(`Hi {{${bad}}},`, { first_name: 'Sue' })).toEqual([bad])
+    })
+
+  it('still reports a malformed tag even when a same-named value exists', () => {
+    // {{first name}} is not first_name — nothing resolves it.
+    expect(emptyTagsIn('Hi {{first name}}', { 'first name': '' })).toEqual(['first name'])
+  })
+
+  it('does not resolve a tag off the prototype chain', () => {
+    expect(emptyTagsIn('{{constructor}} {{toString}}', {})).toEqual(['constructor', 'toString'])
+  })
+
+  it('normalises padding inside the braces', () => {
+    expect(emptyTagsIn('{{  suburb  }}', { suburb: '' })).toEqual(['suburb'])
+  })
+})
+
+describe('tagsIn', () => {
+  it('lists every tag written, once each, in order', () => {
+    expect(tagsIn('Hi {{first_name}} in {{suburb}} — {{first_name}} again'))
+      .toEqual(['first_name', 'suburb'])
+  })
+  it('catches malformed tags the sender cannot resolve', () => {
+    expect(tagsIn('{{first-name}} {{last.job}} {{first name}}'))
+      .toEqual(['first-name', 'last.job', 'first name'])
+  })
+  it('ignores single braces and unclosed tags', () => {
+    expect(tagsIn('{first_name} and {{unclosed')).toEqual([])
+  })
+  it('handles empty input', () => {
+    expect(tagsIn('')).toEqual([])
+    expect(tagsIn(null)).toEqual([])
+    expect(tagsIn(undefined)).toEqual([])
+  })
+})
+
+describe('unknownTagsIn', () => {
+  it('accepts every tag MERGE_TAGS documents', () => {
+    const all = MERGE_TAG_KEYS.map(t => `{{${t}}}`).join(' ')
+    expect(unknownTagsIn(all)).toEqual([])
+  })
+  it('flags a mistyped tag', () => {
+    expect(unknownTagsIn('Hi {{first-name}},')).toEqual(['first-name'])
+    expect(unknownTagsIn('Hi {{first name}},')).toEqual(['first name'])
+    expect(unknownTagsIn('We {{last.job}} for you')).toEqual(['last.job'])
+  })
+  it('is case-sensitive — {{First_Name}} is not a tag the sender knows', () => {
+    expect(unknownTagsIn('{{First_Name}}')).toEqual(['First_Name'])
+  })
+  it('flags an outright invented tag', () => {
+    expect(unknownTagsIn('{{tree_species}}')).toEqual(['tree_species'])
+  })
+  it('finds nothing in copy with no tags at all', () => {
+    expect(unknownTagsIn('Just a plain note from Josh.')).toEqual([])
   })
 })
 
@@ -271,14 +346,57 @@ describe('validateCampaign', () => {
     expect(validateCampaign({ ...GOOD, body }).join(' ')).toMatch(/first_name/)
   })
 
-  it('flags a body that omits the CTA url', () => {
+  // The sender appends the CTA line only when the body doesn't already carry
+  // the link, so a body without it still goes out with exactly one way to act
+  // on the email. That makes this advice about how the email reads, not a
+  // defect — the message has to say what the sender will do rather than
+  // instruct the office to fix something that isn't broken.
+  it('mentions the CTA url missing from the body, as advice', () => {
     const body = 'Hi {{first_name}}, give us a call some time.'
-    expect(validateCampaign({ ...GOOD, body }).join(' ')).toMatch(/call-to-action link/i)
+    const p = validateCampaign({ ...GOOD, body })
+    expect(p.join(' ')).toMatch(/call-to-action link/i)
+    expect(p.join(' ')).toMatch(/the sender will add it/i)
   })
 
-  it('flags a missing CTA url outright', () => {
+  it('flags a missing CTA url outright — that one really is a broken email', () => {
     const p = validateCampaign({ ...GOOD, cta_url: '' })
     expect(p.join(' ')).toMatch(/Set a call-to-action link/i)
+    expect(p.join(' ')).not.toMatch(/the sender will add it/i)
+  })
+
+  it('flags a merge tag the sender cannot resolve', () => {
+    const body = 'Hi {{first-name}},\n\nBook: https://www.urbantreeservices.net'
+    const p = validateCampaign({ ...GOOD, body })
+    expect(p.join(' ')).toMatch(/\{\{first-name\}\} is not a merge tag/)
+    expect(p.join(' ')).toMatch(/blank/)
+    // …and tells you what does work.
+    expect(p.join(' ')).toContain('{{first_name}}')
+  })
+
+  it('flags malformed tags in the subject and preheader too', () => {
+    expect(validateCampaign({ ...GOOD, subject: 'Hi {{first name}}?' }).join(' '))
+      .toMatch(/\{\{first name\}\} is not a merge tag/)
+    expect(validateCampaign({ ...GOOD, preheader: 'About {{last.job}}' }).join(' '))
+      .toMatch(/\{\{last\.job\}\} is not a merge tag/)
+  })
+
+  it('lists several bad tags in one message, pluralised', () => {
+    const body = 'Hi {{first-name}}, about {{last.job}}: https://www.urbantreeservices.net'
+    const p = validateCampaign({ ...GOOD, body })
+    const line = p.find(x => /merge tag/.test(x))
+    expect(line).toMatch(/\{\{first-name\}\}, \{\{last\.job\}\} are not merge tags/)
+  })
+
+  it('reports a bad tag once even when it appears in two places', () => {
+    const p = validateCampaign({ ...GOOD, subject: 'Hi {{first-name}}', body: 'Hi {{first-name}} https://www.urbantreeservices.net' })
+    expect(p.filter(x => /merge tag/.test(x))).toHaveLength(1)
+  })
+
+  it('accepts every documented merge tag', () => {
+    const body = `Hi {{first_name}} {{last_name}} in {{suburb}}. We {{last_job_summary}} `
+      + `{{months_since_job}} months ago. {{offer_code}} {{offer_percent}} {{offer_expires}}. `
+      + 'https://www.urbantreeservices.net'
+    expect(validateCampaign({ ...GOOD, body }).join(' ')).not.toMatch(/merge tag/)
   })
 
   it('flags a discount with no expiry (Fair Trading Act)', () => {
@@ -382,10 +500,32 @@ describe('describeAudience', () => {
   it('ignores a min_job_count of 1, which excludes nobody', () => {
     expect(describeAudience({ min_job_count: 1 })).toMatch(/Every residential customer/)
   })
+  it('mentions a minimum spend', () => {
+    expect(describeAudience({ min_lifetime_value: 2000 }))
+      .toBe('Residential customers who have spent $2,000 or more with us')
+  })
+  it('ignores a minimum spend of 0, which excludes nobody', () => {
+    expect(describeAudience({ min_lifetime_value: 0 })).toMatch(/Every residential customer/)
+  })
+  // The sentence must never claim a filter the sender won't apply.
+  it('says nothing about a clause stored as a string, which the sender ignores', () => {
+    expect(describeAudience({ min_months_since_job: '12' })).toMatch(/Every residential customer/)
+    expect(describeAudience({ min_lifetime_value: '2000' })).toMatch(/Every residential customer/)
+  })
+  it('trims a suburb for reading without changing what is matched', () => {
+    expect(describeAudience({ suburbs: [' Karori '] })).toBe('Residential customers in Karori')
+  })
 })
 
+// These tests are the contract between this predicate and resolveAudience() in
+// supabase/functions/_shared/campaign.ts. The page counts "N recipients match"
+// with matchesAudience and the sender then resolves the audience with SQL — any
+// disagreement means the number on screen is a lie about who gets emailed.
 describe('matchesAudience', () => {
-  const contact = { first_name: 'Sue', suburb: 'Karori', services: ['pruning', 'hedge'], job_count: 2, months_since_job: 14 }
+  const contact = {
+    first_name: 'Sue', suburb: 'Karori', services: ['pruning', 'hedge'],
+    job_count: 2, lifetime_value: 1450, months_since_job: 14,
+  }
 
   it('matches everything when the filter is empty', () => {
     expect(matchesAudience(contact, {})).toBe(true)
@@ -409,20 +549,77 @@ describe('matchesAudience', () => {
     expect(matchesAudience(contact, { services: ['stump', 'hedge'] })).toBe(true)
     expect(matchesAudience(contact, { services: ['stump'] })).toBe(false)
   })
-  it('matches suburbs case-insensitively', () => {
-    expect(matchesAudience(contact, { suburbs: ['karori'] })).toBe(true)
+  // The backend filters suburbs with .in('suburb', […]) — plain SQL equality.
+  // Lowercasing both sides here counted people in who would never be mailed.
+  it('matches suburbs exactly, case-sensitively, like the sender does', () => {
+    expect(matchesAudience(contact, { suburbs: ['Karori'] })).toBe(true)
+    expect(matchesAudience(contact, { suburbs: ['karori'] })).toBe(false)
+    expect(matchesAudience(contact, { suburbs: ['KARORI'] })).toBe(false)
     expect(matchesAudience(contact, { suburbs: ['Ngaio'] })).toBe(false)
+  })
+  it('does not trim whitespace off either side of a suburb', () => {
+    expect(matchesAudience(contact, { suburbs: [' Karori'] })).toBe(false)
+    expect(matchesAudience({ ...contact, suburb: ' Karori ' }, { suburbs: ['Karori'] })).toBe(false)
+    // …but the stored value matched verbatim does hit, which is what the
+    // audience picker now builds its chips from.
+    expect(matchesAudience({ ...contact, suburb: ' Karori ' }, { suburbs: [' Karori '] })).toBe(true)
+  })
+  it('matches any one of several suburbs', () => {
+    expect(matchesAudience(contact, { suburbs: ['Ngaio', 'Karori'] })).toBe(true)
   })
   it('applies a minimum job count', () => {
     expect(matchesAudience(contact, { min_job_count: 2 })).toBe(true)
     expect(matchesAudience(contact, { min_job_count: 3 })).toBe(false)
   })
+
+  // min_lifetime_value has always been applied by resolveAudience. It was
+  // absent here, so a spend filter counted everyone in and mailed a fraction.
+  it('applies a minimum lifetime value', () => {
+    expect(matchesAudience(contact, { min_lifetime_value: 1000 })).toBe(true)
+    expect(matchesAudience(contact, { min_lifetime_value: 1450 })).toBe(true)
+    expect(matchesAudience(contact, { min_lifetime_value: 2000 })).toBe(false)
+  })
+  it('treats a missing lifetime value as zero', () => {
+    const { lifetime_value, ...noSpend } = contact
+    expect(matchesAudience(noSpend, { min_lifetime_value: 1 })).toBe(false)
+    expect(matchesAudience(noSpend, { min_lifetime_value: 0 })).toBe(true)
+  })
+  it('copes with the NUMERIC string PostgREST returns', () => {
+    expect(matchesAudience({ ...contact, lifetime_value: '1450.00' }, { min_lifetime_value: 1000 })).toBe(true)
+    expect(matchesAudience({ ...contact, lifetime_value: '1450.00' }, { min_lifetime_value: 2000 })).toBe(false)
+  })
+
   it('requires every clause to hold', () => {
     expect(matchesAudience(contact, { min_months_since_job: 12, suburbs: ['Karori'] })).toBe(true)
     expect(matchesAudience(contact, { min_months_since_job: 12, suburbs: ['Ngaio'] })).toBe(false)
+    expect(matchesAudience(contact, { min_months_since_job: 12, min_lifetime_value: 5000 })).toBe(false)
   })
   it('treats blank filter values as "not set"', () => {
-    expect(matchesAudience(contact, { min_months_since_job: '', min_job_count: '', services: [], suburbs: [] })).toBe(true)
+    expect(matchesAudience(contact, {
+      min_months_since_job: '', min_job_count: '', min_lifetime_value: '', services: [], suburbs: [],
+    })).toBe(true)
+  })
+
+  // resolveAudience gates each numeric clause on `typeof f.x === 'number'`, so
+  // a value stored as a string is ignored by the sender. Ignoring it here too
+  // keeps the count honest — a filter that looks applied but isn't would be
+  // worse than one that visibly does nothing.
+  it('ignores a numeric clause stored as a string, exactly as the sender does', () => {
+    expect(matchesAudience(contact, { min_months_since_job: '24' })).toBe(true)
+    expect(matchesAudience(contact, { min_job_count: '99' })).toBe(true)
+    expect(matchesAudience(contact, { min_lifetime_value: '99999' })).toBe(true)
+  })
+  it('ignores a NaN clause rather than excluding everybody', () => {
+    expect(matchesAudience(contact, { min_months_since_job: Number.NaN })).toBe(true)
+  })
+
+  // max_months_since_job is .lte() — inclusive. MONTH_BUCKETS' [0,6) is a
+  // different question (a reporting histogram) and stays half-open.
+  it('includes the boundary month, because the sender uses <= and >=', () => {
+    const sixMonths = { ...contact, months_since_job: 6 }
+    expect(matchesAudience(sixMonths, { max_months_since_job: 6 })).toBe(true)
+    expect(matchesAudience(sixMonths, { min_months_since_job: 6 })).toBe(true)
+    expect(bucketFor(6)).toBe('6-12')   // …while the histogram puts it in the next band
   })
 })
 
@@ -451,6 +648,7 @@ describe('SEGMENT_PRESETS', () => {
       'Lapsed — 12+ months since last job',
       'Winter pruning — pruning customers, 9+ months',
       'Recent customers — last 6 months',
+      'Best customers — $2,000+ lifetime',
       'Everyone eligible',
     ])
   })
@@ -458,6 +656,18 @@ describe('SEGMENT_PRESETS', () => {
     for (const p of SEGMENT_PRESETS) {
       expect(typeof p.audience).toBe('object')
       expect(describeAudience(p.audience)).toBeTruthy()
+    }
+  })
+  // A preset written with a string value would be silently ignored by the
+  // sender — the preset would look applied and mail the whole list.
+  it('writes every numeric clause as a real number', () => {
+    const NUMERIC = ['min_months_since_job', 'max_months_since_job', 'min_job_count', 'min_lifetime_value']
+    for (const p of SEGMENT_PRESETS) {
+      for (const key of NUMERIC) {
+        if (key in p.audience) {
+          expect(typeof p.audience[key], `${p.key}.${key}`).toBe('number')
+        }
+      }
     }
   })
 })

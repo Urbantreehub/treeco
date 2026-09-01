@@ -27,8 +27,19 @@
 //   * A bare POST with no body, no content-type and no auth must work. Any body
 //     a provider does send (some send `List-Unsubscribe=One-Click` form-encoded)
 //     is drained and ignored rather than parsed strictly.
-//   * Never 500 on a malformed or unknown token — 200 or a quiet 404.
+//   * A malformed or unknown token is a quiet 404 — that is the provider's or
+//     the link's problem, and there is nothing to retry.
+//   * A DATABASE failure, though, FAILS CLOSED with a 503. Answering 200 when
+//     nothing was written told Gmail the person was unsubscribed when they were
+//     not: the provider never retries, we have no record, and the next campaign
+//     mails them again. A 5xx gets the request re-delivered, which is exactly
+//     what we want. Every such failure is also written to
+//     campaign_unsubscribe_failures so it is visible after the logs roll off.
 //   * Idempotent: the RPC handles being called twice, so a retry is harmless.
+//
+// The unsubscribe token is a permanent per-contact secret — anyone holding it
+// can opt that person out — so it is never written to a log. Failures are keyed
+// by its SHA-256 instead, which is enough to match a complaint to a record.
 //
 // Required secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, APP_URL
 
@@ -40,11 +51,48 @@ const CORS = {
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 }
 
-function text(body: string, status = 200) {
+function text(body: string, status = 200, extraHeaders: Record<string, string> = {}) {
   return new Response(body, {
     status,
-    headers: { ...CORS, 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' },
+    headers: {
+      ...CORS, 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store',
+      ...extraHeaders,
+    },
   })
+}
+
+// Identifies a token in the failure record without storing the secret itself.
+async function tokenHash(token: string): Promise<string> {
+  try {
+    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token))
+    return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('')
+  } catch {
+    return ''
+  }
+}
+
+// A durable record of an unsubscribe we could not action. Edge function logs
+// roll off; a person's opt-out request must not roll off with them, because
+// under UEMA it has to be honoured within 5 working days whatever our database
+// was doing at the time.
+async function recordFailure(
+  supabase: ReturnType<typeof serviceClient>,
+  token: string,
+  source: string,
+  message: string,
+): Promise<void> {
+  const hash = await tokenHash(token)
+  const { error } = await supabase.from('campaign_unsubscribe_failures').insert({
+    token_hash: hash, source, error: message,
+  })
+  // Last resort only — never the raw token.
+  if (error) {
+    console.error('campaign-unsubscribe: could not record the failure either', {
+      token_hash: hash.slice(0, 12), source, message, insert_error: error.message,
+    })
+  } else {
+    console.error('campaign-unsubscribe failed', { token_hash: hash.slice(0, 12), source, message })
+  }
 }
 
 Deno.serve(async (req: Request) => {
@@ -80,29 +128,41 @@ Deno.serve(async (req: Request) => {
 
   if (!token) return text('Missing unsubscribe token', 404)
 
+  const supabase = serviceClient()
+
   try {
-    const supabase = serviceClient()
     const { data, error } = await supabase.rpc('campaign_unsubscribe', {
       p_token:  token,
       p_reason: 'one-click',
     })
 
-    // A DB hiccup is ours, not the provider's — but returning 500 invites
-    // retries and, worse, tells the provider our unsubscribe is broken. Log it
-    // and acknowledge; the address is still in the send log if it needs fixing
-    // by hand.
+    // FAIL CLOSED. Nothing was written, so saying "done" would be a lie the
+    // provider believes and never revisits. 503 + Retry-After gets it
+    // re-delivered, and the attempt is recorded either way.
     if (error) {
-      console.error('campaign_unsubscribe failed', { token, message: error.message })
-      return text('Unsubscribe recorded', 200)
+      await recordFailure(supabase, token, 'one-click', error.message)
+      return text(
+        'We could not record that just now. Please try the link again in a minute, '
+        + 'or email office@urbantreeservices.net and we will take you off the list.',
+        503, { 'Retry-After': '300' },
+      )
     }
 
-    // The RPC returns no rows for a token that matches nobody.
+    // The RPC returns no rows for a token that matches nobody. Nothing to
+    // retry, so this stays a plain 404.
     const row = Array.isArray(data) ? data[0] : data
     if (!row) return text('Unknown unsubscribe token', 404)
 
-    return text(row.already ? 'Already unsubscribed' : 'Unsubscribed', 200)
+    // out_already since 038; `already` kept as a fallback so a redeploy that
+    // lands before the migration still reads the right field.
+    const already = row.out_already ?? row.already
+    return text(already ? 'Already unsubscribed' : 'Unsubscribed', 200)
   } catch (err) {
-    console.error('campaign-unsubscribe error', (err as Error).message)
-    return text('Unsubscribe recorded', 200)
+    await recordFailure(supabase, token, 'one-click', (err as Error).message)
+    return text(
+      'We could not record that just now. Please try the link again in a minute, '
+      + 'or email office@urbantreeservices.net and we will take you off the list.',
+      503, { 'Retry-After': '300' },
+    )
   }
 })

@@ -59,7 +59,13 @@ export default function Unsubscribe() {
       })
       if (error) throw error
       const row = Array.isArray(data) ? data[0] : data
-      if (row?.email) setContact(c => ({ ...(c ?? {}), email: row.email }))
+      // The RPC's OUT params are out_email / out_already — deliberately not named
+      // after columns the function body touches, because a plpgsql OUT param sharing
+      // a column name made ON CONFLICT (email) ambiguous and could fail every
+      // unsubscribe at runtime. Fall back to the old names so an un-migrated
+      // database still resolves the address rather than silently showing nothing.
+      const confirmedEmail = row?.out_email ?? row?.email
+      if (confirmedEmail) setContact(c => ({ ...(c ?? {}), email: confirmedEmail }))
       setState('done')
     } catch {
       setState('error')

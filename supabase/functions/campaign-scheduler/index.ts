@@ -19,8 +19,18 @@
 
 import {
   CORS, json, serviceClient, runCampaign, sendEnabled, dailyCap, nzDayStartIso,
+  claimCampaignRun, releaseCampaignRun, isNoRecipientsError, countSendRows,
   Campaign, SendSummary,
 } from '../_shared/campaign.ts'
+
+// An empty SendSummary to build error results from, so every result has the
+// same shape whatever went wrong.
+function blankSummary(campaignId: string, status: string, message: string, remaining = 0): SendSummary {
+  return {
+    campaign_id: campaignId, queued: 0, sent: 0, failed: 0, retrying: 0, skipped: 0,
+    reclaimed: 0, remaining, unqueued: 0, status, capped: false, message,
+  }
+}
 
 const CAMPAIGN_COLUMNS =
   'id, name, subject, preheader, body, from_name, from_email, reply_to, status, ' +
@@ -86,39 +96,49 @@ Deno.serve(async (req: Request) => {
       .maybeSingle()
     if (!claimed) continue
 
+    // The status flip above stops a second scheduler picking it out of `due`,
+    // but says nothing about a "Send now" that is already inside the campaign.
+    // The run lock is what actually serialises the two.
+    if (!(await claimCampaignRun(supabase, campaign.id).catch(() => false))) continue
+
     try {
       results.push(await runCampaign(supabase, campaign as Campaign, {
         deadlineMs: Math.max(0, deadline - Date.now()),
       }))
     } catch (err) {
-      await supabase.from('campaigns').update({ status: 'failed' }).eq('id', campaign.id)
-      results.push({
-        campaign_id: campaign.id, queued: 0, sent: 0, failed: 0, skipped: 0,
-        remaining: 0, status: 'failed', capped: false, message: (err as Error).message,
-      })
+      // Nobody matched the filter: put it back to draft so it can be fixed,
+      // rather than leaving it stuck 'sending' with nothing to send.
+      if (isNoRecipientsError(err)) {
+        await supabase.from('campaigns').update({ status: 'draft' }).eq('id', campaign.id)
+        results.push(blankSummary(campaign.id, 'draft', (err as Error).message))
+      } else {
+        const alreadySent = await countSendRows(supabase, campaign.id, ['sent']).catch(() => 0)
+        if (alreadySent === 0) await supabase.from('campaigns').update({ status: 'failed' }).eq('id', campaign.id)
+        results.push(blankSummary(campaign.id, alreadySent === 0 ? 'failed' : 'sending', (err as Error).message))
+      }
+    } finally {
+      await releaseCampaignRun(supabase, campaign.id)
     }
   }
 
-  // Resume anything already mid-flight that still has queued recipients.
+  // Resume anything already mid-flight. 'sending' means unfinished by
+  // definition, so there is no pre-filter on queued rows here: a campaign the
+  // daily cap truncated has an EMPTY queue and an audience still to work
+  // through, and the old `if (!queued) continue` skipped exactly those — which
+  // is how 1,800 of 2,000 people were never mailed.
   for (const campaign of inFlight ?? []) {
     if (Date.now() >= deadline) break
     if (results.some(r => r.campaign_id === campaign.id)) continue
-    const { count: queued } = await supabase
-      .from('campaign_sends')
-      .select('id', { count: 'exact', head: true })
-      .eq('campaign_id', campaign.id)
-      .eq('status', 'queued')
-    if (!queued) continue
+    if (!(await claimCampaignRun(supabase, campaign.id).catch(() => false))) continue
 
     try {
       results.push(await runCampaign(supabase, campaign as Campaign, {
         deadlineMs: Math.max(0, deadline - Date.now()),
       }))
     } catch (err) {
-      results.push({
-        campaign_id: campaign.id, queued: 0, sent: 0, failed: 0, skipped: 0,
-        remaining: queued, status: 'sending', capped: false, message: (err as Error).message,
-      })
+      results.push(blankSummary(campaign.id, 'sending', (err as Error).message))
+    } finally {
+      await releaseCampaignRun(supabase, campaign.id)
     }
   }
 

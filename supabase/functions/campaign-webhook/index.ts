@@ -15,8 +15,12 @@
 // Events to subscribe to: email.bounced, email.complained, email.delivered
 //
 // Handling:
-//   email.bounced    → email_suppressions('bounced'), contact.consent_status
-//                      'bounced' + bounced_at, campaign_events('bounced')
+//   email.bounced    → only when data.bounce.type is Permanent/hard:
+//                      email_suppressions('bounced'), contact.consent_status
+//                      'bounced' + bounced_at, campaign_events('bounced').
+//                      A soft/transient/undetermined bounce (full mailbox,
+//                      greylisting) is logged as campaign_events('bounced')
+//                      with meta.soft = true and nothing is suppressed.
 //   email.complained → email_suppressions('complained'), contact.consent_status
 //                      'complained' + complained_at, campaign_events('complained')
 //   email.delivered  → campaign_events('delivered') only
@@ -129,6 +133,32 @@ Deno.serve(async (req: Request) => {
 
     if (!email) return json({ ok: true, handled: type, matched: false, message: 'No address on payload' })
 
+    // NOT every bounce means the address is dead. Resend reports bounce.type as
+    // Permanent / Transient / Undetermined: a full mailbox, a greylisting or an
+    // out-of-office loop is Transient, and permanently suppressing a real
+    // customer over one is a customer we can never email again — including about
+    // their job. Only a Permanent (hard) bounce suppresses. Soft ones are
+    // logged as an event and left alone; if the address really is dead the
+    // provider will report a permanent bounce soon enough.
+    const bounceType = String(data.bounce?.type ?? '').toLowerCase()
+    const softBounce = bounced && bounceType !== 'permanent' && bounceType !== 'hard'
+
+    if (softBounce) {
+      if (send) {
+        await supabase.from('campaign_events').insert({
+          campaign_id: send.campaign_id,
+          send_id:     send.id,
+          contact_id:  send.contact_id,
+          kind:        'bounced',
+          meta:        { provider_id: providerId, detail, soft: true, bounce_type: bounceType || 'unknown' },
+        })
+      }
+      return json({
+        ok: true, handled: type, matched: !!send, suppressed: null,
+        soft_bounce: true, bounce_type: bounceType || 'unknown',
+      })
+    }
+
     // Global do-not-email list first: it survives contact deletion and
     // re-import, so it is the durable half of this.
     await supabase.from('email_suppressions')
@@ -155,7 +185,7 @@ Deno.serve(async (req: Request) => {
         send_id:     send.id,
         contact_id:  send.contact_id,
         kind:        reason,
-        meta:        { provider_id: providerId, detail },
+        meta:        { provider_id: providerId, detail, ...(bounced ? { soft: false, bounce_type: bounceType || 'permanent' } : {}) },
       })
     }
 

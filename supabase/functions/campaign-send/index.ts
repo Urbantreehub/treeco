@@ -13,8 +13,15 @@
 // Auth: caller must be a signed-in full/office user (Bearer session token).
 //
 // Returns (test):  { ok: true, test: true, to, subject, html, text }
-// Returns (send):  { ok, campaign_id, queued, sent, failed, skipped, remaining,
-//                    status, capped, message? }
+// Returns (send):  { ok, campaign_id, queued, sent, failed, retrying, skipped,
+//                    reclaimed, remaining, unqueued, status, capped, message? }
+//
+// RESUMING
+// A campaign whose run was cut short by the daily cap, the function's clock or a
+// provider wobble stays 'sending' with people still to mail (`unqueued` counts
+// the ones with no row yet). Calling this again resumes it — each run queues and
+// mails the next slice — until the audience is drained, at which point it flips
+// to 'sent' and further calls are refused.
 //
 // GUARDRAILS
 //   * app_settings.campaign_send_enabled must be true (it ships false) — a real
@@ -28,7 +35,8 @@
 
 import {
   CORS, json, serviceClient, runCampaign, renderCampaignEmail, sendViaResend,
-  sendEnabled, dailyCap, Campaign, Contact,
+  sendEnabled, dailyCap, claimCampaignRun, releaseCampaignRun, isNoRecipientsError,
+  countSendRows, Campaign, Contact,
 } from '../_shared/campaign.ts'
 
 const CAMPAIGN_COLUMNS =
@@ -120,19 +128,52 @@ Deno.serve(async (req: Request) => {
       }, 409)
     }
     if (!campaign.body?.trim()) return json({ error: 'Campaign has no body copy' }, 400)
+
+    // 'sent' means finished — every eligible contact has a row and none is
+    // outstanding — so it is refused. 'sending' is NOT finished: it is what a
+    // campaign truncated by the daily cap (or by the function's clock) looks
+    // like, and "Send now" on one of those must resume it. Refusing that was
+    // what pushed people into cloning the campaign, which really did double-send
+    // the first batch, because the UNIQUE(campaign_id, contact_id) is
+    // per-campaign.
     if (campaign.status === 'sent') {
       return json({ error: 'This campaign has already been sent' }, 409)
     }
 
-    const cap = await dailyCap(supabase)
-    const summary = await runCampaign(supabase, campaign as Campaign, {
-      limit: typeof limit === 'number' && limit > 0 ? Math.floor(limit) : undefined,
-    })
+    // One run per campaign at a time — otherwise "Send now" and the cron tick
+    // each hold their own copy of the daily budget and between them spend it
+    // twice.
+    if (!(await claimCampaignRun(supabase, campaign_id))) {
+      return json({
+        error: 'This campaign is already sending right now. Give it a minute and refresh — '
+             + 'the run in progress will carry on where it got to.',
+      }, 409)
+    }
 
-    return json({ ok: summary.failed === 0, daily_cap: cap, ...summary })
+    const cap = await dailyCap(supabase)
+    try {
+      const summary = await runCampaign(supabase, campaign as Campaign, {
+        limit: typeof limit === 'number' && limit > 0 ? Math.floor(limit) : undefined,
+      })
+      return json({ ok: summary.failed === 0, daily_cap: cap, ...summary })
+    } finally {
+      await releaseCampaignRun(supabase, campaign_id)
+    }
   } catch (err) {
     const message = (err as Error).message
-    await supabase.from('campaigns').update({ status: 'failed' }).eq('id', campaign_id)
+
+    // "Nobody matched" is a filter to fix, not a failure: leave the campaign
+    // exactly as it was (draft/scheduled) so it can be edited and sent.
+    if (isNoRecipientsError(err)) return json({ error: message }, 400)
+
+    // Only condemn a campaign that has never got a message out. Once some have
+    // gone, 'failed' would strand the rest — the scheduler only resumes
+    // 'scheduled' and 'sending' — so leave it 'sending' and let the next tick
+    // pick it up.
+    const alreadySent = await countSendRows(supabase, campaign_id, ['sent']).catch(() => 0)
+    if (alreadySent === 0) {
+      await supabase.from('campaigns').update({ status: 'failed' }).eq('id', campaign_id)
+    }
     return json({ error: message }, 500)
   }
 })

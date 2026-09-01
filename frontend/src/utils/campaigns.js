@@ -57,15 +57,30 @@ export const CAMPAIGN_STATUS = {
 }
 
 // ── Preview rendering ────────────────────────────────────────────────────────
-const TAG_RE = /\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g
+
+// Anything written between double braces, however malformed. Deliberately much
+// broader than the old [a-zA-Z0-9_]+ pattern: {{first-name}}, {{first name}}
+// and {{last.job}} are the typos a person actually makes, and the narrow
+// pattern made every one of them invisible to the composer's warnings. The
+// sender resolves any {{…}} to the empty string, so a malformed tag is not a
+// cosmetic slip — it is a hole in the copy for every single recipient, and the
+// composer has to see it.
+const ANY_TAG_RE = /\{\{([^{}]*)\}\}/g
 
 // Substitute {{merge_tags}} for a preview. An unknown tag — or one we have no
 // value for — renders as an empty string rather than leaking "{{tag}}" into a
 // customer's inbox, which is exactly the failure mode this guards against.
+//
+// Matches ANY {{…}}, including malformed ones like {{first-name}}. The sender's
+// resolver does the same, so showing a malformed tag verbatim here would tell
+// the office the tag survives to the inbox when in fact it becomes a hole —
+// and would contradict the gap warning the composer prints beside it.
 export function renderPreview(body, contact = {}) {
   if (!body) return ''
-  return String(body).replace(TAG_RE, (_m, tag) => {
-    const v = contact?.[tag]
+  return String(body).replace(ANY_TAG_RE, (_m, raw) => {
+    const tag = raw.trim()
+    // Own properties only, so {{constructor}} doesn't render a function body.
+    const v = contact != null && Object.prototype.hasOwnProperty.call(contact, tag) ? contact[tag] : undefined
     return v === undefined || v === null ? '' : String(v)
   })
 }
@@ -128,16 +143,33 @@ export function mergeDataFor(contact = {}, campaign = {}) {
   }
 }
 
+// Every {{tag}} written in a piece of copy — braces and padding stripped, in
+// the order they appear, each reported once.
+export function tagsIn(text) {
+  const found = []
+  for (const m of String(text ?? '').matchAll(ANY_TAG_RE)) found.push(m[1].trim())
+  return [...new Set(found)]
+}
+
+// The tags the sender does not understand. Distinct from "empty for this
+// contact": these render as nothing for EVERYONE, so they are always a fault,
+// never a per-contact gap. The list is MERGE_TAGS — the same list the composer
+// offers as buttons and the same list _shared/campaign.ts resolves.
+export function unknownTagsIn(text) {
+  return tagsIn(text).filter(t => !MERGE_TAG_KEYS.includes(t))
+}
+
 // Which {{tags}} in a piece of copy would render as nothing for this contact —
 // i.e. exactly where the recipient sees a gap. "Your trees at {{suburb}} —
 // about due?" with no suburb arrives as "Your trees at  — about due?".
+// Unknown and malformed tags are included: they always render as a gap.
 export function emptyTagsIn(text, data = {}) {
-  const found = []
-  for (const m of String(text ?? '').matchAll(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g)) {
-    const v = data?.[m[1]]
-    if (v === undefined || v === null || String(v).trim() === '') found.push(m[1])
-  }
-  return [...new Set(found)]
+  return tagsIn(text).filter(tag => {
+    // Own properties only — `{{constructor}}` must not resolve off the
+    // prototype and be reported as "fine".
+    const v = data != null && Object.prototype.hasOwnProperty.call(data, tag) ? data[tag] : undefined
+    return v === undefined || v === null || String(v).trim() === ''
+  })
 }
 
 // ── Validation ───────────────────────────────────────────────────────────────
@@ -200,8 +232,33 @@ export function validateCampaign(c = {}) {
     if (!ctaUrl) {
       problems.push('Set a call-to-action link — the email needs somewhere to send people')
     } else if (!body.includes(ctaUrl)) {
-      problems.push(`The body doesn't include the call-to-action link (${ctaUrl}) — paste it in so people can act on the email`)
+      // ADVISORY, not blocking. The sender appends the CTA line only when the
+      // body doesn't already carry the link (renderCampaignEmail in
+      // _shared/campaign.ts), so the email always ends up with exactly one way
+      // to act on it. What's left here is a writing preference: a link inside a
+      // sentence of your own reads better than one bolted on at the end.
+      problems.push(
+        `The body doesn't include the call-to-action link (${ctaUrl}) — the sender will add it as a `
+        + `line of its own at the bottom. Paste it into a sentence yourself if you'd rather it read naturally.`
+      )
     }
+  }
+
+  // Merge tags the sender can't resolve — {{first-name}}, {{first name}},
+  // {{last.job}}. Every one of them reaches every recipient as a blank, so this
+  // is a fault in the copy, not a per-contact gap. Checked across all three
+  // places a tag can be written.
+  const unknown = [...new Set([
+    ...unknownTagsIn(subject),
+    ...unknownTagsIn(c.preheader ?? ''),
+    ...unknownTagsIn(body),
+  ])]
+  if (unknown.length) {
+    const list  = unknown.map(t => `{{${t}}}`).join(', ')
+    const valid = MERGE_TAG_KEYS.map(t => `{{${t}}}`).join(', ')
+    problems.push(unknown.length === 1
+      ? `${list} is not a merge tag — it reaches every recipient as a blank. The tags that work are ${valid}`
+      : `${list} are not merge tags — they reach every recipient as a blank. The tags that work are ${valid}`)
   }
 
   const pct = c.offer_percent
@@ -214,6 +271,13 @@ export function validateCampaign(c = {}) {
 
 // ── Audience ─────────────────────────────────────────────────────────────────
 // Buckets used by the audience breakdown. Half-open ranges: [min, max).
+//
+// NOTE these are NOT the same ranges as the audience filter, and they are not
+// meant to be. A contact at exactly 6 months lands in the "6–12 months" bucket
+// here, but IS included by max_months_since_job: 6, because the backend filters
+// with .lte() — inclusive at both ends. The buckets are a reporting histogram
+// (every contact in exactly one band); the filter is a selection (inclusive
+// range). Don't "fix" one to match the other; they answer different questions.
 export const MONTH_BUCKETS = [
   { key: '0-6',   label: '0–6 months',   min: 0,  max: 6 },
   { key: '6-12',  label: '6–12 months',  min: 6,  max: 12 },
@@ -227,30 +291,64 @@ export function bucketFor(months) {
   return MONTH_BUCKETS.find(b => n >= b.min && n < b.max)?.key ?? null
 }
 
+// Read a numeric audience clause EXACTLY the way the backend reads it.
+//
+// resolveAudience() in supabase/functions/_shared/campaign.ts gates every
+// numeric clause on `typeof f.x === 'number'`, so a filter stored in the
+// audience JSONB as the string "12" is silently ignored by the sender. Being
+// more lenient here would show a filter as applied on screen that the send
+// does not apply — the exact dishonesty the "N recipients match" count exists
+// to avoid. Blank and undefined mean "not set" in both.
+function numClause(v) {
+  return typeof v === 'number' && Number.isFinite(v) ? v : null
+}
+
 // Does one contact fall inside an audience filter? The same predicate drives the
 // live "N recipients match" count and the preview's sample contact, so what the
 // office sees on screen is what the sender will resolve.
+//
+// This is a faithful port of resolveAudience()'s PostgREST query. Every clause
+// below names the backend call it mirrors; if one changes, change both.
 export function matchesAudience(contact = {}, audience = {}) {
   const a = audience ?? {}
   const months = contact.months_since_job
 
-  if (a.min_months_since_job != null && a.min_months_since_job !== '') {
-    if (months == null || Number(months) < Number(a.min_months_since_job)) return false
-  }
-  if (a.max_months_since_job != null && a.max_months_since_job !== '') {
-    if (months == null || Number(months) > Number(a.max_months_since_job)) return false
-  }
+  // .gte('months_since_job', n) / .lte('months_since_job', n) — inclusive both
+  // ends. A NULL months_since_job (no job on record) fails an SQL comparison,
+  // so those contacts drop out whenever either bound is set.
+  const minMonths = numClause(a.min_months_since_job)
+  if (minMonths !== null && (months == null || Number(months) < minMonths)) return false
+
+  const maxMonths = numClause(a.max_months_since_job)
+  if (maxMonths !== null && (months == null || Number(months) > maxMonths)) return false
+
+  // .overlaps('services', […]) — array intersection, exact tag match.
   if (Array.isArray(a.services) && a.services.length) {
     const has = contact.services ?? []
     if (!a.services.some(s => has.includes(s))) return false
   }
+
+  // .in('suburb', […]) — plain SQL equality: CASE-SENSITIVE and NOT trimmed.
+  // This used to lowercase both sides, which counted "karori" as matching
+  // "Karori" on screen while the send matched nobody. The suburb values the
+  // picker offers come straight off the contact rows, so they already carry
+  // whatever casing and whitespace the import left on them — compare raw.
   if (Array.isArray(a.suburbs) && a.suburbs.length) {
-    const sub = (contact.suburb ?? '').toLowerCase()
-    if (!a.suburbs.some(s => String(s).toLowerCase() === sub)) return false
+    const sub = contact.suburb ?? ''
+    if (!a.suburbs.some(s => String(s) === sub)) return false
   }
-  if (a.min_job_count != null && a.min_job_count !== '') {
-    if (Number(contact.job_count ?? 0) < Number(a.min_job_count)) return false
-  }
+
+  // .gte('job_count', n)
+  const minJobs = numClause(a.min_job_count)
+  if (minJobs !== null && Number(contact.job_count ?? 0) < minJobs) return false
+
+  // .gte('lifetime_value', n). The backend has always applied this; it was
+  // missing here, so a spend filter counted everybody in and then mailed a
+  // fraction of them. lifetime_value comes back off PostgREST as a NUMERIC
+  // string ("1450.00"), hence the coercion.
+  const minValue = numClause(a.min_lifetime_value)
+  if (minValue !== null && Number(contact.lifetime_value ?? 0) < minValue) return false
+
   return true
 }
 
@@ -305,22 +403,28 @@ export function describeAudience(audience = {}) {
   const a = audience ?? {}
   const parts = []
 
-  const min = a.min_months_since_job
-  const max = a.max_months_since_job
-  const hasMin = min != null && min !== ''
-  const hasMax = max != null && max !== ''
-  if (hasMin && hasMax)      parts.push(`whose last job was between ${min} and ${max} months ago`)
-  else if (hasMin)           parts.push(`whose last job was ${min}+ months ago`)
-  else if (hasMax)           parts.push(`whose last job was in the last ${max} months`)
+  // Every clause is read through numClause, the same way matchesAudience and
+  // the sender read it — so the sentence never describes a filter that isn't
+  // actually being applied.
+  const min = numClause(a.min_months_since_job)
+  const max = numClause(a.max_months_since_job)
+  if (min !== null && max !== null) parts.push(`whose last job was between ${min} and ${max} months ago`)
+  else if (min !== null)            parts.push(`whose last job was ${min}+ months ago`)
+  else if (max !== null)            parts.push(`whose last job was in the last ${max} months`)
 
   if (Array.isArray(a.services) && a.services.length) {
     parts.push(`who have had ${orList(a.services.map(s => SERVICE_LABELS[s] ?? s))} done`)
   }
   if (Array.isArray(a.suburbs) && a.suburbs.length) {
-    parts.push(`in ${orList(a.suburbs)}`)
+    parts.push(`in ${orList(a.suburbs.map(sub => String(sub).trim()))}`)
   }
-  if (a.min_job_count != null && a.min_job_count !== '' && Number(a.min_job_count) > 1) {
-    parts.push(`with ${a.min_job_count} or more jobs with us`)
+  const minJobs = numClause(a.min_job_count)
+  if (minJobs !== null && minJobs > 1) {
+    parts.push(`with ${minJobs} or more jobs with us`)
+  }
+  const minValue = numClause(a.min_lifetime_value)
+  if (minValue !== null && minValue > 0) {
+    parts.push(`who have spent $${minValue.toLocaleString('en-NZ')} or more with us`)
   }
 
   if (!parts.length) return 'Every residential customer we can legally email'
@@ -345,9 +449,17 @@ export const SEGMENT_PRESETS = [
   },
   {
     key: 'recent',
+    // Inclusive of month 6 itself — the sender filters with .lte(). That means
+    // this preset overlaps the "6–12 months" reporting bucket by one month.
     label: 'Recent customers — last 6 months',
     hint: 'Still warm. Good for referrals and follow-on work, not for discounts.',
     audience: { max_months_since_job: 6 },
+  },
+  {
+    key: 'best',
+    label: 'Best customers — $2,000+ lifetime',
+    hint: 'The people worth a personal note. Spend, not recency — they may be recent or lapsed.',
+    audience: { min_lifetime_value: 2000 },
   },
   {
     key: 'everyone',

@@ -21,7 +21,7 @@
 //
 // Required secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 
-import { serviceClient, b64urlDecode, ALLOWED_LINK_HOST } from '../_shared/campaign.ts'
+import { serviceClient, b64urlDecode, isTrackableLink } from '../_shared/campaign.ts'
 
 // 1x1 fully transparent GIF.
 const PIXEL_B64 = 'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
@@ -50,14 +50,9 @@ function bad(message: string, status = 400) {
   })
 }
 
-// https + our own domain only.
-function isAllowedDestination(raw: string): boolean {
-  let u: URL
-  try { u = new URL(raw) } catch { return false }
-  if (u.protocol !== 'https:') return false
-  const host = u.hostname.toLowerCase()
-  return host === ALLOWED_LINK_HOST || host.endsWith(`.${ALLOWED_LINK_HOST}`)
-}
+// https + our own domain only — isTrackableLink() in _shared/campaign.ts is the
+// single definition, and the sender consults the same predicate before wrapping
+// anything, so a link can never be wrapped into a URL this endpoint refuses.
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -93,16 +88,24 @@ Deno.serve(async (req: Request) => {
     let destination: string
     try { destination = b64urlDecode(encoded) } catch { return bad('Malformed destination') }
 
-    if (!isAllowedDestination(destination)) {
+    if (!isTrackableLink(destination)) {
       return bad('Refusing to redirect off urbantreeservices.net')
     }
+
+    // Header values must be ASCII. A perfectly valid URL with a macron in it —
+    // /pōhutukawa — throws when it is put in a Location header, which would
+    // turn the whole redirect into a 500. The URL parser gives us the
+    // percent-encoded form that belongs on the wire; the original is what gets
+    // logged as the click.
+    let location: string
+    try { location = new URL(destination).href } catch { return bad('Malformed destination') }
 
     try { await supabase.rpc('register_campaign_click', { p_token: click, p_url: destination }) } catch { /* ignore */ }
 
     return new Response(null, {
       status: 302,
       headers: {
-        Location: destination,
+        Location: location,
         'Cache-Control': 'no-store, no-cache, must-revalidate, private',
         'Referrer-Policy': 'no-referrer',
       },
