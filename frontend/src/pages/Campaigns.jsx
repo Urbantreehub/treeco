@@ -926,15 +926,31 @@ function SendProgress({ draft, lastSend, dailyCap }) {
   const queued    = Number(st.queued ?? lastSend?.remaining ?? 0)
   const failed    = Number(st.failed ?? lastSend?.failed ?? 0)
   const skipped   = Number(st.skipped ?? lastSend?.skipped ?? 0)
-  const total     = Number(st.recipients ?? (sent + queued + failed + skipped))
   const capped    = lastSend?.capped === true
   const capNow    = lastSend?.daily_cap ?? dailyCap
+
+  // `queued` counts QUEUED ROWS. Under the daily cap the rest of the audience
+  // has no row at all — the run stops queueing once the day's allowance is
+  // gone — so `queued` is 0 while hundreds of people are still to be mailed.
+  // The sender reports those separately as `unqueued`, and the two together
+  // are the only honest answer to "how many are left".
+  const unqueued  = Number(lastSend?.unqueued ?? 0)
+  const stillToGo = queued + unqueued
 
   // Only render once there is something real to report.
   if (!lastSend && !st.recipients) return null
 
+  // st.recipients counts rows made so far, NOT the campaign's audience, so it
+  // is 50 after a capped first run. Using it as the denominator drew a full
+  // bar over a quarter-finished send.
+  const total = sent + stillToGo + failed + skipped
   const pct = total > 0 ? Math.min(100, Math.round((sent / total) * 100)) : 0
-  const done = draft.status === 'sent' || (queued === 0 && total > 0)
+
+  // The backend is the only thing that knows whether the audience is drained —
+  // it does an anti-join before flipping the status. The page used to second-
+  // guess it with `queued === 0`, which is exactly the condition the daily cap
+  // produces, and so announced "This campaign has been sent" mid-send.
+  const done = draft.status === 'sent'
 
   return (
     <div style={s.card}>
@@ -957,7 +973,7 @@ function SendProgress({ draft, lastSend, dailyCap }) {
           <div style={s.tileLabel}>Sent</div>
         </div>
         <div style={s.tile}>
-          <div style={s.tileNum}>{queued.toLocaleString('en-NZ')}</div>
+          <div style={s.tileNum}>{stillToGo.toLocaleString('en-NZ')}</div>
           <div style={s.tileLabel}>Still to go</div>
         </div>
         {failed > 0 && (
@@ -977,10 +993,12 @@ function SendProgress({ draft, lastSend, dailyCap }) {
       {capped && (
         <div style={s.warnBox}>
           <strong>Paused on the daily cap.</strong>{' '}
+          {/* The sender's own message already ends with "…they go out on the
+              next run", so appending the same sentence printed it twice. */}
           {lastSend?.message
-            ?? `The cap of ${capNow} sends a day was reached, so the run stopped there.`}
-          {queued > 0 && ` ${queued.toLocaleString('en-NZ')} ${queued === 1 ? 'person is' : 'people are'} still queued.`}
-          {' '}They go out on the sender's next run, or when you press Send again.
+            ?? `The cap of ${capNow} sends a day was reached, so the run stopped there. `
+             + `${stillToGo.toLocaleString('en-NZ')} still to go — they go out on the sender's `
+             + `next run, or when you press Send again.`}
         </div>
       )}
       {!capped && queued > 0 && draft.status === 'sending' && (
@@ -1272,10 +1290,41 @@ export default function Campaigns() {
   function set(patch) { setDraft(d => ({ ...d, ...patch })) }
 
   async function loadAudience() {
-    const { data, error } = await supabase.from('campaign_audience_eligible')
-      .select(AUDIENCE_COLS).order('last_job_at', { ascending: false, nullsFirst: false }).limit(5000)
-    if (error) showToast('Could not load the mailing list: ' + error.message, true)
-    setContacts(data ?? [])
+    // PAGED, and the order is part of the correctness, not a preference.
+    //
+    // This used to be a single .limit(5000). PostgREST caps every response at
+    // its own db-max-rows (1000 here) and does NOT report that it truncated —
+    // so the page silently held the first 1000 of 2,133 contacts and every
+    // "N recipients match" count on screen was computed against that slice.
+    //
+    // The ordering made it far worse than a random 47% sample. Sorted by
+    // last_job_at DESC the rows that survived were the most RECENT customers —
+    // precisely the ones a "last job 9+ months ago" filter is designed to
+    // exclude. The hedge audience read 111 when it was really 207: not a small
+    // undercount, a systematic one that hid exactly the people being mailed.
+    //
+    // Also note the .order() below is what makes range paging safe at all.
+    // Postgres gives no stable row order without ORDER BY, so an unordered
+    // limit/offset scan can hand back the same row twice and never show
+    // another. id is the tiebreak so the sort is total, not just on a column
+    // with thousands of ties and NULLs.
+    const PAGE = 1000
+    const all = []
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await supabase.from('campaign_audience_eligible')
+        .select(AUDIENCE_COLS)
+        .order('last_job_at', { ascending: false, nullsFirst: false })
+        .order('id', { ascending: true })
+        .range(from, from + PAGE - 1)
+      if (error) {
+        showToast('Could not load the mailing list: ' + error.message, true)
+        break
+      }
+      const page = data ?? []
+      all.push(...page)
+      if (page.length < PAGE) break
+    }
+    setContacts(all)
     setLoadingAudience(false)
   }
   async function loadCampaigns() {
