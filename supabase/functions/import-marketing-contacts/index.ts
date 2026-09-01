@@ -1,7 +1,8 @@
 // Populates `marketing_contacts` (the Campaigns mailing list) from the three
 // places our customer history actually lives.
 //
-// POST body: { source: 'xero' | 'quotient' | 'clients', contacts?: [...], dry_run?: boolean }
+// POST body: { source: 'xero' | 'quotient' | 'clients', contacts?: [...],
+//               dry_run?: boolean, refresh_summaries?: boolean }
 //   source    'xero'     — pulls Contacts + ACCREC Invoices straight from the
 //                          Xero API using the stored xero_connections row.
 //             'quotient' — Quotient has no read API, so rows are extracted in
@@ -9,6 +10,11 @@
 //             'clients'  — seeds from the app's own clients/jobs/quotes.
 //   contacts  required for 'quotient'; capped at 5000 rows, validated per row.
 //   dry_run   compute the full summary and write nothing.
+//   refresh_summaries
+//             re-render `last_job_summary` on contacts that already exist,
+//             where this source describes the same most recent job. Off by
+//             default — a normal re-import keeps the stored sentence. Use it
+//             after summariseJob() changes. Consent is still never touched.
 //
 // Auth: caller must be a signed-in full/office user (Bearer session token).
 //
@@ -278,6 +284,64 @@ const ADMIN_LINE = /^(travel|mileage|disposal|green\s?waste|waste|dump(ing)?\s?f
 
 const NUMBER_WORDS = ['', '', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine']
 const DETERMINED = /^(the|a|an|your|both|some|several)\b/
+const DETERMINERS = new Set(['the', 'a', 'an', 'your', 'our', 'their', 'his', 'her', 'its', 'both', 'some', 'several'])
+
+/**
+ * Words a NOUN PHRASE cannot begin with.
+ *
+ * A candidate subject starting with one of these is not a subject at all. It is
+ * either the tail of an action bullet that leaked out of a *…* group — quotes
+ * are often written `*Camellia near stairs*` / `*To round over and shape*`, and
+ * the second group is an ACTION wearing a subject's asterisks — or what is left
+ * of a clause after its leading verb was stripped ("Reduce by approx 2 metres"
+ * → "by approx 2 metres", "Remove leaving low stumps" → "leaving low stumps").
+ *
+ * Interpolated into the campaign frame those read "we reduced the by approx 2
+ * metres for you", so the clause is DROPPED. A shorter true sentence beats a
+ * longer broken one, and an empty summary is a supported outcome.
+ */
+const NON_SUBJECT_HEAD = new Set([
+  // conjunctions / discourse
+  'and', 'or', 'but', 'plus', 'also', 'then', 'so', 'as', 'if', 'per', 'via', 'etc',
+  // prepositions / particles
+  'by', 'to', 'at', 'on', 'in', 'into', 'onto', 'of', 'off', 'for', 'from', 'with',
+  'without', 'near', 'along', 'around', 'across', 'behind', 'beside', 'between',
+  'through', 'under', 'over', 'above', 'below', 'out', 'up', 'down', 'next',
+  // measurement lead-ins
+  'approx', 'approximately', 'about', 'upto',
+  // participles / bare verbs — anything still verb-shaped after the leading-verb
+  // strip is an action fragment, not a tree
+  'leaving', 'leave', 'left', 'taking', 'taken', 'take', 'removing', 'removed',
+  'remove', 'cutting', 'cut', 'reducing', 'reduced', 'reduce', 'pruning', 'pruned',
+  'prune', 'trimming', 'trimmed', 'trim', 'grinding', 'ground', 'grind', 'chipping',
+  'chipped', 'chip', 'lifting', 'lifted', 'lift', 'tidying', 'tidied', 'tidy',
+  'shaping', 'shaped', 'shape', 'poison', 'poisoning', 'poisoned', 'treat',
+  'treating', 'spray', 'spraying', 'dispose', 'disposing', 'stack', 'stacking',
+  'including', 'incl', 'ensure', 'ensuring', 'allow', 'allowing',
+  // debris from a fragment that starts mid-word
+  'nd', 'rd', 'th', 'st',
+])
+
+/** True when the phrase opens on a real noun-phrase head rather than a fragment. */
+function hasSubjectHead(s: string): boolean {
+  for (const word of s.split(/\s+/)) {
+    const w = word.replace(/[^a-z0-9%āēīōū]/gi, '').toLowerCase()
+    if (!w) continue
+    if (DETERMINERS.has(w)) continue            // "the two karo" — look past it
+    return !NON_SUBJECT_HEAD.has(w)
+  }
+  return false
+}
+
+/**
+ * An action tacked onto the end of a subject with "and" ("all trees and poison
+ * stumps"): keeping it turns the action into a second thing we removed.
+ *
+ * Only unambiguously verbal words qualify — "mulch", "chip", "clean" and "tidy"
+ * are nouns and adjectives here as often as verbs ("the hedge and mulch beds",
+ * "area left clean and tidy"), so they are left alone.
+ */
+const TRAILING_ACTION = /\s*[,&]?\s+(and|&)\s+(poison|poisoning|poisoned|leaving|treating|spraying|stacking|disposing|removing|grinding|chipping|cutting|tidying|cleaning|raking|mulching|filling|ensuring|ensure)\b.*$/i
 
 /**
  * Past-tense verb phrases, in priority order. First match on the action text
@@ -340,8 +404,12 @@ function renderSubject(raw: string): string | null {
   for (let i = 0; i < 2; i++) {
     s = s.replace(/^(re-?)?(reduce|reduces|reduced|reduction|remove|removes|removed|removal|prune|pruning|pruned|trim|trimmed|trimming|thin|thinned|lift|lifted|dismantle|fell|fell out|grind|square up|square off|tidy|shape|cut back|cut down|take out|plant|planted|chip|mulch|clear|deadwood)\b\s*/, '')
   }
+  // "All trees out the back" is a subject; "the all trees out the back" is not.
+  // ('all …' also reaches here from a leading verb strip: "Prune all trees …".)
+  s = s.replace(/^all\s+(of\s+)?(the\s+)?/, '')
   s = s.replace(/^\d+\s*m(etre|tr)?s?\s+(of\s+)?/, '')            // "1M of magnolia"
   s = s.replace(/\b(by\s+)?(approx(imately)?\s+)?\d+\s*%/g, '')    // "by approx 15%"
+  s = s.replace(TRAILING_ACTION, '')                              // "… and poison stumps"
   s = s.replace(/\bat\s+(the\s+)?front\b/, 'out front')
   s = s.replace(/\bat\s+(the\s+)?(back|rear)\b/, 'out the back')
   s = s.replace(/\bin\s+(the\s+)?(drive(way)?|lawn|garden)\b/, 'in the $2')
@@ -354,9 +422,26 @@ function renderSubject(raw: string): string | null {
   })
   s = clipWords(s, 40)
   if (!s || s.length < 3 || !/[a-z]{3}/.test(s)) return null
+  // Not a noun phrase — an action fragment. Drop the clause entirely.
+  if (!hasSubjectHead(s)) return null
 
   s = macronise(s)
   return DETERMINED.test(s) ? s : `the ${s}`
+}
+
+/** Function words a phrase must not END on — they promise something that follows. */
+const TRAILING_FUNCTION_WORD =
+  /\s+(and|or|but|with|for|to|on|of|the|a|an|in|at|by|from|near|along|into|onto|out|off|over|under|up|down|around|across|between|through|plus|then|&)$/i
+
+/** Drop a dangling conjunction/preposition (and any run of them) off the end. */
+function trimDangling(s: string): string {
+  let out = s.replace(/[\s,;:.\-–—]+$/, '')
+  for (let i = 0; i < 4; i++) {
+    const next = out.replace(TRAILING_FUNCTION_WORD, '').replace(/[\s,;:.\-–—]+$/, '')
+    if (next === out) break
+    out = next
+  }
+  return out
 }
 
 /** Truncate on a word boundary, dropping a dangling conjunction. */
@@ -365,7 +450,35 @@ function clipWords(s: string, max: number): string {
   let cut = s.slice(0, max)
   const sp = cut.lastIndexOf(' ')
   if (sp > 8) cut = cut.slice(0, sp)
-  return cut.replace(/\s+(and|with|for|to|on|of|the|a|in|at|plus|&)$/i, '').replace(/[\s,;:.\-–—]+$/, '')
+  cut = trimDangling(cut)
+  // The cut can land inside a prepositional phrase ("… of driveway from
+  // front" | "to rear"), which stops mid-thought. Drop that half-phrase — but
+  // only when the next word was continuing it. If what follows is a connector
+  // the phrase was already complete and must be kept.
+  const nextWord = (s.slice(cut.length).trim().split(/\s+/)[0] ?? '').toLowerCase()
+  if (nextWord && !/^(and|or|but|plus|then|&|,)$/.test(nextWord)) {
+    const whole = cut.replace(
+      /\s+(along|from|near|by|to|of|on|in|at|with|between|across|around|behind|under|over|through|out|off|up|down|next)\s+\S+$/i, '')
+    if (whole.length >= 12) cut = whole
+  }
+  return trimDangling(cut)
+}
+
+/**
+ * Take a species word plus up to `back` characters of the modifiers in front of
+ * it ("2x karo", "silver birch"), but NEVER start mid-word: a blind character
+ * offset turned "round over one camellia" into the subject "nd over one
+ * camellia". Snapping forward to the next word boundary keeps whole words only,
+ * and anything that still opens on a fragment is rejected by hasSubjectHead().
+ */
+function sliceFromWordStart(s: string, idx: number, back: number): string {
+  if (idx <= 0) return s
+  let start = Math.max(0, idx - back)
+  if (start > 0 && !/\s/.test(s[start - 1])) {
+    const sp = s.indexOf(' ', start)
+    start = (sp === -1 || sp >= idx) ? idx : sp + 1
+  }
+  return s.slice(start)
 }
 
 type WorkPhrase = { verb: string; subject: string }
@@ -426,7 +539,7 @@ function parseLineItem(description: string): WorkPhrase[] {
     // Prefer a recognised species over the raw clause remainder.
     const species = SPECIES_WORDS.find((w) => new RegExp(`\\b${w}\\b`).test(lower))
     const subject = species
-      ? renderSubject(lower.slice(Math.max(0, lower.indexOf(species) - 12)))
+      ? renderSubject(sliceFromWordStart(lower, lower.indexOf(species), 12))
       : renderSubject(clause)
     if (!subject) continue
     const own = matchVerb(clause)
@@ -476,13 +589,28 @@ export function summariseJob(lineItems: unknown, _address?: unknown): string | n
       : `${a.verb} ${a.subject} and ${b.verb} ${b.subject}`
   }
 
-  let out = render(phrases.slice(0, 2))
-  if (out.length > 80) out = render(phrases.slice(0, 1))
-  if (out.length > 80) out = clipWords(out, 80)
-  out = out.replace(/\s{2,}/g, ' ').replace(/[.,;:]+$/, '').trim().toLowerCase()
-  out = macronise(out)
-  return out.length >= 8 ? out : null
+  const finish = (list: WorkPhrase[]): string | null => {
+    if (!list.length) return null
+    let out = render(list)
+    if (out.length > 80) out = clipWords(out, 80)
+    out = trimDangling(out.replace(/\s{2,}/g, ' ').trim()).toLowerCase()
+    out = macronise(out)
+    if (out.length < 8) return null
+    // Last line of defence. Every subject was validated on its own, so this can
+    // only fire if clipping cut one in half — in which case fall back to the
+    // single leading phrase, and to null rather than mail a fragment.
+    return BROKEN_SUMMARY.test(out) ? null : out
+  }
+
+  // Two phrases if they fit, otherwise the leading one — and null rather than
+  // a fragment if even that cannot be rendered cleanly.
+  const two = phrases.slice(0, 2)
+  return (render(two).length <= 80 ? finish(two) : null) ?? finish(phrases.slice(0, 1))
 }
+
+/** A rendered summary that still reads as a fragment: "reduced the by approx 2m". */
+const BROKEN_SUMMARY =
+  /(^|\s)(the|a|an)\s+(and|or|by|to|at|on|in|of|off|for|from|with|out|over|under|up|down|into|near|along|between|through|all|leaving|left|approx|nd)\b/
 
 /**
  * Pull the suburb out of a free-text address, for the `suburb` column.
@@ -502,6 +630,59 @@ export function suburbFromAddress(address: unknown): string | null {
     return s.charAt(0).toUpperCase() + s.slice(1)
   }
   return null
+}
+
+// ── The name + suburb secondary match key ───────────────────────────────────
+// Measured on the live data: of 4,278 Quotient rows against the 2,092 rows Xero
+// already put in, 2,123 match on lower(email) and 30 are the SAME PERSON with a
+// different address in each system (aknowsley@xtra.co.nz vs
+// aknowsley@raineycollins.co.nz). Without a second key those 30 become duplicate
+// contacts and get two copies of every campaign.
+//
+// The key is normalised full name + normalised suburb, and it is deliberately
+// NOT address alone. At one property there are commonly two separate people:
+//
+//   29 Woodmancote Road, Khandallah   Brent Cresswell   AND  Anne Haase
+//   48 Satara Crescent, Khandallah    Samuel Hack       AND  Lianne Hack
+//   110 Inglis St, Seatoun            Craig Davis       AND  Elizabeth Davis
+//
+// — couples, or a new owner after a sale. Merging them would fuse two real
+// people into one row and destroy one person's independent ability to
+// unsubscribe, which is a compliance failure, not a tidiness one. Their names
+// differ, so name+suburb leaves them alone.
+//
+// Both halves are required, so this will not catch all 30. Measured over the
+// 2,092 rows already in the table: 97.3% carry a suburb and 94.8% produce a
+// usable key (the rest are one-word names), and NO two of them share a key. On
+// the incoming side only ~83% have a suburb at all. That is the intended
+// trade — an under-merge is fixable by hand later, a wrong merge is not.
+
+const MIN_NAME_KEY   = 5    // "jo li" — shorter than this is not a real full name
+const MIN_SUBURB_KEY = 3
+const MAX_ALT_EMAILS = 10
+
+/** Lowercase, strip macrons, collapse everything non-alphanumeric to one space. */
+export function normaliseKey(s: unknown): string {
+  return deburr(String(s ?? '')).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+}
+
+/**
+ * `name|suburb`, or null when either half is missing or too thin to trust.
+ * A single given name, or a name with no suburb, falls through to an insert
+ * rather than guessing — a common name must never silently swallow a stranger.
+ */
+export function nameSuburbKey(name: unknown, suburb: unknown): string | null {
+  const n = normaliseKey(name)
+  const s = normaliseKey(suburb)
+  if (n.length < MIN_NAME_KEY || !n.includes(' ')) return null   // need first AND last
+  if (s.length < MIN_SUBURB_KEY) return null
+  return `${n}|${s}`
+}
+
+/** The best name we hold for a row, whichever columns are populated. */
+function contactName(r: { full_name?: unknown; first_name?: unknown; last_name?: unknown }): string {
+  return String(r.full_name ?? '').trim()
+    || [r.first_name, r.last_name].map((p) => String(p ?? '').trim()).filter(Boolean).join(' ')
 }
 
 // ── Dates ───────────────────────────────────────────────────────────────────
@@ -540,18 +721,26 @@ const maxDate = (a: string | null, b: string | null) => (!a ? b : !b ? a : a > b
 //
 //   [import] xero:jobs=3;value=1840.00 quotient:jobs=1;value=0.00
 //   [quotes] 5515 5610
+//   [alt-emails] aknowsley@xtra.co.nz
 //
 // job_count is then the sum across sources and never drifts, however many
 // times each source is re-imported, and `[quotes]` keeps the Xero↔Quotient
-// join stable. Human notes above the trailer are preserved untouched.
+// join stable. `[alt-emails]` holds the OTHER addresses the same person is
+// filed under in another system — the row keeps the address already on file as
+// primary (it is the one consent was recorded against), and the alternate is
+// kept rather than thrown away so the office can see why the two rows merged.
+// Human notes above the trailer are preserved untouched.
 
 type Contribution = { jobs: number; value: number }
 type Trailer = Record<string, Contribution>
 
-function parseTrailer(notes: unknown): { human: string; trailer: Trailer; quotes: string[] } {
+function parseTrailer(notes: unknown): {
+  human: string; trailer: Trailer; quotes: string[]; altEmails: string[]
+} {
   const lines = String(notes ?? '').split('\n')
   const trailer: Trailer = {}
   const quotes: string[] = []
+  const altEmails: string[] = []
   const human: string[] = []
 
   for (const line of lines) {
@@ -565,20 +754,26 @@ function parseTrailer(notes: unknown): { human: string; trailer: Trailer; quotes
       for (const tok of t.replace('[quotes]', '').trim().split(/\s+/)) {
         if (/^\d+$/.test(tok) && !quotes.includes(tok)) quotes.push(tok)
       }
+    } else if (t.startsWith('[alt-emails]')) {
+      for (const tok of t.replace('[alt-emails]', '').trim().split(/\s+/)) {
+        const e = normaliseEmail(tok)
+        if (e && !altEmails.includes(e)) altEmails.push(e)
+      }
     } else {
       human.push(line)
     }
   }
-  return { human: human.join('\n').trim(), trailer, quotes }
+  return { human: human.join('\n').trim(), trailer, quotes, altEmails }
 }
 
-function formatNotes(human: string, trailer: Trailer, quotes: string[]): string | null {
+function formatNotes(human: string, trailer: Trailer, quotes: string[], altEmails: string[] = []): string | null {
   const keys = Object.keys(trailer).sort()
   const importLine = keys.length
     ? `[import] ${keys.map((k) => `${k}:jobs=${trailer[k].jobs};value=${trailer[k].value.toFixed(2)}`).join(' ')}`
     : ''
   const quoteLine = quotes.length ? `[quotes] ${quotes.slice(0, MAX_QUOTE_REFS).join(' ')}` : ''
-  const out = [human, importLine, quoteLine].filter(Boolean).join('\n').trim()
+  const altLine = altEmails.length ? `[alt-emails] ${altEmails.slice(0, MAX_ALT_EMAILS).join(' ')}` : ''
+  const out = [human, importLine, quoteLine, altLine].filter(Boolean).join('\n').trim()
   return out || null
 }
 
@@ -1022,8 +1217,99 @@ function buildInsert(c: Candidate, contactType: string, suppressed: boolean) {
   }
 }
 
-function applyMerge(existing: any, c: Candidate, contactType: string) {
-  const { human, trailer, quotes } = parseTrailer(existing.notes)
+/**
+ * The indexes an incoming candidate is matched against. Built once per run from
+ * whatever is already in `marketing_contacts`.
+ */
+export type MatchIndex = {
+  bySourceRef:   Map<string, any>
+  byEmail:       Map<string, any>
+  byQuoteNo:     Map<string, any>
+  byNameSuburb:  Map<string, any>
+  /** name+suburb keys held by more than one existing person — never matchable. */
+  ambiguousKeys: Set<string>
+  /** rows already claimed earlier in this run. */
+  takenIds:      Set<string>
+}
+
+export type MatchedBy = 'source_ref' | 'email' | 'quote_no' | 'name_suburb' | null
+
+/**
+ * Find the existing contact an incoming candidate belongs to, in descending
+ * order of confidence:
+ *
+ *   1. (source, source_ref)  — the same system's own id
+ *   2. lower(email)
+ *   3. the Quotient quote number shared with a Xero invoice — a real join key
+ *   4. normalised full name + normalised suburb — the same person under two
+ *      different email addresses, one in Xero and one in Quotient
+ *
+ * Step 4 is the only fuzzy one and is deliberately conservative: it needs a
+ * two-part name AND a suburb, and refuses a key two existing people share. It
+ * is NOT an address match — two people at one property (a couple, or a new
+ * owner) have different names and stay separate rows, because merging them
+ * would take away one person's own ability to unsubscribe.
+ */
+export function matchExistingContact(
+  c: Pick<Candidate, 'source' | 'source_ref' | 'email' | 'first_name' | 'last_name' | 'full_name' | 'suburb' | 'quote_nos'>,
+  index: MatchIndex,
+): { row: any | null; matched_by: MatchedBy } {
+  if (c.source_ref) {
+    const hit = index.bySourceRef.get(`${c.source}:${c.source_ref}`)
+    if (hit) return { row: hit, matched_by: 'source_ref' }
+  }
+  const byMail = index.byEmail.get(normaliseEmail(c.email))
+  if (byMail) return { row: byMail, matched_by: 'email' }
+
+  for (const q of c.quote_nos ?? []) {
+    const hit = index.byQuoteNo.get(q)
+    if (hit && !index.takenIds.has(hit.id)) return { row: hit, matched_by: 'quote_no' }
+  }
+
+  const nk = nameSuburbKey(contactName(c), c.suburb)
+  if (nk && !index.ambiguousKeys.has(nk)) {
+    const hit = index.byNameSuburb.get(nk)
+    if (hit && !index.takenIds.has(hit.id)) return { row: hit, matched_by: 'name_suburb' }
+  }
+  return { row: null, matched_by: null }
+}
+
+/**
+ * Which `last_job_summary` a merge keeps.
+ *
+ * Default: the stored one wins unless it is empty or the incoming source's job
+ * is genuinely more recent. That means a re-import over a contact that already
+ * exists does NOT regenerate the sentence — the row keeps whatever the first
+ * import wrote, for ever.
+ *
+ * `refresh` (request body `refresh_summaries: true`) is the opt-in escape
+ * hatch for exactly one situation: summariseJob() has been improved and the
+ * rows already imported are holding sentences the old version produced. It
+ * only ever replaces the summary when the incoming source is describing the
+ * SAME most recent job (same `last_job_at`) and actually produced a sentence,
+ * so it re-renders history rather than rewriting it. It touches nothing else —
+ * consent, dates and counts are unaffected.
+ */
+export function pickSummary(
+  existing: { last_job_at?: string | null; last_job_summary?: string | null },
+  c: { last_job_at: string | null; last_job_summary: string | null },
+  refresh = false,
+): string | null {
+  const incomingIsNewer = !!c.last_job_at && (!existing.last_job_at || c.last_job_at > existing.last_job_at)
+  if (!existing.last_job_summary || incomingIsNewer) {
+    return c.last_job_summary ?? existing.last_job_summary ?? null
+  }
+  const sameJob = !!c.last_job_at && c.last_job_at === existing.last_job_at
+  if (refresh && sameJob && c.last_job_summary) return c.last_job_summary
+  return existing.last_job_summary
+}
+
+/**
+ * The patch written over an existing contact. Exported for tests — nothing at
+ * runtime imports this module.
+ */
+export function applyMerge(existing: any, c: Candidate, contactType: string, refreshSummaries = false) {
+  const { human, trailer, quotes, altEmails } = parseTrailer(existing.notes)
   // Seed the trailer from the row's own source the first time we see a row
   // that predates the trailer format, so nothing is lost or double-counted.
   if (!Object.keys(trailer).length && (existing.job_count || existing.lifetime_value)) {
@@ -1044,11 +1330,17 @@ function applyMerge(existing: any, c: Candidate, contactType: string) {
   const services = Array.from(new Set([...(existing.services ?? []), ...c.services])).sort()
   const mergedQuotes = Array.from(new Set([...c.quote_nos, ...quotes])).slice(0, MAX_QUOTE_REFS)
 
-  // Keep the existing summary unless this source's job is genuinely newer.
-  const incomingIsNewer = !!c.last_job_at && (!existing.last_job_at || c.last_job_at > existing.last_job_at)
-  const summary = (!existing.last_job_summary || incomingIsNewer)
-    ? (c.last_job_summary ?? existing.last_job_summary ?? null)
-    : existing.last_job_summary
+  // This row was matched on something other than the email address (name +
+  // suburb, or the shared quote number), so the incoming address is a second
+  // address for the same person. The row keeps the one already on file —
+  // consent was recorded against it — and the other is kept in the trailer
+  // rather than silently dropped.
+  const existingEmail = normaliseEmail(existing.email)
+  const mergedAlts = (c.email && c.email !== existingEmail && !altEmails.includes(c.email))
+    ? [...altEmails, c.email].slice(0, MAX_ALT_EMAILS)
+    : altEmails
+
+  const summary = pickSummary(existing, c, refreshSummaries)
 
   return {
     id: existing.id,
@@ -1071,7 +1363,7 @@ function applyMerge(existing: any, c: Candidate, contactType: string) {
     lifetime_value: Math.round(lifetimeValue * 100) / 100,
     services,
     last_job_summary: summary,
-    notes: formatNotes(human, trailer, mergedQuotes),
+    notes: formatNotes(human, trailer, mergedQuotes, mergedAlts),
     updated_at: new Date().toISOString(),
     // NOTE: consent_status, consent_source, consent_at, unsubscribe_token,
     // unsubscribed_at, unsubscribe_reason, bounced_at and complained_at are
@@ -1108,6 +1400,9 @@ Deno.serve(async (req: Request) => {
     const body   = await req.json().catch(() => ({}))
     const source = String(body.source ?? '')
     const dryRun = body.dry_run === true
+    // Opt-in: re-render last_job_summary on rows that already exist. Off by
+    // default, so a routine re-import behaves exactly as it always has.
+    const refreshSummaries = body.refresh_summaries === true
     if (!['xero', 'quotient', 'clients'].includes(source)) {
       return json({ error: "source must be one of 'xero', 'quotient', 'clients'" }, 400)
     }
@@ -1158,14 +1453,26 @@ Deno.serve(async (req: Request) => {
       'id, email, source, source_ref, first_name, last_name, full_name, phone, address, suburb, city, ' +
       'client_id, contact_type, first_job_at, last_job_at, job_count, lifetime_value, services, ' +
       'last_job_summary, consent_status, notes')
-    const byEmail     = new Map<string, any>()
-    const bySourceRef = new Map<string, any>()
-    const byQuoteNo   = new Map<string, any>()
+    const byEmail       = new Map<string, any>()
+    const bySourceRef   = new Map<string, any>()
+    const byQuoteNo     = new Map<string, any>()
+    const byNameSuburb  = new Map<string, any>()
+    const ambiguousKeys = new Set<string>()
     for (const r of existingRows) {
       byEmail.set(normaliseEmail(r.email), r)
       if (r.source_ref) bySourceRef.set(`${r.source}:${r.source_ref}`, r)
       for (const q of parseTrailer(r.notes).quotes) if (!byQuoteNo.has(q)) byQuoteNo.set(q, r)
+      const nk = nameSuburbKey(contactName(r), r.suburb)
+      if (nk) {
+        // Two existing people already share this name and suburb, so the key
+        // cannot identify either of them. Never match on it.
+        if (byNameSuburb.has(nk)) ambiguousKeys.add(nk)
+        else byNameSuburb.set(nk, r)
+      }
     }
+
+    const takenIds = new Set<string>()
+    const index: MatchIndex = { bySourceRef, byEmail, byQuoteNo, byNameSuburb, ambiguousKeys, takenIds }
 
     const suppressions = new Set<string>()
     for (const s of await pageAll(supabase, 'email_suppressions', 'email, created_at')) {
@@ -1183,8 +1490,7 @@ Deno.serve(async (req: Request) => {
     const inserts: any[] = []
     const updates: any[] = []
     const sample: any[] = []
-    const takenIds = new Set<string>()
-    let residential = 0, commercial = 0, suppressedNoHistory = 0, joinedOnQuoteNo = 0
+    let residential = 0, commercial = 0, suppressedNoHistory = 0, joinedOnQuoteNo = 0, joinedOnNameSuburb = 0
 
     for (const c of deduped.values()) {
       // Link back to the operational client record where we can.
@@ -1196,20 +1502,13 @@ Deno.serve(async (req: Request) => {
         c.full_name ?? [c.first_name, c.last_name].filter(Boolean).join(' '), c.email)
       if (contactType === 'commercial') commercial++; else residential++
 
-      // Match in order of confidence: same source's own id, then the email
-      // address, then the Quotient quote number shared with a Xero invoice.
-      let existing = (c.source_ref ? bySourceRef.get(`${c.source}:${c.source_ref}`) : null)
-        ?? byEmail.get(c.email) ?? null
-      if (!existing) {
-        for (const q of c.quote_nos) {
-          const hit = byQuoteNo.get(q)
-          if (hit && !takenIds.has(hit.id)) { existing = hit; joinedOnQuoteNo++; break }
-        }
-      }
+      const { row: existing, matched_by } = matchExistingContact(c, index)
+      if (matched_by === 'quote_no')    joinedOnQuoteNo++
+      if (matched_by === 'name_suburb') joinedOnNameSuburb++
 
       if (existing && !takenIds.has(existing.id)) {
         takenIds.add(existing.id)
-        const patch = applyMerge(existing, c, contactType)
+        const patch = applyMerge(existing, c, contactType, refreshSummaries)
         updates.push(patch)
         if (sample.length < 5) sample.push({ action: 'update', existing_consent: existing.consent_status, ...patch })
       } else if (!existing) {
@@ -1245,7 +1544,7 @@ Deno.serve(async (req: Request) => {
       sample,
       errors: errors.slice(0, 50),
       error_count: errors.length,
-      meta: { ...meta, joined_on_quote_no: joinedOnQuoteNo },
+      meta: { ...meta, joined_on_quote_no: joinedOnQuoteNo, joined_on_name_suburb: joinedOnNameSuburb },
     })
   } catch (err: any) {
     console.error('import-marketing-contacts:', err)
