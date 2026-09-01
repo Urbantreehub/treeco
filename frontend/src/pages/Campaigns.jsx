@@ -1181,9 +1181,19 @@ function CampaignDetail({ campaign, onBack }) {
     return () => { alive = false }
   }, [campaign.id])
 
+  // campaign_stats counts DISTINCT PEOPLE; the activity list below shows every
+  // event. One person opening five times is 1 opened and 5 rows, which reads as
+  // a broken counter unless the card says so. Unique-opens is the right metric
+  // to keep — it is what "open rate" means everywhere else — so label it rather
+  // than change it.
+  const openEvents  = (events ?? []).filter(e => e.kind === 'opened').length
+  const clickEvents = (events ?? []).filter(e => e.kind === 'clicked').length
+
   const cells = [
-    ['Recipients', stats.recipients], ['Sent', stats.sent], ['Opened', stats.opened],
-    ['Clicked', stats.clicked], ['Unsubscribed', stats.unsubscribed], ['Failed', stats.failed],
+    ['Recipients', stats.recipients], ['Sent', stats.sent],
+    ['Opened', stats.opened, openEvents > (stats.opened ?? 0) ? `${openEvents} opens in total` : null],
+    ['Clicked', stats.clicked, clickEvents > (stats.clicked ?? 0) ? `${clickEvents} clicks in total` : null],
+    ['Unsubscribed', stats.unsubscribed], ['Failed', stats.failed],
   ]
 
   return (
@@ -1197,10 +1207,11 @@ function CampaignDetail({ campaign, onBack }) {
       </div>
 
       <div style={s.tileRow}>
-        {cells.map(([label, n]) => (
+        {cells.map(([label, n, note]) => (
           <div key={label} style={s.tile}>
             <div style={s.tileNum}>{(n ?? 0).toLocaleString('en-NZ')}</div>
             <div style={s.tileLabel}>{label}</div>
+            {note && <div style={{ ...s.tileLabel, opacity: 0.65, fontSize: 11 }}>{note}</div>}
           </div>
         ))}
       </div>
@@ -1341,8 +1352,23 @@ export default function Campaigns() {
   }
   async function loadCampaigns() {
     const { data } = await supabase.from('campaigns').select('*').order('created_at', { ascending: false }).limit(100)
-    setCampaigns(data ?? [])
+    const rows = data ?? []
+    setCampaigns(rows)
     setLoadingList(false)
+
+    // campaigns.stats is a SNAPSHOT written when a send run finishes. Opens and
+    // clicks keep arriving for days afterwards, so the list sat there reporting
+    // "1 opened" while the detail view — which calls campaign_stats live —
+    // showed 9. Same campaign, two numbers, and the stale one is the one you
+    // see first. Re-ask for anything that has actually been sent.
+    const live = rows.filter(c => c.status !== 'draft' && c.status !== 'scheduled')
+    if (!live.length) return
+    const fresh = await Promise.all(live.map(async c => {
+      const { data: st, error } = await supabase.rpc('campaign_stats', { p_campaign_id: c.id })
+      return error ? null : { id: c.id, stats: st }
+    }))
+    const byId = new Map(fresh.filter(Boolean).map(r => [r.id, r.stats]))
+    if (byId.size) setCampaigns(cs => cs.map(c => byId.has(c.id) ? { ...c, stats: byId.get(c.id) } : c))
   }
   async function loadSettings() {
     const { data } = await supabase.from('app_settings').select('key, value')
