@@ -6,10 +6,52 @@
 // matters, because campaign_sends stores a copy of it as the compliance record.
 //
 // DESIGN NOTES (why the email looks the way it does)
-//   * The HTML part is a plain letter, not a marketing template. No hero image,
-//     no columns, no big coloured button — a single inline text link for the
-//     CTA. For a local trade business a personal-looking email from Josh both
-//     converts better and clears spam filters that penalise template blasts.
+//   * The HTML part is a LETTER ON LETTERHEAD, not a marketing template. One
+//     600px column, live HTML text throughout, the logo at the top on a light
+//     plate, and Josh's real signature at the bottom. Deliberately absent,
+//     because these are the actual "marketing blast" tells: hero banner, nav
+//     bar, social icon row, stock photography, competing CTAs, coloured
+//     badges/starbursts, image-based headlines, preference-centre pitch. The
+//     recipient knows Josh; the email should look like it came from him.
+//   * NO PHOTO. One optional photo was built, rendered, looked at and removed
+//     again — this is a note so it does not get helpfully added back. There is
+//     no attributable evidence that a photo lifts conversion in this context,
+//     and NN/g's eye-tracking finding is that images which do not carry
+//     information for the reader's task are ignored outright. A climber in
+//     somebody else's tree is exactly that: it is not THEIR tree, so it
+//     carries nothing they need. The logo is the only decorative image that
+//     earns its place, because it says who is writing.
+//   * IT HAS TO WORK WITH EVERY IMAGE BLOCKED. A large and disproportionately
+//     valuable slice of this list — property managers, body corporates,
+//     councils — reads mail in Outlook desktop, where images are off by
+//     default. So the CTA, the phone number, the headline and the signature
+//     details are never inside an image, every <img> declares width/height
+//     attributes (Outlook ignores CSS sizing, and an undeclared height
+//     collapses the layout when the image is blocked). Strip every <img> and
+//     nothing of value is lost.
+//   * DARK MODE: `color-scheme: light dark` is deliberately NOT declared. Apple
+//     Mail 13+ only starts applying its own dark treatment once it is, and a
+//     half-implemented dark mode renders worse than none. Instead, two things
+//     that need no client support at all: the logo is the flat-RGB "-safe"
+//     export (see logoUrl() — a charcoal wordmark on TRANSPARENCY vanishes the
+//     moment a client repaints the container dark, which is the commonest
+//     dark-mode email failure there is), and it sits on an explicit light plate
+//     with real padding. Do not "improve" this by adding color-scheme.
+//   * RESTRAINT, NOT FAKE INTIMACY. This is a campaign and it does not pretend
+//     otherwise: the letterhead is branded, the footer identifies the company,
+//     the unsubscribe is right there. A mass email costumed as a one-to-one
+//     note reads as manipulative the moment the reader notices, and they do
+//     notice. The goal is a campaign that looks like it came from a real
+//     business the reader has actually met — not a campaign in disguise.
+//   * AND THE ARITHMETIC IS COMMERCIAL, NOT AESTHETIC. At ~2,100 recipients,
+//     Google's 0.1% spam-complaint threshold is TWO complaints. Every piece of
+//     template furniture left out below is one fewer reason for somebody to
+//     reach for "report spam" instead of the unsubscribe link — and it is the
+//     complaint rate, not the design, that decides whether the next campaign
+//     reaches anyone's inbox at all.
+//   * Source stays well under 80KB. Gmail clips at ~102KB and hides everything
+//     after the cut — including the unsubscribe link — behind "View entire
+//     message", which is a compliance failure, not a cosmetic one.
 //   * Every message ends with complianceFooter(): real legal name, physical
 //     region, phone/email, the reason-for-receiving line, the unsubscribe link
 //     and (when there is an offer) its terms and expiry. That is what the
@@ -39,6 +81,8 @@
 // Optional:
 //   CAMPAIGN_TRACK_URL — override for the campaign-track endpoint; defaults to
 //                        ${SUPABASE_URL}/functions/v1/campaign-track
+//   CAMPAIGN_ASSET_URL — where the email images are served from; defaults to
+//                        ${APP_URL}/email
 
 import { createClient, SupabaseClient } from 'npm:@supabase/supabase-js@2'
 
@@ -432,7 +476,271 @@ export function complianceFooter(
 
 // ── The email itself ────────────────────────────────────────────────────────
 
-const LINK_STYLE = 'color:#4A6741;text-decoration:underline'
+// ── Brand ───────────────────────────────────────────────────────────────────
+
+// Taken from Josh's real email signature, not invented. `green` is the leaf in
+// the logo; `deep` is the same hue dark enough to carry #FDFDFD text at ~6:1,
+// which #8BA240 cannot (it is ~2.8:1 against white and fails AA badly).
+//
+// Note #FDFDFD and #0E0E0E rather than #FFFFFF and #000000. Those two exact
+// values are what the inversion heuristics in Outlook.com and Gmail's dark
+// modes look for; a hair off, and a lot of clients leave the block alone.
+const C = {
+  plate:   '#FDFDFD',   // the light plate the charcoal wordmark sits on
+  canvas:  '#F1F0EB',   // paper around the letter
+  ink:     '#2D2D2D',   // charcoal — headings, signature name
+  body:    '#444444',   // body copy
+  muted:   '#666666',   // signature detail lines, footnotes
+  faint:   '#999999',   // qualifications line
+  rule:    '#E4E1D7',   // hairlines
+  green:   '#8BA240',   // brand green — rules and accents only
+  deep:    '#4A6741',   // brand green, darkened for links and the button
+}
+
+// System stack: no webfont. A webfont here buys nothing (Outlook and Gmail
+// ignore @font-face anyway) and costs a render-blocking external request.
+const FONT =
+  "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif"
+
+// Josh's signature block, based on his real sent mail — but the contact number
+// is DELIBERATELY the office line, not his mobile, on his instruction. Campaigns
+// go out from office@ and are handled by Ashley, so a reply or a call has to land
+// where someone can actually book it. Sending 2,000 people Josh's personal mobile
+// puts every one of those calls on the person who is up a tree. Same reason the
+// From: and Reply-To: are office@ rather than josh@.
+export const SIGNATURE = {
+  name:       'Josh Micallef',
+  role:       'Director',
+  quals:      'Cert III & Diploma of Arboriculture (AQF 3 & 5)',
+  mobile:     '027 203 1446',      // the office line — see note above
+  mobileTel:  '+64272031446',      // E.164, for the tel: href
+  website:    'www.urbantreeservices.net',
+  websiteUrl: 'https://www.urbantreeservices.net',
+}
+
+// Where the email images are served from. Hosted, never CID-attached: an
+// inline attachment turns a plain letter into a multipart blob and makes
+// Resend carry the bytes on every single send.
+//
+// WHICH HOST THIS IS, IS A DELIVERABILITY DECISION — not a convenience one.
+// SpamAssassin submits every `img src` hostname to the URI blocklists, and a
+// hit there costs 2.5 (URIBL_DBL_SPAM) or 1.7 (URIBL_BLACK) against a 5.0
+// threshold. That single factor outweighs every image-related rule combined:
+// the HTML_IMAGE_RATIO_* rules score 0.001 each, and HTML_IMAGE_ONLY_* can
+// only fire when there is under ~3,200 bytes of visible text, which a real
+// letter never is. So the number of images was never the risk — the host is.
+// Serve them from app.urbantreeservices.net, a domain whose reputation we own
+// and can see. Never a third-party image host, never a hotlink, never a free
+// CDN shared with whoever else is on it. The logo is the only image in the
+// email, so this one hostname is the entire image-reputation surface — which
+// is a good reason to keep it that way.
+export function assetBaseUrl(): string {
+  return (Deno.env.get('CAMPAIGN_ASSET_URL') ?? `${appUrl()}/email`).replace(/\/+$/, '')
+}
+
+// PNG, never SVG — Gmail webmail does not render SVG at all.
+//
+// AND SPECIFICALLY THE "-safe" VARIANT, which is the whole dark-mode fix. The
+// ordinary logo is RGBA: a dark charcoal wordmark on transparency. An inverting
+// client — Gmail on iOS and Android, Outlook mobile — repaints the container
+// dark, and charcoal-on-dark is charcoal-on-nothing: the wordmark simply
+// disappears and the email arrives apparently unbranded. That is the single
+// most common dark-mode email failure there is.
+//
+// logo-email-safe@2x.png is 488x211 FLAT RGB WITH NO ALPHA CHANNEL, with the
+// card's own #FDFDFD baked in behind the mark. There is nothing left for an
+// inverter to take away. It is #FDFDFD rather than pure white on purpose too,
+// so it matches the plate it sits on instead of reading as a floating white
+// box. Displayed at half its pixel size, so it stays sharp on a retina screen.
+export function logoUrl(): string {
+  return `${assetBaseUrl()}/logo-email-safe@2x.png`
+}
+
+const LOGO_W = 244, LOGO_H = 106     // 488x211 at half size
+const SIG_LOGO_W = 120, SIG_LOGO_H = 52
+
+const LINK_STYLE = `color:${C.deep};text-decoration:underline`
+
+// ── HTML blocks ─────────────────────────────────────────────────────────────
+// Each returns one <tr> of the 600px column, so the letter is assembled by
+// concatenation and there is exactly one place per block to look at.
+
+// Letterhead: the logo on an explicit light plate, then a 2px green rule.
+//
+// The plate is the whole point. The wordmark is dark charcoal on transparency;
+// on a client that repaints the container dark, charcoal-on-dark vanishes and
+// the email arrives apparently unsigned. A cell with its own background colour
+// and generous padding keeps a light patch under the wordmark in every client,
+// with no client support required. Sizing is on the width/height ATTRIBUTES,
+// not in CSS: Outlook's Word engine ignores CSS sizing, and an image with no
+// declared height collapses to nothing the moment images are blocked.
+function letterheadHtml(): string {
+  return `
+        <tr><td bgcolor="${C.plate}" style="background-color:${C.plate};padding:30px 32px 20px 32px">
+          <img src="${esc(logoUrl())}" width="${LOGO_W}" height="${LOGO_H}" alt="Urban Tree Services"
+               style="display:block;border:0;outline:none;text-decoration:none">
+        </td></tr>
+        <tr><td bgcolor="${C.plate}" style="background-color:${C.plate};padding:0 32px">
+          <div style="height:2px;line-height:2px;font-size:2px;background-color:${C.green}">&nbsp;</div>
+        </td></tr>`
+}
+
+// Bulletproof CTA: a table button, never an image, with the padding on the <a>
+// and not on the <td>. That distinction is the whole trick — padding on the
+// cell makes a button-shaped area that mostly is not a link, and tapping a
+// table cell does nothing. 14px top + 14px bottom + a 20px line box = 48px of
+// genuinely tappable target, comfortably over the 44px minimum.
+//
+// THEN THE PHONE NUMBER, as a real tel: link, at 18px, in the top two-thirds
+// of the letter rather than buried in the signature. For a $350-$4,500 job
+// from someone who has already had us out once, the conversion is a phone
+// call, not a form submission — on a phone this is very likely the single
+// highest-value thing in the email, so it gets its own 44px tap target and
+// sits directly under the button instead of at the bottom. It is live text, so
+// unlike a button graphic it is still there when images are off.
+//
+// Last, in small print, the destination the button actually goes to. Someone
+// reading with images off, or someone who wants to see where a link goes
+// before they touch it, gets the answer without hovering.
+function ctaHtmlBlock(label: string, href: string, shownUrl: string): string {
+  return `
+        <tr><td bgcolor="${C.plate}" style="background-color:${C.plate};padding:20px 32px 6px 32px">
+          <table cellpadding="0" cellspacing="0" role="presentation"><tr>
+            <td bgcolor="${C.deep}" style="background-color:${C.deep};border-radius:4px">
+              <a href="${esc(href)}"
+                 style="display:inline-block;padding:14px 30px;font-family:${FONT};font-size:16px;
+                        line-height:20px;mso-line-height-rule:exactly;font-weight:600;color:${C.plate};
+                        text-decoration:none;border-radius:4px">${esc(label)}</a>
+            </td>
+          </tr></table>
+          <div style="margin-top:12px;font-family:${FONT};font-size:16px;line-height:1.5;color:${C.body}">
+            Or just call me on
+            <a href="tel:${esc(SIGNATURE.mobileTel)}"
+               style="display:inline-block;padding:10px 0;font-family:${FONT};font-size:18px;
+                      line-height:24px;mso-line-height-rule:exactly;font-weight:600;color:${C.deep};
+                      text-decoration:none">${esc(SIGNATURE.mobile)}</a>
+          </div>
+          <div style="margin-top:2px;font-family:${FONT};font-size:13px;line-height:1.5;color:${C.muted}">
+            The button goes to <a href="${esc(href)}" style="${LINK_STYLE}">${esc(shownUrl)}</a>
+          </div>
+        </td></tr>`
+}
+
+// When a campaign has no CTA URL at all there is still a call to action: ring
+// Josh. Same tel: link, same tap target, same place in the letter.
+function callOnlyHtmlBlock(): string {
+  return `
+        <tr><td bgcolor="${C.plate}" style="background-color:${C.plate};padding:14px 32px 6px 32px">
+          <div style="font-family:${FONT};font-size:16px;line-height:1.5;color:${C.body}">
+            Give me a call on
+            <a href="tel:${esc(SIGNATURE.mobileTel)}"
+               style="display:inline-block;padding:10px 0;font-family:${FONT};font-size:18px;
+                      line-height:24px;mso-line-height-rule:exactly;font-weight:600;color:${C.deep};
+                      text-decoration:none">${esc(SIGNATURE.mobile)}</a>
+          </div>
+        </td></tr>`
+}
+
+// The same signature as plain text, for the text/plain part.
+//
+// THIS IS NOT COSMETIC, IT IS THE SIGN-OFF. The campaign templates used to end
+// "Cheers, / Josh Micallef / Urban Tree Services" in the body copy, which read
+// as a double sign-off next to signatureHtml() and has been taken out of the
+// templates. signatureHtml() is HTML-only, so with the copy's sign-off gone
+// the text/plain part would otherwise simply stop mid-air above the compliance
+// footer. The renderer has to supply the sign-off to BOTH parts, and this is
+// the text half of that. Do not delete one without the other.
+export function signatureText(): string {
+  return [
+    SIGNATURE.name,
+    `${SIGNATURE.role}, ${COMPANY.shortName}`,
+    SIGNATURE.quals,
+    `M ${SIGNATURE.mobile}`,
+    `W ${SIGNATURE.website}`,
+  ].join('\n')
+}
+
+// Josh's real signature. Logo left, 2px green right-border on the logo cell,
+// details right — the same block that goes out on his one-to-one mail, which
+// is the point: this should read as a letter from a person the recipient has
+// met. With images off it degrades to the alt text and four legible live-text
+// lines, which is all the information that actually matters.
+//
+// The website link is deliberately NOT click-wrapped. It is identity, not a
+// campaign CTA, and a tracker-wrapped href in a personal signature is exactly
+// the tell we are trying not to leave.
+function signatureHtml(): string {
+  const detail = `font-family:${FONT};font-size:12px;line-height:1.65;color:${C.muted}`
+  return `
+        <tr><td bgcolor="${C.plate}" style="background-color:${C.plate};padding:26px 32px 4px 32px">
+          <div style="height:1px;line-height:1px;font-size:1px;background-color:${C.rule}">&nbsp;</div>
+        </td></tr>
+        <tr><td bgcolor="${C.plate}" style="background-color:${C.plate};padding:22px 32px 26px 32px">
+          <table cellpadding="0" cellspacing="0" role="presentation"><tr>
+            <td valign="middle" style="padding:0 18px 0 0;border-right:2px solid ${C.green}">
+              <img src="${esc(logoUrl())}" width="${SIG_LOGO_W}" height="${SIG_LOGO_H}" alt="Urban Tree Services"
+                   style="display:block;border:0;outline:none;text-decoration:none">
+            </td>
+            <td valign="middle" style="padding:0 0 0 18px">
+              <div style="font-family:${FONT};font-size:15px;line-height:1.4;font-weight:600;color:${C.ink}">${esc(SIGNATURE.name)}</div>
+              <div style="font-family:${FONT};font-size:12px;line-height:1.6;letter-spacing:1px;
+                          text-transform:uppercase;color:${C.green}">${esc(SIGNATURE.role)}</div>
+              <div style="font-family:${FONT};font-size:10px;line-height:1.6;color:${C.faint}">${esc(SIGNATURE.quals)}</div>
+              <div style="${detail};margin-top:6px"><span style="color:${C.green}">M</span> ${esc(SIGNATURE.mobile)}</div>
+              <div style="${detail}"><span style="color:${C.green}">W</span>
+                <a href="${esc(SIGNATURE.websiteUrl)}" style="color:${C.muted};text-decoration:none">${esc(SIGNATURE.website)}</a></div>
+            </td>
+          </tr></table>
+        </td></tr>`
+}
+
+// One body cell of the column. Returns '' for empty copy so an absent half of
+// a split body does not leave a stray padded row behind.
+function bodyCellHtml(inner: string, padding: string): string {
+  if (!inner.trim()) return ''
+  return `
+        <tr><td bgcolor="${C.plate}" style="background-color:${C.plate};padding:${padding};
+                       font-family:${FONT};font-size:16px;line-height:1.7;color:${C.body}">
+          ${inner}
+        </td></tr>`
+}
+
+function escapeRe(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+// Is this paragraph nothing but the CTA link — the bare URL on a line of its
+// own, optionally with the CTA label and some punctuation around it?
+//
+// It matters because the composer refuses to send unless the body already
+// contains cta_url verbatim, so a campaign nearly always carries the link that
+// way. Rendering the button as well would put the same destination in the
+// letter twice. A URL used mid-sentence is prose and is not this.
+function isBareCtaParagraph(p: string, ctaUrl: string, ctaLabel: string): boolean {
+  const t = p.trim()
+  if (!ctaUrl || !t.includes(ctaUrl)) return false
+  let rest = t.split(ctaUrl).join(' ')
+  if (ctaLabel) rest = rest.replace(new RegExp(escapeRe(ctaLabel), 'gi'), ' ')
+  return rest.replace(/[\s:>»\-–—.]+/g, '') === ''
+}
+
+// Split the body around that paragraph, so the button can be rendered exactly
+// where the author put the link rather than bolted on after the sign-off. A
+// letter that ends "Cheers, Josh" and THEN shows a button reads like a
+// template wrapped around someone's writing; a button sitting where the
+// sentence was already pointing at it reads like the letter it is.
+//
+// HTML only. The plain-text part keeps the body verbatim, because there the
+// bare URL IS the call to action.
+function splitBodyAtCta(body: string, ctaUrl: string, ctaLabel: string): { before: string; after: string } {
+  const paras = body.split(/\n{2,}/)
+  const bare = paras.map(p => isBareCtaParagraph(p, ctaUrl, ctaLabel))
+  const at = bare.indexOf(true)
+  if (at === -1) return { before: body, after: '' }
+  const keep = (from: number, to: number) =>
+    paras.slice(from, to).filter((_, i) => !bare[from + i]).join('\n\n')
+  return { before: keep(0, at), after: keep(at + 1, paras.length) }
+}
 
 // Render one campaign for one contact. `trackToken` is the campaign_sends
 // row's per-send secret; pass null for previews (no tracking, no pixel).
@@ -468,16 +776,30 @@ export function renderCampaignEmail(
   // in the text is exactly the tell that gives it away as a blast — and it's
   // the one link a suspicious recipient actually eyeballs. We lose text-part
   // click attribution; the HTML part still covers the large majority of reads.
+  //
+  // The sign-off comes from signatureText(), not from the copy — see the note
+  // on that function. Order is body, then the CTA line if the copy did not
+  // already carry it, then the signature, then the compliance footer.
   const textParts = [body.trim()]
   if (appendCta) textParts.push(`${ctaLabel || 'More info'}: ${ctaUrl}`)
+  textParts.push(signatureText())
   textParts.push(footer.text)
   const text = textParts.join('\n\n')
 
-  // ── HTML part: a letter, not a template ──
-  const bodyHtml = linkifyHtml(body, wrap, LINK_STYLE)
-  const ctaHtml  = appendCta
-    ? `<p style="margin:0 0 18px"><a href="${esc(wrap(ctaUrl))}" style="${LINK_STYLE}">${esc(ctaLabel || ctaUrl)}</a></p>`
-    : ''
+  // ── HTML part: a letter on letterhead ──
+  // Unlike the text part, the HTML always gets a real button. In the usual
+  // case — the copy already carries the link on a line of its own, because the
+  // composer insists on it — the body is SPLIT at that line and the button
+  // takes its place, so the destination appears once and exactly where the
+  // author put it. When there is no such line the button simply follows the
+  // copy. Either way `bodyRest` is '' when there is nothing after it.
+  const split    = splitBodyAtCta(body, ctaUrl, ctaLabel)
+  const bodyTop  = bodyCellHtml(linkifyHtml(split.before, wrap, LINK_STYLE), '26px 32px 6px 32px')
+  const bodyRest = bodyCellHtml(linkifyHtml(split.after,  wrap, LINK_STYLE), '16px 32px 6px 32px')
+  const ctaBlock = ctaUrl
+    ? ctaHtmlBlock(ctaLabel || 'More info', wrap(ctaUrl), ctaUrl)
+    : callOnlyHtmlBlock()
+
   // Inbox preview text. Hidden in the body, padded so the client doesn't pull
   // the first line of copy in after it.
   const preheaderHtml = preheader
@@ -487,18 +809,40 @@ export function renderCampaignEmail(
     ? `<img src="${esc(openPixelUrl(trackToken))}" width="1" height="1" alt="" style="display:block;width:1px;height:1px;border:0">`
     : ''
 
+  // NOTE TO WHOEVER EDITS THIS NEXT: there is no `color-scheme: light dark`
+  // here, and that is deliberate — see the DESIGN NOTES at the top of the
+  // file. Apple Mail only starts applying dark treatment once it is declared,
+  // and half-declaring it renders worse than not declaring it at all. Dark
+  // mode is handled by the light plate under the logo and by keeping every
+  // colour mid-tone, which needs no client support.
   const html = `<!DOCTYPE html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(subject)}</title></head>
-<body style="margin:0;padding:0;background:#ffffff">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>${esc(subject)}</title>
+<!-- No color-scheme declaration on purpose: see campaign.ts DESIGN NOTES. -->
+<!--[if mso]><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml><![endif]-->
+<style>
+  img{-ms-interpolation-mode:bicubic}
+  /* Stop iOS recolouring the phone number in the signature to its own blue. */
+  a[x-apple-data-detectors]{color:inherit!important;text-decoration:none!important;font-size:inherit!important}
+</style>
+</head>
+<body style="margin:0;padding:0;background-color:${C.canvas}">
   ${preheaderHtml}
-  <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#ffffff">
-    <tr><td align="left" style="padding:24px 20px">
-      <table width="600" cellpadding="0" cellspacing="0" role="presentation" style="max-width:600px;width:100%">
-        <tr><td style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Georgia,'Times New Roman',serif;
-                       font-size:16px;line-height:1.65;color:#2C2416">
-          ${bodyHtml}
-          ${ctaHtml}
+  <table width="100%" cellpadding="0" cellspacing="0" role="presentation" bgcolor="${C.canvas}" style="background-color:${C.canvas}">
+    <tr><td align="center" style="padding:24px 16px">
+      <table width="600" cellpadding="0" cellspacing="0" role="presentation" align="center"
+             bgcolor="${C.plate}" style="max-width:600px;width:100%;background-color:${C.plate}">
+${letterheadHtml()}
+${bodyTop}
+${ctaBlock}
+${bodyRest}
+${signatureHtml()}
+        <tr><td bgcolor="${C.plate}" style="background-color:${C.plate};padding:0 32px 30px 32px;
+                       font-family:${FONT}">
           ${footer.html}
         </td></tr>
       </table>

@@ -40,11 +40,7 @@ Most of what we prune puts on enough growth in a couple of years that it starts 
 If you'd like me to take a look, you can book a free quote here:
 ${CTA_URL}
 
-No obligation at all — happy to just tell you it can wait another year if that's the honest answer. And if you do go ahead, mention this email when you book and I'll take 5% off.
-
-Cheers,
-Josh Micallef
-Urban Tree Services`,
+No obligation at all — happy to just tell you it can wait another year if that's the honest answer. And if you do go ahead, mention this email when you book and I'll take 5% off.`,
   },
 
   {
@@ -63,33 +59,25 @@ Three or four years is usually about when regrowth starts causing the same probl
 If you'd like a fresh set of eyes on it, quotes are free and there's no pressure:
 ${CTA_URL}
 
-And because you've had us out before, mention this email when you book and I'll take 5% off the job.
-
-Cheers,
-Josh Micallef
-Urban Tree Services`,
+And because you've had us out before, mention this email when you book and I'll take 5% off the job.`,
   },
 
   {
-    id: 'annual-hedge-olive',
-    name: 'Annual customers — hedges & olives',
+    id: 'annual-hedge',
+    name: 'Annual customers — hedges',
     audience: { services: ['hedge', 'pruning'], min_months_since_job: 9 },
     subject: 'Booking in the annual trim',
-    preheader: 'Getting the yearly hedge and olive work scheduled.',
+    preheader: 'Getting the yearly hedge trims booked in.',
     body: `Hi {{first_name}},
 
 Josh from Urban Tree Services. We're starting to book in the yearly trims now, and you came to mind — we {{last_job_summary}}.
 
-Hedges and olives are the two that really do want doing every year. Leave them two seasons and it turns into a much bigger job than it needs to be.
+A hedge is the one thing that really does want doing every year. Leave it two seasons and it stops being a trim — the wood thickens up, you lose the shape, and cutting back that hard often leaves bare patches that take a season or two to green up again.
 
 If you'd like to get a time locked in, easiest is to request a quote here:
 ${CTA_URL}
 
-Or just reply to this email and Ashley will sort it out. Mention this email when you book and there's 5% off for you as a returning customer.
-
-Cheers,
-Josh Micallef
-Urban Tree Services`,
+Or just reply to this email and Ashley will sort it out. Mention this email when you book and there's 5% off for you as a returning customer.`,
   },
 
   {
@@ -120,11 +108,7 @@ We {{last_job_summary}} last time we were out. If that's due again, or something
 Free quote, no obligation:
 ${CTA_URL}
 
-Mention this email when you book and I'll knock 5% off.
-
-Cheers,
-Josh Micallef
-Urban Tree Services`,
+Mention this email when you book and I'll knock 5% off.`,
   },
 
   {
@@ -182,11 +166,7 @@ We {{last_job_summary}} when we were last at your place. If it's been a while, i
 
 ${CTA_URL}
 
-Mention this email when you book and I'll take 5% off the job.
-
-Cheers,
-Josh Micallef
-Urban Tree Services`,
+Mention this email when you book and I'll take 5% off the job.`,
   },
 ]
 
