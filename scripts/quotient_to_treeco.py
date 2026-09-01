@@ -289,6 +289,17 @@ def build_line_items(q, quote_num, dry_run, download_dir):
     return items
 
 
+# parse_quotient_scrape.py tags each quote with _category. The frontend only
+# knows 'residential' | 'spencers' | 'downer' (frontend/src/config/statuses.js),
+# so 'council' — and anything unrecognised — lands in residential.
+JOB_CATEGORIES = {"residential", "spencers", "downer"}
+
+
+def job_category(q):
+    cat = (q.get("_category") or "").strip().lower()
+    return cat if cat in JOB_CATEGORIES else "residential"
+
+
 def import_quote(q, dry_run, download_dir):
     quote_num = str(q["quoteNumber"])
     tag = f"Quotient #{quote_num}"
@@ -312,6 +323,7 @@ def import_quote(q, dry_run, download_dir):
         "status": "accepted_to_schedule",
         "estimated_value": subtotal,
         "client_id": client_id,
+        "category": job_category(q),
     }
 
     line_items = build_line_items(q, quote_num, dry_run, download_dir)
@@ -331,6 +343,7 @@ def import_quote(q, dry_run, download_dir):
             "title": job_row["title"], "address": job_row["address"],
             "job_type": job_row["job_type"], "description": job_row["description"],
             "estimated_value": job_row["estimated_value"], "client_id": client_id,
+            "category": job_row["category"],
             "updated_at": datetime.utcnow().isoformat() + "Z",
         })
         action = "updated"

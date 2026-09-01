@@ -548,6 +548,10 @@ def map_to_treeco(dbs, client_id):
         "status":          status,
         "estimated_value": value,
         "client_id":       client_id,
+        # Job category (migration 017) — everything this importer touches comes
+        # from the Spencers/DBS portal. Set it explicitly rather than leaving it
+        # NULL for the frontend to sniff out of the title/client name.
+        "category":        "spencers",
         # First-class portal fields (migration 015). Stripped automatically if
         # the columns aren't there yet, so this is safe pre-migration.
         "ko_reference":    ko or None,
@@ -809,6 +813,7 @@ def sync_jobs_to_supabase(dbs_jobs):
                 "estimated_value": row["estimated_value"],
                 "description":     row["description"],
                 "private_notes":   row.get("private_notes"),
+                "category":        row.get("category"),
                 "ko_reference":    row.get("ko_reference"),
                 "priority":        row.get("priority"),
                 "sla_due_at":      row.get("sla_due_at"),
