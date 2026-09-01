@@ -1228,7 +1228,7 @@ function CampaignDetail({ campaign, onBack }) {
   )
 }
 
-function ResultsTab({ campaigns, loading, onOpen, onEdit }) {
+function ResultsTab({ campaigns, loading, onOpen, onEdit, contacts }) {
   if (loading) return <SkeletonRows count={4} height={72} />
   if (campaigns.length === 0) return <div style={s.empty}>No campaigns yet — compose one and it'll show up here.</div>
 
@@ -1249,6 +1249,18 @@ function ResultsTab({ campaigns, loading, onOpen, onEdit }) {
                 <span>{(st.opened ?? 0).toLocaleString('en-NZ')} opened</span>
                 <span>{(st.clicked ?? 0).toLocaleString('en-NZ')} clicked</span>
                 <span>{(st.unsubscribed ?? 0).toLocaleString('en-NZ')} unsubscribed</span>
+                {/* "Sending..." is honest but it reads as "in progress right now"
+                    when a capped campaign is actually sitting still until the cap
+                    resets at NZ midnight. Say how many are left, so the chip is a
+                    status rather than a riddle. Computed from the audience the
+                    page already holds, minus rows the campaign has made. */}
+                {(c.status === 'sending' || c.status === 'paused') && (() => {
+                  const left = (contacts ?? []).filter(x => matchesAudience(x, c.audience)).length
+                             - Number(st.recipients ?? 0)
+                  return left > 0
+                    ? <span style={{ fontWeight: 600 }}>· {left.toLocaleString('en-NZ')} still to go</span>
+                    : null
+                })()}
                 {c.sent_at && <span>· {fmtWhen(c.sent_at)}</span>}
                 {c.status === 'scheduled' && c.scheduled_at && <span>· for {fmtWhen(c.scheduled_at)}</span>}
               </div>
@@ -1679,7 +1691,7 @@ export default function Campaigns() {
         {tab === 'results' && (
           detail
             ? <CampaignDetail campaign={detail} onBack={() => setDetail(null)} />
-            : <ResultsTab campaigns={campaigns} loading={loadingList} onOpen={setDetail} onEdit={openForEdit} />
+            : <ResultsTab campaigns={campaigns} loading={loadingList} onOpen={setDetail} onEdit={openForEdit} contacts={contacts} />
         )}
       </div>
 
