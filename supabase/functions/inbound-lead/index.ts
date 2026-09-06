@@ -11,6 +11,7 @@
 // Optional secrets: RESEND_API_KEY, APP_URL
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { NOTIFY_RECIPIENTS, NOTIFY_FROM } from '../_shared/notify.ts'
 
 const CORS = {
   'Access-Control-Allow-Origin':  '*',
@@ -193,8 +194,8 @@ Deno.serve(async (req) => {
           method: 'POST',
           headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            from:    'TreeCo <office@urbantreeservices.net>',
-            to:      'office@urbantreeservices.net',
+            from:    NOTIFY_FROM,
+            to:      NOTIFY_RECIPIENTS,
             subject,
             html,
           }),

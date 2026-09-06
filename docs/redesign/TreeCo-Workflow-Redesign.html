@@ -954,7 +954,7 @@ font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Segoe 
   </ul>
 
   <h3>The scheduler: trucks are rows, people are chips, leave is grey</h3>
-  <p>Trucks (and the grinder trailer) are the rows. Every staff member is a chip you drop on a truck for the week or for one day. Leave and sick days grey out the person, and the scheduler warns when a job needs more people than the truck has that day. The tray on the right only ever holds Accepted work and quote visits waiting for a run, so it stays short.</p>
+  <p>The Isuzu, the Nissan and the Navara are the rows. The Navara carries either the Avant or the stump grinder, so those two are chips you drop on the Navara for the day, and the scheduler warns if both are wanted at once. Every staff member is a chip you drop on a truck for the week or for one day. Leave and sick days grey out the person, and the scheduler warns when a job needs more people than the truck has that day. The tray on the right only ever holds Accepted work and quote visits waiting for a run, so it stays short.</p>
   <figure class="mock"><div class="vp" data-w="1440" data-h="900"><div class="mk" style="width:1440px;height:900px;display:grid;grid-template-columns:1fr 300px">
   <!-- Shared Scheduler: trucks are the rows, people are chips you drop on a truck-day, leave greys out. -->
   <div style="display:flex;flex-direction:column;overflow:hidden">
@@ -982,10 +982,10 @@ font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Segoe 
         <div class="gc"><div class="blk" style="background:var(--s-visit)">Quote run · 4 stops<small>Josh · Brooklyn → Aro → Kelburn → Karori</small></div><div class="off" style="margin-top:4px">Kai · leave</div></div>
         <div class="gc"><div class="off">Kai · leave</div><div style="border:1.5px dashed var(--line);border-radius:10px;padding:8px;text-align:center;font-size:11px;color:var(--ink-3);font-weight:600;margin-top:4px">Free · Coastal Properties fits here</div></div>
         <div class="gc"><div class="blk" style="background:var(--s-visit)">Quote run · 3 stops<small>Josh</small></div></div>
-        <div class="gc"><div class="blk" style="background:var(--s-stump)">Wilson stump grind<small>3 Karori Rd · grinder on trailer</small></div></div>
+        <div class="gc"></div>
 
-        <div class="gl"><div class="row" style="gap:8px"><span style="width:10px;height:10px;border-radius:50%;background:#8B6238"></span><b style="font-size:14px">Grinder</b><span class="faint" style="font-size:11px">trailer</span></div><div class="note">Equipment row: warns if double-booked</div></div>
-        <div class="gc"></div><div class="gc"></div><div class="gc"></div><div class="gc"></div><div class="gc"><div class="blk" style="background:var(--s-stump);opacity:.6">with Nissan</div></div>
+        <div class="gl"><div class="row" style="gap:8px"><span style="width:10px;height:10px;border-radius:50%;background:#8B6238"></span><b style="font-size:14px">Navara</b><span class="faint" style="font-size:11px">ute</span></div><div class="note">Carries the Avant or the grinder. Drop one per day.</div><div class="row" style="gap:3px;flex-wrap:wrap"><span class="who"><i style="background:#8B6238">A</i>Avant</span><span class="who"><i style="background:#8B6238">G</i>Grinder</span></div></div>
+        <div class="gc"><div class="blk" style="background:var(--s-sched)">Jason Park<small>Avant · with Isuzu</small></div><div class="row" style="gap:2px;margin-top:5px"><span class="who"><i style="background:#8B6238">A</i>Avant</span><span class="who"><i>R</i>Rangi</span></div></div><div class="gc"></div><div class="gc"><div class="blk" style="background:#C77D1A">Downer — Adelaide Rd<small>Avant · with Isuzu</small></div><div class="row" style="gap:2px;margin-top:5px"><span class="who"><i style="background:#8B6238">A</i>Avant</span></div></div><div class="gc"></div><div class="gc"><div class="blk" style="background:var(--s-stump)">Wilson stump grind<small>3 Karori Rd</small></div><div class="row" style="gap:2px;margin-top:5px"><span class="who"><i style="background:#8B6238">G</i>Grinder</span><span class="who"><i>S</i>Sione</span></div></div>
 
         <div class="gl" style="border-bottom:0"><b>People</b><div class="note">Everyone on staff. Grey = away.</div></div>
         <div class="gc" style="border-bottom:0;grid-column:2/7;display:flex;gap:6px;flex-wrap:wrap;align-items:center;min-height:48px">
@@ -994,7 +994,7 @@ font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Segoe 
         </div>
       </div>
     </div>
-    <div class="row" style="padding:0 18px 14px;gap:18px;font-size:12px;color:var(--ink-2)"><span><b class="tn" style="color:var(--ink)">$14,180</b> booked this week</span><span>Isuzu 4 days · Nissan 2 days + 2 quote runs</span><span class="grow"></span><span class="faint">Drag a job to move it · drag a person to a truck · double-click a day to add leave</span></div>
+    <div class="row" style="padding:0 18px 14px;gap:18px;font-size:12px;color:var(--ink-2)"><span><b class="tn" style="color:var(--ink)">$14,180</b> booked this week</span><span>Isuzu 4 days · Nissan 1 day + 2 quote runs · Navara 3 days</span><span class="grow"></span><span class="faint">Drag a job to move it · drag a person or the Avant / grinder to a truck-day · double-click a day to add leave</span></div>
   </div>
 
   <!-- unscheduled tray: only Accepted work and booked quote visits -->
@@ -1019,7 +1019,7 @@ font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Segoe 
     <span class="chip">Day</span><span class="chip on">Week</span><span class="btn" style="width:34px;padding:0">⋯</span>
   </div>
   <div style="padding:14px 16px 0;flex:1;min-height:0">
-    <div class="grid" style="grid-template-columns:120px repeat(5,1fr);height:100%;grid-template-rows:auto 1fr 1fr auto">
+    <div class="grid" style="grid-template-columns:120px repeat(5,1fr);height:100%;grid-template-rows:auto 1fr 1fr 1fr auto">
       <div class="gh"></div><div class="gh">Mon</div><div class="gh" style="color:var(--s-visit)">Tue</div><div class="gh">Wed</div><div class="gh" style="color:var(--s-visit)">Thu</div><div class="gh">Fri</div>
       <div class="gl"><b>Isuzu</b><div class="row" style="gap:2px;flex-wrap:wrap"><span class="who"><i>D</i></span><span class="who"><i>M</i></span><span class="who"><i>T</i></span></div></div>
       <div class="gc"><div class="blk" style="background:var(--s-sched)">Jason Park<small>Newlands</small></div></div>
@@ -1032,7 +1032,9 @@ font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Segoe 
       <div class="gc"><div class="blk" style="background:var(--s-visit)">Quote run · 4</div><div class="off" style="margin-top:4px">Kai · leave</div></div>
       <div class="gc"><div class="off">Kai · leave</div></div>
       <div class="gc"><div class="blk" style="background:var(--s-visit)">Quote run · 3</div></div>
-      <div class="gc"><div class="blk" style="background:var(--s-stump)">Wilson stump</div></div>
+      <div class="gc"></div>
+      <div class="gl"><b>Navara</b><div class="row" style="gap:2px;flex-wrap:wrap"><span class="who"><i style="background:#8B6238">A</i></span><span class="who"><i style="background:#8B6238">G</i></span></div></div>
+      <div class="gc"><div class="blk" style="background:var(--s-sched)">Jason Park<small>Avant</small></div></div><div class="gc"></div><div class="gc"><div class="blk" style="background:#C77D1A">Downer<small>Avant</small></div></div><div class="gc"></div><div class="gc"><div class="blk" style="background:var(--s-stump)">Wilson stump<small>Grinder</small></div></div>
       <div class="gl" style="border-bottom:0"><b>People</b></div>
       <div class="gc" style="border-bottom:0;grid-column:2/7;display:flex;gap:6px;flex-wrap:wrap;align-items:center;min-height:44px"><span class="who"><i>J</i>Josh</span><span class="who"><i>D</i>Dan</span><span class="who"><i>M</i>Mike</span><span class="who"><i>T</i>Te Ariki</span><span class="who"><i>S</i>Sione</span><span class="who away"><i>K</i>Kai</span><span class="who"><i>R</i>Rangi</span></div>
     </div>
@@ -1052,12 +1054,12 @@ font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Segoe 
 </div><figcaption>iPad landscape: same grid, tray becomes a bottom sheet, touch-and-hold lifts a card.</figcaption></figure>
 
   <h3>The two emails you and Ashley both get</h3>
-  <p>One event, one line, one button. Sent to every address listed in Settings → Notifications (so adding Ashley, or a future estimator, is a settings change, not a code change).</p>
+  <p>One event, one line, one button. Sent to Josh and the office inbox (Ashley reads office@urbantreeservices.net), with the list editable without a redeploy so a future estimator is a settings change.</p>
   <figure class="mock" style="max-width:640px"><div class="vp" data-w="640" data-h="760"><div class="mk" style="width:640px;height:760px;background:#EFE8DC;padding:26px">
   <!-- The two notification emails Josh and Ashley both get. One event, one line, one button. -->
   <div style="display:flex;flex-direction:column;gap:18px">
     <div style="background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden">
-      <div style="padding:12px 20px;border-bottom:1px solid var(--line);font-size:12px;color:var(--ink-2)"><b style="color:var(--ink)">TreeCo</b> &lt;office@urbantreeservices.net&gt; → josh@…, ashley@…<div style="font-size:14px;font-weight:700;color:var(--ink);margin-top:4px">Accepted · Richard Tait · 8 Miramar Rd · $2,415</div></div>
+      <div style="padding:12px 20px;border-bottom:1px solid var(--line);font-size:12px;color:var(--ink-2)"><b style="color:var(--ink)">TreeCo</b> &lt;office@urbantreeservices.net&gt; → josh@…, office@…<div style="font-size:14px;font-weight:700;color:var(--ink);margin-top:4px">Accepted · Richard Tait · 8 Miramar Rd · $2,415</div></div>
       <div style="padding:22px 24px;display:flex;flex-direction:column;gap:14px">
         <div class="row" style="gap:12px"><span style="width:40px;height:40px;border-radius:50%;background:var(--s-accepted);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:800">✓</span><div><div style="font-size:18px;font-weight:800">Richard Tait accepted the quote</div><div class="muted">Tue 8:12pm · signed "R. Tait" · all items incl. optional stump grind</div></div></div>
         <div style="display:grid;grid-template-columns:1fr auto;gap:6px 16px;padding:12px 14px;background:var(--cream);border-radius:12px;font-size:13px"><span class="muted">Job</span><b>8 Miramar Rd, Miramar · Pruning</b><span class="muted">Total</span><b class="tn">$2,415 incl GST</b><span class="muted">Crew pack</span><b>½ day · 2 staff · chipper</b><span class="muted">Phone</span><b>027 111 222</b></div>
@@ -1066,7 +1068,7 @@ font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Segoe 
       </div>
     </div>
     <div style="background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden">
-      <div style="padding:12px 20px;border-bottom:1px solid var(--line);font-size:12px;color:var(--ink-2)"><b style="color:var(--ink)">TreeCo</b> → josh@…, ashley@…<div style="font-size:14px;font-weight:700;color:var(--ink);margin-top:4px">New lead · Anna Ferreira · 22 Brooklyn Rd · Pruning</div></div>
+      <div style="padding:12px 20px;border-bottom:1px solid var(--line);font-size:12px;color:var(--ink-2)"><b style="color:var(--ink)">TreeCo</b> → josh@…, office@…<div style="font-size:14px;font-weight:700;color:var(--ink);margin-top:4px">New lead · Anna Ferreira · 22 Brooklyn Rd · Pruning</div></div>
       <div style="padding:22px 24px;display:flex;flex-direction:column;gap:14px">
         <div class="row" style="gap:12px"><span style="width:40px;height:40px;border-radius:50%;background:var(--s-lead);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:800">AF</span><div><div style="font-size:18px;font-weight:800">New lead from the website form</div><div class="muted">Prefers Tue morning · 2 photos attached</div></div></div>
         <div style="padding:12px 14px;background:var(--cream);border-radius:12px;font-size:13px;line-height:1.5">"Two large trees overhanging the deck, one is dropping branches. Keen to get them tidied before summer."</div>
@@ -1131,7 +1133,7 @@ font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Segoe 
   </ol>
   <h3>Quick wins that need no design decision</h3>
   <ul>
-    <li>Email both of you on every lead and acceptance (one-line change in each function once I have Ashley's address).</li>
+    <li>Email both of you on every lead and acceptance: done in code (shared recipient list in <span class="k">supabase/functions/_shared/notify.ts</span>), awaiting a function deploy.</li>
     <li>Link Sent Quotes from the Jobs page.</li>
     <li>Show the quote's price and first line on the job row and in the drawer header.</li>
     <li>Delete the ~600 lines of dead kanban and dashboard-table code.</li>
@@ -1140,8 +1142,8 @@ font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Segoe 
   <h2 id="decide">Decisions I need from you</h2>
   <ol>
     <li><b>Home screen:</b> decided, Direction A.</li>
-    <li><b>Ashley's email address</b> for notifications, and whether <span class="k">office@</span> should still receive copies.</li>
-    <li><b>Truck names and the grinder as a row:</b> Isuzu, Nissan, Grinder trailer. Anything else that gets double-booked (chipper, Avant)?</li>
+    <li><b>Notifications:</b> decided, Josh plus office@ (Ashley) on every lead, acceptance, decline and question.</li>
+    <li><b>Scheduler rows:</b> decided, Isuzu, Nissan, Navara (carrying the Avant or the grinder).</li>
     <li><b>Status labels:</b> keep the original wording, or the shorter ones in the stepper ("Visit booked", "Done, to invoice").</li>
     <li><b>Quote runs:</b> keep Tuesday / Thursday as the default rows on the scheduler.</li>
   </ol>

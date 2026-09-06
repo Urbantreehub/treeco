@@ -73,9 +73,9 @@ On open, Josh sees Quotes and Quote runs only. A Full app button at the bottom o
 
 Job record: price, stepper, quote description, photos, activity beside it. Under "…": versions, copy to new quote, preview as client, client details, enquiry and site notes, work order and job pack, text the client, put on hold, mark declined. One quote per job with automatic versions after send. Copy to new quote creates a new job number linked to the source. Old jobs are recallable from the client page.
 
-Scheduler: trucks and the grinder trailer are rows; every staff member is a chip dropped on a truck for the week or a day; leave and sick days grey the person out; the tray holds only Accepted work and quote visits awaiting a run; dropping shows "Dan + Mike free, fits" before you let go.
+Scheduler: the Isuzu, the Nissan and the Navara are rows (the Navara carries the Avant or the stump grinder, dropped on it per day, with a warning if both are wanted); every staff member is a chip dropped on a truck for the week or a day; leave and sick days grey the person out; the tray holds only Accepted work and quote visits awaiting a run; dropping shows "Dan + Mike free, fits" before you let go.
 
-Emails: one event, one line, one button, sent to every address in Settings → Notifications. Instant for new lead, accepted, declined, client question. In-app only for opened, followed up, crew finished.
+Emails: one event, one line, one button, sent to Josh and office@ (Ashley); the list lives in `supabase/functions/_shared/notify.ts` and can be overridden with the `NOTIFY_EMAILS` secret. Instant for new lead, accepted, declined, client question. In-app only for opened, followed up, crew finished.
 
 ## Feature specs
 
@@ -115,7 +115,7 @@ Quick wins needing no design decision: email both Josh and Ashley on every lead 
 ## Decisions needed
 
 1. Home screen: decided, Direction A.
-2. Ashley's email address for notifications, and whether office@ still receives copies.
-3. Truck names and the grinder as a row; anything else that gets double-booked (chipper, Avant).
+2. Notifications: decided, Josh plus office@ (Ashley) on every lead, acceptance, decline and question. Implemented, awaiting deploy.
+3. Scheduler rows: decided, Isuzu, Nissan, Navara (carrying the Avant or the grinder).
 4. Status labels: original wording or the shorter stepper labels.
 5. Keep Tuesday / Thursday as the default quote-run rows.

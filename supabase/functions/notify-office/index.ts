@@ -1,15 +1,13 @@
-// Emails the office when a client accepts/declines/comments on a quote, and —
-// for residential jobs — also emails the owner (josh@urbantreeservices.net).
-// Every accept/comment also logs a job_alert so it surfaces on Ashley's Actions
-// dashboard. Called from QuoteView + QuoteClientComments (public, anon key header).
+// Emails Josh and the office (Ashley) whenever a client accepts, declines or
+// comments on a quote — every job, residential or portal. Recipients come from
+// _shared/notify.ts (NOTIFY_EMAILS secret overrides). Every accept/comment also
+// logs a job_alert so it surfaces on Ashley's Actions dashboard. Called from QuoteView + QuoteClientComments (public, anon key header).
 //
 // POST body: { quote_id, action: 'accepted' | 'declined' | 'comment', reason?: string }
 // Required secrets: RESEND_API_KEY, APP_URL (optional)
 
-const OWNER_EMAIL  = 'josh@urbantreeservices.net'
-const OFFICE_EMAIL = 'office@urbantreeservices.net'
-
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { NOTIFY_RECIPIENTS, NOTIFY_FROM } from '../_shared/notify.ts'
 
 const CORS = {
   'Access-Control-Allow-Origin':  '*',
@@ -96,9 +94,8 @@ Deno.serve(async (req) => {
       ? `💬 New comment on Quote #${quoteRef} — ${client?.name ?? 'Client'}`
       : `❌ Quote #${quoteRef} declined — ${client?.name ?? 'Client'}`
 
-    // Residential comments/acceptances also go to the owner.
-    const recipients = [OFFICE_EMAIL]
-    if (isResidential && (isComment || isAccept)) recipients.push(OWNER_EMAIL)
+    // Everyone on the notification list gets every accept, decline and comment.
+    const recipients = NOTIFY_RECIPIENTS
 
     const headerBg    = isAccept ? '#2F5233' : isComment ? '#4A6DA8' : '#7B2D26'
     const headerLabel = isAccept ? '✅ Quote Accepted' : isComment ? '💬 New Comment' : '❌ Quote Declined'
@@ -149,7 +146,7 @@ Deno.serve(async (req) => {
       method: 'POST',
       headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from:    'TreeCo <office@urbantreeservices.net>',
+        from:    NOTIFY_FROM,
         to:      recipients,
         subject,
         html,

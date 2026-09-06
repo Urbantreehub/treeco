@@ -8,6 +8,7 @@
 // Required secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, RESEND_API_KEY (optional)
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { NOTIFY_RECIPIENTS, NOTIFY_FROM } from '../_shared/notify.ts'
 
 const CORS = {
   'Access-Control-Allow-Origin':  '*',
@@ -112,7 +113,7 @@ Deno.serve(async (req: Request) => {
       fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ from: 'TreeCo <noreply@urbantreeservices.net>', to: 'josh@urbantreeservices.net', subject: `New enquiry: ${name}${preferred ? ` — ${preferred}` : ''}`, html }),
+        body: JSON.stringify({ from: NOTIFY_FROM, to: NOTIFY_RECIPIENTS, subject: `New enquiry: ${name}${preferred ? ` — ${preferred}` : ''}`, html }),
       }).catch(() => {})
     }
 
