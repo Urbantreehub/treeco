@@ -172,12 +172,12 @@ font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Segoe 
   <h1 style="margin-top:10px">TreeCo Workflow Redesign</h1>
   <p class="lede">A full assessment of the app as it is today, what the best-rated scheduling and quoting tools do, and three genuinely different ways to rebuild TreeCo around one idea: <b>the quote is the job</b>. Nothing you have today is lost. The common path just gets a lot shorter.</p>
   <div class="toc">
-    <a href="#tldr">Summary</a><a href="#workflow">Your workflow</a><a href="#today">The app today</a><a href="#research">What the best apps do</a><a href="#statuses">Status list</a><a href="#directions">Three directions</a><a href="#shared">Shared pieces</a><a href="#features">Feature specs</a><a href="#devices">Desktop, iPad, iPhone</a><a href="#keep">Nothing lost</a><a href="#roadmap">Roadmap</a><a href="#decide">Decisions for you</a>
+    <a href="#tldr">Summary</a><a href="#workflow">Your workflow</a><a href="#today">The app today</a><a href="#research">What the best apps do</a><a href="#statuses">Status list</a><a href="#directions">Three directions</a><a href="#mode">Quoting view</a><a href="#shared">Shared pieces</a><a href="#features">Feature specs</a><a href="#devices">Desktop, iPad, iPhone</a><a href="#keep">Nothing lost</a><a href="#roadmap">Roadmap</a><a href="#decide">Decisions for you</a>
   </div>
 
   <div class="tldr" id="tldr">
     <h3>In short</h3>
-    <p><b>Decision: Direction A ("Quote Desk").</b> Chosen 6 September, with two refinements: photos sit on the quote line they belong to, and Spencers / Downer jobs carry their own colour tag, KO reference and SLA clock everywhere they appear. Every job becomes one quote-first record with a price, a status stepper, the quote description, photos and a live activity feed. Leads and acceptances email both you and Ashley. The scheduler gets truck rows, people as chips, and leave greyed out. The original nine statuses come back as a forward-only stepper. Menus hide everything that isn't the next step.</p>
+    <p><b>Decision: Direction A ("Quote Desk").</b> Chosen 6 September, with three refinements: photos sit on the quote line they belong to; Spencers / Downer jobs carry their own colour tag, KO reference and SLA clock everywhere they appear; and Josh's default is a <b>Quoting view</b> with just Quotes and Quote runs, plus one button to open the full app. Every job becomes one quote-first record with a price, a status stepper, the quote description, photos and a live activity feed. Leads and acceptances email both you and Ashley. The scheduler gets truck rows, people as chips, and leave greyed out. The original nine statuses come back as a forward-only stepper. Menus hide everything that isn't the next step.</p>
     <p>Directions B ("Flow Board") and C ("Today") stay in this document for reference. B could return later as an optional board view on the Quotes tab; C's "one decision, one button" idea lives on as the "Needs me" grouping at the top of the A list.</p>
   </div>
 
@@ -276,14 +276,11 @@ font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Segoe 
   <!-- Direction A — "Quote Desk": Mail-style three pane. Nav / list / record. Chosen direction. -->
   <div class="sidebar">
     <div class="brand"><svg class="ic" style="width:20px;height:20px;stroke:var(--terra);stroke-width:3" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M6 6l12 12M18 6L6 18"/></svg>TreeCo</div>
+    <div class="eyebrow" style="color:rgba(255,255,255,.45);padding:0 12px 8px">Quoting</div>
     <div class="nav on"><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Quotes <span class="n">33</span></div>
-    <div class="nav"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Schedule</div>
-    <div class="nav"><svg class="ic" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Clients</div>
-    <div style="height:18px"></div>
-    <div class="nav sub">More</div>
-    <div class="nav sub">Safety</div><div class="nav sub">Team</div><div class="nav sub">Chat</div><div class="nav sub">Mulch · Tools</div><div class="nav sub">Marketing</div>
-    <div style="margin-top:auto" class="nav sub">Settings</div>
-    <div class="row" style="padding:10px 12px;color:#fff;gap:10px"><span class="avatar" style="background:var(--terra)">J</span><div style="font-size:12px;line-height:1.2"><b>Josh</b><div style="opacity:.6">Full access</div></div></div>
+    <div class="nav"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Quote runs <span class="n">Tue · 4</span></div>
+    <div style="margin-top:auto;padding:0 4px 10px"><div class="row" style="border:1px solid rgba(255,255,255,.25);border-radius:12px;padding:9px 12px;color:#fff;font-size:12.5px;font-weight:700;gap:8px"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>Full app <span class="grow"></span><span style="opacity:.6;font-weight:500">⇄</span></div><div style="font-size:10.5px;color:rgba(255,255,255,.45);padding:6px 4px 0;line-height:1.35">Trucks, clients, safety, team, mulch, marketing and settings.</div></div>
+    <div class="row" style="padding:10px 12px;color:#fff;gap:10px"><span class="avatar" style="background:var(--terra)">J</span><div style="font-size:12px;line-height:1.2"><b>Josh</b><div style="opacity:.6">Full access · Quoting view</div></div></div>
   </div>
 
   <!-- LIST: quotes grouped by status; Spencers / Downer rows carry their own colour tag and KO code -->
@@ -354,7 +351,7 @@ font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Segoe 
     </div>
   </div>
 </div>
-</div><figcaption>Mac / iPad landscape. Three panes: navigation, list, record. Spencers rows are violet-tagged and Downer rows orange-tagged with their KO reference and SLA clock; the chips at the top of the list isolate them. Each quote line carries its own photos.</figcaption></figure>
+</div><figcaption>Mac / iPad landscape in the Quoting view. Three panes: navigation (two items and the Full app button), list, record. Spencers rows are violet-tagged and Downer rows orange-tagged with their KO reference and SLA clock; the chips at the top of the list isolate them. Each quote line carries its own photos.</figcaption></figure>
     <div class="mockrow">
       <div>
         <div class="pros">
@@ -392,9 +389,8 @@ font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Segoe 
   </div>
   <div class="tabbar">
     <div class="tab on"><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Quotes</div>
-    <div class="tab"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Schedule</div>
-    <div class="tab"><svg class="ic" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Clients</div>
-    <div class="tab"><svg class="ic" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>More</div>
+    <div class="tab"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Quote runs</div>
+    <div class="tab"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>Full app</div>
   </div>
 </div>
 </div><figcaption>iPhone: the same list; tapping pushes to the record.</figcaption></figure>
@@ -631,6 +627,122 @@ font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Segoe 
 
   <div class="callout"><p><b>What carries over from B and C.</b> B's board can be added later as a "Board" toggle on the Quotes list (the footer of the A list already reserves it). C's one-button cards become the "Needs me" filter, which is the default view of the A list.</p></div>
 
+  <h2 id="mode">Josh's default: the Quoting view</h2>
+  <p>When you open TreeCo you see two things: <b>Quotes</b> and <b>Quote runs</b>. Nothing else is on screen. One button at the bottom of the sidebar (or the third tab on the phone) switches to the full app, which adds the truck schedule, clients, reports and the occasional-use pages. The choice is remembered per device, so the Mac in the office can stay on the full app while your phone stays on quoting.</p>
+  <figure class="mock" style="max-width:760px"><div class="vp" data-w="760" data-h="620"><div class="mk" style="width:760px;height:620px;background:#F6EFE4;padding:24px;display:grid;grid-template-columns:1fr 1fr;gap:24px">
+  <!-- The one button: Quoting view (Josh's default) ⇄ Full app. Same account, same data; only the navigation changes. -->
+  <div style="display:flex;flex-direction:column;gap:10px">
+    <div class="eyebrow" style="color:var(--terra)">Default for Josh · Quoting view</div>
+    <div class="sidebar" style="border-radius:18px;height:520px">
+      <div class="brand"><svg class="ic" style="width:20px;height:20px;stroke:var(--terra);stroke-width:3" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M6 6l12 12M18 6L6 18"/></svg>TreeCo</div>
+      <div class="eyebrow" style="color:rgba(255,255,255,.45);padding:0 12px 8px">Quoting</div>
+      <div class="nav on"><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Quotes <span class="n">33</span></div>
+      <div class="nav"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Quote runs <span class="n">Tue · 4</span></div>
+      <div style="margin-top:auto;padding:0 4px 10px"><div class="row" style="border:1px solid var(--terra);background:var(--terra);border-radius:12px;padding:9px 12px;color:#fff;font-size:12.5px;font-weight:700;gap:8px"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>Full app <span class="grow"></span><span style="font-weight:500">⇄</span></div><div style="font-size:10.5px;color:rgba(255,255,255,.45);padding:6px 4px 0;line-height:1.35">One tap. Remembers your choice per device.</div></div>
+      <div class="row" style="padding:10px 12px;color:#fff;gap:10px"><span class="avatar" style="background:var(--terra)">J</span><div style="font-size:12px;line-height:1.2"><b>Josh</b><div style="opacity:.6">Full access · Quoting view</div></div></div>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:10px">
+    <div class="eyebrow">After the switch · Full app</div>
+    <div class="sidebar" style="border-radius:18px;height:520px">
+      <div class="brand"><svg class="ic" style="width:20px;height:20px;stroke:var(--terra);stroke-width:3" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M6 6l12 12M18 6L6 18"/></svg>TreeCo</div>
+      <div class="nav on"><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Quotes <span class="n">33</span></div>
+      <div class="nav"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Schedule <span class="n" style="background:none;color:rgba(255,255,255,.5);font-weight:500">runs + trucks</span></div>
+      <div class="nav"><svg class="ic" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Clients</div>
+      <div class="nav"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Reports</div>
+      <div style="height:10px"></div>
+      <div class="nav sub">Safety</div><div class="nav sub">Team · Chat</div><div class="nav sub">Mulch · Tools</div><div class="nav sub">Marketing</div><div class="nav sub">Settings</div>
+      <div style="margin-top:auto;padding:0 4px 10px"><div class="row" style="border:1px solid rgba(255,255,255,.25);border-radius:12px;padding:9px 12px;color:#fff;font-size:12.5px;font-weight:700;gap:8px"><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Quoting view <span class="grow"></span><span style="opacity:.6;font-weight:500">⇄</span></div></div>
+      <div class="row" style="padding:10px 12px;color:#fff;gap:10px"><span class="avatar" style="background:var(--terra)">J</span><div style="font-size:12px;line-height:1.2"><b>Josh</b><div style="opacity:.6">Full access</div></div></div>
+    </div>
+  </div>
+</div>
+</div><figcaption>The switch. Same account, same data; only the navigation changes. Ashley's default is the full app.</figcaption></figure>
+  <h3>Quote runs: your Tuesday and Thursday, in order</h3>
+  <p>The quote schedule is a week strip with the two run days opened up. Each stop is a card with the time, who you are meeting (or the access note if not), the phone number and a "Write quote" button that appears once the visit is done. The tray on the right holds new leads waiting for a run and quotes you still have to write. Drag a lead onto a run to book it; the job moves to Visit booked by itself and the client gets the confirmation text.</p>
+  <figure class="mock"><div class="vp" data-w="1440" data-h="900"><div class="mk" style="width:1440px;height:900px;display:grid;grid-template-columns:200px 1fr 320px">
+  <!-- Quoting mode, second tab: the quote-run schedule. Josh's Tue / Thu visits in order, one card per stop. -->
+  <div class="sidebar">
+    <div class="brand"><svg class="ic" style="width:20px;height:20px;stroke:var(--terra);stroke-width:3" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M6 6l12 12M18 6L6 18"/></svg>TreeCo</div>
+    <div class="eyebrow" style="color:rgba(255,255,255,.45);padding:0 12px 8px">Quoting</div>
+    <div class="nav"><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Quotes <span class="n">33</span></div>
+    <div class="nav on"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Quote runs <span class="n">Tue · 4</span></div>
+    <div style="margin-top:auto;padding:0 4px 10px"><div class="row" style="border:1px solid rgba(255,255,255,.25);border-radius:12px;padding:9px 12px;color:#fff;font-size:12.5px;font-weight:700;gap:8px"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>Full app <span class="grow"></span><span style="opacity:.6;font-weight:500">⇄</span></div></div>
+    <div class="row" style="padding:10px 12px;color:#fff;gap:10px"><span class="avatar" style="background:var(--terra)">J</span><div style="font-size:12px;line-height:1.2"><b>Josh</b><div style="opacity:.6">Full access · Quoting view</div></div></div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;overflow:hidden">
+    <div class="topbar" style="height:56px;gap:12px">
+      <span class="btn">Today</span><span class="btn" style="width:34px;padding:0">‹</span><span class="btn" style="width:34px;padding:0">›</span>
+      <span class="h2" style="font-size:17px">Week of 10 August</span>
+      <span class="grow"></span>
+      <span class="chip on">Runs</span><span class="chip">Map</span>
+      <span class="btn">Text this run's clients</span>
+      <span class="btn" style="width:34px;padding:0">⋯</span>
+    </div>
+    <div style="padding:16px 18px;display:grid;grid-template-columns:repeat(6,1fr);gap:10px;flex:1;min-height:0">
+      <!-- Mon -->
+      <div class="col" style="gap:8px"><div class="gh" style="border:0;background:none;padding:4px 2px">Mon 10</div><div style="border:1.5px dashed var(--line);border-radius:14px;padding:12px;text-align:center;color:var(--ink-3);font-size:11px;font-weight:600">Trucks only · no visits</div></div>
+      <!-- Tue run -->
+      <div class="col" style="gap:8px;grid-column:span 2;background:#fff;border:1px solid var(--line);border-radius:16px;padding:10px">
+        <div class="row" style="padding:2px 4px 6px"><span class="pill" style="background:#4A7FA51F;color:var(--s-visit)"><i></i>Tue 11 · quote run</span><span class="faint" style="font-size:11px">4 stops · 8:00 – 12:30 · 31 km</span><span class="grow"></span><span class="chip" style="padding:3px 10px;font-size:11px">Reorder by distance</span></div>
+        <div class="card" style="padding:10px 12px;display:grid;grid-template-columns:52px 1fr auto;gap:10px;align-items:center;border-left:4px solid var(--s-visit)"><div class="tn" style="font-weight:800;font-size:13px">8:00</div><div><div class="ttl">Anna Ferreira</div><div class="sub">22 Brooklyn Rd · Pruning · 2 photos from the form</div><div class="row" style="margin-top:5px;gap:4px"><span class="chip" style="padding:2px 8px;font-size:11px">Meeting</span><span class="chip" style="padding:2px 8px;font-size:11px">022 777 888</span></div></div><span class="btn" style="height:30px;font-size:12px">Write quote</span></div>
+        <div class="card" style="padding:10px 12px;display:grid;grid-template-columns:52px 1fr auto;gap:10px;align-items:center;border-left:4px solid var(--s-visit)"><div class="tn" style="font-weight:800;font-size:13px">9:15</div><div><div class="ttl">Priya Nair</div><div class="sub">40 Aro St · Hedge · access via rear lane</div><div class="row" style="margin-top:5px;gap:4px"><span class="chip" style="padding:2px 8px;font-size:11px;color:var(--ink-3)">Not meeting · key under mat</span></div></div><span class="btn" style="height:30px;font-size:12px">Write quote</span></div>
+        <div class="card" style="padding:10px 12px;display:grid;grid-template-columns:52px 1fr auto;gap:10px;align-items:center;border-left:4px solid var(--s-visit)"><div class="tn" style="font-weight:800;font-size:13px">10:30</div><div><div class="ttl">Sam Rewi</div><div class="sub">7 Kelburn Pde · Removal · council check needed</div><div class="row" style="margin-top:5px;gap:4px"><span class="chip" style="padding:2px 8px;font-size:11px">Meeting</span><span class="chip" style="padding:2px 8px;font-size:11px">021 604 118</span></div></div><span class="btn" style="height:30px;font-size:12px">Write quote</span></div>
+        <div class="card sp" style="padding:10px 12px;display:grid;grid-template-columns:52px 1fr auto;gap:10px;align-items:center;border-left:4px solid #6D4AA8"><div class="tn" style="font-weight:800;font-size:13px">11:45</div><div><div class="row" style="gap:6px"><span class="cat sp">Spencers</span><span class="ttl">27 Coutts St</span></div><div class="sub">KO 4472105 · VSC · measure Macrocarpa for quotable item</div></div><span class="btn" style="height:30px;font-size:12px">Write quote</span></div>
+        <div style="border:1.5px dashed var(--terra);background:var(--terra-wash);border-radius:12px;padding:10px;text-align:center;color:var(--terra);font-size:11px;font-weight:700">Drop a visit here · fits before 1pm</div>
+      </div>
+      <!-- Wed -->
+      <div class="col" style="gap:8px"><div class="gh" style="border:0;background:none;padding:4px 2px">Wed 12</div><div class="card" style="padding:10px 12px;border-left:4px solid var(--s-visit)"><div class="ttl">Kelly Mason</div><div class="sub">3 Owen St · re-measure</div><div class="faint" style="font-size:11px;margin-top:4px">4:00pm · on the way home</div></div></div>
+      <!-- Thu run -->
+      <div class="col" style="gap:8px;grid-column:span 2;background:#fff;border:1px solid var(--line);border-radius:16px;padding:10px">
+        <div class="row" style="padding:2px 4px 6px"><span class="pill" style="background:#4A7FA51F;color:var(--s-visit)"><i></i>Thu 13 · quote run</span><span class="faint" style="font-size:11px">3 stops · 8:00 – 11:00</span></div>
+        <div class="card" style="padding:10px 12px;display:grid;grid-template-columns:52px 1fr auto;gap:10px;align-items:center;border-left:4px solid var(--s-visit)"><div class="tn" style="font-weight:800;font-size:13px">8:00</div><div><div class="ttl">Tom &amp; Ngaire Walsh</div><div class="sub">5 Farnham St, Mornington · Removal</div></div><span class="faint" style="font-size:11px">Meeting</span></div>
+        <div class="card dw" style="padding:10px 12px;display:grid;grid-template-columns:52px 1fr auto;gap:10px;align-items:center;border-left:4px solid #C77D1A"><div class="tn" style="font-weight:800;font-size:13px">9:00</div><div><div class="row" style="gap:6px"><span class="cat dw">Downer</span><span class="ttl">Adelaide Rd</span></div><div class="sub">KO 5510-227 · URG · site assessment</div></div><span class="pill" style="background:#FFF0EE;color:#C0392B">⏱ due</span></div>
+        <div class="card" style="padding:10px 12px;display:grid;grid-template-columns:52px 1fr auto;gap:10px;align-items:center;border-left:4px solid var(--s-visit)"><div class="tn" style="font-weight:800;font-size:13px">10:15</div><div><div class="ttl">Body Corporate 41 Oriental Pde</div><div class="sub">Annual pruning round · 6 trees</div></div><span class="faint" style="font-size:11px">Meeting</span></div>
+        <div style="border:1.5px dashed var(--line);border-radius:12px;padding:10px;text-align:center;color:var(--ink-3);font-size:11px;font-weight:600">2 slots free</div>
+      </div>
+    </div>
+    <div class="row" style="padding:0 18px 14px;gap:18px;font-size:12px;color:var(--ink-2)"><span><b style="color:var(--ink)">7</b> visits this week · <b style="color:var(--ink)">2</b> quotes still to write from last week</span><span class="grow"></span><span class="faint">Drag a stop to reorder · drag from the tray to book · a visit auto-moves the job to Visit booked</span></div>
+  </div>
+
+  <div style="border-left:1px solid var(--line);background:#fff;display:flex;flex-direction:column;overflow:hidden">
+    <div style="padding:16px 16px 10px;border-bottom:1px solid var(--line)"><div class="h2">Visits to book</div><div class="muted" style="font-size:12px;margin-top:2px">New leads waiting for a run</div></div>
+    <div style="padding:12px;display:flex;flex-direction:column;gap:8px">
+      <div class="card" style="padding:10px 12px;border-left:4px solid var(--s-lead);box-shadow:0 8px 20px -10px rgba(40,25,10,.4)"><div class="ttl">Marcus Lee</div><div class="sub">18 Hataitai Rd · Removal · wants Tue am</div><div class="row" style="margin-top:6px;gap:4px"><span class="chip" style="padding:2px 8px;font-size:11px">Hataitai · 3 km from Coutts St</span></div></div>
+      <div class="card" style="padding:10px 12px;border-left:4px solid var(--s-lead)"><div class="ttl">Sarah Ngata</div><div class="sub">9 Rintoul St, Newtown · Hedge · any day</div></div>
+      <div class="eyebrow" style="padding:10px 4px 2px;color:var(--s-sent)">Quotes to write · 2</div>
+      <div class="card" style="padding:10px 12px;border-left:4px solid var(--s-visit)"><div class="row"><div class="ttl grow">Priya Nair</div><span class="faint" style="font-size:11px">visited Thu</span></div><div class="sub">40 Aro St · 5 photos taken</div></div>
+      <div class="card" style="padding:10px 12px;border-left:4px solid var(--s-visit)"><div class="row"><div class="ttl grow">Lee family</div><span class="faint" style="font-size:11px">visited Tue</span></div><div class="sub">2 Grafton Rd · 3 photos taken</div></div>
+    </div>
+    <div style="margin-top:auto;padding:12px 16px;border-top:1px solid var(--line)" class="note">Only leads and visits live here. Truck scheduling is in the full app.</div>
+  </div>
+</div>
+</div><figcaption>Quote runs on Mac / iPad. Spencers and Downer visits keep their tags. Trucks do not appear here; they are in the full app's Schedule.</figcaption></figure>
+  <figure class="mock" style="max-width:390px"><div class="vp" data-w="390" data-h="844"><div class="mk" style="width:390px;height:844px;background:var(--cream)">
+  <!-- Quoting mode on iPhone: today's quote run, in order, one tap to call, navigate or start the quote. -->
+  <div style="padding:58px 18px 10px;display:flex;flex-direction:column;gap:6px">
+    <div class="row"><span class="h1" style="font-size:30px">Tue run</span><span class="grow"></span><span class="btn" style="height:36px;border-radius:18px">Map</span></div>
+    <div class="row" style="gap:6px"><span class="chip" style="padding:3px 10px">‹ Mon</span><span class="chip on" style="padding:3px 10px">Tue 11 · 4</span><span class="chip" style="padding:3px 10px">Wed 1</span><span class="chip" style="padding:3px 10px">Thu 3 ›</span></div>
+  </div>
+  <div style="padding:6px 18px 0;display:flex;flex-direction:column;gap:10px">
+    <div class="card" style="padding:14px 16px;border:2px solid var(--terra);display:flex;flex-direction:column;gap:10px">
+      <div class="row"><span class="pill" style="background:var(--terra-wash);color:var(--terra)">Next · 8:00</span><span class="grow"></span><span class="faint" style="font-size:11px">12 min away</span></div>
+      <div><div class="ttl" style="font-size:17px">Anna Ferreira</div><div class="sub" style="white-space:normal">22 Brooklyn Rd · Pruning · "Two large trees overhanging the deck." · Meeting</div></div>
+      <div class="row" style="gap:8px"><span class="btn lg grow" style="height:44px">Call</span><span class="btn lg grow" style="height:44px">Navigate</span><span class="btn primary lg grow" style="height:44px">Start quote</span></div>
+    </div>
+    <div class="card" style="padding:12px 16px;display:grid;grid-template-columns:48px 1fr;gap:10px;align-items:center"><div class="tn" style="font-weight:800">9:15</div><div><div class="ttl" style="font-size:15px">Priya Nair</div><div class="sub">40 Aro St · Hedge · not meeting, key under mat</div></div></div>
+    <div class="card" style="padding:12px 16px;display:grid;grid-template-columns:48px 1fr;gap:10px;align-items:center"><div class="tn" style="font-weight:800">10:30</div><div><div class="ttl" style="font-size:15px">Sam Rewi</div><div class="sub">7 Kelburn Pde · Removal · meeting</div></div></div>
+    <div class="card" style="padding:12px 16px;display:grid;grid-template-columns:48px 1fr;gap:10px;align-items:center;border-left:5px solid #6D4AA8"><div class="tn" style="font-weight:800">11:45</div><div><div class="row" style="gap:6px"><span class="cat sp">Spencers</span><span class="ttl" style="font-size:15px">27 Coutts St</span></div><div class="sub">KO 4472105 · VSC · measure Macrocarpa</div></div></div>
+    <div class="note" style="text-align:center;padding:4px 0">Done stops drop to the bottom with "Write quote" · long-press to reorder</div>
+  </div>
+  <div class="tabbar">
+    <div class="tab"><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Quotes</div>
+    <div class="tab on"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Quote runs</div>
+    <div class="tab"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>Full app</div>
+  </div>
+</div>
+</div><figcaption>The same run on iPhone, in the truck: next stop on top with Call, Navigate and Start quote.</figcaption></figure>
   <h2 id="shared">Shared pieces</h2>
   <h3>The job record: the quote is the job</h3>
   <p>Open any job and the first thing you see is the price, the status stepper, the quote description and the photos, each sitting on the line it belongs to. The activity feed sits beside it and is where you reply to the client. The enquiry, site notes, client details, work order, job pack, text-the-client and the exception statuses all live under "…". Once the quote is sent the pre-quote material stops taking up space, but it is one tap away.</p>
@@ -973,6 +1085,7 @@ font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Segoe 
     <div class="card"><h4>Staff, trucks, availability</h4><p>New <span class="k">resources</span> table (Isuzu, Nissan, Grinder) replaces the hard-coded lane list. <span class="k">schedule.assigned_to</span> is finally written when you drop a person on a truck-day. New <span class="k">availability</span> table for leave, sick and part days. Truck iPads keep working unchanged.</p></div>
     <div class="card"><h4>Activity feed</h4><p><span class="k">quote_events</span> gets written for sent, followed up, edited, accepted, declined, comment, photo, scheduled, invoiced (today only "opened" is written). The feed becomes the single source for Sent Quotes, the dashboard follow-ups and the drawer.</p></div>
     <div class="card"><h4>Versions and copies</h4><p>Auto-snapshot on every edit after send (today only on accept/reopen). "Versions" control appears at v2. "Copy to new quote" creates a linked job. Accepted quotes stay locked; a variation is a new quote.</p></div>
+    <div class="card"><h4>Quoting view and full app</h4><p>A per-user, per-device preference (stored in <span class="k">localStorage</span> with the default set on the user record). Quoting view shows Quotes and Quote runs only. Full app shows everything. One button toggles; the URL structure is the same in both, so links always work.</p></div>
     <div class="card"><h4>Menus, not pages</h4><p>Primary nav becomes three or four items per role. Mulch, Tools, Marketing, Team, Chat, Clients and Settings live in More. Every status exception, text-the-client, work order and job pack live in the record's "…".</p></div>
     <div class="card"><h4>Access levels stay</h4><p>Full, Office, Truck and Crew logins keep their fences. Trucks see the day run only; crew see safety, chat and their docs; Office sees everything but the money dashboard.</p></div>
   </div>
@@ -1012,7 +1125,7 @@ font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Segoe 
   <ol class="steps">
     <li><b>Week 1: notifications and the feed.</b> Recipients list in Settings; all lead and quote functions email it. Write every event to <span class="k">quote_events</span>. Restore the ten statuses as the single list and delete the dead trimmed lists. <span class="small">Files: <span class="k">supabase/functions/notify-office</span>, <span class="k">inbound-lead</span>, <span class="k">book-quote</span>, <span class="k">send-quote-email</span>, <span class="k">quote-followup</span>, <span class="k">frontend/src/config/statuses.js</span>.</span></li>
     <li><b>Week 2–3: the job record.</b> Replace the drawer with the quote-first record (stepper, price, description, photos, activity, "…" menu). One quote per job with auto-versions. <span class="small">Files: <span class="k">JobDetailPanel.jsx</span> (rewrite), <span class="k">QuoteActivity.jsx</span>, migration for <span class="k">quotes.job_id</span> unique + version trigger.</span></li>
-    <li><b>Week 4: home and navigation.</b> Today inbox (from Actions + DashboardWorkload + DashboardFollowUps), Jobs list grouped by need, 3–4 item nav with More. <span class="small">Files: <span class="k">Layout.jsx</span>, <span class="k">Actions.jsx</span>, <span class="k">Pipeline.jsx</span>, <span class="k">Dashboard.jsx</span>.</span></li>
+    <li><b>Week 4: navigation and the Quoting view.</b> Quotes list grouped by need with the "Needs me" default, Quote runs page (from Planner's quote-run tab and the day-run view), the Quoting view ⇄ Full app switch, 3–4 item full-app nav with More. <span class="small">Files: <span class="k">Layout.jsx</span>, <span class="k">Actions.jsx</span>, <span class="k">Pipeline.jsx</span>, <span class="k">Dashboard.jsx</span>.</span></li>
     <li><b>Week 5–6: scheduler.</b> <span class="k">resources</span> and <span class="k">availability</span> tables; people chips; write <span class="k">assigned_to</span>; leave blocks; merge Planner quote runs into the grid. <span class="small">Files: <span class="k">Calendar.jsx</span>, <span class="k">Planner.jsx</span>, new migration.</span></li>
     <li><b>Week 7: board view and polish.</b> Optional Flow Board on the Jobs tab, dark mode pass, e2e specs updated.</li>
   </ol>

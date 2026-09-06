@@ -1,26 +1,186 @@
 {
   "pages": [
-    { "id": "page-1", "name": "A · Quote Desk" },
-    { "id": "page-2", "name": "Other directions (not chosen)" }
+    {
+      "id": "page-1",
+      "name": "A \u00b7 Quote Desk"
+    },
+    {
+      "id": "page-2",
+      "name": "Other directions (not chosen)"
+    }
   ],
   "artboards": [
-    { "file": "Main.dc.html", "title": "A · Quote Desk — Mac / iPad", "x": 0, "y": 0, "w": 1440, "h": 900, "page": "page-1" },
-    { "file": "APhone.dc.html", "title": "A · Quote Desk — iPhone", "x": 1540, "y": 0, "w": 390, "h": 844, "page": "page-1" },
-    { "file": "JobRecord.dc.html", "title": "Job record — private job", "x": 0, "y": 1060, "w": 1180, "h": 880, "page": "page-1" },
-    { "file": "RecordSpencers.dc.html", "title": "Job record — Spencers job", "x": 1280, "y": 1060, "w": 1180, "h": 880, "page": "page-1" },
-    { "file": "Scheduler.dc.html", "title": "Scheduler — trucks, people, leave", "x": 0, "y": 2100, "w": 1440, "h": 900, "page": "page-1" },
-    { "file": "SchedulerIpad.dc.html", "title": "Scheduler — iPad", "x": 1540, "y": 2100, "w": 1024, "h": 768, "page": "page-1" },
-    { "file": "Email.dc.html", "title": "Notification emails — Josh + Ashley", "x": 0, "y": 3160, "w": 640, "h": 760, "page": "page-1" },
-    { "file": "BDesktop.dc.html", "title": "B · Flow Board — Mac / iPad", "x": 0, "y": 0, "w": 1440, "h": 900, "page": "page-2" },
-    { "file": "BPhone.dc.html", "title": "B · Flow Board — iPhone", "x": 1540, "y": 0, "w": 390, "h": 844, "page": "page-2" },
-    { "file": "CDesktop.dc.html", "title": "C · Today — Mac / iPad", "x": 0, "y": 1060, "w": 1440, "h": 900, "page": "page-2" },
-    { "file": "CPhone.dc.html", "title": "C · Today — iPhone", "x": 1540, "y": 1060, "w": 390, "h": 844, "page": "page-2" }
+    {
+      "file": "Main.dc.html",
+      "title": "A \u00b7 Quote Desk \u2014 Mac / iPad",
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "page": "page-1"
+    },
+    {
+      "file": "APhone.dc.html",
+      "title": "A \u00b7 Quote Desk \u2014 iPhone",
+      "x": 1540,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-1"
+    },
+    {
+      "file": "QuoteRuns.dc.html",
+      "title": "Quote runs \u2014 Mac / iPad (Quoting view)",
+      "x": 0,
+      "y": 1060,
+      "w": 1440,
+      "h": 900,
+      "page": "page-1"
+    },
+    {
+      "file": "QuoteRunsPhone.dc.html",
+      "title": "Quote runs \u2014 iPhone",
+      "x": 1540,
+      "y": 1060,
+      "w": 390,
+      "h": 844,
+      "page": "page-1"
+    },
+    {
+      "file": "ModeSwitch.dc.html",
+      "title": "Quoting view \u21c4 Full app",
+      "x": 2030,
+      "y": 1060,
+      "w": 760,
+      "h": 620,
+      "page": "page-1"
+    },
+    {
+      "file": "JobRecord.dc.html",
+      "title": "Job record \u2014 private job",
+      "x": 0,
+      "y": 2120,
+      "w": 1180,
+      "h": 880,
+      "page": "page-1"
+    },
+    {
+      "file": "RecordSpencers.dc.html",
+      "title": "Job record \u2014 Spencers job",
+      "x": 1280,
+      "y": 2120,
+      "w": 1180,
+      "h": 880,
+      "page": "page-1"
+    },
+    {
+      "file": "Scheduler.dc.html",
+      "title": "Scheduler \u2014 trucks, people, leave",
+      "x": 0,
+      "y": 3160,
+      "w": 1440,
+      "h": 900,
+      "page": "page-1"
+    },
+    {
+      "file": "SchedulerIpad.dc.html",
+      "title": "Scheduler \u2014 iPad",
+      "x": 1540,
+      "y": 3160,
+      "w": 1024,
+      "h": 768,
+      "page": "page-1"
+    },
+    {
+      "file": "Email.dc.html",
+      "title": "Notification emails \u2014 Josh + Ashley",
+      "x": 0,
+      "y": 4220,
+      "w": 640,
+      "h": 760,
+      "page": "page-1"
+    },
+    {
+      "file": "BDesktop.dc.html",
+      "title": "B \u00b7 Flow Board \u2014 Mac / iPad",
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "page": "page-2"
+    },
+    {
+      "file": "BPhone.dc.html",
+      "title": "B \u00b7 Flow Board \u2014 iPhone",
+      "x": 1540,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "page": "page-2"
+    },
+    {
+      "file": "CDesktop.dc.html",
+      "title": "C \u00b7 Today \u2014 Mac / iPad",
+      "x": 0,
+      "y": 1060,
+      "w": 1440,
+      "h": 900,
+      "page": "page-2"
+    },
+    {
+      "file": "CPhone.dc.html",
+      "title": "C \u00b7 Today \u2014 iPhone",
+      "x": 1540,
+      "y": 1060,
+      "w": 390,
+      "h": 844,
+      "page": "page-2"
+    }
   ],
   "annotations": [
-    { "id": "note-a", "x": 0, "y": -150, "w": 900, "text": "Chosen: A · Quote Desk. Photos now sit on the quote line they belong to (crew Before / During / After land on the same line once the job runs). Spencers rows are violet-tagged, Downer rows orange-tagged, with KO reference and SLA clock; filter chips isolate them.", "page": "page-1" },
-    { "id": "note-records", "x": 0, "y": 910, "w": 900, "text": "Two job records, same layout: a private job (Margaret) and a Spencers job (violet band, KO reference, SOR-coded lines, quotable pre-approval line highlighted, portal actions in the … menu, portal notes in the feed).", "page": "page-1" },
-    { "id": "note-shared", "x": 0, "y": 1950, "w": 900, "text": "Scheduler: trucks as rows, people as chips, leave greyed out, tray only holds Accepted work. Spencers and Downer blocks keep their violet / orange colours on the grid.", "page": "page-1" },
-    { "id": "note-other", "x": 0, "y": -150, "w": 900, "text": "Kept for reference only. B (Flow Board) could return later as an optional board view on the Quotes tab; C (Today) ideas fold into the 'Needs me' grouping at the top of the A list.", "page": "page-2" }
+    {
+      "id": "note-a",
+      "x": 0,
+      "y": -150,
+      "w": 900,
+      "text": "Chosen: A \u00b7 Quote Desk. Photos sit on the quote line they belong to. Spencers rows are violet-tagged, Downer rows orange-tagged, with KO reference and SLA clock. Sidebar shows the Quoting view.",
+      "page": "page-1"
+    },
+    {
+      "id": "note-mode",
+      "x": 0,
+      "y": 910,
+      "w": 900,
+      "text": "Josh's default is the Quoting view: two tabs (Quotes, Quote runs) and one Full app button. The full app adds Schedule (trucks), Clients, Reports and the rest. Same account, same data; only the navigation changes, and the choice is remembered per device.",
+      "page": "page-1"
+    },
+    {
+      "id": "note-records",
+      "x": 0,
+      "y": 1970,
+      "w": 900,
+      "text": "Two job records, same layout: a private job (Margaret) and a Spencers job (violet band, KO reference, SOR-coded lines, quotable pre-approval line highlighted, portal actions in the \u2026 menu, portal notes in the feed).",
+      "page": "page-1"
+    },
+    {
+      "id": "note-shared",
+      "x": 0,
+      "y": 3010,
+      "w": 900,
+      "text": "Scheduler: trucks as rows, people as chips, leave greyed out, tray only holds Accepted work. Spencers and Downer blocks keep their violet / orange colours on the grid.",
+      "page": "page-1"
+    },
+    {
+      "id": "note-other",
+      "x": 0,
+      "y": -150,
+      "w": 900,
+      "text": "Kept for reference only. B (Flow Board) could return later as an optional board view on the Quotes tab; C (Today) ideas fold into the 'Needs me' grouping at the top of the A list.",
+      "page": "page-2"
+    }
   ],
-  "launch": { "view": "canvas", "page": "page-1" }
+  "launch": {
+    "view": "canvas",
+    "page": "page-1"
+  }
 }

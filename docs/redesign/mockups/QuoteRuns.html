@@ -1,0 +1,58 @@
+<div class="mk" style="width:1440px;height:900px;display:grid;grid-template-columns:200px 1fr 320px">
+  <!-- Quoting mode, second tab: the quote-run schedule. Josh's Tue / Thu visits in order, one card per stop. -->
+  <div class="sidebar">
+    <div class="brand"><svg class="ic" style="width:20px;height:20px;stroke:var(--terra);stroke-width:3" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M6 6l12 12M18 6L6 18"/></svg>TreeCo</div>
+    <div class="eyebrow" style="color:rgba(255,255,255,.45);padding:0 12px 8px">Quoting</div>
+    <div class="nav"><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Quotes <span class="n">33</span></div>
+    <div class="nav on"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Quote runs <span class="n">Tue · 4</span></div>
+    <div style="margin-top:auto;padding:0 4px 10px"><div class="row" style="border:1px solid rgba(255,255,255,.25);border-radius:12px;padding:9px 12px;color:#fff;font-size:12.5px;font-weight:700;gap:8px"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>Full app <span class="grow"></span><span style="opacity:.6;font-weight:500">⇄</span></div></div>
+    <div class="row" style="padding:10px 12px;color:#fff;gap:10px"><span class="avatar" style="background:var(--terra)">J</span><div style="font-size:12px;line-height:1.2"><b>Josh</b><div style="opacity:.6">Full access · Quoting view</div></div></div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;overflow:hidden">
+    <div class="topbar" style="height:56px;gap:12px">
+      <span class="btn">Today</span><span class="btn" style="width:34px;padding:0">‹</span><span class="btn" style="width:34px;padding:0">›</span>
+      <span class="h2" style="font-size:17px">Week of 10 August</span>
+      <span class="grow"></span>
+      <span class="chip on">Runs</span><span class="chip">Map</span>
+      <span class="btn">Text this run's clients</span>
+      <span class="btn" style="width:34px;padding:0">⋯</span>
+    </div>
+    <div style="padding:16px 18px;display:grid;grid-template-columns:repeat(6,1fr);gap:10px;flex:1;min-height:0">
+      <!-- Mon -->
+      <div class="col" style="gap:8px"><div class="gh" style="border:0;background:none;padding:4px 2px">Mon 10</div><div style="border:1.5px dashed var(--line);border-radius:14px;padding:12px;text-align:center;color:var(--ink-3);font-size:11px;font-weight:600">Trucks only · no visits</div></div>
+      <!-- Tue run -->
+      <div class="col" style="gap:8px;grid-column:span 2;background:#fff;border:1px solid var(--line);border-radius:16px;padding:10px">
+        <div class="row" style="padding:2px 4px 6px"><span class="pill" style="background:#4A7FA51F;color:var(--s-visit)"><i></i>Tue 11 · quote run</span><span class="faint" style="font-size:11px">4 stops · 8:00 – 12:30 · 31 km</span><span class="grow"></span><span class="chip" style="padding:3px 10px;font-size:11px">Reorder by distance</span></div>
+        <div class="card" style="padding:10px 12px;display:grid;grid-template-columns:52px 1fr auto;gap:10px;align-items:center;border-left:4px solid var(--s-visit)"><div class="tn" style="font-weight:800;font-size:13px">8:00</div><div><div class="ttl">Anna Ferreira</div><div class="sub">22 Brooklyn Rd · Pruning · 2 photos from the form</div><div class="row" style="margin-top:5px;gap:4px"><span class="chip" style="padding:2px 8px;font-size:11px">Meeting</span><span class="chip" style="padding:2px 8px;font-size:11px">022 777 888</span></div></div><span class="btn" style="height:30px;font-size:12px">Write quote</span></div>
+        <div class="card" style="padding:10px 12px;display:grid;grid-template-columns:52px 1fr auto;gap:10px;align-items:center;border-left:4px solid var(--s-visit)"><div class="tn" style="font-weight:800;font-size:13px">9:15</div><div><div class="ttl">Priya Nair</div><div class="sub">40 Aro St · Hedge · access via rear lane</div><div class="row" style="margin-top:5px;gap:4px"><span class="chip" style="padding:2px 8px;font-size:11px;color:var(--ink-3)">Not meeting · key under mat</span></div></div><span class="btn" style="height:30px;font-size:12px">Write quote</span></div>
+        <div class="card" style="padding:10px 12px;display:grid;grid-template-columns:52px 1fr auto;gap:10px;align-items:center;border-left:4px solid var(--s-visit)"><div class="tn" style="font-weight:800;font-size:13px">10:30</div><div><div class="ttl">Sam Rewi</div><div class="sub">7 Kelburn Pde · Removal · council check needed</div><div class="row" style="margin-top:5px;gap:4px"><span class="chip" style="padding:2px 8px;font-size:11px">Meeting</span><span class="chip" style="padding:2px 8px;font-size:11px">021 604 118</span></div></div><span class="btn" style="height:30px;font-size:12px">Write quote</span></div>
+        <div class="card sp" style="padding:10px 12px;display:grid;grid-template-columns:52px 1fr auto;gap:10px;align-items:center;border-left:4px solid #6D4AA8"><div class="tn" style="font-weight:800;font-size:13px">11:45</div><div><div class="row" style="gap:6px"><span class="cat sp">Spencers</span><span class="ttl">27 Coutts St</span></div><div class="sub">KO 4472105 · VSC · measure Macrocarpa for quotable item</div></div><span class="btn" style="height:30px;font-size:12px">Write quote</span></div>
+        <div style="border:1.5px dashed var(--terra);background:var(--terra-wash);border-radius:12px;padding:10px;text-align:center;color:var(--terra);font-size:11px;font-weight:700">Drop a visit here · fits before 1pm</div>
+      </div>
+      <!-- Wed -->
+      <div class="col" style="gap:8px"><div class="gh" style="border:0;background:none;padding:4px 2px">Wed 12</div><div class="card" style="padding:10px 12px;border-left:4px solid var(--s-visit)"><div class="ttl">Kelly Mason</div><div class="sub">3 Owen St · re-measure</div><div class="faint" style="font-size:11px;margin-top:4px">4:00pm · on the way home</div></div></div>
+      <!-- Thu run -->
+      <div class="col" style="gap:8px;grid-column:span 2;background:#fff;border:1px solid var(--line);border-radius:16px;padding:10px">
+        <div class="row" style="padding:2px 4px 6px"><span class="pill" style="background:#4A7FA51F;color:var(--s-visit)"><i></i>Thu 13 · quote run</span><span class="faint" style="font-size:11px">3 stops · 8:00 – 11:00</span></div>
+        <div class="card" style="padding:10px 12px;display:grid;grid-template-columns:52px 1fr auto;gap:10px;align-items:center;border-left:4px solid var(--s-visit)"><div class="tn" style="font-weight:800;font-size:13px">8:00</div><div><div class="ttl">Tom &amp; Ngaire Walsh</div><div class="sub">5 Farnham St, Mornington · Removal</div></div><span class="faint" style="font-size:11px">Meeting</span></div>
+        <div class="card dw" style="padding:10px 12px;display:grid;grid-template-columns:52px 1fr auto;gap:10px;align-items:center;border-left:4px solid #C77D1A"><div class="tn" style="font-weight:800;font-size:13px">9:00</div><div><div class="row" style="gap:6px"><span class="cat dw">Downer</span><span class="ttl">Adelaide Rd</span></div><div class="sub">KO 5510-227 · URG · site assessment</div></div><span class="pill" style="background:#FFF0EE;color:#C0392B">⏱ due</span></div>
+        <div class="card" style="padding:10px 12px;display:grid;grid-template-columns:52px 1fr auto;gap:10px;align-items:center;border-left:4px solid var(--s-visit)"><div class="tn" style="font-weight:800;font-size:13px">10:15</div><div><div class="ttl">Body Corporate 41 Oriental Pde</div><div class="sub">Annual pruning round · 6 trees</div></div><span class="faint" style="font-size:11px">Meeting</span></div>
+        <div style="border:1.5px dashed var(--line);border-radius:12px;padding:10px;text-align:center;color:var(--ink-3);font-size:11px;font-weight:600">2 slots free</div>
+      </div>
+    </div>
+    <div class="row" style="padding:0 18px 14px;gap:18px;font-size:12px;color:var(--ink-2)"><span><b style="color:var(--ink)">7</b> visits this week · <b style="color:var(--ink)">2</b> quotes still to write from last week</span><span class="grow"></span><span class="faint">Drag a stop to reorder · drag from the tray to book · a visit auto-moves the job to Visit booked</span></div>
+  </div>
+
+  <div style="border-left:1px solid var(--line);background:#fff;display:flex;flex-direction:column;overflow:hidden">
+    <div style="padding:16px 16px 10px;border-bottom:1px solid var(--line)"><div class="h2">Visits to book</div><div class="muted" style="font-size:12px;margin-top:2px">New leads waiting for a run</div></div>
+    <div style="padding:12px;display:flex;flex-direction:column;gap:8px">
+      <div class="card" style="padding:10px 12px;border-left:4px solid var(--s-lead);box-shadow:0 8px 20px -10px rgba(40,25,10,.4)"><div class="ttl">Marcus Lee</div><div class="sub">18 Hataitai Rd · Removal · wants Tue am</div><div class="row" style="margin-top:6px;gap:4px"><span class="chip" style="padding:2px 8px;font-size:11px">Hataitai · 3 km from Coutts St</span></div></div>
+      <div class="card" style="padding:10px 12px;border-left:4px solid var(--s-lead)"><div class="ttl">Sarah Ngata</div><div class="sub">9 Rintoul St, Newtown · Hedge · any day</div></div>
+      <div class="eyebrow" style="padding:10px 4px 2px;color:var(--s-sent)">Quotes to write · 2</div>
+      <div class="card" style="padding:10px 12px;border-left:4px solid var(--s-visit)"><div class="row"><div class="ttl grow">Priya Nair</div><span class="faint" style="font-size:11px">visited Thu</span></div><div class="sub">40 Aro St · 5 photos taken</div></div>
+      <div class="card" style="padding:10px 12px;border-left:4px solid var(--s-visit)"><div class="row"><div class="ttl grow">Lee family</div><span class="faint" style="font-size:11px">visited Tue</span></div><div class="sub">2 Grafton Rd · 3 photos taken</div></div>
+    </div>
+    <div style="margin-top:auto;padding:12px 16px;border-top:1px solid var(--line)" class="note">Only leads and visits live here. Truck scheduling is in the full app.</div>
+  </div>
+</div>

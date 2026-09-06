@@ -4,7 +4,7 @@ September 2026. Companion to `TreeCo-Workflow-Redesign.html` (the illustrated re
 
 ## In short
 
-Decision (6 Sep): Direction A ("Quote Desk"), with two refinements: photos sit on the quote line they belong to, and Spencers / Downer jobs carry their own colour tag, KO reference and SLA clock everywhere they appear (list rows, filter chips, record header, scheduler blocks). B and C are kept for reference; B may return as a board toggle on the Quotes list, C's one-button cards become the default "Needs me" filter.
+Decision (6 Sep): Direction A ("Quote Desk"), with three refinements: Josh's default is a Quoting view (Quotes + Quote runs only) with one button to open the full app; photos sit on the quote line they belong to, and Spencers / Downer jobs carry their own colour tag, KO reference and SLA clock everywhere they appear (list rows, filter chips, record header, scheduler blocks). B and C are kept for reference; B may return as a board toggle on the Quotes list, C's one-button cards become the default "Needs me" filter.
 
 Original recommendation was Direction A for the job record with Direction C's "Today" inbox as the home screen. Every job becomes one quote-first record with a price, a status stepper, the quote description, photos and a live activity feed. Leads and acceptances email both Josh and Ashley. The scheduler gets truck rows, people as chips, and leave greyed out. The original nine statuses come back as a forward-only stepper. Menus hide everything that isn't the next step.
 
@@ -64,6 +64,10 @@ The restored statuses as lanes grouped into Quoting / Doing / Getting paid, each
 An inbox of decisions, one button each: new leads (book a visit or decline), accepted (schedule), questions (reply), quotes gone quiet (follow up or snooze), finished jobs (invoice). Right rail: who is on the road and a live feed. Best for Ashley's morning and Josh between visits. Tradeoff: the full pipeline lives under All jobs.
 
 They combine: C as the home tab, A as the Jobs tab, B's board as an optional view on the Jobs tab.
+
+## Josh's default: the Quoting view
+
+On open, Josh sees Quotes and Quote runs only. A Full app button at the bottom of the sidebar (third tab on the phone) reveals Schedule (trucks), Clients, Reports and the occasional pages. The preference is per user and per device. Quote runs is a week strip with Tuesday and Thursday opened up: ordered stops with time, meeting / access note, phone, and a Write quote button after the visit; a tray of leads waiting for a run and quotes still to write. Dragging a lead onto a run books it and moves the job to Visit booked. Trucks never appear in the Quoting view.
 
 ## Shared pieces
 
