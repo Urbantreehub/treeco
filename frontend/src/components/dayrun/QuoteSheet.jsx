@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { isSpencersJob } from '../../config/statuses'
 import { displayCase, telHref, koCode, kpiDue, kpiCountdown } from '../../utils/jobDisplay'
+import { primaryQuote } from '../../utils/quotes'
 
 // On-site quote sheet — the slide-up bottom sheet opened from the day-run view.
 // Deliberately minimal: who/where, call, meeting status, one info panel and a
@@ -17,13 +18,6 @@ const KO_LABELS = {
   VSC: 'VSC — Void',
   RM:  'RM — Responsive Maintenance',
   PM:  'PM — Planned Maintenance',
-}
-
-// Best quote to open, same preference order the calendar uses.
-function bestQuote(job) {
-  const qs = job?.quotes ?? []
-  return qs.find(q => q.status === 'accepted') || qs.find(q => q.status === 'viewed')
-      || qs.find(q => q.status === 'sent') || qs.find(q => q.status === 'draft') || qs[0] || null
 }
 
 // Pull an "Access: …" line out of a portal job's raw description, if present.
@@ -58,7 +52,7 @@ export default function QuoteSheet({ job, onClose }) {
   const due = kpiDue(job)
   const kpi = kpiCountdown(job)
   const access = accessLine(job.description)
-  const q = bestQuote(job)
+  const q = primaryQuote(job)
 
   function openQuote() {
     close()
