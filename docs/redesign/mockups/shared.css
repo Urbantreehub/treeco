@@ -82,3 +82,16 @@ font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Segoe 
 .mk .mi.sep{border-top:1px solid var(--line);margin-top:4px;padding-top:10px}
 .mk .mi.danger{color:#B23A2E}
 .mk .note{font-size:12px;color:var(--ink-2);line-height:1.4}
+/* category tags (Spencers violet / Downer orange, as in statuses.js JOB_CATEGORIES) */
+.mk .cat{display:inline-flex;align-items:center;gap:5px;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#fff;line-height:1.3;white-space:nowrap}
+.mk .cat.sp{background:#6D4AA8}.mk .cat.dw{background:#C77D1A}
+.mk .jrow.sp{box-shadow:inset 4px 0 0 #6D4AA8}.mk .jrow.dw{box-shadow:inset 4px 0 0 #C77D1A}
+.mk .band{height:6px;border-radius:6px 6px 0 0}
+/* line item with inline thumbnails */
+.mk .li{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:start;padding:10px 0;border-top:1px solid var(--line)}
+.mk .li .th{display:flex;gap:4px;width:96px}
+.mk .li .th .ph{width:46px;aspect-ratio:1;border-radius:8px}
+.mk .li .th.one .ph{width:96px;aspect-ratio:2/1}
+.mk .li .th.none{width:96px;border:1.5px dashed var(--line);border-radius:8px;height:36px;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--ink-3);font-weight:600}
+.mk .sor{display:inline-block;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;font-weight:700;background:#F0EAF8;color:#6D4AA8;border-radius:5px;padding:1px 6px;margin-right:6px}
+.mk .sor.q{background:var(--terra-wash);color:var(--terra);font-family:inherit}

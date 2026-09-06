@@ -1,8 +1,8 @@
 <div class="mk" style="width:1440px;height:900px;display:grid;grid-template-columns:200px 380px 1fr">
-  <!-- Direction A — "Quote Desk": Mail-style three pane. Nav / list / record. -->
+  <!-- Direction A — "Quote Desk": Mail-style three pane. Nav / list / record. Chosen direction. -->
   <div class="sidebar">
     <div class="brand"><svg class="ic" style="width:20px;height:20px;stroke:var(--terra);stroke-width:3" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M6 6l12 12M18 6L6 18"/></svg>TreeCo</div>
-    <div class="nav on"><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Quotes <span class="n">31</span></div>
+    <div class="nav on"><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Quotes <span class="n">33</span></div>
     <div class="nav"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Schedule</div>
     <div class="nav"><svg class="ic" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Clients</div>
     <div style="height:18px"></div>
@@ -12,37 +12,41 @@
     <div class="row" style="padding:10px 12px;color:#fff;gap:10px"><span class="avatar" style="background:var(--terra)">J</span><div style="font-size:12px;line-height:1.2"><b>Josh</b><div style="opacity:.6">Full access</div></div></div>
   </div>
 
-  <!-- LIST: quotes grouped by status, filter chips = the working sets -->
+  <!-- LIST: quotes grouped by status; Spencers / Downer rows carry their own colour tag and KO code -->
   <div style="border-right:1px solid var(--line);background:#fff;display:flex;flex-direction:column;overflow:hidden">
     <div style="padding:16px 16px 10px;display:flex;flex-direction:column;gap:10px;border-bottom:1px solid var(--line)">
       <div class="row"><span class="h1 grow">Quotes</span><span class="btn primary">+ New</span></div>
-      <div class="search"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Search name, address, job…</div>
+      <div class="search"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Search name, address, KO ref…</div>
       <div class="row" style="gap:6px;flex-wrap:wrap">
-        <span class="chip on">Needs me · 6</span><span class="chip">Active · 19</span><span class="chip">Waiting · 3</span><span class="chip">Done</span>
+        <span class="chip on">Needs me · 8</span><span class="chip">Active · 21</span><span class="chip">Waiting · 3</span><span class="chip">Done</span>
+        <span class="grow"></span><span class="chip" style="color:#6D4AA8;border-color:#6D4AA8">Spencers</span><span class="chip" style="color:#C77D1A;border-color:#C77D1A">Downer</span>
       </div>
     </div>
     <div style="overflow:hidden;flex:1">
-      <div class="eyebrow" style="padding:12px 16px 6px;color:var(--s-lead)">New leads · 2</div>
+      <div class="eyebrow" style="padding:12px 16px 6px;color:var(--s-lead)">New leads · 3</div>
       <div class="jrow"><span class="bar" style="background:var(--s-lead)"></span><div><div class="ttl">Anna Ferreira</div><div class="sub">22 Brooklyn Rd · Pruning · via website</div></div><div style="text-align:right"><div class="faint" style="font-size:11px">2h ago</div></div></div>
+      <div class="jrow dw"><span class="bar" style="background:var(--s-lead)"></span><div><div class="row" style="gap:6px"><span class="cat dw">Downer</span><span class="ttl">Adelaide Rd, Newtown</span></div><div class="sub">KO 5510-227 · URG · respond within 4h · portal</div></div><div style="text-align:right"><span class="pill" style="background:#FFF0EE;color:#C0392B">⏱ 2h 40m</span></div></div>
       <div class="jrow"><span class="bar" style="background:var(--s-lead)"></span><div><div class="ttl">Sam Rewi</div><div class="sub">7 Kelburn Pde · Removal · phone</div></div><div style="text-align:right"><div class="faint" style="font-size:11px">Yesterday</div></div></div>
       <div class="eyebrow" style="padding:14px 16px 6px;color:var(--s-accepted)">Accepted · to schedule · 2</div>
       <div class="jrow"><span class="bar" style="background:var(--s-accepted)"></span><div><div class="ttl">Richard Tait</div><div class="sub">8 Miramar Rd · Pruning · accepted Tue</div></div><div style="text-align:right"><div class="price tn">$2,415</div></div></div>
-      <div class="jrow"><span class="bar" style="background:var(--s-accepted)"></span><div><div class="ttl">Coastal Properties Ltd</div><div class="sub">55 Oriental Pde · Pruning · accepted Mon</div></div><div style="text-align:right"><div class="price tn">$3,680</div></div></div>
-      <div class="eyebrow" style="padding:14px 16px 6px;color:var(--s-sent)">Sent · follow up · 2</div>
+      <div class="jrow sp"><span class="bar" style="background:var(--s-accepted)"></span><div><div class="row" style="gap:6px"><span class="cat sp">Spencers</span><span class="ttl">12 Tirangi Rd, Rongotai</span></div><div class="sub">KO 4471982 · GNL · SOR items · approved in portal</div></div><div style="text-align:right"><div class="price tn">$1,340</div><div class="faint" style="font-size:11px">⏱ 6d</div></div></div>
+      <div class="eyebrow" style="padding:14px 16px 6px;color:var(--s-sent)">Sent · follow up · 3</div>
       <div class="jrow sel"><span class="bar" style="background:var(--s-sent)"></span><div><div class="ttl">Margaret Thompson</div><div class="sub">14 Hillcrest Ave · Crown reduction · asked a question</div></div><div style="text-align:right"><div class="price tn">$3,220</div><div class="faint" style="font-size:11px">6 days</div></div></div>
       <div class="jrow"><span class="bar" style="background:var(--s-sent)"></span><div><div class="ttl">Heritage Homes Trust</div><div class="sub">101 Mt Victoria Blvd · Removal · opened 3×</div></div><div style="text-align:right"><div class="price tn">$6,210</div><div class="faint" style="font-size:11px">15 days</div></div></div>
-      <div class="eyebrow" style="padding:14px 16px 6px;color:var(--s-toinv)">Done · to invoice · 1</div>
+      <div class="jrow sp"><span class="bar" style="background:var(--s-sent)"></span><div><div class="row" style="gap:6px"><span class="cat sp">Spencers</span><span class="ttl">27 Coutts St, Kilbirnie</span></div><div class="sub">KO 4472105 · VSC · quotable items · pre-approval sent</div></div><div style="text-align:right"><div class="price tn">$1,980</div><div class="faint" style="font-size:11px">3 days</div></div></div>
+      <div class="eyebrow" style="padding:14px 16px 6px;color:var(--s-toinv)">Done · to invoice · 2</div>
       <div class="jrow"><span class="bar" style="background:var(--s-toinv)"></span><div><div class="ttl">Dave &amp; Sue Wilson</div><div class="sub">3 Karori Rd · Stump grinding · finished Thu</div></div><div style="text-align:right"><div class="price tn">$1,104</div></div></div>
+      <div class="jrow sp"><span class="bar" style="background:var(--s-toinv)"></span><div><div class="row" style="gap:6px"><span class="cat sp">Spencers</span><span class="ttl">4 Rongotai Rd</span></div><div class="sub">KO 4470311 · photos to portal pending</div></div><div style="text-align:right"><div class="price tn">$860</div></div></div>
     </div>
     <div class="row" style="padding:10px 16px;border-top:1px solid var(--line);font-size:11px;color:var(--ink-3)">Sorted by what needs you first · <span style="text-decoration:underline">List</span> · Board</div>
   </div>
 
-  <!-- RECORD: the same quote-first job record, compact -->
+  <!-- RECORD: quote-first, photos on the line they belong to -->
   <div style="padding:22px 28px;display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:24px;overflow:hidden">
     <div class="col" style="gap:16px;min-width:0">
       <div class="row" style="align-items:flex-start">
         <div class="grow">
-          <div class="row" style="gap:10px;margin-bottom:6px"><span class="eyebrow">Job 0412 · v2</span><span class="pill" style="background:#FDF3E3;color:var(--s-sent)"><i></i>Quote Sent · 6 days</span></div>
+          <div class="row" style="gap:10px;margin-bottom:6px"><span class="eyebrow">Job 0412 · v2 · Private</span><span class="pill" style="background:#FDF3E3;color:var(--s-sent)"><i></i>Quote Sent · 6 days</span></div>
           <div class="h1">14 Hillcrest Ave, Wellington</div>
           <div class="muted" style="font-size:14px;margin-top:4px">Margaret Thompson · <span style="color:var(--terra);font-weight:700">021 456 789</span></div>
         </div>
@@ -53,12 +57,12 @@
       </div>
       <div class="row" style="gap:8px"><span class="btn primary lg">Send follow-up</span><span class="btn lg">Accept on behalf</span><span class="btn lg">Edit quote</span><span class="grow"></span><span class="btn lg" style="width:44px;padding:0;font-size:20px">⋯</span></div>
       <div class="card" style="padding:16px 18px;display:flex;flex-direction:column;flex:1;min-height:0">
-        <div class="eyebrow" style="margin-bottom:8px">Quote description</div>
-        <div style="display:grid;grid-template-columns:1fr auto;gap:12px;padding:9px 0;border-top:1px solid var(--line)"><div><b>Front yard — Pōhutukawa</b><div class="muted" style="margin-top:2px;line-height:1.45">• Crown reduce by 20%, keep natural form<br>• Remove deadwood over 25 mm<br>• Clear 2 m from roofline and service line</div></div><div class="price tn">$1,850</div></div>
-        <div style="display:grid;grid-template-columns:1fr auto;gap:12px;padding:9px 0;border-top:1px solid var(--line)"><div><b>Rear boundary — Macrocarpa hedge</b><div class="muted" style="margin-top:2px;line-height:1.45">• Reduce to 2.4 m, side-trim neighbour's face<br>• Chip on site, mulch to bin bay</div></div><div class="price tn">$720</div></div>
-        <div style="display:grid;grid-template-columns:1fr auto;gap:12px;padding:9px 0;border-top:1px solid var(--line)"><div><b>Disposal</b><div class="muted" style="margin-top:2px">• All arisings removed</div></div><div class="price tn">$230</div></div>
-        <div style="display:grid;grid-template-columns:1fr auto;gap:12px;padding:9px 0;border-top:1px dashed var(--line)"><div class="row"><span class="pill" style="background:var(--terra-wash);color:var(--terra)">Optional</span><b>Stump grind — Silver birch</b></div><div class="price tn faint">$420</div></div>
-        <div class="row" style="margin-top:auto;padding-top:10px;gap:10px"><span class="chip">1 day · 3 staff · chipper</span><span class="chip">Terms: on completion</span><span class="grow"></span><span class="faint" style="font-size:11px">Photos · 5</span><span class="ph" style="width:44px;aspect-ratio:1;border-radius:8px"></span><span class="ph b" style="width:44px;aspect-ratio:1;border-radius:8px"></span><span class="ph c" style="width:44px;aspect-ratio:1;border-radius:8px"></span></div>
+        <div class="row" style="margin-bottom:8px"><span class="eyebrow grow">Quote description</span><span class="faint" style="font-size:11px">Tap a photo to open · crew Before / After land on the same line</span></div>
+        <div class="li"><div class="th"><span class="ph"></span><span class="ph b"></span></div><div><b>Front yard — Pōhutukawa</b><div class="muted" style="margin-top:2px;line-height:1.45">• Crown reduce by 20%, keep natural form<br>• Remove deadwood over 25 mm<br>• Clear 2 m from roofline and service line</div></div><div class="price tn">$1,850</div></div>
+        <div class="li"><div class="th one"><span class="ph c"></span></div><div><b>Rear boundary — Macrocarpa hedge</b><div class="muted" style="margin-top:2px;line-height:1.45">• Reduce to 2.4 m, side-trim neighbour's face<br>• Chip on site, mulch to bin bay</div></div><div class="price tn">$720</div></div>
+        <div class="li"><div class="th none">no photo</div><div><b>Disposal</b><div class="muted" style="margin-top:2px">• All arisings removed</div></div><div class="price tn">$230</div></div>
+        <div class="li" style="border-top-style:dashed"><div class="th one"><span class="ph b"></span></div><div><span class="pill" style="background:var(--terra-wash);color:var(--terra);margin-right:6px">Optional</span><b>Stump grind — Silver birch</b><div class="muted" style="margin-top:2px">• Grind 200 mm below grade, grindings left</div></div><div class="price tn faint">$420</div></div>
+        <div class="row" style="margin-top:auto;padding-top:10px;gap:10px"><span class="chip">1 day · 3 staff · chipper</span><span class="chip">Terms: on completion</span><span class="grow"></span><span class="faint" style="font-size:11px">Site visit 5 Jul</span></div>
       </div>
     </div>
     <div class="card" style="display:flex;flex-direction:column;overflow:hidden;background:var(--cream)">
@@ -69,7 +73,7 @@
         <div class="ev"><div class="dot" style="border-color:#4A7FA5">·</div><div><b>Opened</b> <span class="muted">3×</span></div><div class="when">Tue</div></div>
         <div class="ev"><div class="dot" style="border-color:var(--s-sent)">·</div><div><b>Sent</b> <span class="muted">v2 · $3,220</span></div><div class="when">12 Jul</div></div>
         <div class="ev"><div class="dot">v2</div><div><b>Edited</b> <span class="muted">added stump option</span></div><div class="when">12 Jul</div></div>
-        <div class="ev"><div class="dot">·</div><div><b>Site visit</b> <span class="muted">Josh · Tue run</span></div><div class="when">5 Jul</div></div>
+        <div class="ev"><div class="dot">·</div><div><b>Site visit</b> <span class="muted">Josh · Tue run · 4 photos</span></div><div class="when">5 Jul</div></div>
         <div class="ev"><div class="dot">·</div><div><b>Lead</b> <span class="muted">website form</span></div><div class="when">28 Jun</div></div>
       </div></div>
       <div style="padding:10px 16px 14px;border-top:1px solid var(--line)"><div class="row" style="height:36px;border:1px solid var(--line);border-radius:12px;background:#fff;padding:0 12px;color:var(--ink-3);font-size:12px">Note or reply…</div></div>

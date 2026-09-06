@@ -4,7 +4,9 @@ September 2026. Companion to `TreeCo-Workflow-Redesign.html` (the illustrated re
 
 ## In short
 
-Recommendation: Direction A ("Quote Desk") for the job record, with Direction C's "Today" inbox as the home screen. Every job becomes one quote-first record with a price, a status stepper, the quote description, photos and a live activity feed. Leads and acceptances email both Josh and Ashley. The scheduler gets truck rows, people as chips, and leave greyed out. The original nine statuses come back as a forward-only stepper. Menus hide everything that isn't the next step.
+Decision (6 Sep): Direction A ("Quote Desk"), with two refinements: photos sit on the quote line they belong to, and Spencers / Downer jobs carry their own colour tag, KO reference and SLA clock everywhere they appear (list rows, filter chips, record header, scheduler blocks). B and C are kept for reference; B may return as a board toggle on the Quotes list, C's one-button cards become the default "Needs me" filter.
+
+Original recommendation was Direction A for the job record with Direction C's "Today" inbox as the home screen. Every job becomes one quote-first record with a price, a status stepper, the quote description, photos and a live activity feed. Leads and acceptances email both Josh and Ashley. The scheduler gets truck rows, people as chips, and leave greyed out. The original nine statuses come back as a forward-only stepper. Menus hide everything that isn't the next step.
 
 Direction B ("Flow Board") is the most visual and the most drag-and-drop, but the least phone-friendly. All three share the same job record, scheduler and emails, so the choice is about the home screen, not a rewrite.
 
@@ -108,7 +110,7 @@ Quick wins needing no design decision: email both Josh and Ashley on every lead 
 
 ## Decisions needed
 
-1. Home screen: A, B, C, or the recommended C-home + A-jobs combination.
+1. Home screen: decided, Direction A.
 2. Ashley's email address for notifications, and whether office@ still receives copies.
 3. Truck names and the grinder as a row; anything else that gets double-booked (chipper, Avant).
 4. Status labels: original wording or the shorter stepper labels.

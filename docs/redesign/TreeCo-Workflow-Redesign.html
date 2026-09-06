@@ -151,6 +151,19 @@ font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Segoe 
 .mk .mi.sep{border-top:1px solid var(--line);margin-top:4px;padding-top:10px}
 .mk .mi.danger{color:#B23A2E}
 .mk .note{font-size:12px;color:var(--ink-2);line-height:1.4}
+/* category tags (Spencers violet / Downer orange, as in statuses.js JOB_CATEGORIES) */
+.mk .cat{display:inline-flex;align-items:center;gap:5px;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#fff;line-height:1.3;white-space:nowrap}
+.mk .cat.sp{background:#6D4AA8}.mk .cat.dw{background:#C77D1A}
+.mk .jrow.sp{box-shadow:inset 4px 0 0 #6D4AA8}.mk .jrow.dw{box-shadow:inset 4px 0 0 #C77D1A}
+.mk .band{height:6px;border-radius:6px 6px 0 0}
+/* line item with inline thumbnails */
+.mk .li{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:start;padding:10px 0;border-top:1px solid var(--line)}
+.mk .li .th{display:flex;gap:4px;width:96px}
+.mk .li .th .ph{width:46px;aspect-ratio:1;border-radius:8px}
+.mk .li .th.one .ph{width:96px;aspect-ratio:2/1}
+.mk .li .th.none{width:96px;border:1.5px dashed var(--line);border-radius:8px;height:36px;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--ink-3);font-weight:600}
+.mk .sor{display:inline-block;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;font-weight:700;background:#F0EAF8;color:#6D4AA8;border-radius:5px;padding:1px 6px;margin-right:6px}
+.mk .sor.q{background:var(--terra-wash);color:var(--terra);font-family:inherit}
 
 </style>
 
@@ -164,8 +177,8 @@ font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Segoe 
 
   <div class="tldr" id="tldr">
     <h3>In short</h3>
-    <p><b>Recommendation: Direction A ("Quote Desk") for the record, with Direction C's "Today" inbox as the home screen.</b> Every job becomes one quote-first record with a price, a status stepper, the quote description, photos and a live activity feed. Leads and acceptances email both you and Ashley. The scheduler gets truck rows, people as chips, and leave greyed out. The original nine statuses come back as a forward-only stepper. Menus hide everything that isn't the next step.</p>
-    <p>Direction B ("Flow Board") is shown because you asked for drag-and-drop everywhere; it is the most visual but the least phone-friendly. All three share the same job record, scheduler and emails, so the choice is about the <em>home screen</em>, not a rewrite.</p>
+    <p><b>Decision: Direction A ("Quote Desk").</b> Chosen 6 September, with two refinements: photos sit on the quote line they belong to, and Spencers / Downer jobs carry their own colour tag, KO reference and SLA clock everywhere they appear. Every job becomes one quote-first record with a price, a status stepper, the quote description, photos and a live activity feed. Leads and acceptances email both you and Ashley. The scheduler gets truck rows, people as chips, and leave greyed out. The original nine statuses come back as a forward-only stepper. Menus hide everything that isn't the next step.</p>
+    <p>Directions B ("Flow Board") and C ("Today") stay in this document for reference. B could return later as an optional board view on the Quotes tab; C's "one decision, one button" idea lives on as the "Needs me" grouping at the top of the A list.</p>
   </div>
 
   <h2 id="workflow">Your workflow, as the app should understand it</h2>
@@ -252,18 +265,18 @@ font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Segoe 
   <div class="callout"><p><b>Why this fixes the "where is it up to" problem:</b> today a job can sit in Quote Sent with the quote accepted, or in Scheduled with nothing on the calendar, because a person picks from a list. With events driving the steps, the stepper cannot lie. The one thing you keep control of is the exception menu.</p></div>
 
   <h2 id="directions">Three directions</h2>
-  <p>Each one is a different home screen and a different way of moving work along. All three share the same job record, scheduler and emails (next section), and all three keep every current page reachable from a "More" menu.</p>
+  <p>Each one is a different home screen and a different way of moving work along. All three share the same job record, scheduler and emails (next section), and all three keep every current page reachable from a "More" menu. <b>Direction A is the chosen one</b>; B and C are kept below for reference.</p>
 
   <!-- A -->
   <div class="dir" id="dirA">
-    <span class="badge">Direction A</span>
+    <span class="badge">Direction A · chosen</span>
     <h3>Quote Desk: a mail-style list, with the quote open beside it</h3>
     <p>Left column is the list of quotes, grouped by what needs you first (new leads, accepted, sent and waiting, done to invoice). Click one and the full record opens on the right with activity always visible. This is how Quotient and Apple Mail work, and it is the closest match to the way you already think.</p>
     <figure class="mock"><div class="vp" data-w="1440" data-h="900"><div class="mk" style="width:1440px;height:900px;display:grid;grid-template-columns:200px 380px 1fr">
-  <!-- Direction A — "Quote Desk": Mail-style three pane. Nav / list / record. -->
+  <!-- Direction A — "Quote Desk": Mail-style three pane. Nav / list / record. Chosen direction. -->
   <div class="sidebar">
     <div class="brand"><svg class="ic" style="width:20px;height:20px;stroke:var(--terra);stroke-width:3" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M6 6l12 12M18 6L6 18"/></svg>TreeCo</div>
-    <div class="nav on"><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Quotes <span class="n">31</span></div>
+    <div class="nav on"><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Quotes <span class="n">33</span></div>
     <div class="nav"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Schedule</div>
     <div class="nav"><svg class="ic" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Clients</div>
     <div style="height:18px"></div>
@@ -273,37 +286,41 @@ font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Segoe 
     <div class="row" style="padding:10px 12px;color:#fff;gap:10px"><span class="avatar" style="background:var(--terra)">J</span><div style="font-size:12px;line-height:1.2"><b>Josh</b><div style="opacity:.6">Full access</div></div></div>
   </div>
 
-  <!-- LIST: quotes grouped by status, filter chips = the working sets -->
+  <!-- LIST: quotes grouped by status; Spencers / Downer rows carry their own colour tag and KO code -->
   <div style="border-right:1px solid var(--line);background:#fff;display:flex;flex-direction:column;overflow:hidden">
     <div style="padding:16px 16px 10px;display:flex;flex-direction:column;gap:10px;border-bottom:1px solid var(--line)">
       <div class="row"><span class="h1 grow">Quotes</span><span class="btn primary">+ New</span></div>
-      <div class="search"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Search name, address, job…</div>
+      <div class="search"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Search name, address, KO ref…</div>
       <div class="row" style="gap:6px;flex-wrap:wrap">
-        <span class="chip on">Needs me · 6</span><span class="chip">Active · 19</span><span class="chip">Waiting · 3</span><span class="chip">Done</span>
+        <span class="chip on">Needs me · 8</span><span class="chip">Active · 21</span><span class="chip">Waiting · 3</span><span class="chip">Done</span>
+        <span class="grow"></span><span class="chip" style="color:#6D4AA8;border-color:#6D4AA8">Spencers</span><span class="chip" style="color:#C77D1A;border-color:#C77D1A">Downer</span>
       </div>
     </div>
     <div style="overflow:hidden;flex:1">
-      <div class="eyebrow" style="padding:12px 16px 6px;color:var(--s-lead)">New leads · 2</div>
+      <div class="eyebrow" style="padding:12px 16px 6px;color:var(--s-lead)">New leads · 3</div>
       <div class="jrow"><span class="bar" style="background:var(--s-lead)"></span><div><div class="ttl">Anna Ferreira</div><div class="sub">22 Brooklyn Rd · Pruning · via website</div></div><div style="text-align:right"><div class="faint" style="font-size:11px">2h ago</div></div></div>
+      <div class="jrow dw"><span class="bar" style="background:var(--s-lead)"></span><div><div class="row" style="gap:6px"><span class="cat dw">Downer</span><span class="ttl">Adelaide Rd, Newtown</span></div><div class="sub">KO 5510-227 · URG · respond within 4h · portal</div></div><div style="text-align:right"><span class="pill" style="background:#FFF0EE;color:#C0392B">⏱ 2h 40m</span></div></div>
       <div class="jrow"><span class="bar" style="background:var(--s-lead)"></span><div><div class="ttl">Sam Rewi</div><div class="sub">7 Kelburn Pde · Removal · phone</div></div><div style="text-align:right"><div class="faint" style="font-size:11px">Yesterday</div></div></div>
       <div class="eyebrow" style="padding:14px 16px 6px;color:var(--s-accepted)">Accepted · to schedule · 2</div>
       <div class="jrow"><span class="bar" style="background:var(--s-accepted)"></span><div><div class="ttl">Richard Tait</div><div class="sub">8 Miramar Rd · Pruning · accepted Tue</div></div><div style="text-align:right"><div class="price tn">$2,415</div></div></div>
-      <div class="jrow"><span class="bar" style="background:var(--s-accepted)"></span><div><div class="ttl">Coastal Properties Ltd</div><div class="sub">55 Oriental Pde · Pruning · accepted Mon</div></div><div style="text-align:right"><div class="price tn">$3,680</div></div></div>
-      <div class="eyebrow" style="padding:14px 16px 6px;color:var(--s-sent)">Sent · follow up · 2</div>
+      <div class="jrow sp"><span class="bar" style="background:var(--s-accepted)"></span><div><div class="row" style="gap:6px"><span class="cat sp">Spencers</span><span class="ttl">12 Tirangi Rd, Rongotai</span></div><div class="sub">KO 4471982 · GNL · SOR items · approved in portal</div></div><div style="text-align:right"><div class="price tn">$1,340</div><div class="faint" style="font-size:11px">⏱ 6d</div></div></div>
+      <div class="eyebrow" style="padding:14px 16px 6px;color:var(--s-sent)">Sent · follow up · 3</div>
       <div class="jrow sel"><span class="bar" style="background:var(--s-sent)"></span><div><div class="ttl">Margaret Thompson</div><div class="sub">14 Hillcrest Ave · Crown reduction · asked a question</div></div><div style="text-align:right"><div class="price tn">$3,220</div><div class="faint" style="font-size:11px">6 days</div></div></div>
       <div class="jrow"><span class="bar" style="background:var(--s-sent)"></span><div><div class="ttl">Heritage Homes Trust</div><div class="sub">101 Mt Victoria Blvd · Removal · opened 3×</div></div><div style="text-align:right"><div class="price tn">$6,210</div><div class="faint" style="font-size:11px">15 days</div></div></div>
-      <div class="eyebrow" style="padding:14px 16px 6px;color:var(--s-toinv)">Done · to invoice · 1</div>
+      <div class="jrow sp"><span class="bar" style="background:var(--s-sent)"></span><div><div class="row" style="gap:6px"><span class="cat sp">Spencers</span><span class="ttl">27 Coutts St, Kilbirnie</span></div><div class="sub">KO 4472105 · VSC · quotable items · pre-approval sent</div></div><div style="text-align:right"><div class="price tn">$1,980</div><div class="faint" style="font-size:11px">3 days</div></div></div>
+      <div class="eyebrow" style="padding:14px 16px 6px;color:var(--s-toinv)">Done · to invoice · 2</div>
       <div class="jrow"><span class="bar" style="background:var(--s-toinv)"></span><div><div class="ttl">Dave &amp; Sue Wilson</div><div class="sub">3 Karori Rd · Stump grinding · finished Thu</div></div><div style="text-align:right"><div class="price tn">$1,104</div></div></div>
+      <div class="jrow sp"><span class="bar" style="background:var(--s-toinv)"></span><div><div class="row" style="gap:6px"><span class="cat sp">Spencers</span><span class="ttl">4 Rongotai Rd</span></div><div class="sub">KO 4470311 · photos to portal pending</div></div><div style="text-align:right"><div class="price tn">$860</div></div></div>
     </div>
     <div class="row" style="padding:10px 16px;border-top:1px solid var(--line);font-size:11px;color:var(--ink-3)">Sorted by what needs you first · <span style="text-decoration:underline">List</span> · Board</div>
   </div>
 
-  <!-- RECORD: the same quote-first job record, compact -->
+  <!-- RECORD: quote-first, photos on the line they belong to -->
   <div style="padding:22px 28px;display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:24px;overflow:hidden">
     <div class="col" style="gap:16px;min-width:0">
       <div class="row" style="align-items:flex-start">
         <div class="grow">
-          <div class="row" style="gap:10px;margin-bottom:6px"><span class="eyebrow">Job 0412 · v2</span><span class="pill" style="background:#FDF3E3;color:var(--s-sent)"><i></i>Quote Sent · 6 days</span></div>
+          <div class="row" style="gap:10px;margin-bottom:6px"><span class="eyebrow">Job 0412 · v2 · Private</span><span class="pill" style="background:#FDF3E3;color:var(--s-sent)"><i></i>Quote Sent · 6 days</span></div>
           <div class="h1">14 Hillcrest Ave, Wellington</div>
           <div class="muted" style="font-size:14px;margin-top:4px">Margaret Thompson · <span style="color:var(--terra);font-weight:700">021 456 789</span></div>
         </div>
@@ -314,12 +331,12 @@ font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Segoe 
       </div>
       <div class="row" style="gap:8px"><span class="btn primary lg">Send follow-up</span><span class="btn lg">Accept on behalf</span><span class="btn lg">Edit quote</span><span class="grow"></span><span class="btn lg" style="width:44px;padding:0;font-size:20px">⋯</span></div>
       <div class="card" style="padding:16px 18px;display:flex;flex-direction:column;flex:1;min-height:0">
-        <div class="eyebrow" style="margin-bottom:8px">Quote description</div>
-        <div style="display:grid;grid-template-columns:1fr auto;gap:12px;padding:9px 0;border-top:1px solid var(--line)"><div><b>Front yard — Pōhutukawa</b><div class="muted" style="margin-top:2px;line-height:1.45">• Crown reduce by 20%, keep natural form<br>• Remove deadwood over 25 mm<br>• Clear 2 m from roofline and service line</div></div><div class="price tn">$1,850</div></div>
-        <div style="display:grid;grid-template-columns:1fr auto;gap:12px;padding:9px 0;border-top:1px solid var(--line)"><div><b>Rear boundary — Macrocarpa hedge</b><div class="muted" style="margin-top:2px;line-height:1.45">• Reduce to 2.4 m, side-trim neighbour's face<br>• Chip on site, mulch to bin bay</div></div><div class="price tn">$720</div></div>
-        <div style="display:grid;grid-template-columns:1fr auto;gap:12px;padding:9px 0;border-top:1px solid var(--line)"><div><b>Disposal</b><div class="muted" style="margin-top:2px">• All arisings removed</div></div><div class="price tn">$230</div></div>
-        <div style="display:grid;grid-template-columns:1fr auto;gap:12px;padding:9px 0;border-top:1px dashed var(--line)"><div class="row"><span class="pill" style="background:var(--terra-wash);color:var(--terra)">Optional</span><b>Stump grind — Silver birch</b></div><div class="price tn faint">$420</div></div>
-        <div class="row" style="margin-top:auto;padding-top:10px;gap:10px"><span class="chip">1 day · 3 staff · chipper</span><span class="chip">Terms: on completion</span><span class="grow"></span><span class="faint" style="font-size:11px">Photos · 5</span><span class="ph" style="width:44px;aspect-ratio:1;border-radius:8px"></span><span class="ph b" style="width:44px;aspect-ratio:1;border-radius:8px"></span><span class="ph c" style="width:44px;aspect-ratio:1;border-radius:8px"></span></div>
+        <div class="row" style="margin-bottom:8px"><span class="eyebrow grow">Quote description</span><span class="faint" style="font-size:11px">Tap a photo to open · crew Before / After land on the same line</span></div>
+        <div class="li"><div class="th"><span class="ph"></span><span class="ph b"></span></div><div><b>Front yard — Pōhutukawa</b><div class="muted" style="margin-top:2px;line-height:1.45">• Crown reduce by 20%, keep natural form<br>• Remove deadwood over 25 mm<br>• Clear 2 m from roofline and service line</div></div><div class="price tn">$1,850</div></div>
+        <div class="li"><div class="th one"><span class="ph c"></span></div><div><b>Rear boundary — Macrocarpa hedge</b><div class="muted" style="margin-top:2px;line-height:1.45">• Reduce to 2.4 m, side-trim neighbour's face<br>• Chip on site, mulch to bin bay</div></div><div class="price tn">$720</div></div>
+        <div class="li"><div class="th none">no photo</div><div><b>Disposal</b><div class="muted" style="margin-top:2px">• All arisings removed</div></div><div class="price tn">$230</div></div>
+        <div class="li" style="border-top-style:dashed"><div class="th one"><span class="ph b"></span></div><div><span class="pill" style="background:var(--terra-wash);color:var(--terra);margin-right:6px">Optional</span><b>Stump grind — Silver birch</b><div class="muted" style="margin-top:2px">• Grind 200 mm below grade, grindings left</div></div><div class="price tn faint">$420</div></div>
+        <div class="row" style="margin-top:auto;padding-top:10px;gap:10px"><span class="chip">1 day · 3 staff · chipper</span><span class="chip">Terms: on completion</span><span class="grow"></span><span class="faint" style="font-size:11px">Site visit 5 Jul</span></div>
       </div>
     </div>
     <div class="card" style="display:flex;flex-direction:column;overflow:hidden;background:var(--cream)">
@@ -330,14 +347,14 @@ font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Segoe 
         <div class="ev"><div class="dot" style="border-color:#4A7FA5">·</div><div><b>Opened</b> <span class="muted">3×</span></div><div class="when">Tue</div></div>
         <div class="ev"><div class="dot" style="border-color:var(--s-sent)">·</div><div><b>Sent</b> <span class="muted">v2 · $3,220</span></div><div class="when">12 Jul</div></div>
         <div class="ev"><div class="dot">v2</div><div><b>Edited</b> <span class="muted">added stump option</span></div><div class="when">12 Jul</div></div>
-        <div class="ev"><div class="dot">·</div><div><b>Site visit</b> <span class="muted">Josh · Tue run</span></div><div class="when">5 Jul</div></div>
+        <div class="ev"><div class="dot">·</div><div><b>Site visit</b> <span class="muted">Josh · Tue run · 4 photos</span></div><div class="when">5 Jul</div></div>
         <div class="ev"><div class="dot">·</div><div><b>Lead</b> <span class="muted">website form</span></div><div class="when">28 Jun</div></div>
       </div></div>
       <div style="padding:10px 16px 14px;border-top:1px solid var(--line)"><div class="row" style="height:36px;border:1px solid var(--line);border-radius:12px;background:#fff;padding:0 12px;color:var(--ink-3);font-size:12px">Note or reply…</div></div>
     </div>
   </div>
 </div>
-</div><figcaption>Mac / iPad landscape. Three panes: navigation, list, record. Nav has three items; everything else is under More.</figcaption></figure>
+</div><figcaption>Mac / iPad landscape. Three panes: navigation, list, record. Spencers rows are violet-tagged and Downer rows orange-tagged with their KO reference and SLA clock; the chips at the top of the list isolate them. Each quote line carries its own photos.</figcaption></figure>
     <div class="mockrow">
       <div>
         <div class="pros">
@@ -348,31 +365,29 @@ font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Segoe 
         </div>
       </div>
       <figure class="mock" style="margin:0"><div class="vp" data-w="390" data-h="844"><div class="mk" style="width:390px;height:844px;background:var(--cream)">
-  <!-- Direction A on iPhone: list → push to record. Same grouping, same one-button rows. -->
+  <!-- Direction A on iPhone: list → push to record. Spencers / Downer rows are tagged. -->
   <div style="padding:58px 18px 12px;display:flex;flex-direction:column;gap:12px">
     <div class="row"><span class="h1" style="font-size:30px">Quotes</span><span class="grow"></span><span class="btn primary" style="height:38px;border-radius:19px">+ New</span></div>
     <div class="search" style="height:38px">Search…</div>
-    <div class="row" style="gap:6px;overflow:hidden"><span class="chip on">Needs me · 6</span><span class="chip">Active</span><span class="chip">Waiting</span><span class="chip">Done</span></div>
+    <div class="row" style="gap:6px;overflow:hidden"><span class="chip on">Needs me · 8</span><span class="chip">Active</span><span class="chip">Waiting</span><span class="chip" style="color:#6D4AA8;border-color:#6D4AA8">Spencers</span><span class="chip" style="color:#C77D1A;border-color:#C77D1A">Downer</span></div>
   </div>
   <div style="padding:0 18px;display:flex;flex-direction:column;gap:14px">
     <div class="card" style="overflow:hidden">
-      <div class="eyebrow" style="padding:10px 14px 6px;color:var(--s-lead)">New leads · 2</div>
-      <div class="jrow" style="grid-template-columns:4px 1fr auto;padding:12px 14px 12px 0"><span class="bar" style="background:var(--s-lead)"></span><div><div class="ttl" style="font-size:15px">Anna Ferreira</div><div class="sub">22 Brooklyn Rd · Pruning · 2h</div></div><span class="faint">›</span></div>
-      <div class="jrow" style="grid-template-columns:4px 1fr auto;padding:12px 14px 12px 0;border-bottom:0"><span class="bar" style="background:var(--s-lead)"></span><div><div class="ttl" style="font-size:15px">Sam Rewi</div><div class="sub">7 Kelburn Pde · Removal · 1d</div></div><span class="faint">›</span></div>
+      <div class="eyebrow" style="padding:10px 14px 6px;color:var(--s-lead)">New leads · 3</div>
+      <div class="jrow" style="padding:12px 14px 12px 0"><span class="bar" style="background:var(--s-lead)"></span><div><div class="ttl" style="font-size:15px">Anna Ferreira</div><div class="sub">22 Brooklyn Rd · Pruning · 2h</div></div><span class="faint">›</span></div>
+      <div class="jrow dw" style="padding:12px 14px 12px 0"><span class="bar" style="background:var(--s-lead)"></span><div><div class="row" style="gap:6px"><span class="cat dw">Downer</span><span class="ttl" style="font-size:15px">Adelaide Rd</span></div><div class="sub">URG · respond within 4h</div></div><span class="pill" style="background:#FFF0EE;color:#C0392B">⏱ 2h 40m</span></div>
+      <div class="jrow" style="padding:12px 14px 12px 0;border-bottom:0"><span class="bar" style="background:var(--s-lead)"></span><div><div class="ttl" style="font-size:15px">Sam Rewi</div><div class="sub">7 Kelburn Pde · Removal · 1d</div></div><span class="faint">›</span></div>
     </div>
     <div class="card" style="overflow:hidden">
       <div class="eyebrow" style="padding:10px 14px 6px;color:var(--s-accepted)">Accepted · to schedule · 2</div>
-      <div class="jrow" style="grid-template-columns:4px 1fr auto;padding:12px 14px 12px 0"><span class="bar" style="background:var(--s-accepted)"></span><div><div class="ttl" style="font-size:15px">Richard Tait</div><div class="sub">8 Miramar Rd · ½ day · accepted Tue</div></div><span class="price tn">$2,415</span></div>
-      <div class="jrow" style="grid-template-columns:4px 1fr auto;padding:12px 14px 12px 0;border-bottom:0"><span class="bar" style="background:var(--s-accepted)"></span><div><div class="ttl" style="font-size:15px">Coastal Properties</div><div class="sub">55 Oriental Pde · 1 day · Mon</div></div><span class="price tn">$3,680</span></div>
+      <div class="jrow" style="padding:12px 14px 12px 0"><span class="bar" style="background:var(--s-accepted)"></span><div><div class="ttl" style="font-size:15px">Richard Tait</div><div class="sub">8 Miramar Rd · ½ day · accepted Tue</div></div><span class="price tn">$2,415</span></div>
+      <div class="jrow sp" style="padding:12px 14px 12px 0;border-bottom:0"><span class="bar" style="background:var(--s-accepted)"></span><div><div class="row" style="gap:6px"><span class="cat sp">Spencers</span><span class="ttl" style="font-size:15px">12 Tirangi Rd</span></div><div class="sub">KO 4471982 · GNL · ⏱ 6d</div></div><span class="price tn">$1,340</span></div>
     </div>
     <div class="card" style="overflow:hidden">
-      <div class="eyebrow" style="padding:10px 14px 6px;color:var(--s-sent)">Sent · follow up · 2</div>
-      <div class="jrow" style="grid-template-columns:4px 1fr auto;padding:12px 14px 12px 0"><span class="bar" style="background:var(--s-sent)"></span><div><div class="ttl" style="font-size:15px">Margaret Thompson</div><div class="sub">14 Hillcrest Ave · asked a question</div></div><span class="price tn">$3,220</span></div>
-      <div class="jrow" style="grid-template-columns:4px 1fr auto;padding:12px 14px 12px 0;border-bottom:0"><span class="bar" style="background:var(--s-sent)"></span><div><div class="ttl" style="font-size:15px">Heritage Homes Trust</div><div class="sub">101 Mt Victoria Blvd · 15 days · opened 3×</div></div><span class="price tn">$6,210</span></div>
-    </div>
-    <div class="card" style="overflow:hidden">
-      <div class="eyebrow" style="padding:10px 14px 6px;color:var(--s-toinv)">Done · to invoice · 1</div>
-      <div class="jrow" style="grid-template-columns:4px 1fr auto;padding:12px 14px 12px 0;border-bottom:0"><span class="bar" style="background:var(--s-toinv)"></span><div><div class="ttl" style="font-size:15px">Dave &amp; Sue Wilson</div><div class="sub">3 Karori Rd · finished Thu</div></div><span class="price tn">$1,104</span></div>
+      <div class="eyebrow" style="padding:10px 14px 6px;color:var(--s-sent)">Sent · follow up · 3</div>
+      <div class="jrow" style="padding:12px 14px 12px 0"><span class="bar" style="background:var(--s-sent)"></span><div><div class="ttl" style="font-size:15px">Margaret Thompson</div><div class="sub">14 Hillcrest Ave · asked a question</div></div><span class="price tn">$3,220</span></div>
+      <div class="jrow" style="padding:12px 14px 12px 0"><span class="bar" style="background:var(--s-sent)"></span><div><div class="ttl" style="font-size:15px">Heritage Homes Trust</div><div class="sub">101 Mt Victoria Blvd · 15 days</div></div><span class="price tn">$6,210</span></div>
+      <div class="jrow sp" style="padding:12px 14px 12px 0;border-bottom:0"><span class="bar" style="background:var(--s-sent)"></span><div><div class="row" style="gap:6px"><span class="cat sp">Spencers</span><span class="ttl" style="font-size:15px">27 Coutts St</span></div><div class="sub">VSC · pre-approval sent · 3d</div></div><span class="price tn">$1,980</span></div>
     </div>
   </div>
   <div class="tabbar">
@@ -388,7 +403,7 @@ font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Segoe 
 
   <!-- B -->
   <div class="dir" id="dirB">
-    <span class="badge">Direction B</span>
+    <span class="badge">Direction B · for reference</span>
     <h3>Flow Board: the status list as lanes, with this week's trucks docked underneath</h3>
     <p>The restored statuses become lanes grouped into three phases: Quoting, Doing, Getting paid. Each lane shows its total. Drag a card right to move it on; drag an Accepted card down onto a truck-day and it is scheduled. This is the Fergus / Housecall Pro model, and the most literal answer to "make dragging and dropping the main thing".</p>
     <figure class="mock"><div class="vp" data-w="1440" data-h="900"><div class="mk" style="width:1440px;height:900px;display:grid;grid-template-rows:48px 1fr 230px">
@@ -508,7 +523,7 @@ font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Segoe 
 
   <!-- C -->
   <div class="dir" id="dirC">
-    <span class="badge">Direction C</span>
+    <span class="badge">Direction C · for reference</span>
     <h3>Today: an inbox of decisions, one button each</h3>
     <p>The home screen shows only the things that need a human decision right now: new leads (book a visit or decline), accepted quotes (schedule), questions (reply), quotes gone quiet (follow up or snooze), finished jobs (invoice). Everything that is moving on its own stays out of the way. This is the Things 3 / Linear Triage model, and it is what an office admin actually wants at 8am.</p>
     <figure class="mock"><div class="vp" data-w="1440" data-h="900"><div class="mk" style="width:1440px;height:900px;display:grid;grid-template-columns:200px 1fr">
@@ -614,22 +629,20 @@ font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Segoe 
     </div>
   </div>
 
-  <div class="callout"><p><b>They combine.</b> The recommended build is C as the home tab, A as the Jobs tab, and B's board as an optional view on the Jobs tab for the days you want the wall. That costs almost nothing extra because they share every component below.</p></div>
+  <div class="callout"><p><b>What carries over from B and C.</b> B's board can be added later as a "Board" toggle on the Quotes list (the footer of the A list already reserves it). C's one-button cards become the "Needs me" filter, which is the default view of the A list.</p></div>
 
   <h2 id="shared">Shared pieces</h2>
   <h3>The job record: the quote is the job</h3>
-  <p>Open any job and the first thing you see is the price, the status stepper, the quote description and the photos. The activity feed sits beside it and is where you reply to the client. The enquiry, site notes, client details, work order, job pack, text-the-client and the exception statuses all live under "…". Once the quote is sent the pre-quote material stops taking up space, but it is one tap away.</p>
+  <p>Open any job and the first thing you see is the price, the status stepper, the quote description and the photos, each sitting on the line it belongs to. The activity feed sits beside it and is where you reply to the client. The enquiry, site notes, client details, work order, job pack, text-the-client and the exception statuses all live under "…". Once the quote is sent the pre-quote material stops taking up space, but it is one tap away.</p>
   <figure class="mock"><div class="vp" data-w="1180" data-h="880"><div class="mk" style="width:1180px;height:880px;background:#F6EFE4">
-  <!-- Job record (shared by every direction): the quote IS the job. Everything else is behind "…" -->
+  <!-- Job record, private job: the quote IS the job. Photos sit on the line they belong to. Everything else is behind "…" -->
   <div style="position:absolute;inset:24px;background:#fff;border:1px solid var(--line);border-radius:22px;display:grid;grid-template-columns:1fr 340px;overflow:hidden">
 
-    <!-- LEFT: quote-first -->
-    <div style="padding:26px 30px;display:flex;flex-direction:column;gap:20px;overflow:hidden;border-right:1px solid var(--line)">
-      <!-- header -->
+    <div style="padding:26px 30px;display:flex;flex-direction:column;gap:18px;overflow:hidden;border-right:1px solid var(--line)">
       <div class="row" style="align-items:flex-start;gap:16px">
         <div class="grow">
           <div class="row" style="gap:10px;margin-bottom:6px">
-            <span class="eyebrow">Job 0412 · Quote v2</span>
+            <span class="eyebrow">Job 0412 · Quote v2 · Private</span>
             <span class="pill" style="background:#FDF3E3;color:var(--s-sent)"><i></i>Quote Sent · 6 days</span>
           </div>
           <div class="h1">14 Hillcrest Ave, Wellington</div>
@@ -642,7 +655,6 @@ font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Segoe 
         </div>
       </div>
 
-      <!-- stepper: the restored original list, forward-only, with side states as badges -->
       <div class="stepper" style="overflow:hidden;padding:12px 14px;background:var(--cream);border:1px solid var(--line);border-radius:14px">
         <span class="step done"><i></i>Lead</span>
         <span class="step done"><i></i>Visit</span>
@@ -656,7 +668,6 @@ font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Segoe 
         <span class="faint" style="font-size:11px;font-weight:600;white-space:nowrap;margin-left:16px;padding-left:12px;border-left:1px solid var(--line)">On hold · Declined →</span>
       </div>
 
-      <!-- one primary action, computed from status; overflow holds everything else -->
       <div class="row" style="gap:8px">
         <span class="btn primary lg">Send follow-up</span>
         <span class="btn lg">Accept on behalf</span>
@@ -665,45 +676,21 @@ font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Segoe 
         <span class="btn lg" style="width:44px;padding:0;font-size:20px;letter-spacing:.1em">⋯</span>
       </div>
 
-      <!-- quote description = the line items, read as prose, photos beside -->
-      <div style="display:grid;grid-template-columns:1fr 220px;gap:20px;flex:1;min-height:0">
-        <div class="col" style="gap:0">
-          <div class="eyebrow" style="margin-bottom:10px">Quote description</div>
-          <div style="display:flex;flex-direction:column">
-            <div style="display:grid;grid-template-columns:1fr auto;gap:12px;padding:10px 0;border-top:1px solid var(--line)">
-              <div><b>Front yard — Pōhutukawa</b><div class="muted" style="margin-top:3px;line-height:1.45">• Crown reduce by 20%, keep natural form<br>• Remove deadwood over 25 mm<br>• Clear 2 m from roofline and power service line</div></div>
-              <div class="price tn">$1,850</div>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr auto;gap:12px;padding:10px 0;border-top:1px solid var(--line)">
-              <div><b>Rear boundary — Macrocarpa hedge</b><div class="muted" style="margin-top:3px;line-height:1.45">• Reduce to 2.4 m and side-trim neighbour's face<br>• Chip on site, mulch left in bin bay</div></div>
-              <div class="price tn">$720</div>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr auto;gap:12px;padding:10px 0;border-top:1px solid var(--line)">
-              <div><b>Disposal</b><div class="muted" style="margin-top:3px">• All arisings removed from site</div></div>
-              <div class="price tn">$230</div>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr auto;gap:12px;padding:10px 0;border-top:1px dashed var(--line)">
-              <div class="row" style="gap:8px"><span class="pill" style="background:var(--terra-wash);color:var(--terra)">Optional</span><div><b>Stump grind — old Silver birch</b><div class="muted" style="margin-top:3px">• Grind 200 mm below grade, grindings left</div></div></div>
-              <div class="price tn faint">$420</div>
-            </div>
-          </div>
-          <div class="row" style="margin-top:auto;padding-top:12px;gap:14px">
-            <span class="chip">Crew pack: 1 day · 3 staff · chipper</span>
-            <span class="chip">Terms: on completion</span>
-          </div>
-        </div>
-        <div class="col" style="gap:10px">
-          <div class="row"><span class="eyebrow grow">Photos · 5</span><span class="faint" style="font-size:11px">All</span></div>
-          <div class="ph"></div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-            <div class="ph b"></div><div class="ph c"></div>
-          </div>
-          <div class="note" style="margin-top:2px">Site visit 5 Jul. Crew Before / After photos appear here once the job runs.</div>
+      <div class="col" style="gap:0;flex:1;min-height:0">
+        <div class="row" style="margin-bottom:8px"><span class="eyebrow grow">Quote description</span><span class="faint" style="font-size:11px">Photos sit on their line · tap to open · crew Before / After land here once the job runs</span></div>
+        <div class="li"><div class="th"><span class="ph"></span><span class="ph b"></span></div><div><b>Front yard — Pōhutukawa</b><div class="muted" style="margin-top:3px;line-height:1.45">• Crown reduce by 20%, keep natural form<br>• Remove deadwood over 25 mm<br>• Clear 2 m from roofline and power service line</div></div><div class="price tn">$1,850</div></div>
+        <div class="li"><div class="th one"><span class="ph c"></span></div><div><b>Rear boundary — Macrocarpa hedge</b><div class="muted" style="margin-top:3px;line-height:1.45">• Reduce to 2.4 m and side-trim neighbour's face<br>• Chip on site, mulch left in bin bay</div></div><div class="price tn">$720</div></div>
+        <div class="li"><div class="th none">no photo</div><div><b>Disposal</b><div class="muted" style="margin-top:3px">• All arisings removed from site</div></div><div class="price tn">$230</div></div>
+        <div class="li" style="border-top-style:dashed"><div class="th one"><span class="ph b"></span></div><div><span class="pill" style="background:var(--terra-wash);color:var(--terra);margin-right:6px">Optional</span><b>Stump grind — old Silver birch</b><div class="muted" style="margin-top:3px">• Grind 200 mm below grade, grindings left</div></div><div class="price tn faint">$420</div></div>
+        <div class="row" style="margin-top:auto;padding-top:12px;gap:14px">
+          <span class="chip">Crew pack: 1 day · 3 staff · chipper</span>
+          <span class="chip">Terms: on completion</span>
+          <span class="grow"></span>
+          <span class="faint" style="font-size:11px">Site visit 5 Jul · 4 photos</span>
         </div>
       </div>
     </div>
 
-    <!-- RIGHT: activity + questions, always visible -->
     <div style="display:flex;flex-direction:column;background:var(--cream)">
       <div class="row" style="padding:18px 20px 12px;border-bottom:1px solid var(--line)">
         <span class="h2 grow">Activity</span>
@@ -722,7 +709,7 @@ font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Segoe 
           <div class="ev"><div class="dot" style="border-color:#4A7FA5">·</div><div><b>Opened</b> <span class="muted">3× · last Tue 9:40pm</span></div><div class="when">Tue</div></div>
           <div class="ev"><div class="dot" style="border-color:var(--s-sent)">·</div><div><b>Sent</b> <span class="muted">v2 · $3,220 · by Josh</span><div class="faint" style="font-size:11px">"Your quote from Urban Tree Services — $3,220"</div></div><div class="when">12 Jul</div></div>
           <div class="ev"><div class="dot">v2</div><div><b>Edited</b> <span class="muted">v1 → v2 · added stump grind option</span></div><div class="when">12 Jul</div></div>
-          <div class="ev"><div class="dot">·</div><div><b>Site visit</b> <span class="muted">Josh · Tue quote run</span></div><div class="when">5 Jul</div></div>
+          <div class="ev"><div class="dot">·</div><div><b>Site visit</b> <span class="muted">Josh · Tue quote run · 4 photos</span></div><div class="when">5 Jul</div></div>
           <div class="ev"><div class="dot">·</div><div><b>Lead came in</b> <span class="muted">via website form</span></div><div class="when">28 Jun</div></div>
         </div>
       </div>
@@ -732,7 +719,6 @@ font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Segoe 
     </div>
   </div>
 
-  <!-- the overflow menu, shown open -->
   <div class="menu" style="position:absolute;right:372px;top:300px">
     <div class="mi">Versions <span class="faint" style="margin-left:auto">v1 · v2</span></div>
     <div class="mi">Copy to new quote</div>
@@ -745,7 +731,109 @@ font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Segoe 
     <div class="mi danger">Mark declined</div>
   </div>
 </div>
-</div><figcaption>Job record with the "…" menu open. One quote per job; versions appear only once a second version exists.</figcaption></figure>
+</div><figcaption>Private job with the "…" menu open. Photos attach to their line; the crew's Before / During / After photos land on the same line once the job runs. One quote per job; versions appear only once a second version exists.</figcaption></figure>
+  <h3>The same record for a Spencers or Downer job</h3>
+  <p>Portal jobs are unmistakable: a violet (Spencers) or orange (Downer) band and tag, the KO reference in the header, the SLA clock beside the price, SOR codes on every line, quotable items highlighted with their pre-approval state, portal actions grouped in the "…" menu, and portal notes arriving in the activity feed with a Confirm button instead of on a separate Actions page.</p>
+  <figure class="mock"><div class="vp" data-w="1180" data-h="880"><div class="mk" style="width:1180px;height:880px;background:#F6EFE4">
+  <!-- Job record, Spencers (DBS / Kāinga Ora) job: same layout, violet identity, KO reference, SLA clock, SOR-coded lines, portal actions. -->
+  <div style="position:absolute;inset:24px;background:#fff;border:1px solid var(--line);border-radius:22px;display:grid;grid-template-columns:1fr 340px;overflow:hidden">
+
+    <div style="display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--line)">
+      <div class="band" style="background:#6D4AA8;border-radius:0"></div>
+      <div style="padding:20px 30px 26px;display:flex;flex-direction:column;gap:18px;overflow:hidden;flex:1">
+      <div class="row" style="align-items:flex-start;gap:16px">
+        <div class="grow">
+          <div class="row" style="gap:10px;margin-bottom:6px;flex-wrap:wrap">
+            <span class="cat sp">Spencers · Kāinga Ora</span>
+            <span class="eyebrow">Job 0418 · KO 4471982 · Quote v1</span>
+            <span class="pill" style="background:#3A8A821F;color:var(--s-accepted)"><i></i>Accepted · to schedule</span>
+          </div>
+          <div class="h1">12 Tirangi Rd, Rongotai</div>
+          <div class="muted" style="font-size:14px;margin-top:4px">Tenant: R. Patel · <span style="color:var(--terra);font-weight:700">021 880 114</span> · Spencer Henshaw job manager: Chris Doyle</div>
+        </div>
+        <div style="text-align:right">
+          <div class="eyebrow" style="margin-bottom:2px">Total ex GST · SOR</div>
+          <div class="tn" style="font-size:34px;font-weight:800;letter-spacing:-.03em;line-height:1">$1,340</div>
+          <div class="row" style="justify-content:flex-end;margin-top:6px;gap:6px"><span class="pill" style="background:#EBF3FA;color:#4A7FA5">GNL · general</span><span class="pill" style="background:#FDF3E3;color:var(--s-sent)">⏱ complete by Fri 21 · 6d</span></div>
+        </div>
+      </div>
+
+      <div class="stepper" style="overflow:hidden;padding:12px 14px;background:var(--cream);border:1px solid var(--line);border-radius:14px">
+        <span class="step done"><i></i>Lead</span>
+        <span class="step done"><i></i>Visit</span>
+        <span class="step done"><i></i>Sent</span>
+        <span class="step now"><i></i>Accepted</span>
+        <span class="step"><i></i>Scheduled</span>
+        <span class="step"><i></i>Stump</span>
+        <span class="step"><i></i>To invoice</span>
+        <span class="step"><i></i>Invoiced</span>
+        <span class="grow"></span>
+        <span class="faint" style="font-size:11px;font-weight:600;white-space:nowrap;margin-left:16px;padding-left:12px;border-left:1px solid var(--line)">Portal: approved 4 Aug</span>
+      </div>
+
+      <div class="row" style="gap:8px">
+        <span class="btn primary lg">Schedule → pick a truck-day</span>
+        <span class="btn lg">Edit quote</span>
+        <span class="grow"></span>
+        <span class="btn lg" style="width:44px;padding:0;font-size:20px;letter-spacing:.1em">⋯</span>
+      </div>
+
+      <div class="col" style="gap:0;flex:1;min-height:0">
+        <div class="row" style="margin-bottom:8px"><span class="eyebrow grow">Quote description · SOR schedule of rates</span><span class="faint" style="font-size:11px">Portal photos: Before / During / After required per line</span></div>
+        <div class="li"><div class="th"><span class="ph"></span><span class="ph c"></span></div><div><span class="sor">SOR 3.01</span><b>Front — Pōhutukawa over footpath</b><div class="muted" style="margin-top:3px;line-height:1.45">• Lift crown to 2.4 m over footpath and driveway<br>• Remove hazard limb over carport</div></div><div class="price tn">$680</div></div>
+        <div class="li"><div class="th one"><span class="ph b"></span></div><div><span class="sor">SOR 3.04</span><b>Side — Cabbage trees ×3</b><div class="muted" style="margin-top:3px;line-height:1.45">• Remove dead fronds and seed heads, clear gutter line</div></div><div class="price tn">$420</div></div>
+        <div class="li"><div class="th none">no photo</div><div><span class="sor">SOR 9.02</span><b>Disposal</b><div class="muted" style="margin-top:3px">• All arisings removed from site</div></div><div class="price tn">$240</div></div>
+        <div class="li" style="border-top-style:dashed;background:var(--terra-wash);margin:0 -8px;padding-left:8px;padding-right:8px;border-radius:10px"><div class="th one"><span class="ph"></span></div><div><span class="sor q">Quotable · pre-approval</span><b>Rear — Macrocarpa removal</b><div class="muted" style="margin-top:3px">• Not on the schedule of rates · $1,650 ex GST · over the $1,200 threshold, pre-approval note queued to the portal</div></div><div class="price tn faint">$1,650</div></div>
+        <div class="row" style="margin-top:auto;padding-top:12px;gap:14px">
+          <span class="chip">Crew pack: ½ day · 2 staff · chipper</span>
+          <span class="chip">Isuzu preferred · narrow drive</span>
+          <span class="grow"></span>
+          <span class="faint" style="font-size:11px">Synced from the DBS portal 3 Aug</span>
+        </div>
+      </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;background:var(--cream)">
+      <div class="row" style="padding:18px 20px 12px;border-bottom:1px solid var(--line)">
+        <span class="h2 grow">Activity</span>
+        <span class="chip on" style="padding:3px 10px;font-size:11px">All</span>
+        <span class="chip" style="padding:3px 10px;font-size:11px;color:#6D4AA8;border-color:#6D4AA8">Portal</span>
+      </div>
+      <div style="padding:14px 20px;overflow:hidden;flex:1">
+        <div class="tl">
+          <div class="ev big">
+            <div class="dot" style="border-color:#6D4AA8;color:#6D4AA8">P</div>
+            <div><b>Portal note</b> <span class="faint">from Spencer Henshaw</span><div class="txt" style="margin-top:6px">Approved. Please complete by 21 Aug and upload photos on completion.</div>
+              <div class="row" style="margin-top:8px;gap:6px"><span class="btn" style="height:28px;font-size:12px;padding:0 10px">Confirm → Accepted</span><span class="btn quiet" style="height:28px;font-size:12px;padding:0 8px">Dismiss</span></div></div>
+            <div class="when">4 Aug</div>
+          </div>
+          <div class="ev"><div class="dot" style="border-color:var(--terra)">·</div><div><b>Pre-approval queued</b> <span class="muted">Macrocarpa removal · $1,650</span></div><div class="when">3 Aug</div></div>
+          <div class="ev"><div class="dot" style="border-color:var(--s-sent)">·</div><div><b>Quote PDF uploaded to portal</b> <span class="muted">Documents tab · Ashley</span></div><div class="when">3 Aug</div></div>
+          <div class="ev"><div class="dot">·</div><div><b>Site visit</b> <span class="muted">Josh · 3 photos</span></div><div class="when">1 Aug</div></div>
+          <div class="ev"><div class="dot" style="border-color:#6D4AA8">P</div><div><b>KO 4471982 received</b> <span class="muted">DBS portal sync · GNL · complete by 21 Aug</span></div><div class="when">28 Jul</div></div>
+        </div>
+      </div>
+      <div style="padding:12px 20px 18px;border-top:1px solid var(--line)">
+        <div class="row" style="height:38px;border:1px solid var(--line);border-radius:12px;background:#fff;padding:0 12px;color:var(--ink-3)">Add an internal note… <span class="grow"></span><span class="kbd">⌘↩</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="menu" style="position:absolute;right:372px;top:300px">
+    <div class="mi">Versions <span class="faint" style="margin-left:auto">v1</span></div>
+    <div class="mi">Copy to new quote</div>
+    <div class="mi sep" style="color:#6D4AA8">Upload photos to portal</div>
+    <div class="mi" style="color:#6D4AA8">Upload quote PDF to portal</div>
+    <div class="mi" style="color:#6D4AA8">Open in DBS portal</div>
+    <div class="mi sep">Tenant &amp; job manager details</div>
+    <div class="mi">Portal brief &amp; site notes</div>
+    <div class="mi">Work order · Job pack</div>
+    <div class="mi">Text tenant</div>
+    <div class="mi sep">Put on hold</div>
+  </div>
+</div>
+</div><figcaption>Spencers (Kāinga Ora) job, accepted in the portal and waiting for a truck-day. The primary button is already "Schedule".</figcaption></figure>
   <ul>
     <li><b>One quote per job.</b> Editing a sent quote creates version 2 automatically and takes it offline until re-sent. The activity feed shows "Edited v1 → v2". This replaces the four "best quote" guesses in the code.</li>
     <li><b>Copy to new quote</b> creates a new job number for the same client and links back ("Copied from Job 0412"). That is how repeat work and variations are handled, exactly as Quotient recommends.</li>
@@ -938,7 +1026,7 @@ font-family:ui-rounded,'SF Pro Rounded',-apple-system,BlinkMacSystemFont,'Segoe 
 
   <h2 id="decide">Decisions I need from you</h2>
   <ol>
-    <li><b>Home screen:</b> A, B, C, or the recommended C-home + A-jobs combination.</li>
+    <li><b>Home screen:</b> decided, Direction A.</li>
     <li><b>Ashley's email address</b> for notifications, and whether <span class="k">office@</span> should still receive copies.</li>
     <li><b>Truck names and the grinder as a row:</b> Isuzu, Nissan, Grinder trailer. Anything else that gets double-booked (chipper, Avant)?</li>
     <li><b>Status labels:</b> keep the original wording, or the shorter ones in the stepper ("Visit booked", "Done, to invoice").</li>

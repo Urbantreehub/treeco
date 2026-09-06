@@ -1,14 +1,12 @@
 <div class="mk" style="width:1180px;height:880px;background:#F6EFE4">
-  <!-- Job record (shared by every direction): the quote IS the job. Everything else is behind "…" -->
+  <!-- Job record, private job: the quote IS the job. Photos sit on the line they belong to. Everything else is behind "…" -->
   <div style="position:absolute;inset:24px;background:#fff;border:1px solid var(--line);border-radius:22px;display:grid;grid-template-columns:1fr 340px;overflow:hidden">
 
-    <!-- LEFT: quote-first -->
-    <div style="padding:26px 30px;display:flex;flex-direction:column;gap:20px;overflow:hidden;border-right:1px solid var(--line)">
-      <!-- header -->
+    <div style="padding:26px 30px;display:flex;flex-direction:column;gap:18px;overflow:hidden;border-right:1px solid var(--line)">
       <div class="row" style="align-items:flex-start;gap:16px">
         <div class="grow">
           <div class="row" style="gap:10px;margin-bottom:6px">
-            <span class="eyebrow">Job 0412 · Quote v2</span>
+            <span class="eyebrow">Job 0412 · Quote v2 · Private</span>
             <span class="pill" style="background:#FDF3E3;color:var(--s-sent)"><i></i>Quote Sent · 6 days</span>
           </div>
           <div class="h1">14 Hillcrest Ave, Wellington</div>
@@ -21,7 +19,6 @@
         </div>
       </div>
 
-      <!-- stepper: the restored original list, forward-only, with side states as badges -->
       <div class="stepper" style="overflow:hidden;padding:12px 14px;background:var(--cream);border:1px solid var(--line);border-radius:14px">
         <span class="step done"><i></i>Lead</span>
         <span class="step done"><i></i>Visit</span>
@@ -35,7 +32,6 @@
         <span class="faint" style="font-size:11px;font-weight:600;white-space:nowrap;margin-left:16px;padding-left:12px;border-left:1px solid var(--line)">On hold · Declined →</span>
       </div>
 
-      <!-- one primary action, computed from status; overflow holds everything else -->
       <div class="row" style="gap:8px">
         <span class="btn primary lg">Send follow-up</span>
         <span class="btn lg">Accept on behalf</span>
@@ -44,45 +40,21 @@
         <span class="btn lg" style="width:44px;padding:0;font-size:20px;letter-spacing:.1em">⋯</span>
       </div>
 
-      <!-- quote description = the line items, read as prose, photos beside -->
-      <div style="display:grid;grid-template-columns:1fr 220px;gap:20px;flex:1;min-height:0">
-        <div class="col" style="gap:0">
-          <div class="eyebrow" style="margin-bottom:10px">Quote description</div>
-          <div style="display:flex;flex-direction:column">
-            <div style="display:grid;grid-template-columns:1fr auto;gap:12px;padding:10px 0;border-top:1px solid var(--line)">
-              <div><b>Front yard — Pōhutukawa</b><div class="muted" style="margin-top:3px;line-height:1.45">• Crown reduce by 20%, keep natural form<br>• Remove deadwood over 25 mm<br>• Clear 2 m from roofline and power service line</div></div>
-              <div class="price tn">$1,850</div>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr auto;gap:12px;padding:10px 0;border-top:1px solid var(--line)">
-              <div><b>Rear boundary — Macrocarpa hedge</b><div class="muted" style="margin-top:3px;line-height:1.45">• Reduce to 2.4 m and side-trim neighbour's face<br>• Chip on site, mulch left in bin bay</div></div>
-              <div class="price tn">$720</div>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr auto;gap:12px;padding:10px 0;border-top:1px solid var(--line)">
-              <div><b>Disposal</b><div class="muted" style="margin-top:3px">• All arisings removed from site</div></div>
-              <div class="price tn">$230</div>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr auto;gap:12px;padding:10px 0;border-top:1px dashed var(--line)">
-              <div class="row" style="gap:8px"><span class="pill" style="background:var(--terra-wash);color:var(--terra)">Optional</span><div><b>Stump grind — old Silver birch</b><div class="muted" style="margin-top:3px">• Grind 200 mm below grade, grindings left</div></div></div>
-              <div class="price tn faint">$420</div>
-            </div>
-          </div>
-          <div class="row" style="margin-top:auto;padding-top:12px;gap:14px">
-            <span class="chip">Crew pack: 1 day · 3 staff · chipper</span>
-            <span class="chip">Terms: on completion</span>
-          </div>
-        </div>
-        <div class="col" style="gap:10px">
-          <div class="row"><span class="eyebrow grow">Photos · 5</span><span class="faint" style="font-size:11px">All</span></div>
-          <div class="ph"></div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-            <div class="ph b"></div><div class="ph c"></div>
-          </div>
-          <div class="note" style="margin-top:2px">Site visit 5 Jul. Crew Before / After photos appear here once the job runs.</div>
+      <div class="col" style="gap:0;flex:1;min-height:0">
+        <div class="row" style="margin-bottom:8px"><span class="eyebrow grow">Quote description</span><span class="faint" style="font-size:11px">Photos sit on their line · tap to open · crew Before / After land here once the job runs</span></div>
+        <div class="li"><div class="th"><span class="ph"></span><span class="ph b"></span></div><div><b>Front yard — Pōhutukawa</b><div class="muted" style="margin-top:3px;line-height:1.45">• Crown reduce by 20%, keep natural form<br>• Remove deadwood over 25 mm<br>• Clear 2 m from roofline and power service line</div></div><div class="price tn">$1,850</div></div>
+        <div class="li"><div class="th one"><span class="ph c"></span></div><div><b>Rear boundary — Macrocarpa hedge</b><div class="muted" style="margin-top:3px;line-height:1.45">• Reduce to 2.4 m and side-trim neighbour's face<br>• Chip on site, mulch left in bin bay</div></div><div class="price tn">$720</div></div>
+        <div class="li"><div class="th none">no photo</div><div><b>Disposal</b><div class="muted" style="margin-top:3px">• All arisings removed from site</div></div><div class="price tn">$230</div></div>
+        <div class="li" style="border-top-style:dashed"><div class="th one"><span class="ph b"></span></div><div><span class="pill" style="background:var(--terra-wash);color:var(--terra);margin-right:6px">Optional</span><b>Stump grind — old Silver birch</b><div class="muted" style="margin-top:3px">• Grind 200 mm below grade, grindings left</div></div><div class="price tn faint">$420</div></div>
+        <div class="row" style="margin-top:auto;padding-top:12px;gap:14px">
+          <span class="chip">Crew pack: 1 day · 3 staff · chipper</span>
+          <span class="chip">Terms: on completion</span>
+          <span class="grow"></span>
+          <span class="faint" style="font-size:11px">Site visit 5 Jul · 4 photos</span>
         </div>
       </div>
     </div>
 
-    <!-- RIGHT: activity + questions, always visible -->
     <div style="display:flex;flex-direction:column;background:var(--cream)">
       <div class="row" style="padding:18px 20px 12px;border-bottom:1px solid var(--line)">
         <span class="h2 grow">Activity</span>
@@ -101,7 +73,7 @@
           <div class="ev"><div class="dot" style="border-color:#4A7FA5">·</div><div><b>Opened</b> <span class="muted">3× · last Tue 9:40pm</span></div><div class="when">Tue</div></div>
           <div class="ev"><div class="dot" style="border-color:var(--s-sent)">·</div><div><b>Sent</b> <span class="muted">v2 · $3,220 · by Josh</span><div class="faint" style="font-size:11px">"Your quote from Urban Tree Services — $3,220"</div></div><div class="when">12 Jul</div></div>
           <div class="ev"><div class="dot">v2</div><div><b>Edited</b> <span class="muted">v1 → v2 · added stump grind option</span></div><div class="when">12 Jul</div></div>
-          <div class="ev"><div class="dot">·</div><div><b>Site visit</b> <span class="muted">Josh · Tue quote run</span></div><div class="when">5 Jul</div></div>
+          <div class="ev"><div class="dot">·</div><div><b>Site visit</b> <span class="muted">Josh · Tue quote run · 4 photos</span></div><div class="when">5 Jul</div></div>
           <div class="ev"><div class="dot">·</div><div><b>Lead came in</b> <span class="muted">via website form</span></div><div class="when">28 Jun</div></div>
         </div>
       </div>
@@ -111,7 +83,6 @@
     </div>
   </div>
 
-  <!-- the overflow menu, shown open -->
   <div class="menu" style="position:absolute;right:372px;top:300px">
     <div class="mi">Versions <span class="faint" style="margin-left:auto">v1 · v2</span></div>
     <div class="mi">Copy to new quote</div>
