@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 
 import { DEMO_ACTIVITY } from '../demo/demoActivity'
-import { DEMO_RESOURCES, DEMO_AVAILABILITY } from '../demo/demoResources'
+import { DEMO_RESOURCES, DEMO_AVAILABILITY, DEMO_CREW_ASSIGNMENTS } from '../demo/demoResources'
 
 const IS_DEMO = import.meta.env.VITE_DEMO === 'true'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
@@ -141,6 +141,7 @@ const DEMO_TABLES = {
   job_activity: () => DEMO_ACTIVITY,
   resources:    () => DEMO_RESOURCES,
   availability: () => DEMO_AVAILABILITY,
+  crew_assignments: () => DEMO_CREW_ASSIGNMENTS,
   quote_runs:   () => [],
   users:    () => DEMO_USERS,
   schedule: () => demoSchedule(),

@@ -5,6 +5,7 @@ import { useIsMobile } from '../hooks/useIsMobile'
 import { useScheduledChecks } from '../hooks/useScheduledChecks'
 import { usePendingRequests } from '../hooks/usePendingRequests'
 import { useOpenAlerts } from '../hooks/useOpenAlerts'
+import { useViewMode } from '../hooks/useViewMode'
 import DownerSessionBanner from './DownerSessionBanner'
 
 // ── Brand mark — the terracotta starburst from the redesign ───────────────────
@@ -22,7 +23,7 @@ function Starburst({ size = 22 }) {
 // Route → section title for the branded page banner. Longest matching prefix wins,
 // so detail routes (e.g. /pipeline/:id) inherit their section's title.
 const ROUTE_TITLES = {
-  '/dashboard': 'Dashboard', '/pipeline': 'Jobs', '/calendar': 'Calendar',
+  '/dashboard': 'Reports', '/pipeline': 'Quotes', '/quote-runs': 'Quote runs', '/calendar': 'Schedule',
   '/planner': 'Planner', '/mulch': 'Mulch', '/requests': 'Tools', '/safety': 'Safety',
   '/staff': 'Team', '/clients': 'Clients', '/settings': 'Settings', '/quotes': 'Quotes',
   '/quote': 'Quote', '/workorder': 'Work Order', '/jobpack': 'Job Pack', '/my-docs': 'My Docs',
@@ -84,32 +85,37 @@ function AlertsIcon({ active, size = 22 }) {
   )
 }
 
-const FULL_NAV = [
-  { to: '/dashboard', label: 'Dashboard', icon: DashboardIcon },
-  { to: '/pipeline',  label: 'Jobs',      icon: PipelineIcon },
-  { to: '/actions',   label: 'Actions',   icon: AlertsIcon },
-  { to: '/calendar',  label: 'Calendar',  icon: CalendarIcon },
-  { to: '/planner',   label: 'Planner',   icon: PlannerIcon },
-  { to: '/mulch',     label: 'Mulch',     icon: MulchIcon },
-  { to: '/requests',  label: 'Tools',     icon: ToolIcon },
-  { to: '/safety',    label: 'Safety',    icon: SafetyIcon },
-  { to: '/chat',      label: 'Chat',      icon: ChatIcon },
-  { to: '/marketing', label: 'Marketing', icon: MarketingIcon },
-  { to: '/staff',     label: 'Team',      icon: StaffHubIcon },
+// ── Staff navigation (full / office) ─────────────────────────────────────────
+// Two views, switched with one button (useViewMode): the Quoting view — Josh's
+// default — shows only Quotes and Quote runs; the Full app shows the rest.
+// Truck and crew logins have their own fixed nav below and never switch.
+const QUOTING_NAV = [
+  { to: '/pipeline',   label: 'Quotes',     icon: QuotesListIcon },
+  { to: '/quote-runs', label: 'Quote runs', icon: CalendarIcon },
 ]
 
-const OFFICE_NAV = [
-  { to: '/pipeline',  label: 'Jobs',      icon: PipelineIcon },
-  { to: '/actions',   label: 'Actions',   icon: AlertsIcon },
-  { to: '/calendar',  label: 'Calendar',  icon: CalendarIcon },
-  { to: '/planner',   label: 'Planner',   icon: PlannerIcon },
+// Full app — primary group. Reports is full access only.
+const FULL_PRIMARY_NAV = [
+  { to: '/pipeline',  label: 'Quotes',   icon: QuotesListIcon },
+  { to: '/calendar',  label: 'Schedule', icon: CalendarIcon },
+  { to: '/clients',   label: 'Clients',  icon: ClientsIcon },
+  { to: '/dashboard', label: 'Reports',  icon: DashboardIcon, fullOnly: true },
+]
+
+// Full app — secondary group (occasional pages). Settings is full access only;
+// Actions stays reachable here and keeps its badge.
+const FULL_SECONDARY_NAV = [
+  { to: '/safety',    label: 'Safety',    icon: SafetyIcon },
+  { to: '/staff',     label: 'Team',      icon: StaffHubIcon },
+  { to: '/chat',      label: 'Chat',      icon: ChatIcon },
   { to: '/mulch',     label: 'Mulch',     icon: MulchIcon },
   { to: '/requests',  label: 'Tools',     icon: ToolIcon },
-  { to: '/safety',    label: 'Safety',    icon: SafetyIcon },
-  { to: '/chat',      label: 'Chat',      icon: ChatIcon },
   { to: '/marketing', label: 'Marketing', icon: MarketingIcon },
-  { to: '/staff',     label: 'Team',      icon: StaffHubIcon },
+  { to: '/settings',  label: 'Settings',  icon: SettingsIcon, fullOnly: true },
+  { to: '/actions',   label: 'Actions',   icon: AlertsIcon },
 ]
+
+const forRole = (items, isFullAccess) => items.filter(it => !it.fullOnly || isFullAccess)
 
 // Individual staff (person) login — documents & chat only. They remain calendar
 // resources so the office can enter their leave/personal time, but they don't see
@@ -128,12 +134,22 @@ const TRUCK_NAV = [
   { to: '/chat',     label: 'Chat',     icon: ChatIcon },
 ]
 
-// Secondary nav — rarely-used items tucked into the mobile "More" sheet and the
-// desktop sidebar's bottom section, kept out of the primary menu. Staff/office
-// only (crew never had Clients).
-const MORE_NAV = [
-  { to: '/clients', label: 'Clients', icon: ClientsIcon },
-]
+// The one button that swaps Quoting view ⇄ Full app.
+function ViewSwitch({ view, onToggle, style, compact = false }) {
+  const toFull = view === 'quoting'
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-label={toFull ? 'Switch to the full app' : 'Switch to the quoting view'}
+      style={style}
+    >
+      <SwitchIcon size={16} />
+      <span style={{ flex: 1, textAlign: 'left' }}>{toFull ? 'Full app' : 'Quoting view'}</span>
+      {!compact && <span style={{ opacity: 0.6, fontWeight: 500 }}>⇄</span>}
+    </button>
+  )
+}
 
 export default function Layout() {
   const { profile, isFullAccess, isStaff, isTruck, signOut } = useAuth()
@@ -143,32 +159,47 @@ export default function Layout() {
   const alertCount = overdue.length + dueSoon.length
   const pendingRequests = usePendingRequests(isStaff)
   const { count: actionCount } = useOpenAlerts(isStaff)
+  const { view, toggle: toggleView } = useViewMode()
   const [showMore, setShowMore] = useState(false)
   const location = useLocation()
   const pageTitle = resolveTitle(location.pathname)
+  const isQuoting = isStaff && view === 'quoting'
 
   async function handleSignOut() {
     await signOut()
     navigate('/login', { replace: true })
   }
 
-  const navItems = isFullAccess ? FULL_NAV : isStaff ? OFFICE_NAV : isTruck ? TRUCK_NAV : CREW_NAV
-  const moreNav  = isStaff ? MORE_NAV : []
+  function switchView() {
+    setShowMore(false)
+    toggleView()
+    // Leaving the full app for the quoting view from a page it doesn't list
+    // lands on Quotes, so the nav never highlights nothing.
+    if (view === 'full' && !QUOTING_NAV.some(it => location.pathname.startsWith(it.to))) {
+      navigate('/pipeline')
+    }
+  }
+
+  // Primary + secondary nav for this login and view.
+  const navItems = isStaff
+    ? (isQuoting ? QUOTING_NAV : forRole(FULL_PRIMARY_NAV, isFullAccess))
+    : isTruck ? TRUCK_NAV : CREW_NAV
+  const secondaryNav = isStaff && !isQuoting ? forRole(FULL_SECONDARY_NAV, isFullAccess) : []
+  const roleLabel = isFullAccess ? 'Full access' : isStaff ? 'Office' : isTruck ? 'Truck' : 'Crew'
+  const homeTo = isStaff ? '/pipeline' : isTruck ? '/calendar' : '/safety'
+
+  const badgeCount = (to) => (to === '/safety' ? alertCount : to === '/requests' ? pendingRequests : to === '/actions' ? actionCount : 0)
+  const badgeColor = (to) => (to === '/actions' ? '#C0392B' : to === '/safety' ? '#e53935' : '#D4851A')
 
   if (isMobile) {
-    // Combine nav + settings, then cap the bottom bar at 5 slots — anything
-    // beyond the first 4 collapses into a "More" sheet so the bar never crams.
-    // Secondary items (moreNav, e.g. Clients) always live in the More sheet.
-    const mobileItems = [...navItems, ...(isFullAccess ? [{ to: '/settings', label: 'Settings', icon: SettingsIcon }] : [])]
+    // Bottom bar: quoting view = Quotes · Quote runs · Full app (three tabs, as
+    // in the mockup). Full app = Quotes · Schedule · Clients · More, where the
+    // More sheet holds Reports, the secondary pages, the view switch and Sign
+    // out. Truck / crew: their nav + More (sign out lives there — essential on
+    // the shared truck iPads).
     const MAX = 5
-    // The "More" sheet is always present — it hosts Sign out (essential on the
-    // shared truck iPads, which otherwise have no way to log out) plus any nav
-    // overflow. Reserve its slot so the bar never exceeds MAX.
-    const primary  = mobileItems.slice(0, MAX - 1)
-    const overflow = [...mobileItems.slice(MAX - 1), ...moreNav]
-
-    const badgeCount = (to) => (to === '/safety' ? alertCount : to === '/requests' ? pendingRequests : to === '/actions' ? actionCount : 0)
-    const badgeColor = (to) => (to === '/actions' ? '#C0392B' : to === '/safety' ? '#e53935' : '#D4851A')
+    const mobilePrimary = isQuoting ? navItems : navItems.slice(0, MAX - 2)
+    const overflow = isQuoting ? [] : [...navItems.slice(MAX - 2), ...secondaryNav]
     const overflowBadge = overflow.reduce((n, it) => n + badgeCount(it.to), 0)
 
     const iconWithBadge = (to, Icon, active) => (
@@ -199,7 +230,7 @@ export default function Layout() {
                 <div style={m.acctAvatar}>{profile?.name?.[0]?.toUpperCase() ?? '?'}</div>
                 <div style={{ minWidth: 0 }}>
                   <div style={m.acctName}>{profile?.name ?? '—'}</div>
-                  <div style={m.acctRole}>{isFullAccess ? 'Full access' : isStaff ? 'Office' : isTruck ? 'Truck' : 'Crew'}</div>
+                  <div style={m.acctRole}>{roleLabel}{isStaff ? ` · ${isQuoting ? 'Quoting view' : 'Full app'}` : ''}</div>
                 </div>
               </div>
               {overflow.length > 0 && (
@@ -217,6 +248,9 @@ export default function Layout() {
                   ))}
                 </div>
               )}
+              {isStaff && (
+                <ViewSwitch view={view} onToggle={switchView} style={m.viewSwitch} />
+              )}
               <button onClick={() => { setShowMore(false); handleSignOut() }} style={m.signOutRow}>
                 <LogoutIcon size={18} />
                 Sign out
@@ -226,7 +260,7 @@ export default function Layout() {
         )}
 
         <nav style={m.bottomNav}>
-          {primary.map(({ to, label, icon: Icon }) => (
+          {mobilePrimary.map(({ to, label, icon: Icon }) => (
             <NavLink key={to} to={to} onClick={() => setShowMore(false)} style={({ isActive }) => ({ ...m.tabItem, ...(isActive ? m.tabActive : {}) })}>
               {({ isActive }) => (
                 <>
@@ -236,67 +270,79 @@ export default function Layout() {
               )}
             </NavLink>
           ))}
-          <button onClick={() => setShowMore(v => !v)} style={{ ...m.tabItem, ...(showMore ? m.tabActive : {}), background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font)' }}>
-            <div style={{ position: 'relative', display: 'inline-flex' }}>
-              <MoreIcon active={showMore} />
-              {overflowBadge > 0 && !showMore && (
-                <span style={{ ...m.badge, background: '#D4851A' }}>{overflowBadge > 9 ? '9+' : overflowBadge}</span>
-              )}
-            </div>
-            <span style={m.tabLabel}>More</span>
-          </button>
+          {isQuoting ? (
+            <button onClick={switchView} aria-label="Switch to the full app" style={{ ...m.tabItem, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font)' }}>
+              <SwitchIcon size={22} />
+              <span style={m.tabLabel}>Full app</span>
+            </button>
+          ) : (
+            <button onClick={() => setShowMore(v => !v)} style={{ ...m.tabItem, ...(showMore ? m.tabActive : {}), background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font)' }}>
+              <div style={{ position: 'relative', display: 'inline-flex' }}>
+                <MoreIcon active={showMore} />
+                {overflowBadge > 0 && !showMore && (
+                  <span style={{ ...m.badge, background: '#D4851A' }}>{overflowBadge > 9 ? '9+' : overflowBadge}</span>
+                )}
+              </div>
+              <span style={m.tabLabel}>More</span>
+            </button>
+          )}
         </nav>
       </div>
     )
   }
 
   // ── Desktop sidebar layout ────────────────────────────────────────────────
+  const renderBadge = (to) => {
+    const n = badgeCount(to)
+    if (!n) return null
+    return (
+      <span style={{ marginLeft: 'auto', background: badgeColor(to), color: '#fff', borderRadius: 10, padding: '1px 6px', fontSize: 10, fontWeight: 700 }}>{n > 9 ? '9+' : n}</span>
+    )
+  }
+  const renderLink = ({ to, label, icon: Icon }, sub = false) => (
+    <li key={to}>
+      <NavLink to={to} style={({ isActive }) => ({ ...(sub ? d.navLinkSub : d.navLink), ...(isActive ? d.navLinkActive : {}) })}>
+        <Icon active={false} size={sub ? 15 : 16} />
+        {label}
+        {renderBadge(to)}
+      </NavLink>
+    </li>
+  )
+
   return (
     <div style={d.shell}>
       <nav style={d.nav}>
         <div style={d.navTop}>
-          <NavLink to={isFullAccess ? '/dashboard' : (isStaff || isTruck) ? '/calendar' : '/safety'} style={d.brand}>
+          <NavLink to={homeTo} style={d.brand}>
             <Starburst size={22} />
             <span style={d.brandName}>TreeCo</span>
           </NavLink>
-          <ul style={d.navList}>
-            {navItems.map(({ to, label, icon: Icon }) => (
-              <li key={to}>
-                <NavLink to={to} style={({ isActive }) => ({ ...d.navLink, ...(isActive ? d.navLinkActive : {}) })}>
-                  <Icon active={false} size={16} />
-                  {label}
-                  {to === '/safety' && alertCount > 0 && (
-                    <span style={{ marginLeft: 'auto', background: '#e53935', color: '#fff', borderRadius: 10, padding: '1px 6px', fontSize: 10, fontWeight: 700 }}>{alertCount > 9 ? '9+' : alertCount}</span>
-                  )}
-                  {to === '/requests' && pendingRequests > 0 && (
-                    <span style={{ marginLeft: 'auto', background: '#D4851A', color: '#fff', borderRadius: 10, padding: '1px 6px', fontSize: 10, fontWeight: 700 }}>{pendingRequests > 9 ? '9+' : pendingRequests}</span>
-                  )}
-                  {to === '/actions' && actionCount > 0 && (
-                    <span style={{ marginLeft: 'auto', background: '#C0392B', color: '#fff', borderRadius: 10, padding: '1px 6px', fontSize: 10, fontWeight: 700 }}>{actionCount > 9 ? '9+' : actionCount}</span>
-                  )}
-                </NavLink>
-              </li>
-            ))}
-          </ul>
+          <div>
+            {isQuoting && <div style={d.eyebrow}>Quoting</div>}
+            <ul style={d.navList}>
+              {navItems.map(it => renderLink(it))}
+            </ul>
+            {secondaryNav.length > 0 && (
+              <ul style={{ ...d.navList, marginTop: 14 }}>
+                {secondaryNav.map(it => renderLink(it, true))}
+              </ul>
+            )}
+          </div>
         </div>
         <div style={d.navBottom}>
-          {moreNav.map(({ to, label, icon: Icon }) => (
-            <NavLink key={to} to={to} style={({ isActive }) => ({ ...d.settingsLink, ...(isActive ? d.navLinkActive : {}) })}>
-              <Icon active={false} size={16} />
-              {label}
-            </NavLink>
-          ))}
-          {isFullAccess && (
-            <NavLink to="/settings" style={({ isActive }) => ({ ...d.settingsLink, ...(isActive ? d.navLinkActive : {}) })}>
-              <SettingsIcon size={16} />
-              Settings
-            </NavLink>
+          {isStaff && (
+            <div>
+              <ViewSwitch view={view} onToggle={switchView} style={d.viewSwitch} />
+              {isQuoting && (
+                <div style={d.viewHint}>Trucks, clients, safety, team, mulch, marketing and settings.</div>
+              )}
+            </div>
           )}
           <div style={d.userInfo}>
             <div style={d.avatar}>{profile?.name?.[0]?.toUpperCase() ?? '?'}</div>
             <div>
               <div style={d.userName}>{profile?.name ?? '—'}</div>
-              <div style={d.accessBadge}>{isFullAccess ? 'Full access' : isStaff ? 'Office' : isTruck ? 'Truck' : 'Crew'}</div>
+              <div style={d.accessBadge}>{roleLabel}{isQuoting ? ' · Quoting view' : ''}</div>
             </div>
           </div>
           <button onClick={handleSignOut} style={d.signOutBtn}>Sign out</button>
@@ -322,11 +368,21 @@ function DashboardIcon({ active, size = 22 }) {
     </svg>
   )
 }
-function PipelineIcon({ active, size = 22 }) {
+// Quotes list — three lines, as in the redesign mockup.
+function QuotesListIcon({ active, size = 22 }) {
   const c = 'currentColor'
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round">
-      <rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="7" width="5" height="14" rx="1"/><rect x="17" y="11" width="5" height="10" rx="1"/>
+      <path d="M4 6h16M4 12h16M4 18h10"/>
+    </svg>
+  )
+}
+// View switch — hamburger-style lines (Quoting view ⇄ Full app).
+function SwitchIcon({ active, size = 22 }) {
+  const c = 'currentColor'
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round">
+      <path d="M4 7h16M4 12h16M4 17h16"/>
     </svg>
   )
 }
@@ -383,14 +439,6 @@ function ToolIcon({ active, size = 22 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
-    </svg>
-  )
-}
-function PlannerIcon({ active, size = 22 }) {
-  const c = 'currentColor'
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polygon points="1 6 8 3 16 6 23 3 23 18 16 21 8 18 1 21 1 6"/><line x1="8" y1="3" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="21"/>
     </svg>
   )
 }
@@ -538,6 +586,13 @@ const m = {
   },
   acctName: { fontSize: '14px', fontWeight: '700', color: 'var(--ink)', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   acctRole: { fontSize: '11px', fontWeight: '600', color: 'var(--ink-3, #8a7f72)', marginTop: '2px' },
+  viewSwitch: {
+    display: 'flex', alignItems: 'center', gap: '8px',
+    width: '100%', marginTop: '12px', padding: '13px 14px', minHeight: 44,
+    background: 'var(--ink)', border: '1px solid var(--ink)', borderRadius: '12px',
+    color: '#fff', fontSize: '14px', fontWeight: '700', cursor: 'pointer',
+    fontFamily: 'var(--font)',
+  },
   signOutRow: {
     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
     width: '100%', marginTop: '12px', padding: '13px 0',
@@ -566,12 +621,24 @@ const d = {
     transition: 'background 0.15s, color 0.15s', textDecoration: 'none',
   },
   navLinkActive: { background: 'var(--terra)', color: '#fff' },
-  settingsLink: {
-    display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px',
-    borderRadius: '8px', color: 'rgba(255,255,255,0.55)', fontSize: '13px',
-    fontWeight: '500', textDecoration: 'none', transition: 'background 0.15s, color 0.15s',
-    marginBottom: '4px',
+  // Secondary group — the occasional pages, a touch smaller and quieter.
+  navLinkSub: {
+    display: 'flex', alignItems: 'center', gap: '10px',
+    padding: '7px 12px', borderRadius: '8px',
+    color: 'rgba(255,255,255,0.5)', fontSize: '13px', fontWeight: '500',
+    transition: 'background 0.15s, color 0.15s', textDecoration: 'none',
   },
+  eyebrow: {
+    fontSize: '11px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
+    color: 'rgba(255,255,255,0.45)', padding: '0 20px 8px',
+  },
+  viewSwitch: {
+    display: 'flex', alignItems: 'center', gap: '8px', width: '100%', minHeight: 40,
+    border: '1px solid rgba(255,255,255,0.25)', borderRadius: '12px', padding: '9px 12px',
+    background: 'transparent', color: '#fff', fontSize: '12.5px', fontWeight: 700,
+    cursor: 'pointer', fontFamily: 'var(--font)',
+  },
+  viewHint: { fontSize: '10.5px', color: 'rgba(255,255,255,0.45)', padding: '6px 4px 0', lineHeight: 1.35 },
   navBottom: {
     padding: '16px 12px 0', borderTop: '1px solid var(--bark-mid)',
     display: 'flex', flexDirection: 'column', gap: '12px',

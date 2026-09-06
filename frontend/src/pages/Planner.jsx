@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../config/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useIsMobile } from '../hooks/useIsMobile'
@@ -29,7 +30,7 @@ function firstName(name) {
   return String(name).trim().split(/\s+/)[0]
 }
 
-function ymd(d) {
+export function ymd(d) {
   // local YYYY-MM-DD (avoids UTC off-by-one from toISOString)
   const y = d.getFullYear()
   const m = String(d.getMonth() + 1).padStart(2, '0')
@@ -38,7 +39,7 @@ function ymd(d) {
 }
 
 // Next upcoming date (>= today) that falls on the given weekday (0=Sun..6=Sat).
-function nextWeekday(weekday) {
+export function nextWeekday(weekday) {
   const d = new Date()
   d.setHours(0, 0, 0, 0)
   const diff = (weekday - d.getDay() + 7) % 7
@@ -47,17 +48,69 @@ function nextWeekday(weekday) {
 }
 
 // Default run date: whichever of the next Tuesday(2)/Thursday(4) comes first.
-function defaultRunDate() {
+export function defaultRunDate() {
   const tue = nextWeekday(2)
   const thu = nextWeekday(4)
   return tue <= thu ? tue : thu
 }
 
-function niceDate(str) {
+export function niceDate(str) {
   if (!str) return ''
   const [y, m, d] = str.split('-').map(Number)
   const dt = new Date(y, m - 1, d)
   return dt.toLocaleDateString('en-NZ', { weekday: 'short', day: 'numeric', month: 'short' })
+}
+
+// Text every client on a run a heads-up via the send-sms edge function. Shared
+// with the Quote runs page. Resolves to { sent, skipped, message } — never throws.
+export async function textClientsHeadsUp(items, runDate) {
+  const dateLabel = niceDate(runDate)
+  if (!SUPABASE_URL) {
+    return { sent: 0, skipped: items.length, message: 'SMS is not available in demo mode' }
+  }
+  let sent = 0
+  let skipped = 0
+  try {
+    for (const j of items) {
+      const phone = j.clients?.phone
+      if (!phone) {
+        skipped++
+        continue
+      }
+      const message =
+        `Hi ${firstName(j.clients?.name)}, Urban Tree Services will be in your area ` +
+        `${dateLabel} to quote your tree work — we'll confirm a time. ` +
+        `Any questions call 027 203 1446.`
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/send-sms`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: ANON,
+          Authorization: `Bearer ${ANON}`,
+        },
+        body: JSON.stringify({ to: phone, message }),
+      })
+      let data = {}
+      try {
+        data = await res.json()
+      } catch {
+        /* ignore parse errors */
+      }
+      if (data && data.notConfigured) {
+        return { sent, skipped, message: 'SMS not set up yet — add Twilio keys in Settings' }
+      }
+      if (res.ok && data && data.error == null) {
+        sent++
+      } else {
+        skipped++
+      }
+    }
+    const parts = [`${sent} client${sent === 1 ? '' : 's'} texted`]
+    if (skipped) parts.push(`${skipped} skipped (no phone / failed)`)
+    return { sent, skipped, message: parts.join(' · ') }
+  } catch {
+    return { sent, skipped, message: 'Something went wrong sending texts' }
+  }
 }
 
 // ---------- Leaflet map (keyless OSM) ----------
@@ -267,9 +320,12 @@ function RunCard({ index, cluster, mode, onSaveRun, onTextClients, savingRun, te
 export default function Planner() {
   const { session } = useAuth()
   const isMobile = useIsMobile()
+  const navigate = useNavigate()
   const userId = session?.user?.id ?? null
 
-  const [tab, setTab] = useState('quote') // 'quote' | 'work'
+  // Quote runs moved to their own page (/quote-runs); the planner keeps the
+  // work-schedule clustering. The tab stays as a signpost.
+  const [tab, setTab] = useState('work') // 'quote' | 'work'
   const [radius, setRadius] = useState(5)
   const [loading, setLoading] = useState(true)
   const [geoStatus, setGeoStatus] = useState(null)
@@ -398,54 +454,9 @@ export default function Planner() {
   async function handleTextClients(cluster, runDate) {
     const key = clusterKey(cluster)
     setTextingKey(key)
-    const dateLabel = niceDate(runDate)
-    let sent = 0
-    let skipped = 0
-    try {
-      for (const j of cluster.items) {
-        const phone = j.clients?.phone
-        if (!phone) {
-          skipped++
-          continue
-        }
-        const message =
-          `Hi ${firstName(j.clients?.name)}, Urban Tree Services will be in your area ` +
-          `${dateLabel} to quote your tree work — we'll confirm a time. ` +
-          `Any questions call 027 203 1446.`
-        const res = await fetch(`${SUPABASE_URL}/functions/v1/send-sms`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            apikey: ANON,
-            Authorization: `Bearer ${ANON}`,
-          },
-          body: JSON.stringify({ to: phone, message }),
-        })
-        let data = {}
-        try {
-          data = await res.json()
-        } catch {
-          /* ignore parse errors */
-        }
-        if (data && data.notConfigured) {
-          showToast('SMS not set up yet — add Twilio keys in Settings')
-          setTextingKey(null)
-          return
-        }
-        if (res.ok && data && data.error == null) {
-          sent++
-        } else {
-          skipped++
-        }
-      }
-      const parts = [`${sent} client${sent === 1 ? '' : 's'} texted`]
-      if (skipped) parts.push(`${skipped} skipped (no phone / failed)`)
-      showToast(parts.join(' · '))
-    } catch {
-      showToast('Something went wrong sending texts')
-    } finally {
-      setTextingKey(null)
-    }
+    const result = await textClientsHeadsUp(cluster.items, runDate)
+    showToast(result.message)
+    setTextingKey(null)
   }
 
   return (
@@ -454,7 +465,7 @@ export default function Planner() {
       <div style={s.header}>
         <div>
           <h1 style={s.title}>Planner</h1>
-          <p style={s.subtitle}>Plan quote runs &amp; schedule work by area</p>
+          <p style={s.subtitle}>Schedule work by area · quote runs live on the Quote runs page</p>
         </div>
       </div>
 
@@ -463,7 +474,7 @@ export default function Planner() {
         <div style={s.tabs}>
           <button
             style={{ ...s.tab, ...(tab === 'quote' ? s.tabActive : {}) }}
-            onClick={() => setTab('quote')}
+            onClick={() => navigate('/quote-runs')}
           >
             Quote Runs
           </button>

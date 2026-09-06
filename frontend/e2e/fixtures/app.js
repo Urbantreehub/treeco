@@ -1,10 +1,11 @@
 import { test as base, expect } from '@playwright/test'
 import { attachPageGuard } from '../support/guards.js'
 
-// A link present in every navigation variant (full / office / truck / crew), so
-// it's a reliable "the authenticated app shell has rendered" signal. (Calendar
-// isn't — crew/individual-staff logins don't get it.)
-const APP_SHELL_SELECTOR = 'a[href="/safety"]'
+// A nav link present in every navigation variant, so it's a reliable "the
+// authenticated app shell has rendered" signal: staff (full / office) always
+// get Quotes in both the quoting view and the full app; truck / crew always get
+// Safety. (Calendar isn't universal — crew logins don't get it.)
+const APP_SHELL_SELECTOR = 'nav a[href="/pipeline"], nav a[href="/safety"]'
 
 // When E2E_BASE_URL is set the suite runs against a real deployment
 // (e.g. https://app.urbantreeservices.net) with a real Supabase backend, so the

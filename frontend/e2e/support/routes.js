@@ -39,6 +39,7 @@ export const APP_ROUTES = [
   { name: 'actions', path: '/actions', auth: true, access: 'staff' },
   { name: 'calendar', path: '/calendar', auth: true, access: 'schedule' },
   { name: 'planner', path: '/planner', auth: true, access: 'staff' },
+  { name: 'quote-runs', path: '/quote-runs', auth: true, access: 'staff' },
   { name: 'sent-quotes', path: '/sent-quotes', auth: true, access: 'staff' },
   { name: 'clients', path: '/clients', auth: true, access: 'staff' },
   { name: 'quotes-redirect', path: '/quotes', auth: true, redirects: true, access: 'staff' }, // → /pipeline

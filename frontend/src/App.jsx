@@ -20,6 +20,7 @@ const Safety       = lazy(() => import('./pages/Safety'))
 const StaffHub     = lazy(() => import('./pages/StaffHub'))
 const WorkOrder    = lazy(() => import('./pages/WorkOrder'))
 const Planner      = lazy(() => import('./pages/Planner'))
+const QuoteRuns    = lazy(() => import('./pages/QuoteRuns'))
 const SentQuotes   = lazy(() => import('./pages/SentQuotes'))
 const Chat         = lazy(() => import('./pages/Chat'))
 const ToolRequests = lazy(() => import('./pages/ToolRequests'))
@@ -49,9 +50,9 @@ function RequireAuth({ children }) {
 }
 
 // Landing page per role — also where blocked users get bounced.
-// full → dashboard · office → pipeline · truck → calendar · individual staff → safety
-function homePath({ isFullAccess, isStaff, isTruck }) {
-  if (isFullAccess) return '/dashboard'
+// full → Quotes (the quoting view) · office → Quotes · truck → calendar ·
+// individual staff → safety. Reports (/dashboard) lives under the full app.
+function homePath({ isStaff, isTruck }) {
   if (isStaff)      return '/pipeline'
   if (isTruck)      return '/calendar'
   return '/safety'
@@ -120,6 +121,7 @@ export default function App() {
             <Route path="actions"   element={<RequireStaff><Actions /></RequireStaff>} />
             <Route path="calendar"  element={<RequireSchedule><Calendar /></RequireSchedule>} />
             <Route path="planner"   element={<RequireStaff><Planner /></RequireStaff>} />
+            <Route path="quote-runs" element={<RequireStaff><QuoteRuns /></RequireStaff>} />
             <Route path="sent-quotes" element={<RequireStaff><SentQuotes /></RequireStaff>} />
             <Route path="clients"   element={<RequireStaff><Clients /></RequireStaff>} />
             <Route path="quotes"    element={<Navigate to="/pipeline" replace />} />

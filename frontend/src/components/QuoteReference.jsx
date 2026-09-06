@@ -1,7 +1,19 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../config/supabase'
 
-export default function QuoteReference({ jobId, readOnly = false }) {
+// Full-screen image viewer shared with the job record's quote lines. Tap the
+// backdrop or the ✕ to close.
+export function Lightbox({ url, onClose }) {
+  if (!url) return null
+  return (
+    <div style={styles.lightboxBackdrop} onClick={onClose}>
+      <img src={url} alt="" style={styles.lightboxImg} onClick={e => e.stopPropagation()} />
+      <button type="button" onClick={onClose} style={styles.lightboxClose} aria-label="Close image">✕</button>
+    </div>
+  )
+}
+
+export default function QuoteReference({ jobId, readOnly = false, title = 'Quote Reference' }) {
   const [loading, setLoading] = useState(true)
   const [images, setImages] = useState([])
   const [description, setDescription] = useState('')
@@ -86,7 +98,7 @@ export default function QuoteReference({ jobId, readOnly = false }) {
     <div style={styles.card}>
       {/* Header */}
       <div style={styles.header}>
-        <div style={styles.title}>Quote Reference</div>
+        <div style={styles.title}>{title}</div>
         <span style={styles.badge}>Internal — not shown on the quote</span>
       </div>
 
@@ -169,12 +181,7 @@ export default function QuoteReference({ jobId, readOnly = false }) {
       )}
 
       {/* Lightbox */}
-      {lightbox && (
-        <div style={styles.lightboxBackdrop} onClick={() => setLightbox(null)}>
-          <img src={lightbox} alt="reference" style={styles.lightboxImg} onClick={e => e.stopPropagation()} />
-          <button type="button" onClick={() => setLightbox(null)} style={styles.lightboxClose}>✕</button>
-        </div>
-      )}
+      <Lightbox url={lightbox} onClose={() => setLightbox(null)} />
     </div>
   )
 }
