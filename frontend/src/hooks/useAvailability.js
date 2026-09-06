@@ -69,7 +69,7 @@ export function useAvailability(range) {
       setAvailability(merged)
       stateRef.current = merged
     }
-    return { error: error ?? null, dates }
+    return { error: error ?? null, dates, availability: stateRef.current }
   }, [])
 
   // Remove a person's away marks on the given dates (a whole block, typically).
@@ -79,7 +79,7 @@ export function useAvailability(range) {
     setAvailability(next)
     stateRef.current = next
     const { error } = await supabase.from('availability').delete().eq('user_id', userId).in('date', dates)
-    return { error: error ?? null }
+    return { error: error ?? null, availability: next }
   }, [])
 
   // Consecutive away dates for a person around `date` (for "Sen · leave · Mon–Wed").

@@ -54,7 +54,7 @@ function meetingIcon(job) {
   return ''
 }
 
-export default function DayRunView({ initialDate, myResourceId, resources, resourceColors, onBack }) {
+export default function DayRunView({ initialDate, myResourceId, resources, resourceColors, crewFor, onBack }) {
   // Crew avatars: every active resource lane except the catch-all "unassigned".
   const crew = useMemo(() => resources.filter(r => r.id !== 'unassigned'), [resources])
   const ownResourceId = (myResourceId && crew.some(r => r.id === myResourceId))
@@ -310,6 +310,23 @@ export default function DayRunView({ initialDate, myResourceId, resources, resou
           </div>
         </div>
 
+        {/* Who and what is on this truck today — from crew assignments, leave
+            and the schedule rows' equipment_ids (via the calendar's crewFor). */}
+        {crewFor && (() => {
+          const c = crewFor(viewResourceId, selectedDate)
+          if (!c || (!c.people.length && !c.equipment.length)) return null
+          return (
+            <div style={dr.crewStrip} data-testid="dayrun-crew">
+              {c.people.map(p => (
+                <span key={p.id} title={p.name} style={{ ...dr.crewChip, ...(p.away ? dr.crewChipAway : {}) }}>
+                  {p.short}{p.away ? ` · ${p.away}` : ''}
+                </span>
+              ))}
+              {c.equipment.map(e => <span key={e} style={{ ...dr.crewChip, ...dr.crewChipEquip }}>{e}</span>)}
+            </div>
+          )
+        })()}
+
         {/* Week strip — only while the date dropdown is open */}
         {showWeek && (
           <div style={dr.weekDrop}>
@@ -468,6 +485,14 @@ const dr = {
     margin: '3px auto 0',
   },
   progress: { display: 'flex', gap: '6px', marginTop: '10px' },
+  crewStrip: { display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' },
+  crewChip: {
+    display: 'inline-flex', alignItems: 'center', minHeight: '28px', padding: '0 10px',
+    borderRadius: '999px', border: '1px solid var(--line)', background: '#fff',
+    fontSize: '12px', fontWeight: 700, color: 'var(--ink)', whiteSpace: 'nowrap',
+  },
+  crewChipAway: { color: 'var(--ink-3)', borderStyle: 'dashed', textDecoration: 'line-through' },
+  crewChipEquip: { color: '#8B6238', borderColor: '#8B623855', background: '#F7F1EA' },
   progressSeg: { height: '6px', flex: 1, borderRadius: '3px' },
   sectionLabel: {
     margin: '18px 20px 8px', fontSize: '13px', fontWeight: 700,

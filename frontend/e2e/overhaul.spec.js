@@ -29,7 +29,8 @@ test.describe('quotes list', () => {
     test.skip(role !== 'full' && role !== 'office', 'staff-only behaviour')
     await login('/')
     await expect(page).toHaveURL(/\/pipeline/)
-    await expect(page.locator('nav a[href="/pipeline"]').first()).toHaveText(/Quotes/)
+    // (The sidebar brand link also points at /pipeline — match the labelled nav item.)
+    await expect(page.locator('nav a[href="/pipeline"]', { hasText: 'Quotes' })).toBeVisible()
     if (role === 'full') {
       // Full access defaults to the quoting view: Quotes + Quote runs, and a switch to the full app.
       await expect(page.locator('nav a[href="/quote-runs"]').first()).toBeVisible()

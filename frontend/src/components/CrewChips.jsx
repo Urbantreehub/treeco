@@ -52,6 +52,7 @@ export function PersonChip({ user, away = null, partial = false, compact = false
       title={tip}
       aria-label={tip}
       onClick={onClick ? (e => { e.stopPropagation(); onClick(user, e) }) : undefined}
+      onDoubleClick={e => e.stopPropagation()}
       onKeyDown={onClick ? (e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(user, e) } }) : undefined}
       style={{ ...chipStyle({ away: !!away, partial, compact, accent, dragging: isDragging, on }), ...style }}
     >
