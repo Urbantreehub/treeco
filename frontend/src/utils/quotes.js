@@ -48,7 +48,7 @@ export function lineSorCode(item) {
   if (!item) return null
   if (item.sor_code) return String(item.sor_code)
   if (item.sor === true) {
-    const m = String(item.description || '').match(/^([A-Z]{1,4}[\w.-]*)\s+—/)
+    const m = String(item.description || '').match(/^([A-Z0-9][\w.-]*)\s+—/)
     if (m) return m[1]
     return 'SOR'
   }
@@ -58,7 +58,7 @@ export function lineSorCode(item) {
 // Line title without the SOR code prefix.
 export function lineTitle(item) {
   const d = String(item?.description || '').trim()
-  if (item?.sor === true) return d.replace(/^[A-Z]{1,4}[\w.-]*\s+—\s*/, '') || d
+  if (item?.sor === true) return d.replace(/^[A-Z0-9][\w.-]*\s+—\s*/, '') || d
   return d || 'Untitled item'
 }
 

@@ -86,7 +86,7 @@ export default function QuoteLines({ quote, photos = [], portal = false, onEdit,
             <div style={{ minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                 {item.optional && <span style={st.optional}>Optional{item.selected ? ' · in' : ' · out'}</span>}
-                {sor && <span style={st.sor}>{sor.startsWith('SOR') ? sor : `SOR ${sor}`}</span>}
+                {sor && <span style={st.sor} title="Schedule of rates code">{sor === 'SOR' ? 'SOR' : sor}</span>}
                 {quotable && <span style={st.quotable}>Quotable · pre-approval</span>}
                 <b style={st.title}>{lineTitle(item)}</b>
               </div>

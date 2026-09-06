@@ -94,7 +94,7 @@ function derivedRows(quote, clientName, ownerName) {
   return rows.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
 }
 
-export default function ActivityFeed({ job, quote, onStatusApplied, embedded = false }) {
+export default function ActivityFeed({ job, quote, onStatusApplied, embedded = false, headInset = 0 }) {
   const { session, profile } = useAuth()
   const [rows, setRows] = useState(null)        // server rows, or null while loading / when falling back
   const [fallback, setFallback] = useState(false)
@@ -231,7 +231,7 @@ export default function ActivityFeed({ job, quote, onStatusApplied, embedded = f
 
   return (
     <div style={{ ...st.wrap, ...(embedded ? st.wrapEmbedded : {}) }}>
-      <div style={st.head}>
+      <div style={{ ...st.head, paddingRight: 20 + headInset }}>
         <span style={st.h2}>Activity</span>
         <Chip on={filter === 'all'} onClick={() => setFilter('all')}>All</Chip>
         <Chip on={filter === 'client'} onClick={() => setFilter('client')}>Client</Chip>
@@ -262,7 +262,7 @@ export default function ActivityFeed({ job, quote, onStatusApplied, embedded = f
                   <div style={{ minWidth: 0 }}>
                     <div style={st.evLine}>
                       <b style={st.verb}>{verb}</b>
-                      {detail && <span style={{ ...st.detail, ...(isClientCard ? st.faint : {}) }}>{isClientCard ? 'on the quote' : detail}</span>}
+                      {detail && <span style={{ ...st.detail, ...(isClientCard ? st.faint : {}) }}>{' '}{isClientCard ? 'on the quote' : detail}</span>}
                     </div>
                     {r.kind === 'sent' && r.meta?.subject && <div style={st.sub}>“{r.meta.subject}”</div>}
                     {r.kind === 'opened' && r.created_at && (r.meta?.count ?? 0) > 1 && (
@@ -276,17 +276,17 @@ export default function ActivityFeed({ job, quote, onStatusApplied, embedded = f
                     {k.card && (isClientCard || showConfirm) && (
                       <div style={st.cardBtns}>
                         {isClientCard && (
-                          <button type="button" style={{ ...st.smBtn, opacity: canReply ? 1 : 0.5 }} disabled={!canReply} onClick={startReply} title={canReply ? `Reply to ${first} on the quote` : 'No quote to reply on yet'}>
+                          <button type="button" style={{ ...st.smBtn, height: embedded ? 44 : 32, opacity: canReply ? 1 : 0.5 }} disabled={!canReply} onClick={startReply} title={canReply ? `Reply to ${first} on the quote` : 'No quote to reply on yet'}>
                             Reply
                           </button>
                         )}
                         {showConfirm && (
-                          <button type="button" style={{ ...st.smBtn, borderColor: 'var(--terra)', color: 'var(--terra)' }} disabled={isBusy} onClick={() => confirmRow(r)}>
+                          <button type="button" style={{ ...st.smBtn, height: embedded ? 44 : 32, borderColor: 'var(--terra)', color: 'var(--terra)' }} disabled={isBusy} onClick={() => confirmRow(r)}>
                             {isBusy ? 'Working…' : `Confirm → ${getStatusLabel(suggested)}`}
                           </button>
                         )}
                         {showConfirm && (
-                          <button type="button" style={{ ...st.smBtn, ...st.quiet }} disabled={isBusy} onClick={() => dismissRow(r)}>Dismiss</button>
+                          <button type="button" style={{ ...st.smBtn, ...st.quiet, height: embedded ? 44 : 32 }} disabled={isBusy} onClick={() => dismissRow(r)}>Dismiss</button>
                         )}
                       </div>
                     )}
@@ -322,7 +322,7 @@ export default function ActivityFeed({ job, quote, onStatusApplied, embedded = f
         />
         <div style={st.composeFoot}>
           {notice ? <span style={st.notice}>{notice}</span> : <span style={st.hint}>{mode === 'reply' ? 'Visible to the client on the quote.' : 'Never shown to the client.'}</span>}
-          <button type="button" onClick={post} disabled={!text.trim() || busy === 'post'} style={{ ...st.postBtn, opacity: !text.trim() || busy === 'post' ? 0.5 : 1 }}>
+          <button type="button" onClick={post} disabled={!text.trim() || busy === 'post'} style={{ ...st.postBtn, height: embedded ? 44 : 36, opacity: !text.trim() || busy === 'post' ? 0.5 : 1 }}>
             {busy === 'post' ? 'Posting…' : mode === 'reply' ? 'Send reply' : 'Add note'}
           </button>
         </div>
