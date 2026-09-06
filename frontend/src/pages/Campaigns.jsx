@@ -1235,15 +1235,22 @@ function CampaignDetail({ campaign, onBack }) {
         : events.length === 0 ? <div style={s.empty}>No activity recorded yet.</div>
         : (
           <div>
-            {events.map(e => {
+            {collapseRuns(events).map(g => {
+              const e = g.first
               const c = e.marketing_contacts
               const who = c ? [c.first_name, c.last_name].filter(Boolean).join(' ') || c.email : ''
               return (
                 <div key={e.id} style={s.eventRow}>
-                  <span style={s.eventKind}>{EVENT_LABELS[e.kind] ?? e.kind}</span>
+                  <span style={s.eventKind}>
+                    {EVENT_LABELS[e.kind] ?? e.kind}
+                    {g.count > 1 && <span style={{ opacity: 0.55, fontWeight: 400 }}> ×{g.count}</span>}
+                  </span>
                   <span style={s.eventWho}>{who}</span>
                   {e.url && <span style={s.eventUrl}>{e.url}</span>}
-                  <span style={s.eventWhen}>{fmtWhen(e.created_at)}</span>
+                  <span style={s.eventWhen}>
+                    {fmtWhen(e.created_at)}
+                    {g.count > 1 && <span style={{ opacity: 0.55 }}>{g.spanLabel}</span>}
+                  </span>
                 </div>
               )
             })}
@@ -1251,6 +1258,55 @@ function CampaignDetail({ campaign, onBack }) {
         )}
     </div>
   )
+}
+
+
+// Collapse a run of the same person doing the same thing into one row.
+//
+// People reread emails. One recipient opened the hedge campaign six times in 23
+// minutes, and mail clients make it worse — a preview pane and then the message
+// itself fetch the tracking pixel separately, which is why some gaps are under
+// two seconds. Every one of those is a real, separate event, but the list
+// showed six identical-looking "Opened / Angela Knight / 11:05" rows, and the
+// timestamps round to the minute so the closest pairs looked like exact
+// duplicates. Twice now that has been read as the same person being emailed
+// repeatedly, or as a double-write bug.
+//
+// Consecutive only, deliberately: the list is newest-first, so this merges an
+// unbroken run and leaves someone who came back hours later as its own row.
+// Merging across the whole list would hide the return visit, which is the
+// interesting part.
+function collapseRuns(events) {
+  const out = []
+  for (const e of events) {
+    const prev = out[out.length - 1]
+    const same = prev
+      && prev.first.kind === e.kind
+      && prev.contactKey === contactKeyOf(e)
+      && (prev.first.url ?? null) === (e.url ?? null)
+    if (same) {
+      prev.count++
+      prev.oldest = e.created_at
+    } else {
+      out.push({ first: e, count: 1, oldest: e.created_at, contactKey: contactKeyOf(e) })
+    }
+  }
+  // Label the span only once the run is known, so "×6" carries how long it took.
+  for (const g of out) {
+    if (g.count < 2) { g.spanLabel = ''; continue }
+    const mins = Math.round((new Date(g.first.created_at) - new Date(g.oldest)) / 60000)
+    g.spanLabel = mins >= 1 ? ` · over ${mins} min` : ' · within a minute'
+  }
+  return out
+}
+
+// Events carry the contact through an embedded relationship that can fail to
+// resolve, in which case every row's contact is undefined — grouping on that
+// would merge unrelated people into one row. Fall back to the event id, which
+// is unique, so an unresolvable contact simply never groups.
+function contactKeyOf(e) {
+  const c = e.marketing_contacts
+  return c ? (c.email ?? `${c.first_name} ${c.last_name}`) : `__ungrouped_${e.id}`
 }
 
 function ResultsTab({ campaigns, loading, onOpen, onEdit, contacts }) {
