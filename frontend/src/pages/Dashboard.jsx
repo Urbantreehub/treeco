@@ -512,7 +512,7 @@ export default function Dashboard() {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '24px' }}>
         <div>
-          <h1 style={{ fontSize: '26px', fontWeight: '800', color: 'var(--ink)', margin: 0, letterSpacing: '-0.03em' }}>Business Health</h1>
+          <h1 style={{ fontSize: '26px', fontWeight: '800', color: 'var(--ink)', margin: 0, letterSpacing: '-0.03em' }}>Reports</h1>
           <div style={{ fontSize: '13px', color: '#aaa', marginTop: '3px' }}>
             {new Date().toLocaleDateString('en-NZ', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           </div>

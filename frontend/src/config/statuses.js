@@ -1,4 +1,4 @@
-// Single source of truth for all 9 job statuses.
+// Single source of truth for all 10 job statuses (the original 9 + declined).
 // Used identically in the pipeline board, calendar event colours, and job detail badges.
 // Never hardcode a status colour anywhere else — always import from here.
 
@@ -106,19 +106,39 @@ export function categoryMeta(job) {
   return JOB_CATEGORIES[jobCategory(job)] ?? JOB_CATEGORIES.residential
 }
 
-// Ordered list for pipeline column rendering.
-// quote_scheduled, accepted_to_schedule, stump_grinding removed — these were
-// transitional micro-states that added columns without adding clarity.
-// Jobs still in those statuses in the DB remain visible via their detail panel.
+// The forward path, in order — the original list restored. Rendered as a
+// stepper everywhere (record header, list grouping, calendar colours).
 export const STATUS_ORDER = [
   'new_lead',
+  'quote_scheduled',
   'quote_sent',
+  'accepted_to_schedule',
   'scheduled',
+  'stump_grinding',
   'complete_to_invoice',
   'invoiced',
-  'on_hold',
-  'declined',
 ]
+
+// Side states: never steps, shown as badges and reachable from the … menu.
+export const SIDE_STATUSES = ['on_hold', 'declined']
+
+// Short labels for the stepper, where the full label would not fit.
+export const STEP_LABELS = {
+  new_lead: 'Lead',
+  quote_scheduled: 'Visit',
+  quote_sent: 'Sent',
+  accepted_to_schedule: 'Accepted',
+  scheduled: 'Scheduled',
+  stump_grinding: 'Stump',
+  complete_to_invoice: 'To invoice',
+  invoiced: 'Invoiced',
+  on_hold: 'On hold',
+  declined: 'Declined',
+}
+
+export function statusIndex(key) {
+  return STATUS_ORDER.indexOf(key)
+}
 
 // Quote-reference material (raw enquiry photos + site notes) is only relevant
 // while the job is still a lead or in the quoting phase. Once the client accepts
@@ -130,19 +150,13 @@ export function showsQuoteReference(status) {
   return QUOTE_REFERENCE_STATUSES.includes(status)
 }
 
-// ── Manual pipeline moves (F2) ──────────────────────────────────────────────
-// Everything else is set by events, not menus: quote_scheduled when a run is
-// booked, quote_sent when the quote goes out (QuoteBuilder auto-advances),
-// accepted_to_schedule on client acceptance, invoiced when the invoice is
-// raised. stump_grinding is a crew close-out flag set from the Work Order (F3),
-// not an office menu choice — so the office menu offers only the decisions a
-// human actually makes.
-export const MANUAL_STATUSES = ['scheduled', 'on_hold', 'declined', 'complete_to_invoice']
+// Which decisions a person makes by hand (everything else is set by events:
+// a visit booked, a quote sent, a client accepting, a drop on the calendar,
+// a work order closed, an invoice raised). Offered from the … menu.
+export const MANUAL_STATUSES = ['on_hold', 'declined', 'complete_to_invoice', 'invoiced']
 
 export function manualStatusOptions(current) {
-  const opts = MANUAL_STATUSES.filter(k => k !== current)
-  if (current === 'complete_to_invoice') opts.push('invoiced')
-  return opts
+  return MANUAL_STATUSES.filter(k => k !== current)
 }
 
 export function getStatus(key) {

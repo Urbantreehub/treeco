@@ -1,5 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 
+import { DEMO_ACTIVITY } from '../demo/demoActivity'
+import { DEMO_RESOURCES, DEMO_AVAILABILITY } from '../demo/demoResources'
+
 const IS_DEMO = import.meta.env.VITE_DEMO === 'true'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -135,6 +138,10 @@ function demoSchedule() {
 
 const DEMO_TABLES = {
   quotes:   () => demoQuotes(),
+  job_activity: () => DEMO_ACTIVITY,
+  resources:    () => DEMO_RESOURCES,
+  availability: () => DEMO_AVAILABILITY,
+  quote_runs:   () => [],
   users:    () => DEMO_USERS,
   schedule: () => demoSchedule(),
   vehicles: () => ([
