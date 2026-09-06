@@ -1,0 +1,55 @@
+<div class="mk" style="width:1440px;height:900px;display:grid;grid-template-columns:1fr 300px">
+  <!-- Shared Scheduler: trucks are the rows, people are chips you drop on a truck-day, leave greys out. -->
+  <div style="display:flex;flex-direction:column;overflow:hidden">
+    <div class="topbar" style="height:56px;gap:12px">
+      <span class="btn">Today</span><span class="btn" style="width:34px;padding:0">‹</span><span class="btn" style="width:34px;padding:0">›</span>
+      <span class="h2" style="font-size:17px">10 – 14 August</span>
+      <span class="grow"></span>
+      <span class="chip">Day</span><span class="chip on">Week</span><span class="chip">Month</span>
+      <span class="btn">Text today's clients</span>
+      <span class="btn" style="width:34px;padding:0">⋯</span>
+    </div>
+    <div style="padding:16px 18px;flex:1;min-height:0">
+      <div class="grid" style="grid-template-columns:170px repeat(5,1fr);height:100%;grid-template-rows:auto 1fr 1fr 1fr auto">
+        <div class="gh"></div><div class="gh">Mon 10</div><div class="gh" style="color:var(--s-visit)">Tue 11 · quote run</div><div class="gh">Wed 12</div><div class="gh" style="color:var(--s-visit)">Thu 13 · quote run</div><div class="gh">Fri 14</div>
+
+        <div class="gl"><div class="row" style="gap:8px"><span style="width:10px;height:10px;border-radius:50%;background:#4A7FA5"></span><b style="font-size:14px">Isuzu</b><span class="faint" style="font-size:11px">small truck</span></div><div class="note">Drop people here for the week, or on one day</div><div class="row" style="gap:3px;flex-wrap:wrap"><span class="who"><i>D</i>Dan</span><span class="who"><i>M</i>Mike</span><span class="who"><i>T</i>Te Ariki</span></div></div>
+        <div class="gc"><div class="blk" style="background:var(--s-sched)">Jason Park<small>9 Newlands Ave · Pruning · 7:30–4</small></div><div class="row" style="gap:2px;margin-top:5px"><span class="who"><i>D</i></span><span class="who"><i>M</i></span><span class="who"><i>T</i></span></div></div>
+        <div class="gc"><div class="blk" style="background:#6D4AA8">SP — 12 Tirangi Rd<small>Spencers · GNL · ½ day</small></div><div class="blk" style="background:var(--s-sched);margin-top:4px">Kelly Mason<small>3 Owen St · pm</small></div></div>
+        <div class="gc"><div class="blk" style="background:#C77D1A">Downer — Adelaide Rd<small>URG · respond in 4h</small></div><div class="row" style="gap:2px;margin-top:5px"><span class="who"><i>D</i></span><span class="who"><i>M</i></span><span class="who" style="border-color:var(--terra);color:var(--terra)"><i style="background:var(--terra)">S</i>Sione</span></div></div>
+        <div class="gc" style="background:var(--terra-wash);outline:2px dashed var(--terra);outline-offset:-4px"><div class="blk" style="background:var(--s-accepted);opacity:.85;transform:rotate(-2deg)">Richard Tait<small>½ day · needs 2</small></div><div style="font-size:11px;font-weight:700;color:var(--terra);margin-top:6px;text-align:center">Dan + Mike free · fits</div></div>
+        <div class="gc"></div>
+
+        <div class="gl"><div class="row" style="gap:8px"><span style="width:10px;height:10px;border-radius:50%;background:#6D4AA8"></span><b style="font-size:14px">Nissan</b><span class="faint" style="font-size:11px">big truck</span></div><div class="row" style="gap:3px;flex-wrap:wrap"><span class="who"><i>J</i>Josh</span><span class="who"><i>S</i>Sione</span><span class="who away"><i>K</i>Kai</span></div></div>
+        <div class="gc"><div class="off">Kai · annual leave · Mon–Wed</div></div>
+        <div class="gc"><div class="blk" style="background:var(--s-visit)">Quote run · 4 stops<small>Josh · Brooklyn → Aro → Kelburn → Karori</small></div><div class="off" style="margin-top:4px">Kai · leave</div></div>
+        <div class="gc"><div class="off">Kai · leave</div><div style="border:1.5px dashed var(--line);border-radius:10px;padding:8px;text-align:center;font-size:11px;color:var(--ink-3);font-weight:600;margin-top:4px">Free · Coastal Properties fits here</div></div>
+        <div class="gc"><div class="blk" style="background:var(--s-visit)">Quote run · 3 stops<small>Josh</small></div></div>
+        <div class="gc"><div class="blk" style="background:var(--s-stump)">Wilson stump grind<small>3 Karori Rd · grinder on trailer</small></div></div>
+
+        <div class="gl"><div class="row" style="gap:8px"><span style="width:10px;height:10px;border-radius:50%;background:#8B6238"></span><b style="font-size:14px">Grinder</b><span class="faint" style="font-size:11px">trailer</span></div><div class="note">Equipment row: warns if double-booked</div></div>
+        <div class="gc"></div><div class="gc"></div><div class="gc"></div><div class="gc"></div><div class="gc"><div class="blk" style="background:var(--s-stump);opacity:.6">with Nissan</div></div>
+
+        <div class="gl" style="border-bottom:0"><b>People</b><div class="note">Everyone on staff. Grey = away.</div></div>
+        <div class="gc" style="border-bottom:0;grid-column:2/7;display:flex;gap:6px;flex-wrap:wrap;align-items:center;min-height:48px">
+          <span class="who"><i>J</i>Josh</span><span class="who"><i>D</i>Dan</span><span class="who"><i>M</i>Mike</span><span class="who"><i>T</i>Te Ariki</span><span class="who"><i>S</i>Sione</span><span class="who away"><i>K</i>Kai · leave to Wed</span><span class="who"><i>R</i>Rangi · casual</span><span class="who" style="border-color:var(--terra);color:var(--terra)"><i style="background:var(--terra)">A</i>Ashley · office</span>
+          <span class="grow"></span><span class="chip" style="padding:3px 10px;font-size:11px">+ Add leave / sick day</span>
+        </div>
+      </div>
+    </div>
+    <div class="row" style="padding:0 18px 14px;gap:18px;font-size:12px;color:var(--ink-2)"><span><b class="tn" style="color:var(--ink)">$14,180</b> booked this week</span><span>Isuzu 4 days · Nissan 2 days + 2 quote runs</span><span class="grow"></span><span class="faint">Drag a job to move it · drag a person to a truck · double-click a day to add leave</span></div>
+  </div>
+
+  <!-- unscheduled tray: only Accepted work and booked quote visits -->
+  <div style="border-left:1px solid var(--line);background:#fff;display:flex;flex-direction:column;overflow:hidden">
+    <div style="padding:16px 16px 10px;border-bottom:1px solid var(--line)"><div class="h2">Ready to schedule</div><div class="muted" style="font-size:12px;margin-top:2px">Accepted, waiting for a truck-day</div></div>
+    <div style="padding:12px;display:flex;flex-direction:column;gap:8px">
+      <div class="card" style="padding:10px 12px;border-left:4px solid var(--s-accepted);box-shadow:0 8px 20px -10px rgba(40,25,10,.4)"><div class="row"><div class="ttl grow">Richard Tait</div><span class="price tn" style="font-size:13px">$2,415</span></div><div class="sub">8 Miramar Rd · Pruning</div><div class="row" style="margin-top:6px;gap:4px"><span class="chip" style="padding:2px 8px;font-size:11px">½ day</span><span class="chip" style="padding:2px 8px;font-size:11px">2 staff</span><span class="chip" style="padding:2px 8px;font-size:11px">chipper</span></div></div>
+      <div class="card" style="padding:10px 12px;border-left:4px solid var(--s-accepted)"><div class="row"><div class="ttl grow">Coastal Properties</div><span class="price tn" style="font-size:13px">$3,680</span></div><div class="sub">55 Oriental Pde · Pruning</div><div class="row" style="margin-top:6px;gap:4px"><span class="chip" style="padding:2px 8px;font-size:11px">1 day</span><span class="chip" style="padding:2px 8px;font-size:11px">3 staff</span><span class="chip" style="padding:2px 8px;font-size:11px">big truck</span></div></div>
+      <div class="eyebrow" style="padding:10px 4px 2px;color:var(--s-visit)">Quote visits to place · 2</div>
+      <div class="card" style="padding:10px 12px;border-left:4px solid var(--s-visit)"><div class="ttl">Anna Ferreira</div><div class="sub">22 Brooklyn Rd · wants Tue am</div></div>
+      <div class="card" style="padding:10px 12px;border-left:4px solid var(--s-visit)"><div class="ttl">Sam Rewi</div><div class="sub">7 Kelburn Pde · any</div></div>
+    </div>
+    <div style="margin-top:auto;padding:12px 16px;border-top:1px solid var(--line)" class="note">Everything here is Accepted or has a booked visit. Leads and sent quotes don't clutter the tray.</div>
+  </div>
+</div>

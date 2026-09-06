@@ -1,0 +1,75 @@
+<div class="mk" style="width:1440px;height:900px;display:grid;grid-template-rows:48px 1fr 230px">
+  <!-- Direction B — "Flow Board": the restored status list as lanes, grouped into three phases; drag a card right to move it on; drag it down onto a truck-day to schedule. -->
+  <div class="topbar">
+    <span style="font-weight:800;font-size:16px;color:var(--ink);display:flex;align-items:center;gap:8px"><svg class="ic" style="width:18px;height:18px;stroke:var(--terra);stroke-width:3" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M6 6l12 12M18 6L6 18"/></svg>TreeCo</span>
+    <span class="chip on">Board</span><span class="chip">Schedule</span><span class="chip">Clients</span>
+    <div class="search" style="max-width:320px;margin-left:12px">Search…</div>
+    <span class="grow"></span>
+    <span class="chip">Private</span><span class="chip">Spencers</span><span class="chip">Downer</span>
+    <span class="btn primary">+ New lead</span>
+    <span class="btn" style="width:34px;padding:0">⋯</span>
+    <span class="avatar" style="background:var(--terra)">A</span>
+  </div>
+
+  <div style="padding:16px 18px 8px;display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:auto 1fr;gap:10px;overflow:hidden;min-height:0">
+    <!-- phase headers span lanes -->
+    <div style="grid-column:1/4;display:flex;align-items:center;gap:8px;padding:0 4px 4px;border-bottom:2px solid var(--s-lead)"><span class="eyebrow" style="color:var(--ink)">Quoting</span><span class="faint" style="font-size:11px">7 jobs · $17,240 out</span></div>
+    <div style="grid-column:4/6;display:flex;align-items:center;gap:8px;padding:0 4px 4px;border-bottom:2px solid var(--s-sched)"><span class="eyebrow" style="color:var(--ink)">Doing</span><span class="faint" style="font-size:11px">5 jobs · $12,010</span></div>
+    <div style="grid-column:6/9;display:flex;align-items:center;gap:8px;padding:0 4px 4px;border-bottom:2px solid var(--s-inv)"><span class="eyebrow" style="color:var(--ink)">Getting paid</span><span class="faint" style="font-size:11px">4 jobs · $9,940 owing</span></div>
+
+    <!-- lane template -->
+    <div class="col" style="gap:8px;min-height:0"><div class="row" style="padding:6px 4px"><span class="pill" style="background:#7C93A81F;color:var(--s-lead)"><i></i>New lead</span><span class="faint grow" style="font-size:11px;text-align:right">2</span></div>
+      <div class="card" style="padding:10px 12px;border-left:4px solid var(--s-lead)"><div class="ttl">Anna Ferreira</div><div class="sub">22 Brooklyn Rd · Pruning</div><div class="row" style="margin-top:6px"><span class="chip" style="padding:2px 8px;font-size:11px">Website · 2h</span></div></div>
+      <div class="card" style="padding:10px 12px;border-left:4px solid var(--s-lead)"><div class="ttl">Sam Rewi</div><div class="sub">7 Kelburn Pde · Removal</div><div class="row" style="margin-top:6px"><span class="chip" style="padding:2px 8px;font-size:11px">Phone · 1d</span></div></div>
+      <div style="border:1.5px dashed var(--line);border-radius:14px;padding:10px;text-align:center;color:var(--ink-3);font-size:11px;font-weight:600">Drop → books a quote visit</div>
+    </div>
+    <div class="col" style="gap:8px"><div class="row" style="padding:6px 4px"><span class="pill" style="background:#4A7FA51F;color:var(--s-visit)"><i></i>Visit booked</span><span class="faint grow" style="font-size:11px;text-align:right">1</span></div>
+      <div class="card" style="padding:10px 12px;border-left:4px solid var(--s-visit)"><div class="ttl">Priya Nair</div><div class="sub">40 Aro St · Hedge</div><div class="row" style="margin-top:6px"><span class="chip" style="padding:2px 8px;font-size:11px">Thu run · 10:30</span></div></div>
+    </div>
+    <div class="col" style="gap:8px"><div class="row" style="padding:6px 4px"><span class="pill" style="background:#D4851A1F;color:var(--s-sent)"><i></i>Quote sent</span><span class="faint grow" style="font-size:11px;text-align:right">4</span></div>
+      <div class="card" style="padding:10px 12px;border-left:4px solid var(--s-sent);box-shadow:0 10px 24px -10px rgba(40,25,10,.4);transform:rotate(-1.5deg)"><div class="row"><div class="ttl grow">Margaret Thompson</div><span class="price tn" style="font-size:13px">$3,220</span></div><div class="sub">14 Hillcrest Ave · Removal</div><div class="row" style="margin-top:6px;gap:4px"><span class="pill" style="background:#EEF3FB;color:#4A6DA8">Question</span><span class="faint" style="font-size:11px">6d</span></div></div>
+      <div class="card" style="padding:10px 12px;border-left:4px solid var(--s-sent)"><div class="row"><div class="ttl grow">Heritage Homes Trust</div><span class="price tn" style="font-size:13px">$6,210</span></div><div class="sub">101 Mt Victoria Blvd · Removal</div><div class="row" style="margin-top:6px;gap:4px"><span class="pill" style="background:#FFF0EE;color:#C0392B">15d · follow up</span></div></div>
+      <div class="card" style="padding:10px 12px;border-left:4px solid var(--s-sent)"><div class="row"><div class="ttl grow">Kelly Mason</div><span class="price tn" style="font-size:13px">$980</span></div><div class="sub">3 Owen St · Pruning</div><div class="row" style="margin-top:6px"><span class="faint" style="font-size:11px">Opened 2× · 1d</span></div></div>
+    </div>
+    <div class="col" style="gap:8px"><div class="row" style="padding:6px 4px"><span class="pill" style="background:#3A8A821F;color:var(--s-accepted)"><i></i>Accepted</span><span class="faint grow" style="font-size:11px;text-align:right">2</span></div>
+      <div class="card" style="padding:10px 12px;border-left:4px solid var(--s-accepted)"><div class="row"><div class="ttl grow">Richard Tait</div><span class="price tn" style="font-size:13px">$2,415</span></div><div class="sub">8 Miramar Rd · Pruning · ½ day</div><div class="row" style="margin-top:6px"><span class="chip" style="padding:2px 8px;font-size:11px;background:var(--terra-wash);border-color:var(--terra-soft);color:var(--terra)">Drag to a truck ↓</span></div></div>
+      <div class="card" style="padding:10px 12px;border-left:4px solid var(--s-accepted)"><div class="row"><div class="ttl grow">Coastal Properties</div><span class="price tn" style="font-size:13px">$3,680</span></div><div class="sub">55 Oriental Pde · Pruning · 1 day</div></div>
+    </div>
+    <div class="col" style="gap:8px"><div class="row" style="padding:6px 4px"><span class="pill" style="background:#4A67411F;color:var(--s-sched)"><i></i>Scheduled</span><span class="faint grow" style="font-size:11px;text-align:right">3</span></div>
+      <div class="card" style="padding:10px 12px;border-left:4px solid var(--s-sched)"><div class="row"><div class="ttl grow">Jason Park</div><span class="price tn" style="font-size:13px">$2,070</span></div><div class="sub">9 Newlands Ave · Mon · Nissan</div></div>
+      <div class="card" style="padding:10px 12px;border-left:4px solid var(--s-sched)"><div class="row"><div class="ttl grow">SP — 12 Tirangi Rd</div><span class="price tn" style="font-size:13px">$1,340</span></div><div class="sub">Spencers · Tue · Isuzu</div></div>
+      <div class="card" style="padding:10px 12px;border-left:4px solid var(--s-sched)"><div class="row"><div class="ttl grow">Downer — Adelaide Rd</div><span class="price tn" style="font-size:13px">$2,505</span></div><div class="sub">Wed · Isuzu · URG</div></div>
+    </div>
+    <div class="col" style="gap:8px"><div class="row" style="padding:6px 4px"><span class="pill" style="background:#8B62381F;color:var(--s-stump)"><i></i>Stump</span><span class="faint grow" style="font-size:11px;text-align:right">1</span></div>
+      <div class="card" style="padding:10px 12px;border-left:4px solid var(--s-stump)"><div class="ttl">Dave &amp; Sue Wilson</div><div class="sub">3 Karori Rd · grinder Fri</div></div>
+    </div>
+    <div class="col" style="gap:8px"><div class="row" style="padding:6px 4px"><span class="pill" style="background:#7FA6501F;color:var(--s-toinv)"><i></i>To invoice</span><span class="faint grow" style="font-size:11px;text-align:right">2</span></div>
+      <div class="card" style="padding:10px 12px;border-left:4px solid var(--s-toinv)"><div class="row"><div class="ttl grow">Tom Hale</div><span class="price tn" style="font-size:13px">$1,780</span></div><div class="sub">Done Thu · photos ✓</div><div class="row" style="margin-top:6px"><span class="btn" style="height:26px;font-size:11px;padding:0 9px">→ Xero</span></div></div>
+      <div class="card" style="padding:10px 12px;border-left:4px solid var(--s-toinv)"><div class="row"><div class="ttl grow">SP — 4 Rongotai Rd</div><span class="price tn" style="font-size:13px">$860</span></div><div class="sub">Portal upload pending</div></div>
+    </div>
+    <div class="col" style="gap:8px"><div class="row" style="padding:6px 4px"><span class="pill" style="background:#2F52331F;color:var(--s-inv)"><i></i>Invoiced</span><span class="faint grow" style="font-size:11px;text-align:right">1</span></div>
+      <div class="card" style="padding:10px 12px;border-left:4px solid var(--s-inv);opacity:.75"><div class="row"><div class="ttl grow">Lee family</div><span class="price tn" style="font-size:13px">$4,090</span></div><div class="sub">Sent 3 Aug · due 10 Aug</div></div>
+      <div class="row" style="padding:8px 4px;margin-top:auto"><span class="faint" style="font-size:11px">On hold 1 · Declined 2 →</span></div>
+    </div>
+  </div>
+
+  <!-- docked schedule strip: drop an Accepted card on a truck-day -->
+  <div style="border-top:1px solid var(--line);background:#fff;padding:12px 18px;display:grid;grid-template-rows:auto 1fr;gap:8px">
+    <div class="row"><span class="h2">This week</span><span class="faint" style="font-size:12px">10 – 14 Aug</span><span class="grow"></span><span class="chip" style="padding:3px 10px;font-size:11px">Open full schedule</span></div>
+    <div class="grid" style="grid-template-columns:190px repeat(5,1fr)">
+      <div class="gh"></div><div class="gh">Mon 10</div><div class="gh">Tue 11 · quote run</div><div class="gh">Wed 12</div><div class="gh">Thu 13 · quote run</div><div class="gh">Fri 14</div>
+      <div class="gl"><b>Isuzu</b><div class="row" style="gap:3px"><span class="who"><i>D</i>Dan</span><span class="who"><i>M</i>Mike</span><span class="who"><i>T</i>Te Ariki</span></div></div>
+      <div class="gc"><div class="blk" style="background:var(--s-sched)">Jason Park<small>Newlands · full day</small></div></div>
+      <div class="gc"><div class="blk" style="background:#6D4AA8">SP — Tirangi Rd<small>½ day</small></div></div>
+      <div class="gc"><div class="blk" style="background:#C77D1A">Downer — Adelaide Rd<small>URG · full day</small></div></div>
+      <div class="gc" style="background:var(--terra-wash);outline:2px dashed var(--terra);outline-offset:-4px"><div style="font-size:11px;font-weight:700;color:var(--terra);padding:14px 6px;text-align:center">Drop Richard Tait here</div></div>
+      <div class="gc"></div>
+      <div class="gl"><b>Nissan</b><div class="row" style="gap:3px"><span class="who"><i>J</i>Josh</span><span class="who"><i>S</i>Sione</span><span class="who away"><i>K</i>Kai</span></div></div>
+      <div class="gc"><div class="off">Kai · annual leave</div></div>
+      <div class="gc"><div class="blk" style="background:var(--s-visit)">Quote run · 4 stops<small>Josh</small></div></div>
+      <div class="gc"></div>
+      <div class="gc"><div class="blk" style="background:var(--s-visit)">Quote run · 3 stops</div></div>
+      <div class="gc"><div class="blk" style="background:var(--s-stump)">Wilson stump<small>grinder</small></div></div>
+    </div>
+  </div>
+</div>
