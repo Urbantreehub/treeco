@@ -102,6 +102,21 @@ Emails: one event, one line, one button, sent to Josh and office@ (Ashley); the 
 
 Dashboard money tiles → Reports under More; the workload and to-do widgets become the home screen. Jobs list → Jobs tab. Actions → merged into Today and each job's feed. Calendar + Planner → one Schedule tab with quote runs as a row. Sent Quotes → the Sent filter on Jobs. Quote builder → "Edit quote" with stages as tabs. Work order, job pack, SSSP, text client → under "…" and on the truck day run. Clients → More, showing every job number per client. Portal panels, KO SLA banner, SOR codes → unchanged inside the record. Mulch, Tools, Marketing, Team, Chat, Safety, Settings → More (Safety stays a tab for crews).
 
+
+## Build status (7 Sep 2026)
+
+Everything in the roadmap below is built on `main`, verified with the unit tests (49), the route smoke suite (208 routes across four roles and two tenants) and the click-every-control sweep (53 passed, 38 skipped by design). Screenshots of the built screens are in `build-screenshots/`.
+
+- Database: migrations 038 (unified `job_activity` feed written by triggers on jobs, quotes, quote_events, comments, photos, schedule and alerts; quote versions snapshot on every edit after send; backfill), 039 (`resources` seeded with Josh, Isuzu, Nissan, Navara, Avant, Grinder; `schedule.equipment_ids`; `crew_assignments`; `availability`; `users.default_view`) and 040 (`add_job_note` rpc). Verified against a real Postgres 16 replay of all migrations. See `research/05-database-changes.md`.
+- Notifications: Josh and office@ on every lead, acceptance, decline and question (`supabase/functions/_shared/notify.ts`).
+- Job record: `JobDetailPanel` rewritten as the quote-first record with `StatusStepper`, `QuoteLines` (photos on their line, SOR chips, quotable pre-approval), `ActivityFeed` (live feed, reply to client, confirm portal notes, internal notes) and the … menu. Enquiry and site notes show inline only until the quote is sent.
+- Quotes list: grouped by what needs you first, Needs me / Active / Waiting / Done chips, Spencers and Downer tags and filters, no row status dropdown.
+- Quoting view: Josh's default, two tabs plus Full app; office defaults to the full app; per-device preference in `treeco:view`.
+- Quote runs: week strip with Tuesday and Thursday runs, tray of visits to book and quotes to write, drag or "Book visit…" to book, reorder by distance, text clients, phone day view.
+- Scheduler: rows from the `resources` table (Josh, Isuzu, Nissan, Navara), crew chips per truck-day writing `crew_assignments` and `schedule.assigned_to`, Avant and Grinder chips on the Navara, leave blocks from `availability`, tray limited to ready work and visits.
+- Deploy: `supabase db push` then `supabase functions deploy notify-office inbound-lead book-quote`; the frontend deploys with the usual Vercel build.
+- Not yet built: the optional Flow Board toggle on the Quotes list, and a dark-mode pass.
+
 ## Roadmap
 
 1. Week 1: notifications and the feed. Recipients list; all lead and quote functions email it; write every event to `quote_events`; restore the ten statuses as the single list and delete the dead trimmed lists.
