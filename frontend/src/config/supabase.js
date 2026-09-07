@@ -1,3 +1,4 @@
+import { DEMO_JOBS as __TMP_JOBS } from '../demo/mockData'
 import { createClient } from '@supabase/supabase-js'
 
 import { DEMO_ACTIVITY } from '../demo/demoActivity'
@@ -138,6 +139,7 @@ function demoSchedule() {
 }
 
 const DEMO_TABLES = {
+  jobs: () => __TMP_JOBS.map(j => ({ ...j, quotes: j.quotes.map(q => ({ ...q, job_pack: { time_required: 'Half day', staff_count: 3, avant: j.id === '2' } })) })),
   quotes:   () => demoQuotes(),
   job_activity: () => DEMO_ACTIVITY,
   resources:    () => DEMO_RESOURCES,

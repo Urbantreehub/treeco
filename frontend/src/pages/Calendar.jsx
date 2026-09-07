@@ -250,8 +250,8 @@ function RowHeader({ res, compact = false, grip }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
         {grip}
         <span style={{ width: 10, height: 10, borderRadius: '50%', background: res.color, flexShrink: 0 }} />
-        <b style={{ fontSize: compact ? 12 : 13.5, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{res.title}</b>
-        {!compact && res.note && <span style={{ fontSize: 10.5, color: 'var(--ink-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{res.note}</span>}
+        <b style={{ fontSize: compact ? 12 : 13.5, color: 'var(--ink)', whiteSpace: 'nowrap', flexShrink: 0 }}>{res.title}</b>
+        {!compact && res.note && <span style={{ fontSize: 10.5, color: 'var(--ink-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, minWidth: 0 }} title={res.note}>{res.note}</span>}
       </div>
       {isCrewRow && (
         <CrewChips
@@ -266,10 +266,10 @@ function RowHeader({ res, compact = false, grip }) {
         />
       )}
       {!compact && res.id === ctx.equipHomeId && (
-        <span style={{ fontSize: 10.5, color: 'var(--ink-3)' }}>Drop the Avant or the grinder on a day</span>
+        <span style={{ fontSize: 10.5, color: 'var(--ink-3)', lineHeight: 1.3 }}>Drop the Avant or the grinder on a day</span>
       )}
       {!compact && res.kind === 'truck' && res.id !== ctx.equipHomeId && (
-        <span style={{ fontSize: 10.5, color: 'var(--ink-3)' }}>Drop people here for the week, or on one day</span>
+        <span style={{ fontSize: 10.5, color: 'var(--ink-3)', lineHeight: 1.3 }}>Drop people for the week, or on a day</span>
       )}
     </div>
   )

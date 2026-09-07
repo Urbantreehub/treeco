@@ -4,10 +4,14 @@
 // Dates are computed against the current week (Mon–Fri) so the demo always has
 // a live-looking board no matter when it is opened.
 
+// Monday of the week the board opens on. On a weekend that is the coming
+// Monday (the calendar hides weekends and jumps forward), matching demoSchedule.
 function weekMondayYMD(date = new Date()) {
   const d = new Date(date)
   const day = d.getDay()
-  d.setDate(d.getDate() + (day === 0 ? -6 : 1 - day))
+  if (day === 6) d.setDate(d.getDate() + 2)
+  else if (day === 0) d.setDate(d.getDate() + 1)
+  else d.setDate(d.getDate() + 1 - day)
   d.setHours(0, 0, 0, 0)
   return d
 }
