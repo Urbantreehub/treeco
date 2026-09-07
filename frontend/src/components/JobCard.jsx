@@ -1,0 +1,207 @@
+import { useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { useState, useEffect } from 'react'
+import { getStatusColor, getStatus } from '../config/statuses'
+import { displayCase } from '../utils/jobDisplay'
+
+function daysSince(dateStr) {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  return Math.floor(diff / (1000 * 60 * 60 * 24))
+}
+
+function extractDueDate(description) {
+  if (!description) return null
+  // Format: "Due: 18/06/2026 12:31"
+  const m = description.match(/Due:\s*(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/)
+  if (!m) return null
+  // NZ date is DD/MM/YYYY
+  return new Date(`${m[3]}-${m[2]}-${m[1]}T${m[4]}:${m[5]}:00`)
+}
+
+function useCountdown(dueDate) {
+  const [diff, setDiff] = useState(() => dueDate ? dueDate.getTime() - Date.now() : null)
+  useEffect(() => {
+    if (!dueDate) return
+    const id = setInterval(() => setDiff(dueDate.getTime() - Date.now()), 60_000)
+    return () => clearInterval(id)
+  }, [dueDate])
+  return diff
+}
+
+function formatCountdown(ms) {
+  if (ms == null) return null
+  const expired = ms < 0
+  const abs = Math.abs(ms)
+  const days = Math.floor(abs / 86400000)
+  const hrs  = Math.floor((abs % 86400000) / 3600000)
+  const mins = Math.floor((abs % 3600000) / 60000)
+  if (days > 0) return { text: `${expired ? '-' : ''}${days}d ${hrs}h`, expired }
+  if (hrs  > 0) return { text: `${expired ? '-' : ''}${hrs}h ${mins}m`, expired }
+  return { text: `${expired ? '-' : ''}${mins}m`, expired }
+}
+
+const PRIORITY_COLORS = {
+  URG: { bg: '#FFF0EE', color: '#C0392B' },
+  URS: { bg: '#FDF3E3', color: '#D4851A' },
+  EPS: { bg: '#FFF0EE', color: '#C0392B' },
+  GNL: { bg: '#EBF3FA', color: '#4A7FA5' },
+  RSC: { bg: '#EBF3FA', color: '#4A7FA5' },
+  VSC: { bg: '#EBF3FA', color: '#4A7FA5' },
+  RM:  { bg: '#EBF3FA', color: '#4A7FA5' },
+  PM:  { bg: '#F5F5F5', color: '#7A7A7A' },
+}
+
+function extractPriority(job) {
+  const titleMatch = (job.title || '').match(/^\[([A-Z]{2,4})\]/)
+  if (titleMatch) return titleMatch[1]
+  const descMatch = (job.description || '').match(/Priority:\s*([A-Z]{2,4})/)
+  if (descMatch) return descMatch[1]
+  return null
+}
+
+
+export default function JobCard({ job, onClick, showStatus = true }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: job.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+  }
+
+  const days = daysSince(job.status_changed_at || job.created_at)
+  const color = getStatusColor(job.status)
+  const status = getStatus(job.status)
+  const overdue = days > 7
+  const priority = extractPriority(job)
+  const priStyle = priority ? PRIORITY_COLORS[priority] : null
+  const dueDate = extractDueDate(job.description)
+  const countdownMs = useCountdown(dueDate)
+  const countdown = formatCountdown(countdownMs)
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ ...styles.card, ...style }}
+      {...attributes}
+      {...listeners}
+      onClick={() => onClick(job)}
+    >
+      <div style={{ ...styles.colorBar, background: color }} />
+      <div style={styles.body}>
+        <div style={styles.topRow}>
+          <div style={styles.clientName}>{displayCase(job.clients?.name) ?? '—'}</div>
+          <span style={{ ...styles.daysBadge, background: overdue ? '#FFF0EE' : 'var(--border)', color: overdue ? 'var(--danger)' : '#888' }}>
+            {days === 0 ? 'Today' : `${days}d`}
+          </span>
+        </div>
+
+        {job.address && <div style={styles.address}>{displayCase(job.address)}</div>}
+
+        <div style={styles.midRow}>
+          {priStyle && (
+            <span style={{ ...styles.typeTag, background: priStyle.bg, color: priStyle.color, fontWeight: '700' }}>
+              {priority}
+            </span>
+          )}
+          {job.job_type && !priStyle && (
+            <span style={styles.typeTag}>{job.job_type}</span>
+          )}
+          {countdown && (
+            <span style={{
+              ...styles.typeTag,
+              background: countdown.expired ? '#FFF0EE' : countdownMs < 86400000 ? '#FDF3E3' : '#F0F7EE',
+              color: countdown.expired ? '#C0392B' : countdownMs < 86400000 ? '#D4851A' : '#4A6741',
+              fontWeight: '600',
+              fontVariantNumeric: 'tabular-nums',
+            }}>
+              ⏱ {countdown.text}
+            </span>
+          )}
+        </div>
+
+        {showStatus && status && (
+          <div style={{ marginTop: '8px' }}>
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: '5px',
+              fontSize: '11px', fontWeight: '700',
+              color: color,
+              background: color + '1F',
+              borderRadius: 'var(--radius-pill)',
+              padding: '3px 9px',
+            }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0 }} />
+              {status.label}
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+const styles = {
+  card: {
+    background: '#fff',
+    borderRadius: '16px',
+    border: '1px solid var(--border)',
+    boxShadow: '0 1px 3px rgba(40,25,10,0.06)',
+    cursor: 'grab',
+    userSelect: 'none',
+    overflow: 'hidden',
+    display: 'flex',
+    transition: 'box-shadow 0.15s',
+  },
+  colorBar: { width: '4px', flexShrink: 0 },
+  body: { padding: '10px 12px', flex: 1, minWidth: 0 },
+  topRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: '8px',
+    marginBottom: '3px',
+  },
+  clientName: {
+    fontWeight: '600',
+    fontSize: '13px',
+    color: 'var(--bark)',
+    lineHeight: 1.3,
+    flex: 1,
+  },
+  daysBadge: {
+    fontSize: '10px',
+    fontWeight: '600',
+    borderRadius: 'var(--radius-pill)',
+    padding: '2px 8px',
+    whiteSpace: 'nowrap',
+    flexShrink: 0,
+  },
+  address: {
+    fontSize: '11px',
+    color: '#999',
+    marginBottom: '6px',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+  midRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    flexWrap: 'wrap',
+  },
+  typeTag: {
+    fontSize: '10px',
+    background: 'var(--moss-pale)',
+    color: 'var(--moss)',
+    borderRadius: 'var(--radius-pill)',
+    padding: '2px 8px',
+    fontWeight: '600',
+    textTransform: 'capitalize',
+  },
+  value: {
+    fontSize: '12px',
+    fontWeight: '700',
+    color: 'var(--bark)',
+  },
+}

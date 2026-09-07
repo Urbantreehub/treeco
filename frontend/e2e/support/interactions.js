@@ -109,7 +109,24 @@ export async function clickEverything(page, { reset, guard, testInfo, max = 24 }
     })
 
     const beforeUrl = page.url()
-    const target = page.locator(CONTROLS_SELECTOR).nth(control.i)
+    let target = page.locator(CONTROLS_SELECTOR).nth(control.i)
+
+    // Earlier clicks can change state that survives the reset (e.g. the work
+    // order's site additions persist, so its "+N more" chip disappears once the
+    // extra chips have been added). Re-find the control by its text; if it is
+    // genuinely gone, that is a state change, not an inert control — note it.
+    const stillThere = await target.evaluate(
+      (el, text) => (el.innerText || el.textContent || '').trim() === text,
+      control.text,
+    ).catch(() => false)
+    if (!stillThere && control.text) {
+      const byText = page.locator(CONTROLS_SELECTOR).filter({ hasText: control.text }).first()
+      if (await byText.count() === 0) {
+        if (testInfo) testInfo.annotations.push({ type: 'note', description: `«${control.text}» no longer present after earlier interactions` })
+        continue
+      }
+      target = byText
+    }
 
     try {
       await target.click({ timeout: 5000 })
