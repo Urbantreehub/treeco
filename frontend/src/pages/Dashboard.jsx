@@ -4,6 +4,7 @@ import { supabase } from '../config/supabase'
 import { useScheduledChecks } from '../hooks/useScheduledChecks'
 import DashboardFollowUps from '../components/DashboardFollowUps'
 import DashboardWorkload from '../components/DashboardWorkload'
+import LeadsConversions from '../components/LeadsConversions'
 import Skeleton from '../components/Skeleton'
 import { hasCache, readCache, writeCache } from '../utils/queryCache'
 
@@ -561,6 +562,9 @@ export default function Dashboard() {
 
       {/* Live workload — new jobs by type + to-do list */}
       <DashboardWorkload />
+
+      {/* Private lead intake + conversion, by source & time window */}
+      <LeadsConversions />
 
       {/* ── KPI row ── */}
       <Section title={`Revenue snapshot${usingXero ? ' — from Xero' : ' — from accepted quotes'}`}>
