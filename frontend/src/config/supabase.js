@@ -5,6 +5,9 @@ import { DEMO_ACTIVITY } from '../demo/demoActivity'
 import { DEMO_RESOURCES, DEMO_AVAILABILITY, DEMO_CREW_ASSIGNMENTS } from '../demo/demoResources'
 
 import { DEMO_QUOTE_RUNS } from '../demo/demoQuoteRuns'
+import {
+  seededMarketingContacts, seededCampaigns, seededCampaignSends, seededCampaignEvents,
+} from '../demo/demoCampaigns'
 const IS_DEMO = import.meta.env.VITE_DEMO === 'true'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -147,6 +150,14 @@ const DEMO_TABLES = {
   crew_assignments: () => DEMO_CREW_ASSIGNMENTS,
   quote_runs:   () => DEMO_QUOTE_RUNS,
   users:    () => DEMO_USERS,
+  // Mailing list. The audience view and the contacts table read the same rows —
+  // in the real schema the view is marketing_contacts minus everyone who has
+  // opted out, and the demo list has nobody left to exclude.
+  marketing_contacts:         () => seededMarketingContacts(),
+  campaign_audience_eligible: () => seededMarketingContacts(),
+  campaigns:       () => seededCampaigns(),
+  campaign_sends:  () => seededCampaignSends(),
+  campaign_events: () => seededCampaignEvents(),
   schedule: () => demoSchedule(),
   vehicles: () => ([
     { id: 'v1', name: 'Isuzu tipper', plate: 'KRT294', active: true, cof_due: null, ruc_km_remaining: 1240, notes: '' },

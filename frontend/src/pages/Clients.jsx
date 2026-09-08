@@ -351,7 +351,11 @@ export default function Clients() {
       response_type: 'code',
       client_id:     XERO_CLIENT_ID,
       redirect_uri:  XERO_REDIRECT_URI,
-      scope:         'openid profile email accounting.contacts.read offline_access',
+      // Keep in step with connectXero() in Settings.jsx — two entry points
+      // requesting different scopes meant the permissions you got depended on
+      // which button you last clicked, and the mailing-list importer needs the
+      // invoice read that only Settings was asking for.
+      scope:         'openid profile email accounting.invoices accounting.contacts offline_access',
     })
     window.location.href = `https://login.xero.com/identity/connect/authorize?${params}`
   }
