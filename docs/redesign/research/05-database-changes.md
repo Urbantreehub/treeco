@@ -2,7 +2,7 @@
 
 Three migrations in `supabase/migrations/`. `supabase/schema.sql` stays the week-1 baseline; migrations are the source of truth.
 
-## 038_job_activity.sql — one activity feed per job
+## 042_job_activity.sql — one activity feed per job
 
 Table `job_activity(id, job_id, quote_id, kind, actor_type, actor_id, actor_name, body, meta, created_at)`, index on `(job_id, created_at desc)`, added to the `supabase_realtime` publication.
 
@@ -58,7 +58,7 @@ Deliberate de-duplication: `job_alerts` of kind `acceptance`, `comment`, `new_le
 
 Runs once, only when `job_activity` is empty: `lead` per job, `sent` from `sent_at`, `opened` from `quote_events` (or from `viewed_at` when a quote has no events), `accepted`/`declined` from `responded_at`, comments, photos and schedule rows, all at their original timestamps.
 
-## 039_resources_availability.sql — lanes, crews, leave
+## 043_resources_availability.sql — lanes, crews, leave
 
 - `resources(id text pk, name, kind truck|equipment|person, color, sort, active, note)`, seeded with `josh`, `isuzu`, `nissan`, `navara`, `avant`, `grinder`. Read by every signed-in user; written by full access.
 - `schedule.equipment_ids text[] default '{}'`. Data fix: `resource_id = 'stump'` → `navara` + `['grinder']` (on `schedule` and `users`).
@@ -68,7 +68,7 @@ Runs once, only when `job_activity` is empty: `lead` per job, `sent` from `sent_
 
 `schedule.resource_id` deliberately has no FK to `resources` (`unassigned` is a valid lane in the UI).
 
-## 040_activity_helpers.sql — `add_job_note`
+## 044_activity_helpers.sql — `add_job_note`
 
 `add_job_note(p_job_id uuid, p_body text, p_kind text default 'note') → jsonb` (`SECURITY DEFINER`, granted to `authenticated`).
 

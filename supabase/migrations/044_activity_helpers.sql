@@ -1,4 +1,4 @@
--- 040_activity_helpers.sql
+-- 044_activity_helpers.sql
 -- Staff-facing helper for the job activity feed (038).
 --
 -- Reading needs no helper — the app selects from job_activity directly under

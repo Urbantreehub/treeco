@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>TreeCo — Quote Day mockup</title>
+<style>
+  :root{
+    --bg:#FBF2E9; --card:#FFFFFF; --ink:#2C2416; --muted:#8A7A6B;
+    --rust:#B4522A; --rust-dark:#9A431F; --green:#5A6B44; --downer:#C08A2E;
+    --line:#EADFD3; --done:#EFE7DC;
+    --radius:18px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  body{margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",Segoe UI,Roboto,sans-serif;
+    max-width:430px; margin-inline:auto; padding-bottom:140px;}
+  header{padding:18px 20px 10px; position:sticky; top:0; background:linear-gradient(var(--bg) 85%,transparent); z-index:5;}
+  header h1{margin:0; font-size:26px; letter-spacing:-.02em;}
+  header .sub{color:var(--muted); font-size:15px; margin-top:2px;}
+  .progress{display:flex; gap:6px; margin-top:12px;}
+  .progress span{height:6px; flex:1; border-radius:3px; background:var(--line);}
+  .progress span.done{background:var(--green);}
+  .progress span.current{background:var(--rust);}
+
+  .section-label{margin:18px 20px 8px; font-size:13px; font-weight:700; letter-spacing:.08em; color:var(--muted); text-transform:uppercase;}
+
+  /* Current stop — the big card */
+  .current-card{margin:0 14px; background:var(--card); border-radius:var(--radius);
+    border:2px solid var(--rust); box-shadow:0 10px 24px rgba(180,82,42,.14); overflow:hidden;}
+  .src-bar{height:8px; background:var(--green);}
+  .src-bar.downer{background:var(--downer);}
+  .current-card .body{padding:18px 18px 14px;}
+  .stopnum{display:inline-flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:var(--rust); letter-spacing:.06em;}
+  .current-card h2{margin:6px 0 2px; font-size:24px; letter-spacing:-.02em;}
+  .addr{color:var(--muted); font-size:16px; line-height:1.35;}
+  .meta{display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;}
+  .chip{font-size:13px; font-weight:600; padding:5px 10px; border-radius:999px; background:var(--bg); border:1px solid var(--line);}
+  .chip.urgent{background:#FDECE2; border-color:#F3C9AF; color:var(--rust-dark);}
+  .btnrow{display:grid; grid-template-columns:1.4fr 1fr; gap:10px; padding:0 14px 14px;}
+  .btn{appearance:none; border:0; border-radius:14px; font-size:17px; font-weight:700;
+    min-height:56px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;}
+  .btn.primary{background:var(--rust); color:#fff;}
+  .btn.primary:active{background:var(--rust-dark);}
+  .btn.secondary{background:var(--bg); color:var(--ink); border:1.5px solid var(--line);}
+  .btn.sent{grid-column:1/-1; background:var(--green); color:#fff; min-height:52px;}
+
+  /* Upcoming list — big rows */
+  .list{margin:0 14px; display:flex; flex-direction:column; gap:10px;}
+  .row{background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    display:flex; align-items:center; gap:14px; padding:16px; min-height:76px;}
+  .row .n{width:34px; height:34px; border-radius:50%; background:var(--bg); border:1.5px solid var(--line);
+    display:flex; align-items:center; justify-content:center; font-weight:700; flex-shrink:0;}
+  .row .info{flex:1; min-width:0;}
+  .row .info b{display:block; font-size:17px; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .row .info span{color:var(--muted); font-size:14px; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .row .nav{width:52px; height:52px; border-radius:14px; background:var(--bg); border:1.5px solid var(--line);
+    display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; cursor:pointer; text-decoration:none;}
+  .row.done{background:var(--done); border-color:transparent; opacity:.75; min-height:56px; padding:10px 16px;}
+  .row.done .info b{font-size:15px; text-decoration:line-through; text-decoration-thickness:1px;}
+  .row.done .tick{color:var(--green); font-size:20px; font-weight:800;}
+  .row.done .amt{font-weight:700; color:var(--green); font-size:15px;}
+
+  /* Sticky bottom bar */
+  .bottombar{position:fixed; bottom:0; left:0; right:0; max-width:430px; margin-inline:auto;
+    padding:12px 14px calc(14px + env(safe-area-inset-bottom)); background:rgba(251,242,233,.92);
+    backdrop-filter:blur(12px); border-top:1px solid var(--line); z-index:10;}
+  .bottombar .hint{font-size:13px; color:var(--muted); margin:0 4px 8px;}
+  .bottombar .hint b{color:var(--ink);}
+  .bottombar .btn{width:100%; font-size:18px; min-height:58px; box-shadow:0 8px 20px rgba(180,82,42,.25);}
+  .toast{position:fixed; top:14px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff;
+    padding:10px 18px; border-radius:999px; font-size:14px; font-weight:600; opacity:0; transition:.3s; z-index:20; pointer-events:none;}
+  .toast.show{opacity:1;}
+
+  /* On-site quote sheet */
+  .sheet-backdrop{position:fixed; inset:0; background:rgba(44,36,22,.45); z-index:30; display:none;}
+  .sheet-backdrop.open{display:block;}
+  .sheet{position:fixed; left:0; right:0; bottom:0; max-width:430px; margin-inline:auto; z-index:31;
+    background:var(--bg); border-radius:22px 22px 0 0; padding:10px 16px calc(16px + env(safe-area-inset-bottom));
+    max-height:88vh; overflow-y:auto; transform:translateY(105%); transition:transform .28s ease;}
+  .sheet.open{transform:translateY(0);}
+  .grab{width:44px; height:5px; border-radius:3px; background:var(--line); margin:4px auto 12px;}
+  .sheet h2{margin:0 0 2px; font-size:22px; letter-spacing:-.02em;}
+  .meetbanner{display:flex; align-items:center; gap:10px; margin:14px 0; padding:14px;
+    border-radius:14px; font-weight:700; font-size:16px;}
+  .meetbanner.yes{background:#E9EFE0; color:#3F5230; border:1.5px solid #C9D6B6;}
+  .meetbanner.no{background:#FDECE2; color:#9A431F; border:1.5px solid #F3C9AF;}
+  .panel{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:14px 16px; margin-bottom:12px;}
+  .panel .plabel{font-size:12px; font-weight:700; letter-spacing:.08em; color:var(--muted); text-transform:uppercase; margin-bottom:8px;}
+  .panel p{margin:0; font-size:16px; line-height:1.45;}
+  .photos{display:flex; gap:8px; margin-top:10px;}
+  .photos div{width:84px; height:84px; border-radius:12px; background:linear-gradient(135deg,#9BAF8A,#5A6B44);
+    display:flex; align-items:center; justify-content:center; font-size:26px;}
+  .facts{display:grid; grid-template-columns:1fr 1fr; gap:8px 14px; font-size:15px;}
+  .facts b{display:block; font-size:12px; font-weight:700; letter-spacing:.06em; color:var(--muted); text-transform:uppercase; margin-bottom:1px;}
+  .alldetails{display:block; text-align:center; color:var(--muted); font-size:14px; margin:14px 0 4px; text-decoration:underline; cursor:pointer;}
+</style>
+</head>
+<body>
+
+<header>
+  <div style="display:flex; align-items:center; gap:10px;">
+    <span style="font-size:22px;">‹</span>
+    <div style="flex:1;" id="headerLeft">
+      <button onclick="document.getElementById('weekdrop').style.display=document.getElementById('weekdrop').style.display==='flex'?'none':'flex'"
+        style="appearance:none; background:none; border:0; padding:0; font:inherit; color:inherit; display:flex; align-items:baseline; gap:8px; cursor:pointer;">
+        <h1 style="font-size:22px; margin:0;">Thu 6 Aug</h1>
+        <span style="font-size:14px; color:var(--muted);">▾</span>
+      </button>
+      <div class="sub" id="subline">Your quote run · 6 stops · 58.9 km</div>
+    </div>
+    <div style="display:flex; gap:6px;" id="crewSwitch">
+      <button onclick="setUser('josh')" id="u-josh" style="width:40px;height:40px;border-radius:50%;border:2px solid var(--rust);background:var(--rust);color:#fff;font-weight:800;font-size:14px;cursor:pointer;">J</button>
+      <button onclick="setUser('big')" id="u-big" style="width:40px;height:40px;border-radius:50%;border:2px solid var(--line);background:var(--card);color:var(--ink);font-weight:800;font-size:13px;cursor:pointer;">BT</button>
+      <button onclick="setUser('small')" id="u-small" style="width:40px;height:40px;border-radius:50%;border:2px solid var(--line);background:var(--card);color:var(--ink);font-weight:800;font-size:13px;cursor:pointer;">ST</button>
+    </div>
+  </div>
+  <div id="weekdrop" style="display:none; gap:6px; margin-top:12px; font-size:13px; font-weight:600; color:var(--muted); text-align:center; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:8px;">
+    <div style="flex:1; padding:6px 0; border-radius:10px;">M<br>3</div>
+    <div style="flex:1; padding:6px 0; border-radius:10px;">T<br>4</div>
+    <div style="flex:1; padding:6px 0; border-radius:10px;">W<br>5</div>
+    <div style="flex:1; padding:6px 0; border-radius:10px; background:var(--rust); color:#fff;">T<br>6</div>
+    <div style="flex:1; padding:6px 0; border-radius:10px;">F<br>7</div>
+  </div>
+  <div class="progress" id="progress" style="margin-top:10px;"></div>
+</header>
+
+<div class="section-label">Now — stop <span id="curNum">3</span> of 6</div>
+<div id="currentCard"></div>
+
+<div class="section-label">Up next</div>
+<div class="list" id="upcoming"></div>
+
+<div class="section-label">Done</div>
+<div class="list" id="doneList"></div>
+
+<div class="bottombar">
+  <p class="hint" id="nextHint"></p>
+  <button class="btn primary" id="navNext">Navigate to next stop</button>
+</div>
+
+<div class="toast" id="toast">Quote marked sent — next stop loaded</div>
+
+<div class="sheet-backdrop" id="backdrop" onclick="closeSheet()"></div>
+<div class="sheet" id="sheet"></div>
+
+<script>
+  // Demo data — mirrors real TreeCo jobs
+  const stops = [
+    {name:"Emily Micallef", addr:"45A Seddon Street, Wallaceville, Upper Hutt", src:"downer", eta:"8:30am", note:"URG · due in 16d", state:"done", amt:"$0 — no access, rebook"},
+    {name:"Doug Laing", addr:"60 Emerald Hill Drive, Birchville, Upper Hutt", src:"private", eta:"9:15am", note:"pruning", state:"done", amt:"$5,175 sent"},
+    {name:"Martin Press", addr:"28 Knights Road, Hutt Central", src:"private", eta:"10:10am", note:"removal", state:"current",
+      meeting:true, phone:"+64 27 433 9296",
+      clientNotes:"Big macrocarpa over the garage — worried about the lean after last week's storm. Happy for it to come right down. Gate code 4482, dog will be inside.",
+      photos:2},
+    {name:"Sam Bolton-Riley", addr:"14 Kensington Avenue, Petone", src:"private", eta:"11:00am", note:"removal", state:"todo",
+      meeting:false, phone:"+64 27 778 9350", clientNotes:"Two cabbage trees along back fence, neighbour has complained about leaves. Access down right-hand side of house.", photos:1},
+    {name:"DAVID MUDGE", addr:"12 Allen St, Epuni, Lower Hutt", src:"downer", eta:"11:45am", note:"GNL · due in 11d", state:"todo",
+      meeting:false, phone:"+64 22 013 4909", downer:{order:"R6661552-1", priority:"GNL — General", type:"Responsive Maintenance", due:"17 Aug (11d)", access:"Contact before visit · AM only"}},
+    {name:"LEAH", addr:"47 Hall Cres, Epuni, Lower Hutt", src:"downer", eta:"12:20pm", note:"GNL · due in 5d", state:"todo",
+      meeting:true, phone:"+64 21 555 0182", downer:{order:"R6659007-1", priority:"GNL — General", type:"Responsive Maintenance", due:"11 Aug (5d)", access:"Tenant home, knock first"}},
+  ];
+
+  const crewRuns = {
+    big: {label:"Big Truck · work run · 2 stops", stops:[
+      {name:"Upper Hutt City Council", addr:"Moonshine Park · 8:00–11:55am", state:"current", note:"removal · in progress"},
+      {name:"Sam Bolton-Riley", addr:"14 Kensington Ave, Petone · 12:30–2:45pm", state:"todo", note:"removal"},
+    ]},
+    small: {label:"Small Truck · work run · 2 stops", stops:[
+      {name:"Jenny O'Brien", addr:"35 Torridon Rd, Miramar · 9:00–11:30am", state:"done", note:"pruning ✓"},
+      {name:"John Mora", addr:"38 Woodman Drive, Tawa · 12:00–1:30pm", state:"current", note:"in progress"},
+    ]},
+  };
+  let viewUser = "josh";
+
+  function setUser(u){
+    viewUser = u;
+    ["josh","big","small"].forEach(k=>{
+      const b = document.getElementById("u-"+k);
+      const on = k===u;
+      b.style.background = on ? "var(--rust)" : "var(--card)";
+      b.style.color = on ? "#fff" : "var(--ink)";
+      b.style.borderColor = on ? "var(--rust)" : "var(--line)";
+    });
+    if (u === "josh"){
+      document.getElementById("subline").textContent = "Your quote run · 6 stops · 58.9 km";
+      document.querySelector(".bottombar").style.display = "";
+      render();
+    } else {
+      const run = crewRuns[u];
+      document.getElementById("subline").textContent = run.label + " · viewing only";
+      document.querySelector(".bottombar").style.display = "none";
+      document.getElementById("curNum").textContent = "—";
+      document.getElementById("currentCard").innerHTML = "";
+      document.getElementById("doneList").innerHTML = "";
+      document.getElementById("upcoming").innerHTML = run.stops.map((s,i)=>`
+        <div class="row ${s.state==='done'?'done':''}" ${s.state==='current'?'style="border:2px solid var(--rust)"':''}>
+          <div class="n">${i+1}</div>
+          <div class="info"><b>${s.name}</b><span>${s.addr} · ${s.note}</span></div>
+          <a class="nav" href="${mapsLink(s.addr)}" target="_blank" aria-label="Navigate">${NAV(22)}</a>
+        </div>`).join("");
+      document.querySelectorAll(".section-label")[0].scrollIntoView({behavior:"smooth"});
+    }
+  }
+
+  const mapsLink = a => "https://maps.apple.com/?daddr=" + encodeURIComponent(a + ", New Zealand");
+  // Maps-style navigation arrow with 3D bevel + soft shadow
+  let _navId = 0;
+  const NAV = s => {
+    const id = "nv" + (_navId++);
+    const d = "M444.52 3.52L28.74 195.42c-47.97 22.39-31.98 92.75 19.19 92.75h175.91v175.91c0 51.17 70.36 67.17 92.75 19.19l191.9-415.78c16.78-35.98-19.2-71.99-63.97-63.97z";
+    return `<svg viewBox="-40 -40 592 592" width="${s||18}" height="${s||18}" style="flex-shrink:0">
+      <defs>
+        <linearGradient id="${id}g" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#ffffff" stop-opacity=".55"/>
+          <stop offset=".45" stop-color="#ffffff" stop-opacity=".1"/>
+          <stop offset="1" stop-color="#000000" stop-opacity=".22"/>
+        </linearGradient>
+        <filter id="${id}s" x="-30%" y="-30%" width="160%" height="160%">
+          <feDropShadow dx="0" dy="22" stdDeviation="22" flood-color="#000" flood-opacity=".3"/>
+        </filter>
+      </defs>
+      <g filter="url(#${id}s)">
+        <path fill="currentColor" d="${d}"/>
+        <path fill="url(#${id}g)" d="${d}"/>
+      </g>
+    </svg>`;
+  };
+
+  function render(){
+    if (viewUser !== "josh") return;
+    const cur = stops.findIndex(s => s.state === "current");
+    document.getElementById("progress").innerHTML =
+      stops.map((s,i)=>`<span class="${s.state==='done'?'done':i===cur?'current':''}"></span>`).join("");
+
+    if (cur === -1){
+      document.getElementById("curNum").textContent = "—";
+      document.getElementById("currentCard").innerHTML =
+        `<div class="current-card"><div class="src-bar" style="background:var(--green)"></div>
+         <div class="body"><h2>Run complete 🎉</h2>
+         <div class="addr">6 stops · 2 quotes sent from site · head home.</div></div></div>`;
+      document.getElementById("nextHint").innerHTML = "All stops done";
+      document.getElementById("navNext").innerHTML = NAV(20)+"&nbsp; Navigate home";
+      return;
+    }
+    const s = stops[cur];
+    document.getElementById("curNum").textContent = cur+1;
+    document.getElementById("currentCard").innerHTML = `
+      <div class="current-card">
+        <div class="src-bar ${s.src==='downer'?'downer':''}"></div>
+        <div class="body">
+          <div class="stopnum">STOP ${cur+1} · ETA ${s.eta}</div>
+          <h2>${s.name}</h2>
+          <div class="addr">${s.addr}</div>
+          <div class="meta">
+          ${s.meeting!==undefined?`<span class="chip" style="${s.meeting?'background:#E9EFE0;border-color:#C9D6B6;color:#3F5230':'background:#FDECE2;border-color:#F3C9AF;color:#9A431F'}">${s.meeting?'🤝 Meeting you':'🚪 Not meeting'}</span>`:""}
+          <span class="chip">${s.note}</span>
+          <span class="chip">${s.src==='downer'?'Downer':'Private'}</span></div>
+        </div>
+        <div class="btnrow">
+          <a class="btn primary" href="${mapsLink(s.addr)}" target="_blank">${NAV(20)}&nbsp; Navigate</a>
+          <button class="btn secondary" onclick="openSheet(${cur})">📄 Quote</button>
+          <button class="btn sent" onclick="markSent()">✓&nbsp; Quote sent — next stop</button>
+        </div>
+      </div>`;
+
+    document.getElementById("upcoming").innerHTML = stops
+      .map((s,i)=>({s,i})).filter(x=>x.s.state==="todo")
+      .map(({s,i})=>`
+        <div class="row">
+          <div class="n">${i+1}</div>
+          <div class="info"><b>${s.meeting!==undefined?(s.meeting?"🤝 ":"🚪 "):""}${s.name}</b><span>${s.addr} · ETA ${s.eta}</span></div>
+          <a class="nav" href="${mapsLink(s.addr)}" target="_blank" aria-label="Navigate">${NAV(22)}</a>
+        </div>`).join("") || `<div class="row"><div class="info"><span>No more stops after this one.</span></div></div>`;
+
+    document.getElementById("doneList").innerHTML = stops
+      .map((s,i)=>({s,i})).filter(x=>x.s.state==="done")
+      .map(({s,i})=>`
+        <div class="row done">
+          <div class="tick">✓</div>
+          <div class="info"><b>${s.name}</b></div>
+          <div class="amt">${s.amt||""}</div>
+        </div>`).join("");
+
+    const nxt = stops.find((x,i)=>i>cur && x.state==="todo");
+    if (nxt){
+      document.getElementById("nextHint").innerHTML = `Next: <b>${nxt.name}</b> — ${nxt.addr}`;
+      document.getElementById("navNext").onclick = ()=>window.open(mapsLink(nxt.addr),"_blank");
+      document.getElementById("navNext").innerHTML = NAV(20)+"&nbsp; Navigate to next stop";
+    } else {
+      document.getElementById("nextHint").innerHTML = "This is the last stop of the run";
+      document.getElementById("navNext").innerHTML = "🏁&nbsp; Finish run";
+    }
+  }
+
+  function markSent(){
+    const cur = stops.findIndex(s=>s.state==="current");
+    stops[cur].state = "done"; stops[cur].amt = "sent from site";
+    const nxt = stops.findIndex((s,i)=>i>cur && s.state==="todo");
+    if (nxt>-1) stops[nxt].state = "current";
+    render();
+    const t = document.getElementById("toast");
+    t.classList.add("show"); setTimeout(()=>t.classList.remove("show"), 1800);
+    window.scrollTo({top:0, behavior:"smooth"});
+  }
+
+  function openSheet(i){
+    const s = stops[i];
+    const meet = s.meeting
+      ? `<div class="meetbanner yes">🤝&nbsp; Client is meeting you on site</div>`
+      : `<div class="meetbanner no">🚪&nbsp; No one home — quote from the street</div>`;
+    const info = s.downer ? `
+      <div class="panel">
+        <div class="plabel">Downer job info</div>
+        <div class="facts">
+          <div><b>Priority</b>${s.downer.priority}</div>
+          <div><b>Complete by</b>${s.downer.due}</div>
+          <div><b>Type</b>${s.downer.type}</div>
+          <div><b>Order</b>${s.downer.order}</div>
+          <div style="grid-column:1/-1"><b>Access</b>${s.downer.access}</div>
+        </div>
+      </div>` : `
+      <div class="panel">
+        <div class="plabel">Client notes</div>
+        <p>${s.clientNotes||"—"}</p>
+        ${s.photos?`<div class="photos">${"<div>🌳</div>".repeat(s.photos)}</div>`:""}
+      </div>`;
+    document.getElementById("sheet").innerHTML = `
+      <div class="grab"></div>
+      <h2>${s.name}</h2>
+      <div class="addr">${s.addr}</div>
+      ${s.phone?`<a href="tel:${s.phone.replace(/\s/g,"")}" style="display:inline-flex; align-items:center; gap:8px; margin-top:8px; padding:10px 16px; min-height:44px; border-radius:999px; background:var(--card); border:1.5px solid var(--line); color:var(--rust); font-weight:700; font-size:16px; text-decoration:none;">📞 ${s.phone}</a>`:""}
+      ${meet}
+      ${info}
+      <button class="btn primary" style="width:100%; min-height:58px; font-size:18px;">📄&nbsp; Open quote builder</button>
+      <span class="alldetails">All job details</span>`;
+    document.getElementById("backdrop").classList.add("open");
+    document.getElementById("sheet").classList.add("open");
+  }
+  function closeSheet(){
+    document.getElementById("backdrop").classList.remove("open");
+    document.getElementById("sheet").classList.remove("open");
+  }
+
+  render();
+</script>
+</body>
+</html>

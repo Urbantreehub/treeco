@@ -29,6 +29,7 @@ export const PUBLIC_ROUTES = [
   { name: 'book-quote', path: '/book', auth: false, access: 'public' },
   { name: 'blog', path: '/blog', auth: false, access: 'public' },
   { name: 'blog-post', path: '/blog/demo-post', auth: false, access: 'public' },
+  { name: 'unsubscribe', path: '/unsubscribe/demo-token', auth: false, access: 'public' },
 ]
 
 /** @type {AppRoute[]} */
@@ -45,6 +46,7 @@ export const APP_ROUTES = [
   { name: 'quotes-redirect', path: '/quotes', auth: true, redirects: true, access: 'staff' }, // → /pipeline
   { name: 'quote-builder', path: '/quotes/q1', auth: true, access: 'staff' },
   { name: 'marketing', path: '/marketing', auth: true, access: 'staff' },
+  { name: 'campaigns', path: '/campaigns', auth: true, access: 'staff' },
   { name: 'settings', path: '/settings', auth: true, access: 'full' },
   { name: 'safety', path: '/safety', auth: true, access: 'any' },
   { name: 'chat', path: '/chat', auth: true, access: 'any' },

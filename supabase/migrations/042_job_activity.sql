@@ -1,4 +1,4 @@
--- 038_job_activity.sql
+-- 042_job_activity.sql
 -- One unified activity feed per job.
 --
 -- Today the "what happened on this job" story is scattered: quote_events only

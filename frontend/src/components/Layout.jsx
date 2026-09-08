@@ -27,7 +27,7 @@ const ROUTE_TITLES = {
   '/planner': 'Planner', '/mulch': 'Mulch', '/requests': 'Tools', '/safety': 'Safety',
   '/staff': 'Team', '/clients': 'Clients', '/settings': 'Settings', '/quotes': 'Quotes',
   '/quote': 'Quote', '/workorder': 'Work Order', '/jobpack': 'Job Pack', '/my-docs': 'My Docs',
-  '/actions': 'Actions',
+  '/actions': 'Actions', '/campaigns': 'Campaigns',
 }
 function resolveTitle(pathname) {
   const keys = Object.keys(ROUTE_TITLES).sort((a, b) => b.length - a.length)
@@ -111,6 +111,7 @@ const FULL_SECONDARY_NAV = [
   { to: '/mulch',     label: 'Mulch',     icon: MulchIcon },
   { to: '/requests',  label: 'Tools',     icon: ToolIcon },
   { to: '/marketing', label: 'Marketing', icon: MarketingIcon },
+  { to: '/campaigns', label: 'Campaigns', icon: CampaignsIcon },
   { to: '/settings',  label: 'Settings',  icon: SettingsIcon, fullOnly: true },
   { to: '/actions',   label: 'Actions',   icon: AlertsIcon },
 ]
@@ -415,6 +416,14 @@ function MarketingIcon({ active, size = 22 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 11v2a1 1 0 0 0 1 1h2l3.5 4a.5.5 0 0 0 .9-.3V6.3a.5.5 0 0 0-.9-.3L6 10H4a1 1 0 0 0-1 1z"/><path d="M15 8a4 4 0 0 1 0 8"/><path d="M18 5a8 8 0 0 1 0 14"/>
+    </svg>
+  )
+}
+function CampaignsIcon({ active, size = 22 }) {
+  const c = 'currentColor'
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2.5 6.5 8.4 6a2 2 0 0 0 2.2 0l8.4-6"/>
     </svg>
   )
 }

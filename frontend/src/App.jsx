@@ -30,6 +30,8 @@ const BookQuote    = lazy(() => import('./pages/BookQuote'))
 const MyDocs       = lazy(() => import('./pages/MyDocs'))
 const Actions      = lazy(() => import('./pages/Actions'))
 const Marketing    = lazy(() => import('./pages/Marketing'))
+const Campaigns    = lazy(() => import('./pages/Campaigns'))
+const Unsubscribe  = lazy(() => import('./pages/Unsubscribe'))
 const Blog         = lazy(() => import('./pages/Blog'))
 const BlogPost     = lazy(() => import('./pages/BlogPost'))
 
@@ -103,6 +105,10 @@ export default function App() {
           {/* Public quote-request / self-booking form — no auth */}
           <Route path="/book" element={<BookQuote />} />
 
+          {/* Public unsubscribe — no auth. Legally required to work for anyone
+              holding the link, with no login and no app session. */}
+          <Route path="/unsubscribe/:token" element={<Unsubscribe />} />
+
           {/* Public blog — no auth (social posts link here) */}
           <Route path="/blog" element={<Blog />} />
           <Route path="/blog/:slug" element={<BlogPost />} />
@@ -127,6 +133,7 @@ export default function App() {
             <Route path="quotes"    element={<Navigate to="/pipeline" replace />} />
             <Route path="quotes/:id" element={<RequireStaff><QuoteBuilder /></RequireStaff>} />
             <Route path="marketing" element={<RequireStaff><Marketing /></RequireStaff>} />
+            <Route path="campaigns" element={<RequireStaff><Campaigns /></RequireStaff>} />
             <Route path="settings"  element={<RequireFullAccess><Settings /></RequireFullAccess>} />
             <Route path="safety"          element={<Safety />} />
             <Route path="chat"            element={<Chat />} />

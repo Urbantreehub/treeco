@@ -4,6 +4,26 @@ import AddressInput from './AddressInput'
 
 const JOB_TYPES = ['pruning', 'removal', 'stump grinding', 'hedge trimming', 'emergency', 'consultation', 'planting', 'mulching', 'other']
 
+// How did they hear about us? Asked here because most tree work is booked over
+// the phone, and a phone call is invisible to every other kind of tracking we
+// have — the website form is recorded, the email opens and clicks are recorded,
+// and the person who rings up after reading the email is recorded nowhere.
+//
+// The values match what the edge functions already write to jobs.lead_source
+// ('email' from inbound-lead, 'self_booking' from book-quote) so the existing
+// LeadsConversions report keeps working without a translation layer.
+const LEAD_SOURCES = [
+  ['',              'Not asked'],
+  ['email_campaign', 'Our email / newsletter'],
+  ['repeat',         'Existing customer'],
+  ['referral',       'Word of mouth / referral'],
+  ['google',         'Google search or Maps'],
+  ['ads',            'Google ad'],
+  ['signage',        'Truck or signage'],
+  ['social',         'Facebook / Instagram'],
+  ['other',          'Something else'],
+]
+
 // Kāinga Ora / Spencers priority codes (code → label) for portal jobs.
 const KO_CODES = [
   ['URG', 'URG — Urgent'],
@@ -24,7 +44,7 @@ const CATEGORIES = [
 
 // Columns that only exist once migration 017 is applied — insert falls back to
 // the base columns if the DB doesn't have them yet, so job creation never breaks.
-const OPTIONAL_JOB_COLS = ['category', 'ko_reference', 'priority', 'sla_due_at']
+const OPTIONAL_JOB_COLS = ['category', 'ko_reference', 'priority', 'sla_due_at', 'lead_source']
 async function insertJob(payload) {
   let { error } = await supabase.from('jobs').insert(payload)
   if (error && /(column|schema cache|could not find)/i.test(error.message)) {
@@ -44,7 +64,7 @@ export default function NewJobModal({ onClose, onCreated }) {
   const [selectedClient, setSelectedClient] = useState(null)
   const [creatingClient, setCreatingClient] = useState(false)
   const [newClient, setNewClient] = useState({ name: '', phone: '', email: '', address: '', lat: null, lng: null })
-  const [job, setJob] = useState({ address: '', job_type: '', description: '', lat: null, lng: null })
+  const [job, setJob] = useState({ address: '', job_type: '', description: '', lat: null, lng: null, lead_source: '' })
 
   // Move to the job step with the address prefilled from the chosen client, so
   // the (now mandatory) address is populated and editable rather than blank.
@@ -104,6 +124,7 @@ export default function NewJobModal({ onClose, onCreated }) {
       address,
       job_type: job.job_type,
       description: job.description,
+      lead_source: job.lead_source || null,
       // Verified coords from autocomplete let the Planner place the job at once;
       // a manually-typed address has none and is geocoded later by the Planner.
       lat: job.lat,
@@ -309,6 +330,11 @@ export default function NewJobModal({ onClose, onCreated }) {
               </select>
 
               <textarea placeholder="Description / notes *" rows={3} value={job.description} onChange={e => setJob(p => ({ ...p, description: e.target.value }))} style={{ ...styles.input, resize: 'vertical' }} />
+              <select value={job.lead_source} onChange={e => setJob(p => ({ ...p, lead_source: e.target.value }))} style={styles.input}>
+                {LEAD_SOURCES.map(([v, label]) => (
+                  <option key={v} value={v}>{v === '' ? 'How did they hear about us?' : label}</option>
+                ))}
+              </select>
 
               {error && <p style={styles.error}>{error}</p>}
 

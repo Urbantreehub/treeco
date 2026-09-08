@@ -385,6 +385,30 @@ deno_version = 2
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
+# Edge Functions that must be reachable without a Supabase session. Everything
+# not listed here keeps the default verify_jwt = true.
+#   campaign-track   — open pixel / click redirect fetched by mail clients and
+#                      followed by customers, who have no session. Safe because
+#                      the only identifier in the URL is a per-send random
+#                      track_token, and the redirect refuses any destination
+#                      that isn't https on urbantreeservices.net.
+#   campaign-unsubscribe — RFC 8058 one-click unsubscribe target named by the
+#                      List-Unsubscribe header. Gmail/Yahoo/Outlook POST here
+#                      from their native unsubscribe button with no session. The
+#                      only input is a per-contact random unsubscribe_token and
+#                      the only effect is opting that contact out.
+#   campaign-webhook — Resend delivery webhooks. Authenticity comes from the
+#                      Svix HMAC signature checked against RESEND_WEBHOOK_SECRET;
+#                      the function returns 401 if that secret is unset.
+[functions.campaign-track]
+verify_jwt = false
+
+[functions.campaign-unsubscribe]
+verify_jwt = false
+
+[functions.campaign-webhook]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327

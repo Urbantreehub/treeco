@@ -25,3 +25,4 @@ scripts/quotient_scrape_raw.json
 # Apple Calendar import (client PII)
 scripts/truck_cal_events.txt
 scripts/cal_matches.json
+scripts/quotient_import.json
