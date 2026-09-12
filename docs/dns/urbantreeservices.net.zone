@@ -18,15 +18,26 @@ urbantreeservices.net.      300  IN  MX     40 alt3.aspmx.l.google.com.
 urbantreeservices.net.      300  IN  MX     50 alt4.aspmx.l.google.com.
 urbantreeservices.net.      300  IN  TXT    "v=spf1 include:_spf.google.com ~all"
 
+;; --- DMARC (added 2026-09 alongside the TreeCo campaign setup; monitoring only, p=none) ---
+;; Aggregate reports go to josh@ and are filed in Gmail under the "DMARC reports" label
+;; (filter on subject "Report Domain: urbantreeservices.net" -> skip inbox + apply label).
+;; To send them elsewhere, change rua=. Keep the address on urbantreeservices.net (e.g. a
+;; dmarc@ alias or group) or use a DMARC reporting service — an address on an unrelated
+;; domain only works if THAT domain publishes an external-destination record
+;; (urbantreeservices.net._report._dmarc.<their-domain> TXT "v=DMARC1"), otherwise
+;; most reporters silently drop the reports.
+_dmarc.urbantreeservices.net. 300 IN TXT  "v=DMARC1; p=none; rua=mailto:josh@urbantreeservices.net"
+
 ;; --- Google site verification (Search Console) ---
 urbantreeservices.net.      300  IN  TXT    "google-site-verification=83Vb2PBdebp6TQ08K5pZukllu_JeTVXsD_XQa3ptizs"
 
 ;; --- Verified ABSENT (nothing to copy) ---
-;; No AAAA, no CAA, no DMARC (_dmarc), no DKIM (google/default/selector1/selector2 _domainkey),
+;; No AAAA, no CAA, no DKIM (google/default/selector1/selector2 _domainkey),
 ;; no SRV, no other subdomains found (mail/webmail/smtp/ftp/cpanel/autodiscover/staging/dev/api/etc all empty).
 ;; urbantreeservices.co.nz and urbantreeservices.nz have NO nameservers at all — registered but inactive, nothing to migrate.
 
 ;; --- Post-migration recommendations (do AFTER nameserver switch is confirmed working) ---
 ;; 1. Add DKIM: Google Admin -> Apps -> Google Workspace -> Gmail -> Authenticate email -> generate key,
 ;;    then add the google._domainkey TXT record it gives you. Currently missing = worse deliverability for quotes.
-;; 2. Add DMARC: _dmarc TXT "v=DMARC1; p=none; rua=mailto:josh@urbantreeservices.net" to start monitoring.
+;; 2. DONE (2026-09): DMARC added at p=none — see the DMARC block above.
+;;    Next step once the campaign sending authenticates cleanly, move to p=quarantine.
