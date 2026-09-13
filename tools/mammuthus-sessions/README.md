@@ -69,6 +69,21 @@ Standalone alternative: any static host can serve this folder directly; fill in
   EPK as text" and "Download EPK (.html)" with logo and photos inlined.
 - **Chat** – a band channel plus direct chats between any two members, with
   photo, video, audio and PDF attachments and unread indicators.
+- **Setlists** – build sets from the song list, reorder, running time from song
+  lengths, key/tempo/tuning per song, print view, attach to a gig.
+- **Gig sheet** – load-in, soundcheck, set time and length, pay and paid flag,
+  venue contact, backline, parking, stage plot (from Files) and setlist, shown
+  on gig events.
+- **Riff bank** – ideas that aren't songs yet, with optional audio, tags, a
+  "steal me" flag and one-click promotion to a song (audio becomes v1).
+- **Reference tracks** – "sounds like this" links per song.
+- **Loop a region** – A/B loop on the waveform for learning a part.
+- **Note voting** – thumbs up/down on notes.
+- **Search** – press `/` or the Search button: songs, lyrics, notes, dates,
+  setlists, riffs, chat and the EPK.
+- **Mentions** – @Name in notes and chat is highlighted and logged.
+- **Activity feed** – recent uploads, notes, new songs, events and mentions at
+  the top of the Songs tab.
 - **Band** – member names, instruments and colours; album title, target and
   notes; storage meter.
 - **Import from Google Drive** – on the Songs tab. Uses the viewer's own Google
