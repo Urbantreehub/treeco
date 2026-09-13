@@ -62,6 +62,12 @@ Standalone alternative: any static host can serve this folder directly; fill in
 
 ## What it does
 
+- **Projects** – songs live in nameable folders (album, EP, single, live set)
+  with a status (writing, recording, released, shelved), release date, target
+  and notes. Released projects act as the back catalogue: their songs list
+  duration, tempo, key, time signature and tuning without needing audio, and
+  are available to setlists and practice mode. Seeded with the 2020 EP and
+  Imperator.
 - **Songs** – list with writing/tracking progress bars; per song: stage
   (Idea → Writing → Arranged → Demoed → Tracking → Mixing → Done), tempo, key,
   time signature, length; writing checklist (bass, drums, guitar 1, guitar 2,
