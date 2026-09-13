@@ -1158,7 +1158,7 @@ async function saveDownload(filename,data){if(!S.downloads)return toast('Downloa
 /* =========================================================
    MONEY & MERCH
    ========================================================= */
-const money=n=>'$'+(Math.round(n*100)/100).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+const money=n=>(n<-0.005?'−':'')+'$'+(Math.abs(Math.round(n*100)/100)).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
 function balances(){const b={};S.members.forEach(m=>b[m.id]=0);
   for(const e of S.money){const amt=+e.amount||0;const split=(e.split&&e.split.length?e.split:S.members.map(m=>m.id)).filter(id=>b[id]!=null);const n=split.length||1;
     if(e.kind==='expense'){if(b[e.by]!=null)b[e.by]+=amt;split.forEach(id=>b[id]-=amt/n)}
