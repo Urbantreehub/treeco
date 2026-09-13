@@ -364,6 +364,16 @@ nav.tabs button.more{display:none}
 .setall .r .vote.on{background:var(--accent-soft);color:var(--accent);border-color:transparent}
 .sdtitle.sm{font-size:clamp(20px,3vw,26px)}
 @media print{body *{visibility:hidden}#printSet,#printSet *{visibility:visible}#printSet{position:absolute;left:0;top:0;width:100%;padding:24px;font-size:16pt;color:#000;background:#fff}#printSet h1{font-size:26pt;margin:0 0 6pt}#printSet ol{margin:0;padding-left:1.4em}#printSet li{padding:4pt 0;border-bottom:1px solid #ccc;display:flex;justify-content:space-between;gap:12pt}#printSet .k{font-family:var(--f-mono);font-size:12pt;color:#444}}
+/* projects */
+.projbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.projbar button.pj{display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:6px 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-weight:500;color:var(--muted)}
+.projbar button.pj[aria-current="true"]{background:var(--accent-soft);color:var(--accent);border-color:transparent}
+.projbar button.pj .n{font-family:var(--f-mono);font-size:12px;opacity:.8}
+.projbar button.pj.released{border-style:dashed}
+.projhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:-4px 0 14px;font-size:14px;color:var(--muted)}
+.projhead b{color:var(--text);font-weight:600}
+.songrow .m span.len{color:var(--text)}
+.setall .ph{font-family:var(--f-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:10px 0 4px}
 /* money */
 .bal{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
 .bal .stat b{font-family:var(--f-mono);font-weight:500}
@@ -513,6 +523,22 @@ nav.tabs button.more{display:none}
 </div>
 <div id="practice" class="practice hidden"></div>
 
+<dialog id="projDlg">
+  <form method="dialog" id="projForm">
+    <h2 id="projTitle">New project</h2>
+    <input type="hidden" id="pj_id">
+    <div class="formgrid">
+      <div class="field span"><label for="pj_name">Name</label><input type="text" id="pj_name" required placeholder="Mammuthus, Winter EP, Split 7\"…"></div>
+      <div class="field"><label for="pj_kind">Type</label><select id="pj_kind"><option value="album">Album</option><option value="ep">EP</option><option value="single">Single</option><option value="live">Live set / covers</option><option value="other">Other</option></select></div>
+      <div class="field"><label for="pj_status">Status</label><select id="pj_status"><option value="writing">Writing</option><option value="recording">Recording</option><option value="released">Released</option><option value="shelved">Shelved</option></select></div>
+      <div class="field"><label for="pj_date">Release date (if released)</label><input type="date" id="pj_date"></div>
+      <div class="field"><label for="pj_target">Target (while writing)</label><input type="text" id="pj_target" placeholder="tracked by December"></div>
+      <div class="field span"><label for="pj_notes">Notes</label><textarea id="pj_notes" rows="3" placeholder="Producer, studio, running order ideas, artwork…"></textarea></div>
+    </div>
+    <div class="row" style="justify-content:flex-end;margin-top:16px"><button type="button" class="btn danger hidden" id="pjDelete" data-act="proj-delete">Delete</button><span class="grow"></span><button type="button" class="btn" data-act="dlg-close" data-dlg="projDlg">Cancel</button><button type="submit" class="btn primary">Save</button></div>
+  </form>
+</dialog>
+
 <dialog id="saleDlg">
   <form method="dialog" id="saleForm">
     <h2>Log a merch sale</h2>
@@ -605,7 +631,7 @@ const S={db:null,assets:null,downloads:null,demo:false,connecting:true,
   activity:[],riffs:[],setlists:[],setId:null,loop:{a:null,b:null,on:false},riffsOpen:false,feedOpen:false,
   money:[],merch:[],contacts:[],avail:{},moneyKind:'expense',editContact:null,calView:'month',
   metro:{bpm:120,beats:4,on:false,taps:[]},tuner:{on:false},practice:null,
-  releases:[],posts:[],press:[],editPress:null,relOpen:null};
+  releases:[],posts:[],press:[],editPress:null,relOpen:null,projects:[],projectId:null};
 const AUDIO=new Audio(); AUDIO.preload='auto';
 const urlCache=new Map();
 
@@ -665,11 +691,14 @@ function seedDemo(){
   const now=Date.now();
   Store.mem.set('band/members',defaultMembers());
   Store.mem.set('band/profile',defaultProfile());
-  Store.mem.set('songs/s1',{title:'Example: Permafrost',order:1,stage:'Demoed',tempo:128,key:'D',timeSig:'4/4',length:'3:52',tuning:'D standard',lyrics:'(example) Verse 1\nIce in the marrow, salt in the wound…',parts:{bass:'done',drums:'done',gtr1:'done',gtr2:'wip',melody:'wip',lyrics:'todo'},tracked:{drums:'scratch',bass:'todo',gtr1:'todo',gtr2:'todo',vox:'todo'},sessionNotes:'',createdAt:now-8.64e7*10});
+  Store.mem.set('projects/default',{name:'Mammuthus (album 2)',kind:'album',status:'writing',target:'',notes:'',order:1,isDefault:true,at:now-8.64e7*30});
+  Store.mem.set('projects/imperator',{name:'Imperator',kind:'album',status:'released',released:'2023-07-07',notes:'Example catalogue folder',order:2,at:now-8.64e7*20});
+  Store.mem.set('songs/c1',{title:'Example: Holy Goat',order:100,projectId:'imperator',stage:'Done',tempo:'',key:'',timeSig:'4/4',length:'3:17',tuning:'',lyrics:'',parts:{bass:'done',drums:'done',gtr1:'done',gtr2:'done',melody:'done',lyrics:'done'},tracked:{drums:'final',bass:'final',gtr1:'final',gtr2:'final',vox:'final'},sessionNotes:'',createdAt:now-8.64e7*20});
+  Store.mem.set('songs/s1',{title:'Example: Permafrost',projectId:'default',order:1,stage:'Demoed',tempo:128,key:'D',timeSig:'4/4',length:'3:52',tuning:'D standard',lyrics:'(example) Verse 1\nIce in the marrow, salt in the wound…',parts:{bass:'done',drums:'done',gtr1:'done',gtr2:'wip',melody:'wip',lyrics:'todo'},tracked:{drums:'scratch',bass:'todo',gtr1:'todo',gtr2:'todo',vox:'todo'},sessionNotes:'',createdAt:now-8.64e7*10});
   Store.mem.set('songs/s1/notes/n1',{text:'Second guitar should drop out here, let the bass carry it.',time:74,versionId:'v1',by:'m3',at:now-3.6e6,done:false});
   Store.mem.set('songs/s1/notes/n2',{text:'Chorus needs a lift, maybe go up to the relative minor for the last one?',time:null,versionId:null,by:'m1',at:now-7.2e6,done:false});
   Store.mem.set('songs/s1/versions/v1',{label:'v1',name:'permafrost-demo-1.m4a',by:'m1',at:now-8.64e7*3,assetId:null,wrapped:false,mime:'',size:0,note:'Phone demo from the shed (example; upload a real file to replace)'});
-  Store.mem.set('songs/s2',{title:'Example: Tusk',order:2,stage:'Writing',tempo:96,key:'E',timeSig:'6/8',lyrics:'',parts:{bass:'wip',drums:'todo',gtr1:'done',gtr2:'todo',melody:'todo',lyrics:'todo'},tracked:{},sessionNotes:'',createdAt:now-8.64e7*4});
+  Store.mem.set('songs/s2',{title:'Example: Tusk',projectId:'default',order:2,stage:'Writing',tempo:96,key:'E',timeSig:'6/8',lyrics:'',parts:{bass:'wip',drums:'todo',gtr1:'done',gtr2:'todo',melody:'todo',lyrics:'todo'},tracked:{},sessionNotes:'',createdAt:now-8.64e7*4});
   const d=new Date();d.setDate(d.getDate()+3);d.setHours(19,0,0,0);
   Store.mem.set('events/e1',{title:'Example: Thursday practice',type:'practice',start:d.toISOString(),end:new Date(d.getTime()+2*3.6e6).toISOString(),location:'The shed',plan:'Run Permafrost with the new bridge.\nWork on the Tusk verse groove.',rsvp:{m1:'yes',m3:'maybe'},by:'m1'});
   Store.mem.set('chat/general/messages/c1',{by:'m1',text:'Welcome to the Mammuthus workspace. Everything here is shared between the four of us. (This is an example message.)',at:now-3.6e6*5,media:[]});
@@ -678,7 +707,7 @@ function seedDemo(){
 /* ---------- boot */
 async function boot(){
   S.me=ls.get('mammuthus.me')||null;
-  const sm=ls.get('mammuthus.tab');if(sm)S.tab=sm;
+  const sm=ls.get('mammuthus.tab');if(sm)S.tab=sm;S.projectId=ls.get('mammuthus.project')||null;
   const t=new Date();S.cal={y:t.getFullYear(),m:t.getMonth()};
   renderShell();renderMe();renderActive();
   const cfg=window.MAMMUTHUS_CONFIG||{};
@@ -735,12 +764,14 @@ async function ensureBandDocs(){
   const[m,p]=await Promise.all([Store.getDoc('band/members'),Store.getDoc('band/profile')]);
   if(!m)await Store.setDoc('band/members',defaultMembers());
   if(!p)await Store.setDoc('band/profile',defaultProfile());
+  try{const pj=await Store.getCol('projects');if(!pj.length){const al=((p||defaultProfile()).album||{});await Store.setDoc('projects/default',{name:al.title||'New album',kind:'album',status:'writing',target:al.target||'',notes:'',order:1,isDefault:true,at:Date.now()})}}catch(e){console.warn(e)}
 }
 function subscribeCore(){
   Store.watchDoc('band/members',d=>{S.members=(d&&d.list)||[];
     if(S.sb){const mine=S.members.find(m=>m.userId===S.user.id);S.me=mine?mine.id:null;if(!S.me)askWho();else{const w=$('#whoDlg');if(w.open)w.close()}}
     else if(!S.me||!S.members.find(m=>m.id===S.me)){S.me=null;if(S.members.length)askWho()}renderMe();const key=S.members.map(m=>m.id).join(',')+'|'+S.me;if(key!==S._chanKey){S._chanKey=key;watchLatest()}renderActive()});
   Store.watchDoc('band/profile',d=>{S.profile=d||defaultProfile();renderActive()});
+  Store.watchCol('projects',{orderBy:'order'},rows=>{S.projects=rows;if(!S.projectId||!rows.find(x=>x.id===S.projectId)){const d=rows.find(x=>x.isDefault)||rows[0];S.projectId=d?d.id:null}renderActive()});
   Store.watchCol('songs',{orderBy:'order'},rows=>{S.songs=rows;if(S.songId&&!rows.find(s=>s.id===S.songId))S.songId=null;renderActive()});
   Store.watchCol('events',{orderBy:'start'},rows=>{S.events=rows;renderActive()});
   Store.watchCol('activity',{orderBy:'at',dir:'desc',limit:40},rows=>{S.activity=rows;if(S.tab==='songs')renderFeed()});
@@ -804,22 +835,36 @@ setInterval(flushPending,900);
 /* =========================================================
    SONGS
    ========================================================= */
+const PJ_KINDS={album:'Album',ep:'EP',single:'Single',live:'Live set',other:'Project'};
+const PJ_STATUS={writing:'writing',recording:'recording',released:'released',shelved:'shelved'};
+function curProject(){return S.projects.find(x=>x.id===S.projectId)||null}
+function songProject(sg){if(sg.projectId&&S.projects.find(x=>x.id===sg.projectId))return sg.projectId;const d=S.projects.find(x=>x.isDefault)||S.projects[0];return d?d.id:null}
+function projectSongs(pid){return S.songs.filter(sg=>songProject(sg)===pid)}
+const songsDur=list=>list.reduce((a,sg)=>a+(parseT(sg.length||'')||0),0);
+function openProjectDialog(pj){$('#projForm').reset();$('#projTitle').textContent=pj?'Edit project':'New project';$('#pj_id').value=pj?pj.id:'';$('#pjDelete').classList.toggle('hidden',!pj||!!pj.isDefault);
+  if(pj){$('#pj_name').value=pj.name||'';$('#pj_kind').value=pj.kind||'album';$('#pj_status').value=pj.status||'writing';$('#pj_date').value=pj.released||'';$('#pj_target').value=pj.target||'';$('#pj_notes').value=pj.notes||''}
+  $('#projDlg').showModal();setTimeout(()=>$('#pj_name').focus(),30)}
+async function saveProject(){const id=$('#pj_id').value;const data={name:$('#pj_name').value.trim(),kind:$('#pj_kind').value,status:$('#pj_status').value,released:$('#pj_date').value||'',target:$('#pj_target').value.trim(),notes:$('#pj_notes').value.trim()};if(!data.name)return;
+  try{if(id)await Store.updateDoc('projects/'+id,data);else{const order=S.projects.reduce((a,x)=>Math.max(a,x.order||0),0)+1;const nid=await Store.addDoc('projects',{...data,order,at:Date.now(),by:S.me});S.projectId=nid;ls.set('mammuthus.project',nid);if(S.tab==='songs')renderSongs();logActivity('project',`${meName()} started a new ${PJ_KINDS[data.kind]||'project'}: ${data.name}`)}toast(id?'Project updated':'Project created')}catch(e){toast('Could not save: '+errMsg(e))}finally{$('#projDlg').close()}}
 function partScore(v){return v==='done'||v==='final'?1:v==='wip'||v==='scratch'?.5:0}
 function progressOf(s){const w=PARTS.reduce((a,p)=>a+partScore((s.parts||{})[p.k]),0)/PARTS.length;const t=TRACKS.reduce((a,p)=>a+partScore((s.tracked||{})[p.k]),0)/TRACKS.length;return{w,t,all:(w+t)/2}}
 function renderSongs(){
   const main=$('#main');
   const cur=S.songs.find(s=>s.id===S.songId);
-  const avg=S.songs.length?Math.round(S.songs.reduce((a,s)=>a+progressOf(s).all,0)/S.songs.length*100):0;
-  const done=S.songs.filter(s=>s.stage==='Done').length;
+  const pj=curProject();const list=pj?projectSongs(pj.id):S.songs;const released=pj&&pj.status==='released';
+  const avg=list.length?Math.round(list.reduce((a,s)=>a+progressOf(s).all,0)/list.length*100):0;
+  const done=list.filter(s=>s.stage==='Done').length;
   const next=S.events.filter(e=>new Date(e.end||e.start)>=new Date())[0];
-  const album=(S.profile&&S.profile.album)||{};
+  const dur=songsDur(list);const missing=list.filter(s=>!(parseT(s.length||'')>0)).length;
   main.innerHTML=`
+    <div class="projbar">${S.projects.map(x=>`<button class="pj ${x.status==='released'?'released':''}" data-act="proj-pick" data-id="${x.id}" ${x.id===S.projectId?'aria-current="true"':''}>${esc(x.name)}<span class="n">${projectSongs(x.id).length}</span></button>`).join('')}<button class="btn sm ghost" data-act="proj-new">＋ New project</button></div>
+    ${pj?`<div class="projhead"><b>${esc(pj.name)}</b><span class="pill ${released?'good':pj.status==='recording'?'ochre':'accent'}">${PJ_KINDS[pj.kind]||'Project'} · ${PJ_STATUS[pj.status]||pj.status||'writing'}${pj.released?' '+new Date(pj.released+'T12:00:00').toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'}):''}</span>${pj.target?`<span>target: ${esc(pj.target)}</span>`:''}${pj.notes?`<span title="${esc(pj.notes)}">${esc(pj.notes.length>60?pj.notes.slice(0,60)+'…':pj.notes)}</span>`:''}<span class="grow"></span><button class="btn ghost sm" data-act="proj-edit" data-id="${pj.id}">Edit project</button></div>`:''}
     <div class="stats">
-      <div class="stat"><span class="eyebrow">Songs</span><b>${S.songs.length}</b></div>
-      <div class="stat"><span class="eyebrow">Album progress</span><b>${avg}%</b></div>
-      <div class="stat"><span class="eyebrow">Finished</span><b>${done} / ${S.songs.length}</b></div>
+      <div class="stat"><span class="eyebrow">Songs</span><b>${list.length}</b></div>
+      <div class="stat"><span class="eyebrow">Running time</span><b class="mono" style="font-family:var(--f-mono);font-weight:500">${fmtT(dur)}</b>${missing?`<span class="small muted">${missing} without a length</span>`:''}</div>
+      ${released?'':`<div class="stat"><span class="eyebrow">Progress</span><b>${avg}%</b></div>
+      <div class="stat"><span class="eyebrow">Finished</span><b>${done} / ${list.length}</b></div>`}
       <div class="stat"><span class="eyebrow">Next up</span><b style="font-size:15px;font-family:var(--f-body);font-weight:600">${next?esc(next.title)+'<span class="muted small" style="display:block;font-weight:400">'+fmtDT(next.start)+'</span>':'<span class="muted">Nothing scheduled</span>'}</b></div>
-      ${album.target?`<div class="stat"><span class="eyebrow">Target</span><b style="font-size:15px;font-family:var(--f-body);font-weight:600">${esc(album.target)}</b></div>`:''}
     </div>
     <div class="row" style="margin:-8px 0 10px"><button class="btn sm" data-act="practice-open" data-src="all">▶ Practice mode</button><button class="btn sm" data-act="tools-open" data-t="metro">♩ Metronome</button><button class="btn sm" data-act="tools-open" data-t="tuner">Tuner</button></div>
     ${S.assets?`<div class="row" style="margin:-8px 0 14px">${S.mcp?`<button class="btn sm" data-act="drv-open">${ICONS.media} Import audio from Google Drive</button>`:''}<button class="btn sm" data-act="bulk-open">${ICONS.songs} Bulk upload audio</button><span class="small muted">Drop a batch of demos in; each file lands on the matching song as a new version.</span></div>`:''}
@@ -851,18 +896,19 @@ async function addRiff(){const title=$('#riffTitle').value.trim();if(!title)retu
   logActivity('riff',`${meName()} added "${title}" to the riff bank`);toast('Saved to the riff bank')}
 async function riffToSong(id){const r=S.riffs.find(x=>x.id===id);if(!r)return;if(!await ask('Make it a song?',`"${r.title}" becomes a song with this audio as v1 and leaves the riff bank.`,{ok:'Make song'}))return;
   const order=S.songs.reduce((a,s)=>Math.max(a,s.order||0),0)+1;
-  const sid=await Store.addDoc('songs',{title:r.title,order,stage:'Idea',tempo:'',key:'',timeSig:'4/4',length:'',lyrics:'',parts:{},tracked:{},sessionNotes:'',aliases:[],createdAt:Date.now(),by:S.me});
+  const sid=await Store.addDoc('songs',{title:r.title,order,projectId:S.projectId,stage:'Idea',tempo:'',key:'',timeSig:'4/4',length:'',lyrics:'',parts:{},tracked:{},sessionNotes:'',aliases:[],createdAt:Date.now(),by:S.me});
   if(r.assetId)await Store.addDoc(`songs/${sid}/versions`,{label:'v1',name:r.name||r.title,by:r.by,at:Date.now(),assetId:r.assetId,assetIds:r.assetIds||[r.assetId],wrapped:!!r.wrapped,mime:r.mime||'',size:0,note:'From the riff bank'});
   await Store.deleteDoc('riffs/'+id);logActivity('song',`${meName()} turned riff "${r.title}" into a song`,{songId:sid});openSong(sid)}
 function renderSongList(){withDrafts(renderSongListInner)}
 function renderSongListInner(){
   const c=$('#songList');if(!c)return;
-  c.innerHTML=(S.songs.length?S.songs.map((s,i)=>{const p=progressOf(s);return`<button class="songrow" data-act="open-song" data-id="${s.id}" ${s.id===S.songId?'aria-current="true"':''}>
+  const pj=curProject();const list=pj?projectSongs(pj.id):S.songs;const released=pj&&pj.status==='released';
+  c.innerHTML=(list.length?list.map((s,i)=>{const p=progressOf(s);return`<button class="songrow" data-act="open-song" data-id="${s.id}" ${s.id===S.songId?'aria-current="true"':''}>
       <span class="n">${String(i+1).padStart(2,'0')}</span>
-      <span class="grow"><span class="t">${esc(s.title||'Untitled')}</span><span class="m"><span>${esc(s.stage||'Idea')}</span>${s.tempo?`<span>${esc(s.tempo)} bpm</span>`:''}${s.key?`<span>${esc(s.key)}</span>`:''}${s.timeSig?`<span>${esc(s.timeSig)}</span>`:''}</span></span>
-      <span class="bars" title="Writing ${Math.round(p.w*100)}% · Tracked ${Math.round(p.t*100)}%"><span class="bar"><i style="width:${p.w*100}%"></i></span><span class="bar t"><i style="width:${p.t*100}%"></i></span></span>
-    </button>`}).join(''):`<div class="empty">No songs yet. Add the first one below.</div>`)+
-    `<form class="newsong" data-act="new-song"><input type="text" id="newSongTitle" placeholder="New song title" required aria-label="New song title"><button class="btn primary" type="submit">Add</button></form>`;
+      <span class="grow"><span class="t">${esc(s.title||'Untitled')}</span><span class="m">${released?'':`<span>${esc(s.stage||'Idea')}</span>`}<span class="len">${s.length?esc(s.length):'—'}</span>${s.tempo?`<span>${esc(s.tempo)} bpm</span>`:''}${s.key?`<span>${esc(s.key)}</span>`:''}${s.timeSig?`<span>${esc(s.timeSig)}</span>`:''}${s.tuning?`<span>${esc(s.tuning)}</span>`:''}</span></span>
+      ${released?'<span></span>':`<span class="bars" title="Writing ${Math.round(p.w*100)}% · Tracked ${Math.round(p.t*100)}%"><span class="bar"><i style="width:${p.w*100}%"></i></span><span class="bar t"><i style="width:${p.t*100}%"></i></span></span>`}
+    </button>`}).join(''):`<div class="empty">${pj?'No songs in '+esc(pj.name)+' yet.':'No songs yet.'} Add one below.</div>`)+
+    `<form class="newsong" data-act="new-song"><input type="text" id="newSongTitle" placeholder="${released?'Add a released song (title)':'New song title'}" required aria-label="New song title"><button class="btn primary" type="submit">Add</button></form>`;
 }
 function openSong(id){
   S.unsubSong.forEach(u=>u());S.unsubSong=[];S.notes=[];S.versions=[];S.noteTime=null;
@@ -903,6 +949,7 @@ function renderSongHead(s){
       <div class="field"><label for="sf_ts">Time sig</label><input id="sf_ts" type="text" list="tslist" value="${esc(s.timeSig||'')}" data-sf="timeSig" placeholder="4/4"><datalist id="tslist"><option value="4/4"><option value="3/4"><option value="6/8"><option value="5/4"><option value="7/8"><option value="12/8"></datalist></div>
       <div class="field"><label for="sf_len">Length</label><input id="sf_len" type="text" value="${esc(s.length||'')}" data-sf="length" placeholder="3:45"></div>
       <div class="field"><label for="sf_tuning">Tuning</label><input id="sf_tuning" type="text" value="${esc(s.tuning||'')}" data-sf="tuning" placeholder="D standard"></div>
+      <div class="field"><label for="sf_project">Project</label><select id="sf_project" data-sf="projectId">${S.projects.map(x=>`<option value="${x.id}" ${songProject(s)===x.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select></div>
     </div>
     <div class="row"><button class="btn sm" data-act="tools-open" data-t="metro">♩ Metronome${s.tempo?' @ '+esc(s.tempo):''}</button><button class="btn sm" data-act="tools-open" data-t="tuner">Tuner</button><button class="btn sm" data-act="practice-open" data-src="song">Practice mode</button></div>
     <div class="progress">
@@ -927,8 +974,9 @@ async function songUpdate(patch){if(!S.songId)return;try{await Store.updateDoc('
 async function addSong(title){
   if(!S.me)return askWho();
   const order=S.songs.reduce((a,s)=>Math.max(a,s.order||0),0)+1;
-  const id=await Store.addDoc('songs',{title,order,stage:'Idea',tempo:'',key:'',timeSig:'4/4',length:'',lyrics:'',parts:{},tracked:{},sessionNotes:'',createdAt:Date.now(),by:S.me});
-  logActivity('song',`${meName()} added a new song: ${title}`,{songId:id});
+  const pj=curProject();const released=pj&&pj.status==='released';
+  const id=await Store.addDoc('songs',{title,order,projectId:pj?pj.id:null,stage:released?'Done':'Idea',tempo:'',key:'',timeSig:'4/4',length:'',lyrics:'',parts:released?{bass:'done',drums:'done',gtr1:'done',gtr2:'done',melody:'done',lyrics:'done'}:{},tracked:released?{drums:'final',bass:'final',gtr1:'final',gtr2:'final',vox:'final'}:{},sessionNotes:'',createdAt:Date.now(),by:S.me});
+  logActivity('song',`${meName()} added ${released?'a catalogue song':'a new song'}: ${title}${pj?' ('+pj.name+')':''}`,{songId:id});
   openSong(id);
 }
 async function deleteSong(id){
@@ -1368,7 +1416,7 @@ function renderSetDetail(){const c=$('#setDetail');if(!c)return;const sl=S.setli
   const missing=songs.filter(sg=>!(parseT(sg.length||'')>0)).length;
   const pill=!target?'<span class="pill">no target set</span>':diff>=0?`<span class="pill good">${fmtT(diff)} to spare</span>`:`<span class="pill crit">over by ${fmtT(-diff)}</span>`;
   const votersOf=sid=>Object.entries((sl.votes||{})[sid]||{}).filter(([,v])=>v).map(([m])=>m);
-  const all=S.songs.map((sg,i)=>({sg,i,pos:sl.songIds.indexOf(sg.id),v:votersOf(sg.id)})).sort((a,b)=>{const ao=a.pos<0,bo=b.pos<0;if(ao!==bo)return ao?1:-1;if(!ao)return a.pos-b.pos;return b.v.length-a.v.length||a.i-b.i});
+  const all=S.songs.map((sg,i)=>({sg,i,pos:sl.songIds.indexOf(sg.id),v:votersOf(sg.id)})).sort((a,b)=>{const ao=a.pos<0,bo=b.pos<0;if(ao!==bo)return ao?1:-1;if(!ao)return a.pos-b.pos;const ap=S.projects.findIndex(x=>x.id===songProject(a.sg)),bp=S.projects.findIndex(x=>x.id===songProject(b.sg));if(ap!==bp)return ap-bp;return b.v.length-a.v.length||a.i-b.i});
   c.innerHTML=`<div class="sdhead">
     <div class="row"><button class="btn ghost sm" data-act="close-set">← All setlists</button><span class="grow"></span><button class="btn sm primary" data-act="practice-open" data-src="set" data-id="${sl.id}">▶ Practice this set</button><button class="btn sm" data-act="print-set" data-id="${sl.id}">Print</button><button class="btn ghost sm danger" data-act="del-set" data-id="${sl.id}">Delete</button></div>
     <input class="sdtitle sm" id="setName" type="text" value="${esc(sl.name)}" data-setf="name" aria-label="Setlist name">
@@ -1378,7 +1426,7 @@ function renderSetDetail(){const c=$('#setDetail');if(!c)return;const sl=S.setli
       <div class="settotal"><span>Total</span><span>${fmtT(setDur(sl))}</span></div></div>
       <div class="small muted" style="margin-top:8px">Song lengths come from each song's Length field; tunings from each song's Tuning field.</div></div>
     <div class="sec"><h3>All songs</h3><div class="small muted" style="margin-bottom:8px">Tick to add to the set. Vote for the songs you think should be in it.</div>
-      <div class="setall">${all.map(({sg,pos,v})=>{const mine=!!S.me&&v.includes(S.me);return`<div class="r"><input type="checkbox" data-act="set-toggle" data-id="${sg.id}" ${pos>=0?'checked':''} aria-label="${esc(sg.title)} in set"><span class="t"><span>${esc(sg.title)}</span>${pos>=0?'<span class="pill accent">in set</span>':''}</span><span class="m">${sg.key?`<span>${esc(sg.key)}</span>`:''}${sg.tempo?`<span>${esc(sg.tempo)} bpm</span>`:''}${sg.timeSig?`<span>${esc(sg.timeSig)}</span>`:''}<span>${sg.length?esc(sg.length):'—'}</span></span><span class="vt"><button type="button" class="vote ${mine?'on':''}" data-act="set-vote" data-id="${sg.id}" aria-pressed="${mine}" aria-label="Vote for ${esc(sg.title)}">👍 ${v.length}</button>${v.map(m=>av(m,'sm')).join('')}</span></div>`}).join('')||'<div class="empty small">No songs yet. Add songs in the Songs tab.</div>'}</div></div>
+      <div class="setall">${all.map(({sg,pos,v},idx,arr)=>{const mine=!!S.me&&v.includes(S.me);const pid=songProject(sg);const prevPid=idx>0?songProject(arr[idx-1].sg):null;const prevIn=idx>0&&arr[idx-1].pos>=0;const head=(pos<0&&(idx===0||prevIn||prevPid!==pid))?`<div class="ph">${esc((S.projects.find(x=>x.id===pid)||{}).name||'Songs')}</div>`:'';return head+`<div class="r"><input type="checkbox" data-act="set-toggle" data-id="${sg.id}" ${pos>=0?'checked':''} aria-label="${esc(sg.title)} in set"><span class="t"><span>${esc(sg.title)}</span>${pos>=0?'<span class="pill accent">in set</span>':''}</span><span class="m">${sg.key?`<span>${esc(sg.key)}</span>`:''}${sg.tempo?`<span>${esc(sg.tempo)} bpm</span>`:''}${sg.timeSig?`<span>${esc(sg.timeSig)}</span>`:''}<span>${sg.length?esc(sg.length):'—'}</span></span><span class="vt"><button type="button" class="vote ${mine?'on':''}" data-act="set-vote" data-id="${sg.id}" aria-pressed="${mine}" aria-label="Vote for ${esc(sg.title)}">👍 ${v.length}</button>${v.map(m=>av(m,'sm')).join('')}</span></div>`}).join('')||'<div class="empty small">No songs yet. Add songs in the Songs tab.</div>'}</div></div>
     <div class="sec"><h3>Notes</h3><textarea id="setNotes" rows="3" data-setf="notes" data-live="1" placeholder="Talk breaks, who counts in, encore plan…">${esc(sl.notes||'')}</textarea></div>`}
 async function setUpdate(id,patch){try{await Store.updateDoc('setlists/'+id,patch)}catch(e){toast('Could not save: '+errMsg(e))}}
 function printSet(id){const sl=S.setlists.find(x=>x.id===id);if(!sl)return;const songs=sl.songIds.map(i=>S.songs.find(x=>x.id===i)).filter(Boolean);const gig=S.events.find(e=>e.gig&&e.gig.setlist===sl.id);
@@ -1396,7 +1444,7 @@ async function allNotes(){if(Date.now()-notesCache.at<60000)return notesCache.ro
 async function runSearch(q){const out=$('#sres');q=q.trim().toLowerCase();if(q.length<2){out.innerHTML='<div class="small muted">Type at least two characters.</div>';return}
   const hit=t=>String(t||'').toLowerCase().includes(q);const snip=t=>{t=String(t||'');const i=t.toLowerCase().indexOf(q);const st=Math.max(0,i-40);return esc((st>0?'…':'')+t.slice(st,st+120)+(t.length>st+120?'…':''))};
   const res=[];
-  S.songs.forEach(sg=>{if(hit(sg.title)||hit(sg.lyrics)||(sg.aliases||[]).some(hit)||hit(sg.sessionNotes))res.push({k:'song',t:sg.title,s:hit(sg.lyrics)?snip(sg.lyrics):sg.stage||'',act:'open-song-tab',id:sg.id})});
+  S.songs.forEach(sg=>{if(hit(sg.title)||hit(sg.lyrics)||(sg.aliases||[]).some(hit)||hit(sg.sessionNotes))res.push({k:'song',t:sg.title,s:(hit(sg.lyrics)?snip(sg.lyrics):sg.stage||'')+' · '+esc((S.projects.find(x=>x.id===songProject(sg))||{}).name||''),act:'open-song-tab',id:sg.id})});
   (await allNotes()).forEach(n=>{if(hit(n.text)){const sg=S.songs.find(x=>x.id===n.songId);res.push({k:'note',t:(sg?sg.title:'Song')+(n.time!=null?' @ '+fmtT(n.time):''),s:snip(n.text),act:'open-song-tab',id:n.songId})}});
   S.events.forEach(e=>{if(hit(e.title)||hit(e.plan)||hit(e.location)||hit(JSON.stringify(e.gig||{})))res.push({k:'date',t:e.title+' · '+fmtDate(e.start),s:snip(e.plan||e.location),act:'goto-event',id:e.id})});
   S.setlists.forEach(x=>{if(hit(x.name)||hit(x.notes))res.push({k:'set',t:x.name,s:x.songIds.length+' songs',act:'open-set-tab',id:x.id})});
@@ -1409,7 +1457,7 @@ async function runSearch(q){const out=$('#sres');q=q.trim().toLowerCase();if(q.l
   S.money.forEach(e=>{if(hit(e.desc))res.push({k:'money',t:(e.desc||'')+' · '+money(+e.amount||0),s:e.date||'',act:'goto-tab',id:'money'})});
   const p=S.profile||{};if(hit(p.bio)||hit(JSON.stringify(p.epk||{})))res.push({k:'epk',t:'Bio / EPK',s:snip(p.bio),act:'goto-tab',id:'media'});
   out.innerHTML=res.length?res.slice(0,60).map(r=>`<button data-act="${r.act}" data-id="${r.id}"><span class="k">${r.k}</span><span><div class="t">${esc(r.t)}</div>${r.s?`<div class="s">${r.s}</div>`:''}</span></button>`).join(''):'<div class="empty small">Nothing matches.</div>'}
-function gotoSong(id){$('#searchDlg').open&&$('#searchDlg').close();if(S.tab!=='songs')setTab('songs');openSong(id);const d=$('#songDetail');if(d)d.scrollIntoView({block:'start'})}
+function gotoSong(id){$('#searchDlg').open&&$('#searchDlg').close();const sg=S.songs.find(x=>x.id===id);if(sg){const pid=songProject(sg);if(pid&&pid!==S.projectId){S.projectId=pid;ls.set('mammuthus.project',pid)}}if(S.tab!=='songs')setTab('songs');openSong(id);const d=$('#songDetail');if(d)d.scrollIntoView({block:'start'})}
 
 /* =========================================================
    MEDIA & EPK
@@ -1567,7 +1615,7 @@ async function drvImport(){
         const ext=(f.fileExtension||f.title.split('.').pop()||'').toLowerCase();file=new File([arr],f.title,{type:AUDIO_EXT[ext]||f.mimeType||'audio/mpeg'})}
       st.textContent=`Uploading ${f.title}…`;const up=await uploadAudioFile(file);
       let songId=sel.value;
-      if(songId==='+new'){const title=f.title.replace(/\.[^.]+$/,'').replace(/[_-]+/g,' ').trim();const order=S.songs.reduce((a,s)=>Math.max(a,s.order||0),0)+1;songId=await Store.addDoc('songs',{title,order,stage:'Idea',tempo:'',key:'',timeSig:'4/4',length:'',lyrics:'',parts:{},tracked:{},sessionNotes:'',createdAt:Date.now(),by:S.me});S.songs.push({id:songId,title,order});sel.innerHTML+=`<option value="${songId}" selected>${esc(title)}</option>`}
+      if(songId==='+new'){const title=f.title.replace(/\.[^.]+$/,'').replace(/[_-]+/g,' ').trim();const order=S.songs.reduce((a,s)=>Math.max(a,s.order||0),0)+1;songId=await Store.addDoc('songs',{title,order,projectId:S.projectId,stage:'Idea',tempo:'',key:'',timeSig:'4/4',length:'',lyrics:'',parts:{},tracked:{},sessionNotes:'',createdAt:Date.now(),by:S.me});S.songs.push({id:songId,title,order});sel.innerHTML+=`<option value="${songId}" selected>${esc(title)}</option>`}
       const vs=await Store.getCol(`songs/${songId}/versions`);const label='v'+(vs.reduce((a,v)=>Math.max(a,+String(v.label||'').replace(/\D/g,'')||0),0)+1);
       await Store.addDoc(`songs/${songId}/versions`,{label,name:f.title,by:S.me,at:Date.now(),assetId:up.assetId,assetIds:up.assetIds||[up.assetId],wrapped:up.wrapped,mime:up.mime,size:+f.fileSize||0,note:f.file?'Bulk upload':'Imported from Google Drive',...(f.file?{}:{driveId:f.id,driveModified:f.modifiedTime})});
       cb.checked=false;row.querySelector('.fm').innerHTML+=' · <span class="pill good">imported</span>';done++;
@@ -1629,6 +1677,10 @@ document.addEventListener('click',async e=>{
     case'goto-chat':$('#searchDlg').close();S.chan=id;setTab('chat');break;
     case'goto-tab':$('#searchDlg').close();setTab(id);break;
     case'feed-toggle':S.feedOpen=!S.feedOpen;renderFeed();break;
+    case'proj-pick':S.projectId=id;ls.set('mammuthus.project',id);if(S.songId&&songProject(S.songs.find(x=>x.id===S.songId)||{})!==id)openSong(null);else renderSongs();break;
+    case'proj-new':if(!S.me)return askWho();openProjectDialog(null);break;
+    case'proj-edit':openProjectDialog(S.projects.find(x=>x.id===id));break;
+    case'proj-delete':{const pid=$('#pj_id').value;const pj=S.projects.find(x=>x.id===pid);if(!pj)return;const n=projectSongs(pid).length;$('#projDlg').close();if(!await ask('Delete project?',n?`${n} song${n===1?'':'s'} will move to the default project.`:'It has no songs.',{ok:'Delete',danger:true}))return;const d=S.projects.find(x=>x.isDefault&&x.id!==pid)||S.projects.find(x=>x.id!==pid);await Promise.all(projectSongs(pid).map(sg=>Store.updateDoc('songs/'+sg.id,{projectId:d?d.id:null})));await Store.deleteDoc('projects/'+pid);S.projectId=d?d.id:null;break}
     case'cal-view':S.calView=b.dataset.v;renderCalendar();break;
     case'copy-text':try{await navigator.clipboard.writeText(b.dataset.text);toast('Copied')}catch(err){toast('Copy not allowed here')}break;
     case'rel-toggle':S.relOpen=S.relOpen===id?null:id;renderPromo();break;
@@ -1740,6 +1792,7 @@ document.addEventListener('submit',async e=>{
 $('#evForm').addEventListener('submit',e=>{e.preventDefault();saveEvent()});
 $('#loginForm').addEventListener('submit',e=>{e.preventDefault();doLogin()});
 $('#saleForm').addEventListener('submit',e=>{e.preventDefault();logSale()});
+$('#projForm').addEventListener('submit',e=>{e.preventDefault();saveProject()});
 document.addEventListener('change',async e=>{
   const t=e.target;
   if(t.dataset.sf&&!t.dataset.live){const k=t.dataset.sf;let v=t.value;if(k==='tempo')v=v===''?'':+v;songUpdate({[k]:v});return}
