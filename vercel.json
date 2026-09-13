@@ -1,21 +1,8 @@
 {
   "name": "treeco",
-  "buildCommand": "cd frontend && npm install --legacy-peer-deps && npm run build && node ../scripts/build-band.js",
+  "buildCommand": "cd frontend && npm install --legacy-peer-deps && npm run build",
   "outputDirectory": "frontend/dist",
   "installCommand": "echo skip",
   "framework": null,
-  "rewrites": [
-    {
-      "source": "/band",
-      "destination": "/band/index.html"
-    },
-    {
-      "source": "/band/",
-      "destination": "/band/index.html"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ]
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }
