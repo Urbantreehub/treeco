@@ -1363,7 +1363,8 @@ function renderSets(){const cur=S.setlists.find(x=>x.id===S.setId);
 function renderSetDetail(){const c=$('#setDetail');if(!c)return;const sl=S.setlists.find(x=>x.id===S.setId);
   if(!sl){c.innerHTML=`<div class="empty" style="min-height:200px;display:grid;place-items:center"><div><b>Pick a setlist</b><br><span class="small">Order the songs, see the running time, print it for the stage, attach it to a gig.</span></div></div>`;return}
   const songs=sl.songIds.map(id=>S.songs.find(x=>x.id===id)).filter(Boolean);const gig=S.events.find(e=>e.gig&&e.gig.setlist===sl.id);
-  const gm=gig&&gig.gig.setLength?String(gig.gig.setLength).match(/\d+(?:\.\d+)?/):null;const target=gm?+gm[0]*60:(+sl.targetMin>0?+sl.targetMin*60:0);const dur=setDur(sl);const diff=target-dur;
+  const gl=gig&&gig.gig.setLength?String(gig.gig.setLength).match(/(\d+(?:\.\d+)?)\s*(h|hr|hrs|hour|hours)?\b/i):null;const gigMin=gl?+gl[1]*(gl[2]?60:1):0;const gm=gigMin>0?[String(gigMin)]:null;
+  const target=gm?gigMin*60:(+sl.targetMin>0?+sl.targetMin*60:0);const dur=setDur(sl);const diff=Math.round(target-dur);
   const missing=songs.filter(sg=>!(parseT(sg.length||'')>0)).length;
   const pill=!target?'<span class="pill">no target set</span>':diff>=0?`<span class="pill good">${fmtT(diff)} to spare</span>`:`<span class="pill crit">over by ${fmtT(-diff)}</span>`;
   const votersOf=sid=>Object.entries((sl.votes||{})[sid]||{}).filter(([,v])=>v).map(([m])=>m);
@@ -1756,7 +1757,7 @@ document.addEventListener('change',async e=>{
   if(t.id==='ev_type'){$('#gigFields').classList.toggle('hidden',t.value!=='gig')}
   if(t.dataset.setf&&!t.dataset.live&&S.setId){setUpdate(S.setId,{[t.dataset.setf]:t.value.trim()||'Untitled set'})}
   if(t.id==='setTarget'&&S.setId){const n=Number(t.value);setUpdate(S.setId,{targetMin:t.value===''||!(n>0)?null:n})}
-  if(t.dataset.act==='set-toggle'&&S.setId){const sl=S.setlists.find(x=>x.id===S.setId);if(!sl)return;const sid=t.dataset.id;const has=sl.songIds.includes(sid);if(t.checked&&!has)setUpdate(sl.id,{songIds:[...sl.songIds,sid]});else if(!t.checked&&has)setUpdate(sl.id,{songIds:sl.songIds.filter(x=>x!==sid)})}
+  if(t.dataset.act==='set-toggle'&&S.setId){const sl=S.setlists.find(x=>x.id===S.setId);if(!sl)return;const sid=t.dataset.id;const has=sl.songIds.includes(sid);if(t.checked===has)return;const ids=t.checked?[...sl.songIds,sid]:sl.songIds.filter(x=>x!==sid);sl.songIds=ids;setUpdate(sl.id,{songIds:ids})}
   if(t.id==='searchIn'){runSearch(t.value)}
   if(t.id==='beatsPerBar'){S.metro.beats=+t.value;renderMetro()}
   if(t.id==='sale_item'){const o=t.selectedOptions[0];if(o)$('#sale_price').value=o.dataset.price||''}
