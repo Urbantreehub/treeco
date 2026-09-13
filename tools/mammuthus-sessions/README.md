@@ -31,6 +31,11 @@ Published at: https://claude.ai/code/artifact/4e7b2235-ddd1-488a-a97f-9ba6fe8218
   photo, video, audio and PDF attachments and unread indicators.
 - **Band** – member names, instruments and colours; album title, target and
   notes; storage meter.
+- **Import from Google Drive** – on the Songs tab. Uses the viewer's own Google
+  Drive connector (the `mcp` capability, tools `search_files` and
+  `download_file_content`) to list audio in a named folder, match each file to
+  a song by title/aliases, and upload it as a new version. Files already
+  imported are flagged, and ones modified on Drive since are offered again.
 
 ## Notes on the implementation
 

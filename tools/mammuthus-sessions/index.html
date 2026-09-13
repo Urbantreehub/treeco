@@ -250,6 +250,11 @@ dialog h2{font-size:18px;margin-bottom:14px}
 .docs{display:flex;flex-direction:column;gap:6px}
 .doc{display:flex;align-items:center;gap:10px;min-height:48px;padding:8px 12px;border:1px solid var(--line-soft);border-radius:var(--r-sm);flex-wrap:wrap}
 .doc video,.doc audio{width:100%;max-height:300px;border-radius:var(--r-sm)}
+.drv{display:grid;grid-template-columns:auto 1fr 180px;gap:8px 10px;align-items:center;padding:8px 0;border-top:1px solid var(--line-soft)}
+.drv .fn{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.drv .fm{font-size:12px;color:var(--muted)}
+.drv select{min-height:40px;padding:6px 8px}
+@media (max-width:560px){.drv{grid-template-columns:auto 1fr}.drv select{grid-column:2}}
 .logo{width:120px;height:120px;border-radius:var(--r);object-fit:contain;background:var(--raised);border:1px solid var(--line-soft)}
 
 /* ---------- chat */
@@ -313,6 +318,13 @@ dialog h2{font-size:18px;margin-bottom:14px}
   <div class="row" style="justify-content:flex-end"><button type="button" class="btn" data-act="ask-cancel">Cancel</button><button type="button" class="btn primary" id="askOk" data-act="ask-ok">OK</button></div>
 </dialog>
 
+<dialog id="drvDlg" style="max-width:720px">
+  <h2>Import from Google Drive</h2>
+  <div class="row" style="margin-bottom:12px"><div class="field grow"><label for="drvFolder">Folder name</label><input type="text" id="drvFolder" value="Nu mammuthus"></div><button type="button" class="btn primary" data-act="drv-scan" style="align-self:flex-end">Find audio</button></div>
+  <div id="drvBody" class="small muted">Files in the folder appear here. Each one gets matched to a song, or can start a new one.</div>
+  <div class="row" style="justify-content:flex-end;margin-top:16px"><span id="drvStatus" class="small muted grow"></span><button type="button" class="btn" data-act="dlg-close" data-dlg="drvDlg">Close</button><button type="button" class="btn primary hidden" id="drvGo" data-act="drv-import">Import selected</button></div>
+</dialog>
+
 <dialog id="evDlg">
   <form method="dialog" id="evForm">
     <h2 id="evTitle">New event</h2>
@@ -356,7 +368,7 @@ const S={db:null,assets:null,downloads:null,demo:false,connecting:true,
   chan:'general',messages:[],unsubChat:null,pendFiles:[],latest:{},editingNote:null,
   cal:null,calSel:null,
   player:{versionId:null,url:null,peaks:null,duration:0,loading:false},
-  noteTime:null,pending:new Set(),usage:null,localUrls:{}};
+  noteTime:null,pending:new Set(),usage:null,localUrls:{},mcp:null,drv:{files:[],existing:{}}};
 const AUDIO=new Audio(); AUDIO.preload='auto';
 const urlCache=new Map();
 
@@ -392,6 +404,7 @@ const Store={mem:new Map(),watchers:[],
   async deleteDoc(p){if(S.db)return S.db.doc(p).delete();this.mem.delete(p);this.notify(p)},
   async addDoc(c,d){if(S.db){const r=await S.db.collection(c).add(d);return r.id}const id=uid();await this.setDoc(c+'/'+id,d);return id},
   async getDoc(p){if(S.db){const s=await S.db.doc(p).get();return s.exists?s.data():null}return this.mem.get(p)||null},
+  async getCol(c){if(S.db){const s=await S.db.collection(c).get();return s.docs.map(d=>({id:d.id,...d.data()}))}return this.query(c,{})},
   watchDoc(p,cb){if(S.db)return S.db.doc(p).onSnapshot(s=>cb(s.exists?s.data():null),e=>lostConnection(p,e));const w={t:'d',p,cb};this.watchers.push(w);cb(this.mem.get(p)||null);return()=>{this.watchers=this.watchers.filter(x=>x!==w)}},
   watchCol(c,o,cb){if(S.db){let q=S.db.collection(c);if(o.orderBy)q=q.orderBy(o.orderBy,o.dir||'asc');if(o.limit)q=q.limit(o.limit);return q.onSnapshot(s=>cb(s.docs.map(d=>({id:d.id,...d.data()}))),e=>lostConnection(c,e))}
     const w={t:'c',c,o,cb};this.watchers.push(w);cb(this.query(c,o));return()=>{this.watchers=this.watchers.filter(x=>x!==w)}},
@@ -428,7 +441,8 @@ async function boot(){
   S.db=db;S.connecting=false;
   if(!db){S.demo=true;seedDemo()}
   else{try{await ensureBandDocs()}catch(e){console.warn(e)}}
-  const[assets,downloads]=await Promise.all([use('assets'),use('downloads')]);
+  const[assets,downloads,mcp]=await Promise.all([use('assets'),use('downloads'),use('mcp')]);
+  S.mcp=mcp;
   S.assets=assets||(S.demo?{upload:async b=>{const id='local:'+uid();S.localUrls[id]=URL.createObjectURL(b);return{id,url:S.localUrls[id],sizeBytes:b.size,contentType:b.type}},list:async()=>({assets:[],usage:null}),delete:async()=>({deleted:true})}:null);
   S.downloads=downloads;
   renderBanner();subscribeCore();
@@ -500,6 +514,7 @@ function renderSongs(){
       <div class="stat"><span class="eyebrow">Next up</span><b style="font-size:15px;font-family:var(--f-body);font-weight:600">${next?esc(next.title)+'<span class="muted small" style="display:block;font-weight:400">'+fmtDT(next.start)+'</span>':'<span class="muted">Nothing scheduled</span>'}</b></div>
       ${album.target?`<div class="stat"><span class="eyebrow">Target</span><b style="font-size:15px;font-family:var(--f-body);font-weight:600">${esc(album.target)}</b></div>`:''}
     </div>
+    ${S.mcp&&S.assets?`<div class="row" style="margin:-8px 0 14px"><button class="btn sm" data-act="drv-open">${ICONS.media} Import audio from Google Drive</button><span class="small muted">Pulls new and updated files from the band folder into each song's versions.</span></div>`:''}
     <div class="songs ${cur?'detail-open':''}">
       <aside class="songlist" id="songList"></aside>
       <section class="songdetail" id="songDetail"></section>
@@ -896,6 +911,60 @@ async function sendMessage(){
 }
 
 /* =========================================================
+   GOOGLE DRIVE IMPORT (runs with the viewer's own connector)
+   ========================================================= */
+const DRIVE='Google Drive';
+function mcpMsg(e){const c=e&&e.code;
+  if(c==='server_not_connected'||c==='server_not_found')return'Google Drive isn\'t connected to your Claude account yet. Add it under Settings → Connectors, then try again.';
+  if(c==='needs_reauth')return'Google Drive needs to be reconnected. Open Settings → Connectors in claude.ai, reconnect Google Drive, then try again.';
+  if(c==='consent_required'||c==='approval_required'||c==='selection_required')return'Approve the Google Drive access prompt, then try again.';
+  if(c==='blocked_by_policy'||c==='not_granted'||c==='not_in_manifest')return'This page isn\'t allowed to use Google Drive for your account.';
+  if(c==='rate_limited')return'Google Drive is rate-limiting requests. Wait a minute and try again.';
+  if(c==='server_unavailable'||c==='upstream_error')return'Google Drive didn\'t answer. Try again in a moment.';
+  return'Google Drive error: '+errMsg(e)}
+function payloadOf(r){let p=r&&r.payload;if(p==null&&r&&r.content&&r.content[0]&&r.content[0].text)p=r.content[0].text;if(typeof p==='string'){try{p=JSON.parse(p)}catch(e){}}return p}
+const norm=s=>String(s||'').toLowerCase().replace(/\.[a-z0-9]+$/,'').replace(/[^a-z0-9]+/g,' ').trim();
+function matchSong(name){const n=norm(name);let best=null,score=0;
+  for(const s of S.songs){const cands=[s.title,...(s.aliases||[])].map(norm).filter(Boolean);for(const c of cands){let sc=0;if(n===c)sc=3;else if(n.includes(c)||c.includes(n))sc=2;else{const toks=c.split(' ').filter(t=>t.length>2);if(toks.length&&toks.every(t=>n.includes(t)))sc=1}if(sc>score){score=sc;best=s}}}
+  return best}
+async function drvScan(){
+  const st=$('#drvStatus'),body=$('#drvBody');st.textContent='Looking for the folder…';$('#drvGo').classList.add('hidden');
+  try{const fname=$('#drvFolder').value.trim().replace(/'/g,"\\'");
+    const fr=payloadOf(await S.mcp.callTool(DRIVE,'search_files',{query:`title = '${fname}' and mimeType = 'application/vnd.google-apps.folder'`,excludeContentSnippets:true}));
+    const folder=fr&&fr.files&&fr.files[0];if(!folder){st.textContent='';body.innerHTML=`<div class="empty small">No folder called "${esc($('#drvFolder').value)}" in your Drive.</div>`;return}
+    st.textContent='Listing files…';let files=[],tok=null;
+    do{const r=payloadOf(await S.mcp.callTool(DRIVE,'search_files',{query:`parentId = '${folder.id}'`,excludeContentSnippets:true,pageSize:100,...(tok?{pageToken:tok}:{})}));files.push(...((r&&r.files)||[]));tok=r&&r.nextPageToken||null}while(tok&&files.length<500);
+    files=files.filter(f=>(f.mimeType||'').startsWith('audio/')||AUDIO_EXT[(f.fileExtension||f.title.split('.').pop()||'').toLowerCase()]);
+    st.textContent='Checking what\'s already imported…';
+    const ex={};await Promise.all(S.songs.map(async s=>{const vs=await Store.getCol(`songs/${s.id}/versions`);vs.forEach(v=>{if(v.driveId)ex[v.driveId]={song:s,v}})}));
+    S.drv={files,existing:ex};
+    body.innerHTML=files.length?`<div class="row small muted" style="margin-bottom:4px"><span>${files.length} audio file${files.length>1?'s':''} in "${esc(folder.title)}"</span></div>`+files.map((f,i)=>{const e=ex[f.id];const same=e&&e.v.driveModified===f.modifiedTime;const m=e?e.song:matchSong(f.title);
+      return`<div class="drv"><input type="checkbox" id="drv_${i}" data-i="${i}" ${same?'':'checked'} aria-label="Import ${esc(f.title)}"><label for="drv_${i}" class="grow" style="min-width:0"><div class="fn">${esc(f.title)}</div><div class="fm">${fmtBytes(+f.fileSize||0)} · ${new Date(f.modifiedTime).toLocaleDateString()}${same?' · <span class="pill good">up to date</span>':e?' · <span class="pill warn">updated on Drive</span>':''}</div></label>
+        <select data-i="${i}" aria-label="Song for ${esc(f.title)}"><option value="">Skip</option><option value="+new" ${!m?'selected':''}>＋ New song from file name</option>${S.songs.map(s=>`<option value="${s.id}" ${m&&m.id===s.id?'selected':''}>${esc(s.title)}</option>`).join('')}</select></div>`}).join(''):`<div class="empty small">No audio files in that folder.</div>`;
+    st.textContent='';if(files.length)$('#drvGo').classList.remove('hidden');
+  }catch(e){st.textContent='';body.innerHTML=`<div class="banner">${esc(mcpMsg(e))}</div>`}
+}
+async function drvImport(){
+  const rows=[...document.querySelectorAll('#drvBody .drv')];const st=$('#drvStatus');const go=$('#drvGo');go.disabled=true;
+  let done=0,fail=0;const total=rows.filter(r=>r.querySelector('input').checked&&r.querySelector('select').value).length;
+  for(const row of rows){const cb=row.querySelector('input'),sel=row.querySelector('select');if(!cb.checked||!sel.value)continue;const f=S.drv.files[+cb.dataset.i];
+    try{st.textContent=`Downloading ${f.title} (${done+fail+1} of ${total})…`;
+      const r=payloadOf(await S.mcp.callTool(DRIVE,'download_file_content',{fileId:f.id},{cache:false}));
+      const b64=r&&r.content;if(!b64)throw new Error('empty download');
+      const bin=atob(b64);const arr=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
+      const ext=(f.fileExtension||f.title.split('.').pop()||'').toLowerCase();const file=new File([arr],f.title,{type:AUDIO_EXT[ext]||f.mimeType||'audio/mpeg'});
+      st.textContent=`Uploading ${f.title}…`;const up=await uploadAudioFile(file);
+      let songId=sel.value;
+      if(songId==='+new'){const title=f.title.replace(/\.[^.]+$/,'').replace(/[_-]+/g,' ').trim();const order=S.songs.reduce((a,s)=>Math.max(a,s.order||0),0)+1;songId=await Store.addDoc('songs',{title,order,stage:'Idea',tempo:'',key:'',timeSig:'4/4',length:'',lyrics:'',parts:{},tracked:{},sessionNotes:'',createdAt:Date.now(),by:S.me});S.songs.push({id:songId,title,order});sel.innerHTML+=`<option value="${songId}" selected>${esc(title)}</option>`}
+      const vs=await Store.getCol(`songs/${songId}/versions`);const label='v'+(vs.reduce((a,v)=>Math.max(a,+String(v.label||'').replace(/\D/g,'')||0),0)+1);
+      await Store.addDoc(`songs/${songId}/versions`,{label,name:f.title,by:S.me,at:Date.now(),assetId:up.assetId,assetIds:up.assetIds||[up.assetId],wrapped:up.wrapped,mime:up.mime,size:+f.fileSize||0,note:'Imported from Google Drive',driveId:f.id,driveModified:f.modifiedTime});
+      cb.checked=false;row.querySelector('.fm').innerHTML+=' · <span class="pill good">imported</span>';done++;
+    }catch(e){fail++;row.querySelector('.fm').innerHTML+=` · <span class="pill" style="color:var(--crit)">${esc(e&&e.code?mcpMsg(e):errMsg(e))}</span>`}
+  }
+  st.textContent=`${done} imported${fail?', '+fail+' failed':''}.`;go.disabled=false;toast(`${done} version${done===1?'':'s'} imported`);
+}
+
+/* =========================================================
    BAND
    ========================================================= */
 function renderBand(){
@@ -934,6 +1003,9 @@ document.addEventListener('click',async e=>{
     case'open-song':openSong(id);break;
     case'close-song':openSong(null);break;
     case'del-song':deleteSong(id);break;
+    case'drv-open':if(!S.me)return askWho();$('#drvBody').innerHTML='<div class="small muted">Files in the folder appear here. Each one gets matched to a song, or can start a new one.</div>';$('#drvStatus').textContent='';$('#drvGo').classList.add('hidden');$('#drvDlg').showModal();break;
+    case'drv-scan':drvScan();break;
+    case'drv-import':drvImport();break;
     case'move-song':{const i=S.songs.findIndex(x=>x.id===S.songId);const j=i+ +b.dataset.d;if(i<0||j<0||j>=S.songs.length)return;const a=S.songs[i],c=S.songs[j];const oa=a.order||i+1,oc=c.order||j+1;await Promise.all([Store.updateDoc('songs/'+a.id,{order:oa===oc?oc+ +b.dataset.d:oc}),Store.updateDoc('songs/'+c.id,{order:oa})]);break}
     case'stage':songUpdate({stage:b.dataset.v});break;
     case'cycle-part':{const s=S.songs.find(x=>x.id===S.songId);const cur=((s.parts||{})[b.dataset.k])||'todo';const nx={todo:'wip',wip:'done',done:'todo'}[cur];songUpdate({parts:{[b.dataset.k]:nx}});break}
