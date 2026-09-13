@@ -352,6 +352,75 @@ nav.tabs button.more{display:none}
 .settotal{display:flex;justify-content:space-between;font-family:var(--f-mono);font-size:13px;color:var(--muted);padding:8px 10px}
 .sdtitle.sm{font-size:clamp(20px,3vw,26px)}
 @media print{body *{visibility:hidden}#printSet,#printSet *{visibility:visible}#printSet{position:absolute;left:0;top:0;width:100%;padding:24px;font-size:16pt;color:#000;background:#fff}#printSet h1{font-size:26pt;margin:0 0 6pt}#printSet ol{margin:0;padding-left:1.4em}#printSet li{padding:4pt 0;border-bottom:1px solid #ccc;display:flex;justify-content:space-between;gap:12pt}#printSet .k{font-family:var(--f-mono);font-size:12pt;color:#444}}
+/* money */
+.bal{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
+.bal .stat b{font-family:var(--f-mono);font-weight:500}
+.bal .pos{color:var(--good)}.bal .neg{color:var(--crit)}
+.settle{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+.settle .it{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:var(--r-sm);background:var(--surface);border:1px solid var(--line-soft);font-size:14px}
+.entries{display:flex;flex-direction:column;gap:4px}
+.entry{display:grid;grid-template-columns:auto 1fr auto auto;gap:10px;align-items:center;padding:8px 10px;border-radius:var(--r-sm);background:var(--surface);border:1px solid var(--line-soft)}
+.entry .amt{font-family:var(--f-mono);font-variant-numeric:tabular-nums;text-align:right;min-width:72px}
+.entry .amt.income{color:var(--good)}.entry .amt.expense{color:var(--text)}.entry .amt.transfer{color:var(--lilac)}
+.entry .d{font-weight:500}.entry .m{font-size:12px;color:var(--muted)}
+.kindtabs{display:inline-flex;border:1px solid var(--line);border-radius:var(--r-sm);overflow:hidden}
+.kindtabs button{min-height:40px;padding:6px 14px;font-weight:500;color:var(--muted)}.kindtabs button+button{border-left:1px solid var(--line)}.kindtabs button.on{background:var(--accent-soft);color:var(--accent)}
+.splitrow{display:flex;gap:6px;flex-wrap:wrap}
+.splitrow label{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--line-soft);border-radius:999px;font-size:13.5px;cursor:pointer;min-height:40px}
+.splitrow input{width:18px;height:18px}
+.stock{display:flex;flex-direction:column;gap:4px}
+.sku{display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center;padding:8px 10px;border-radius:var(--r-sm);background:var(--surface);border:1px solid var(--line-soft)}
+.sku .c{font-family:var(--f-mono);font-size:16px;min-width:36px;text-align:center}
+.sku .c.low{color:var(--warn)}.sku .c.out{color:var(--crit)}
+/* contacts */
+.contacts{display:flex;flex-direction:column;gap:6px}
+.contact{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start;padding:10px 12px;border-radius:var(--r-sm);background:var(--surface);border:1px solid var(--line-soft)}
+.contact b{font-weight:600}.contact .m{font-size:13px;color:var(--muted);overflow-wrap:anywhere}.contact .m a{color:var(--accent)}
+/* availability */
+.avail{overflow-x:auto}
+.avail table{border-collapse:separate;border-spacing:0 3px;width:100%;min-width:360px}
+.avail th{font-family:var(--f-mono);font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:500;padding:4px 6px;text-align:left}
+.avail th.me{color:var(--accent)}
+.avail td{padding:0 3px}
+.avail td.d{font-family:var(--f-mono);font-size:12.5px;white-space:nowrap;padding:0 8px;color:var(--muted)}
+.avail tr.free td.d{color:var(--good);font-weight:600}
+.avail tr.wk td.d{color:var(--text)}
+.avail button.cell{width:100%;min-height:40px;border-radius:6px;background:var(--surface);border:1px solid var(--line-soft);font-size:13px;color:var(--faint)}
+.avail button.cell[data-v="no"]{background:var(--crit-soft);color:var(--crit);border-color:transparent}
+.avail button.cell[data-v="maybe"]{background:var(--warn-soft);color:var(--warn);border-color:transparent}
+.avail button.cell:disabled{cursor:default;opacity:.85}
+.avail tr.free button.cell:not([data-v]){background:var(--good-soft)}
+/* tools panel */
+.tools{position:fixed;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:48;width:min(360px,calc(100vw - 24px));background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:12px}
+@media (max-width:640px){.tools{bottom:calc(80px + env(safe-area-inset-bottom))}}
+.tools .hd{display:flex;align-items:center;gap:6px;margin-bottom:10px}
+.tools .hd button.tt{min-height:36px;padding:4px 12px;border-radius:999px;font-weight:500;color:var(--muted)}
+.tools .hd button.tt.on{background:var(--accent-soft);color:var(--accent)}
+.bpm{font-family:var(--f-display);font-weight:600;font-size:44px;line-height:1;text-align:center;letter-spacing:.02em}
+.beats{display:flex;justify-content:center;gap:8px;margin:10px 0}
+.beats i{width:14px;height:14px;border-radius:50%;background:var(--line);transition:background .05s}
+.beats i.on{background:var(--accent)}.beats i.acc.on{background:var(--ochre)}
+.mrow{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:8px}
+.tuner .note{font-family:var(--f-display);font-weight:800;font-size:56px;line-height:1;text-align:center}
+.tuner .cents{text-align:center;font-family:var(--f-mono);color:var(--muted);margin-top:4px}
+.needle{position:relative;height:14px;margin:12px 0;background:linear-gradient(90deg,var(--crit-soft),var(--good-soft) 45%,var(--good-soft) 55%,var(--crit-soft));border-radius:7px}
+.needle i{position:absolute;top:-4px;width:4px;height:22px;background:var(--text);border-radius:2px;left:50%;transform:translateX(-50%)}
+.needle.in i{background:var(--good)}
+.tuner .freq{font-size:12px;color:var(--faint);text-align:center;font-family:var(--f-mono)}
+/* practice mode */
+.practice{position:fixed;inset:0;z-index:55;background:var(--bg);display:flex;flex-direction:column;overflow:hidden}
+.practice .top{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line-soft)}
+.practice .title{font-family:var(--f-display);font-weight:800;font-size:clamp(22px,5vw,34px);line-height:1.1;padding:14px 16px 6px}
+.practice .meta{display:flex;gap:14px;padding:0 16px 10px;font-family:var(--f-mono);font-size:14px;color:var(--muted);flex-wrap:wrap}
+.practice .lyr{flex:1;overflow:auto;padding:0 16px 16px;font-family:var(--f-mono);font-size:clamp(16px,2.6vw,20px);line-height:1.7;white-space:pre-wrap}
+.practice .ctl{display:grid;grid-template-columns:1fr 1fr 2fr 1fr 1fr;gap:8px;padding:12px 14px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--line-soft);background:var(--surface)}
+.practice .ctl button{min-height:60px;border-radius:12px;border:1px solid var(--line);background:var(--surface);font-weight:600;font-size:15px;display:flex;align-items:center;justify-content:center;gap:6px}
+.practice .ctl button.play{background:var(--accent);color:var(--accent-ink);border-color:transparent;font-size:18px}
+.practice .ctl button.lp.on{background:var(--ochre-soft);color:var(--ochre)}
+.practice .bar{height:6px;background:var(--line-soft)}.practice .bar i{display:block;height:100%;background:var(--accent);width:0}
+.practice .list{display:flex;gap:6px;overflow-x:auto;padding:8px 14px;scrollbar-width:none}
+.practice .list button{flex:0 0 auto;padding:6px 12px;border-radius:999px;border:1px solid var(--line-soft);font-size:13px;color:var(--muted);min-height:36px}
+.practice .list button.cur{background:var(--accent-soft);color:var(--accent);border-color:transparent}
 @media (prefers-reduced-motion:no-preference){.btn,.songrow,.chk,.day{transition:background .12s,border-color .12s}}
 </style>
 
@@ -390,6 +459,36 @@ nav.tabs button.more{display:none}
   <div class="sres" id="sres"><div class="small muted">Type to search everything the band has written down.</div></div>
 </dialog>
 <div id="printSet" hidden></div>
+
+<div id="tools" class="tools hidden">
+  <div class="hd"><button class="tt on" data-act="tools-tab" data-t="metro">Metronome</button><button class="tt" data-act="tools-tab" data-t="tuner">Tuner</button><span class="grow"></span><button class="btn icon sm ghost" data-act="tools-close" aria-label="Close">✕</button></div>
+  <div id="metro">
+    <div class="bpm" id="bpmVal">120</div><div class="small muted" style="text-align:center" id="bpmSig">4/4</div>
+    <div class="beats" id="beats"></div>
+    <div class="mrow"><button class="btn sm" data-act="bpm" data-d="-5">−5</button><button class="btn sm" data-act="bpm" data-d="-1">−1</button><button class="btn primary" data-act="metro-toggle" id="metroBtn" style="min-width:96px">Start</button><button class="btn sm" data-act="bpm" data-d="1">+1</button><button class="btn sm" data-act="bpm" data-d="5">+5</button></div>
+    <div class="mrow"><button class="btn sm" data-act="tap">Tap tempo</button><select id="beatsPerBar" style="width:auto" aria-label="Beats per bar"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option><option>7</option><option>12</option></select><button class="btn sm" data-act="metro-save" id="metroSave">Save to song</button></div>
+  </div>
+  <div id="tuner" class="tuner hidden">
+    <div class="note" id="tnNote">—</div><div class="cents" id="tnCents">tap Start and play one string</div>
+    <div class="needle" id="tnNeedle"><i></i></div><div class="freq" id="tnFreq"></div>
+    <div class="mrow"><button class="btn primary" data-act="tuner-toggle" id="tunerBtn" style="min-width:96px">Start</button></div>
+  </div>
+</div>
+<div id="practice" class="practice hidden"></div>
+
+<dialog id="saleDlg">
+  <form method="dialog" id="saleForm">
+    <h2>Log a merch sale</h2>
+    <div class="formgrid">
+      <div class="field span"><label for="sale_item">Item</label><select id="sale_item"></select></div>
+      <div class="field"><label for="sale_qty">Quantity</label><input type="number" id="sale_qty" min="1" value="1"></div>
+      <div class="field"><label for="sale_price">Price each</label><input type="number" id="sale_price" min="0" step="0.5"></div>
+      <div class="field span"><label for="sale_event">At</label><select id="sale_event"><option value="">Not at a gig</option></select></div>
+      <div class="field span"><label for="sale_by">Cash held by</label><select id="sale_by"></select></div>
+    </div>
+    <div class="row" style="justify-content:flex-end;margin-top:16px"><button type="button" class="btn" data-act="dlg-close" data-dlg="saleDlg">Cancel</button><button type="submit" class="btn primary">Log sale</button></div>
+  </form>
+</dialog>
 
 <dialog id="askDlg">
   <h2 id="askTitle">Are you sure?</h2>
@@ -466,7 +565,9 @@ const S={db:null,assets:null,downloads:null,demo:false,connecting:true,
   cal:null,calSel:null,
   player:{versionId:null,url:null,peaks:null,duration:0,loading:false},
   noteTime:null,pending:new Set(),usage:null,localUrls:{},mcp:null,drv:{files:[],existing:{}},sb:null,user:null,
-  activity:[],riffs:[],setlists:[],setId:null,loop:{a:null,b:null,on:false},riffsOpen:false,feedOpen:false};
+  activity:[],riffs:[],setlists:[],setId:null,loop:{a:null,b:null,on:false},riffsOpen:false,feedOpen:false,
+  money:[],merch:[],contacts:[],avail:{},moneyKind:'expense',editContact:null,calView:'month',
+  metro:{bpm:120,beats:4,on:false,taps:[]},tuner:{on:false},practice:null};
 const AUDIO=new Audio(); AUDIO.preload='auto';
 const urlCache=new Map();
 
@@ -604,6 +705,10 @@ function subscribeCore(){
   Store.watchCol('songs',{orderBy:'order'},rows=>{S.songs=rows;if(S.songId&&!rows.find(s=>s.id===S.songId))S.songId=null;renderActive()});
   Store.watchCol('events',{orderBy:'start'},rows=>{S.events=rows;renderActive()});
   Store.watchCol('activity',{orderBy:'at',dir:'desc',limit:40},rows=>{S.activity=rows;if(S.tab==='songs')renderFeed()});
+  Store.watchCol('money',{orderBy:'date',dir:'desc'},rows=>{S.money=rows;if(S.tab==='money')renderActive()});
+  Store.watchCol('merch',{orderBy:'name'},rows=>{S.merch=rows;if(S.tab==='money')renderActive()});
+  Store.watchCol('contacts',{orderBy:'name'},rows=>{S.contacts=rows;if(S.tab==='band')renderActive()});
+  Store.watchCol('availability',{},rows=>{S.avail={};rows.forEach(r=>S.avail[r.id]=r.days||{});if(S.tab==='calendar'&&S.calView==='avail')renderActive()});
   Store.watchCol('riffs',{orderBy:'at',dir:'desc'},rows=>{S.riffs=rows;if(S.tab==='songs')renderRiffs()});
   Store.watchCol('setlists',{orderBy:'at',dir:'desc'},rows=>{S.setlists=rows;if(S.setId&&!rows.find(x=>x.id===S.setId))S.setId=null;if(S.tab==='sets')renderActive()});
 }
@@ -638,8 +743,7 @@ function renderShell(){const tab=k=>`<button data-act="tab" data-tab="${k}" ${S.
   $('#tabs').innerHTML=Object.keys(TABS).map(tab).join('')+`<button class="more" data-act="more-menu" ${MORE_TABS.includes(S.tab)?'aria-current="page"':''}>${ICONS.more}<span class="short">More</span></button>`;
   const mm=$('#moreMenu');if(mm)mm.innerHTML=MORE_TABS.map(k=>`<button data-act="tab" data-tab="${k}" ${S.tab===k?'aria-current="page"':''}>${ICONS[k]}${TABS[k][0]}</button>`).join('')}
 function setTab(t){S.tab=t;ls.set('mammuthus.tab',t);renderShell();renderActive();window.scrollTo(0,0)}
-const DRAFTS=['noteText','chatText','newSongTitle','noteEdit','noteTimeIn','refUrl','refLabel','riffTitle','riffTags','setName','newSetName'];
-function renderMoney(){$('#main').innerHTML=`<div class="empty">Money and merch are coming in the next batch.</div>`}
+const DRAFTS=['noteText','chatText','newSongTitle','noteEdit','noteTimeIn','refUrl','refLabel','riffTitle','riffTags','setName','newSetName','m_amount','m_desc','sku_name','sku_variant','sku_count','sku_price','c_name','c_phone','c_email','c_notes'];
 function renderPromo(){$('#main').innerHTML=`<div class="empty">Release checklist, content calendar and press log are coming in a later batch.</div>`}
 function withDrafts(fn){const saved={};let focus=null,sel=null;DRAFTS.forEach(id=>{const el=document.getElementById(id);if(el){saved[id]=el.value;if(document.activeElement===el){focus=id;sel=[el.selectionStart,el.selectionEnd]}}});
   fn();
@@ -675,6 +779,7 @@ function renderSongs(){
       <div class="stat"><span class="eyebrow">Next up</span><b style="font-size:15px;font-family:var(--f-body);font-weight:600">${next?esc(next.title)+'<span class="muted small" style="display:block;font-weight:400">'+fmtDT(next.start)+'</span>':'<span class="muted">Nothing scheduled</span>'}</b></div>
       ${album.target?`<div class="stat"><span class="eyebrow">Target</span><b style="font-size:15px;font-family:var(--f-body);font-weight:600">${esc(album.target)}</b></div>`:''}
     </div>
+    <div class="row" style="margin:-8px 0 10px"><button class="btn sm" data-act="practice-open" data-src="all">▶ Practice mode</button><button class="btn sm" data-act="tools-open" data-t="metro">♩ Metronome</button><button class="btn sm" data-act="tools-open" data-t="tuner">Tuner</button></div>
     ${S.assets?`<div class="row" style="margin:-8px 0 14px">${S.mcp?`<button class="btn sm" data-act="drv-open">${ICONS.media} Import audio from Google Drive</button>`:''}<button class="btn sm" data-act="bulk-open">${ICONS.songs} Bulk upload audio</button><span class="small muted">Drop a batch of demos in; each file lands on the matching song as a new version.</span></div>`:''}
     <div id="feed"></div>
     <div class="songs ${cur?'detail-open':''}">
@@ -757,6 +862,7 @@ function renderSongHead(s){
       <div class="field"><label for="sf_len">Length</label><input id="sf_len" type="text" value="${esc(s.length||'')}" data-sf="length" placeholder="3:45"></div>
       <div class="field"><label for="sf_tuning">Tuning</label><input id="sf_tuning" type="text" value="${esc(s.tuning||'')}" data-sf="tuning" placeholder="D standard"></div>
     </div>
+    <div class="row"><button class="btn sm" data-act="tools-open" data-t="metro">♩ Metronome${s.tempo?' @ '+esc(s.tempo):''}</button><button class="btn sm" data-act="tools-open" data-t="tuner">Tuner</button><button class="btn sm" data-act="practice-open" data-src="song">Practice mode</button></div>
     <div class="progress">
       <span>Writing</span><span class="bar"><i style="width:${p.w*100}%"></i></span><span class="mono">${Math.round(p.w*100)}%</span>
       <span>Tracked</span><span class="bar t"><i style="width:${p.t*100}%"></i></span><span class="mono">${Math.round(p.t*100)}%</span>
@@ -978,15 +1084,25 @@ function renderCalendar(){
       <h2>${first.toLocaleDateString(undefined,{month:'long',year:'numeric'})}</h2>
       <button class="btn icon" data-act="cal-nav" data-d="1" aria-label="Next month">›</button>
       <button class="btn ghost sm" data-act="cal-today">Today</button>
+      <span class="kindtabs" style="margin-left:6px"><button class="${S.calView==='month'?'on':''}" data-act="cal-view" data-v="month">Month</button><button class="${S.calView==='avail'?'on':''}" data-act="cal-view" data-v="avail">Availability</button></span>
       <span class="grow"></span>
       <button class="btn primary" data-act="ev-new">＋ Event</button>
     </div>
-    <div class="grid7">${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d=>`<div class="dow">${d}</div>`).join('')}
+    ${S.calView==='avail'?availGrid():`<div class="grid7">${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d=>`<div class="dow">${d}</div>`).join('')}
       ${cells.map(d=>{const k=d.toDateString();const evs=byDay[k]||[];return`<button class="day ${d.getMonth()!==m?'out':''} ${k===tk?'today':''} ${sel===k?'sel':''}" data-act="cal-sel" data-k="${k}"><span class="dn">${d.getDate()}</span>${evs.slice(0,3).map(e=>`<span class="evc ${e.type}">${esc(e.title)}</span>`).join('')}${evs.length>3?`<span class="small muted">+${evs.length-3}</span>`:''}<span class="dots">${evs.map(e=>`<i class="${e.type}"></i>`).join('')}</span></button>`}).join('')}
-    </div>
+    </div>`}
     <div class="row" style="margin-top:18px"><h3 style="font-size:15px">${sel?'On '+new Date(sel).toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long'}):'Upcoming'}</h3>${sel?`<button class="btn ghost sm" data-act="cal-clear">Show upcoming</button>`:''}</div>
     <div class="evlist">${list.length?list.map(evCard).join(''):`<div class="empty">${sel?'Nothing on this day.':'Nothing coming up. Add a practice, gig, jam or recording session.'}</div>`}</div>`;
 }
+const dayKey=d=>{const p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())};
+function availGrid(){const days=[];const t=new Date();t.setHours(0,0,0,0);for(let i=0;i<42;i++){const d=new Date(t);d.setDate(t.getDate()+i);days.push(d)}
+  const evByDay={};S.events.forEach(e=>{evByDay[dayKey(new Date(e.start))]=e});
+  return`<div class="small muted" style="margin-bottom:8px">Tap your own column to mark nights you <b>can't</b> do (tap again for <b>maybe</b>, again to clear). Rows in green are nights everyone is free.</div>
+  <div class="avail"><table><thead><tr><th>Night</th>${S.members.map(m=>`<th class="${m.id===S.me?'me':''}">${av(m.id,'sm')} ${esc(m.name.split(' ')[0])}</th>`).join('')}<th></th></tr></thead><tbody>
+  ${days.map(d=>{const k=dayKey(d);const vals=S.members.map(m=>(S.avail[m.id]||{})[k]||'');const free=S.members.length&&vals.every(v=>!v);const ev=evByDay[k];const wk=d.getDay()===5||d.getDay()===6;
+    return`<tr class="${free?'free':''} ${wk?'wk':''}"><td class="d">${d.toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'})}</td>${S.members.map((m,i)=>`<td><button class="cell" data-act="avail" data-k="${k}" data-m="${m.id}" ${vals[i]?`data-v="${vals[i]}"`:''} ${m.id===S.me?'':'disabled'} aria-label="${esc(m.name)} ${d.toDateString()}">${vals[i]==='no'?'✕':vals[i]==='maybe'?'?':''}</button></td>`).join('')}<td class="d">${ev?`<span class="evc ${ev.type}">${esc(ev.title)}</span>`:free?`<button class="btn sm ghost" data-act="avail-book" data-k="${k}">＋ book</button>`:''}</td></tr>`}).join('')}
+  </tbody></table></div>`}
+async function setAvail(k,v){if(!S.me)return askWho();const cur=S.avail[S.me]||{};const days={...cur};if(v)days[k]=v;else delete days[k];S.avail[S.me]=days;renderCalendar();try{await Store.setDoc('availability/'+S.me,{days})}catch(e){toast('Could not save: '+errMsg(e))}}
 function evCard(e){
   const d=new Date(e.start);const my=(e.rsvp||{})[S.me]||'';
   const yes=S.members.filter(m=>(e.rsvp||{})[m.id]==='yes').length;
@@ -1040,6 +1156,116 @@ function gcalLink(e){const end=evEnd(e);const q=new URLSearchParams({action:'TEM
 async function saveDownload(filename,data){if(!S.downloads)return toast('Downloads are not available in this view');try{await S.downloads.save({filename,data});toast('Saved')}catch(e){if(e&&e.code!=='declined')toast('Could not save: '+errMsg(e))}}
 
 /* =========================================================
+   MONEY & MERCH
+   ========================================================= */
+const money=n=>'$'+(Math.round(n*100)/100).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+function balances(){const b={};S.members.forEach(m=>b[m.id]=0);
+  for(const e of S.money){const amt=+e.amount||0;const split=(e.split&&e.split.length?e.split:S.members.map(m=>m.id)).filter(id=>b[id]!=null);const n=split.length||1;
+    if(e.kind==='expense'){if(b[e.by]!=null)b[e.by]+=amt;split.forEach(id=>b[id]-=amt/n)}
+    else if(e.kind==='income'){if(b[e.by]!=null)b[e.by]-=amt;split.forEach(id=>b[id]+=amt/n)}
+    else if(e.kind==='transfer'){if(b[e.by]!=null)b[e.by]+=amt;if(b[e.to]!=null)b[e.to]-=amt}}
+  return b}
+function settleUp(b){const cred=Object.entries(b).filter(([,v])=>v>0.005).map(([id,v])=>({id,v})).sort((x,y)=>y.v-x.v);const debt=Object.entries(b).filter(([,v])=>v<-0.005).map(([id,v])=>({id,v:-v})).sort((x,y)=>y.v-x.v);const out=[];
+  let i=0,j=0;while(i<cred.length&&j<debt.length){const a=Math.min(cred[i].v,debt[j].v);out.push({from:debt[j].id,to:cred[i].id,amt:a});cred[i].v-=a;debt[j].v-=a;if(cred[i].v<0.005)i++;if(debt[j].v<0.005)j++}return out}
+function renderMoney(){const b=balances();const settle=settleUp(b);const k=S.moneyKind;const today=dayKey(new Date());
+  const kitty=S.money.reduce((a,e)=>a+(e.kind==='income'?+e.amount:e.kind==='expense'?-e.amount:0),0);
+  $('#main').innerHTML=`<div class="bal">
+      <div class="stat"><span class="eyebrow">Band kitty (net)</span><b class="${kitty>=0?'pos':'neg'}">${money(kitty)}</b><span class="small muted">income minus expenses</span></div>
+      ${S.members.map(m=>`<div class="stat"><span class="eyebrow">${esc(m.name.split(' ')[0])}</span><b class="${b[m.id]>0.005?'pos':b[m.id]<-0.005?'neg':''}">${b[m.id]>0.005?'+':''}${money(b[m.id])}</b><span class="small muted">${b[m.id]>0.005?'is owed':b[m.id]<-0.005?'owes':'square'}</span></div>`).join('')}
+    </div>
+    ${settle.length?`<div class="sec" style="margin-top:0"><h3>To settle up</h3><div class="settle">${settle.map(x=>`<div class="it">${av(x.from,'sm')}<b>${esc(member(x.from).name.split(' ')[0])}</b><span class="muted">pays</span>${av(x.to,'sm')}<b>${esc(member(x.to).name.split(' ')[0])}</b><span class="grow"></span><span class="mono">${money(x.amt)}</span><button class="btn sm" data-act="settle" data-from="${x.from}" data-to="${x.to}" data-amt="${x.amt.toFixed(2)}">Mark paid</button></div>`).join('')}</div></div>`:''}
+    <div class="sec"><h3>Add</h3>
+      <form data-act="add-money" class="card" style="display:flex;flex-direction:column;gap:10px">
+        <div class="row"><span class="kindtabs">${[['expense','Expense'],['income','Income'],['transfer','Transfer']].map(([v,l])=>`<button type="button" class="${k===v?'on':''}" data-act="money-kind" data-v="${v}">${l}</button>`).join('')}</span></div>
+        <div class="formgrid">
+          <div class="field"><label for="m_amount">Amount</label><input type="number" id="m_amount" min="0" step="0.01" inputmode="decimal" required placeholder="0.00"></div>
+          <div class="field"><label for="m_date">Date</label><input type="date" id="m_date" value="${today}"></div>
+          <div class="field span"><label for="m_desc">${k==='transfer'?'Note':'What for'}</label><input type="text" id="m_desc" placeholder="${k==='expense'?'Studio deposit, strings, van fuel…':k==='income'?'Gig fee Valhalla, Bandcamp payout, merch…':'Settling up after the tour'}" ${k==='transfer'?'':'required'}></div>
+          <div class="field"><label for="m_by">${k==='expense'?'Paid by':k==='income'?'Received by':'From'}</label><select id="m_by">${S.members.map(m=>`<option value="${m.id}" ${m.id===S.me?'selected':''}>${esc(m.name)}</option>`).join('')}</select></div>
+          ${k==='transfer'?`<div class="field"><label for="m_to">To</label><select id="m_to">${S.members.filter(m=>m.id!==S.me).map(m=>`<option value="${m.id}">${esc(m.name)}</option>`).join('')}</select></div>`:`<div class="field"><label>Split between</label><div class="splitrow">${S.members.map(m=>`<label><input type="checkbox" name="m_split" value="${m.id}" checked>${esc(m.name.split(' ')[0])}</label>`).join('')}</div></div>`}
+        </div>
+        <div class="row" style="justify-content:flex-end"><button class="btn primary" type="submit">Add ${k}</button></div>
+      </form></div>
+    <div class="sec"><h3>Merch stock</h3>
+      <div class="stock">${S.merch.map(x=>`<div class="sku"><span><b>${esc(x.name)}</b>${x.variant?` <span class="muted">${esc(x.variant)}</span>`:''}<span class="small muted"> · ${money(+x.price||0)}</span></span><button class="btn icon sm" data-act="sku-adj" data-id="${x.id}" data-d="-1" aria-label="Minus one">−</button><span class="c ${+x.count<=0?'out':+x.count<=3?'low':''}">${x.count|0}</span><span class="row" style="gap:2px"><button class="btn icon sm" data-act="sku-adj" data-id="${x.id}" data-d="1" aria-label="Plus one">+</button><button class="btn icon sm ghost danger" data-act="sku-del" data-id="${x.id}" aria-label="Remove">✕</button></span></div>`).join('')||'<div class="empty small">No merch yet. Add shirts, CDs, stickers with sizes and counts.</div>'}</div>
+      <div class="row" style="margin-top:10px">${S.merch.length?`<button class="btn primary sm" data-act="sale-open">Log a sale</button>`:''}</div>
+      <form data-act="add-sku" class="row" style="margin-top:10px;align-items:stretch"><input type="text" id="sku_name" placeholder="Item (Shirt)" required class="grow" style="min-width:120px"><input type="text" id="sku_variant" placeholder="Size / variant" style="width:130px"><input type="number" id="sku_count" placeholder="Count" min="0" style="width:90px" required><input type="number" id="sku_price" placeholder="Price" min="0" step="0.5" style="width:90px"><button class="btn" type="submit">Add item</button></form></div>
+    <div class="sec"><h3>Entries</h3><div class="entries">${S.money.map(e=>`<div class="entry">${av(e.by,'sm')}<span><span class="d">${esc(e.desc||(e.kind==='transfer'?'Settled up':''))}</span><span class="m"> · ${e.date||''} · ${e.kind==='expense'?'paid by':e.kind==='income'?'received by':'from'} ${esc(member(e.by).name.split(' ')[0])}${e.kind==='transfer'?' to '+esc(member(e.to).name.split(' ')[0]):''}${e.split&&e.split.length&&e.split.length<S.members.length?' · split '+e.split.map(id=>member(id).name.split(' ')[0]).join('/'):''}${e.eventId?(()=>{const ev=S.events.find(x=>x.id===e.eventId);return ev?' · '+esc(ev.title):''})():''}</span></span><span class="amt ${e.kind}">${e.kind==='expense'?'−':e.kind==='income'?'+':''}${money(+e.amount||0)}</span><button class="btn icon sm ghost danger" data-act="money-del" data-id="${e.id}" aria-label="Delete">✕</button></div>`).join('')||'<div class="empty small">No entries yet.</div>'}</div></div>`}
+async function addMoney(){const amount=parseFloat($('#m_amount').value);if(!(amount>0))return toast('Enter an amount');const kind=S.moneyKind;const by=$('#m_by').value;
+  const data={kind,amount:Math.round(amount*100)/100,desc:$('#m_desc').value.trim(),date:$('#m_date').value||dayKey(new Date()),by,at:Date.now(),addedBy:S.me};
+  if(kind==='transfer'){data.to=$('#m_to').value;if(data.to===by)return toast('Pick two different people')}else data.split=[...document.querySelectorAll('input[name="m_split"]:checked')].map(i=>i.value);
+  await Store.addDoc('money',data);logActivity('money',`${meName()} logged ${kind==='transfer'?'a payment':'an '+kind}: ${data.desc||''} ${money(data.amount)}`);toast('Added')}
+function openSale(){$('#sale_item').innerHTML=S.merch.map(x=>`<option value="${x.id}" data-price="${+x.price||0}">${esc(x.name)}${x.variant?' '+esc(x.variant):''} (${x.count|0} left)</option>`).join('');$('#sale_price').value=(S.merch[0]&&S.merch[0].price)||'';$('#sale_qty').value=1;
+  const soon=S.events.filter(e=>e.type==='gig').sort((a,b)=>Math.abs(new Date(a.start)-Date.now())-Math.abs(new Date(b.start)-Date.now())).slice(0,8);$('#sale_event').innerHTML='<option value="">Not at a gig</option>'+soon.map(e=>`<option value="${e.id}">${esc(e.title)} · ${fmtDate(e.start)}</option>`).join('');
+  $('#sale_by').innerHTML=S.members.map(m=>`<option value="${m.id}" ${m.id===S.me?'selected':''}>${esc(m.name)}</option>`).join('');$('#saleDlg').showModal()}
+async function logSale(){const item=S.merch.find(x=>x.id===$('#sale_item').value);const qty=Math.max(1,parseInt($('#sale_qty').value)||1);const price=parseFloat($('#sale_price').value)||0;if(!item)return;
+  await Store.updateDoc('merch/'+item.id,{count:Math.max(0,(item.count|0)-qty)});
+  await Store.addDoc('money',{kind:'income',category:'merch',amount:Math.round(qty*price*100)/100,desc:`Merch: ${qty}× ${item.name}${item.variant?' '+item.variant:''}`,date:dayKey(new Date()),by:$('#sale_by').value,eventId:$('#sale_event').value||null,split:S.members.map(m=>m.id),at:Date.now(),addedBy:S.me});
+  $('#saleDlg').close();toast('Sale logged')}
+
+/* =========================================================
+   CONTACTS
+   ========================================================= */
+const CONTACT_KINDS={venue:'Venue',promoter:'Promoter',engineer:'Engineer / studio',photo:'Photo / video',band:'Band',press:'Press / radio',other:'Other'};
+function renderContacts(){const c=S.editContact?S.contacts.find(x=>x.id===S.editContact):null;const groups={};S.contacts.forEach(x=>(groups[x.kind||'other']=groups[x.kind||'other']||[]).push(x));
+  return`<div class="card wide"><span class="eyebrow">Contacts</span><p class="small muted" style="margin:4px 0 10px">Venues, promoters, engineers, photographers, other bands. Searchable from the top bar.</p>
+    <div class="contacts">${Object.entries(CONTACT_KINDS).filter(([k])=>groups[k]).map(([k,l])=>`<div class="eyebrow" style="margin-top:6px">${l}</div>`+groups[k].map(x=>`<div class="contact"><div><b>${esc(x.name)}</b><div class="m">${[x.phone?`<a href="tel:${esc(x.phone)}">${esc(x.phone)}</a>`:'',x.email?`<a href="mailto:${esc(x.email)}">${esc(x.email)}</a>`:''].filter(Boolean).join(' · ')}${x.notes?`<div>${richText(x.notes)}</div>`:''}</div></div><span class="row" style="gap:2px"><button class="btn icon sm ghost" data-act="contact-edit" data-id="${x.id}" aria-label="Edit">✎</button><button class="btn icon sm ghost danger" data-act="contact-del" data-id="${x.id}" aria-label="Delete">✕</button></span></div>`).join('')).join('')||'<div class="empty small">No contacts yet.</div>'}</div>
+    <form data-act="save-contact" class="formgrid" style="margin-top:12px"><div class="field"><label for="c_name">Name</label><input type="text" id="c_name" required value="${esc(c?c.name:'')}"></div><div class="field"><label for="c_kind">Type</label><select id="c_kind">${Object.entries(CONTACT_KINDS).map(([k,l])=>`<option value="${k}" ${c&&c.kind===k?'selected':''}>${l}</option>`).join('')}</select></div><div class="field"><label for="c_phone">Phone</label><input type="tel" id="c_phone" value="${esc(c?c.phone||'':'')}"></div><div class="field"><label for="c_email">Email</label><input type="email" id="c_email" value="${esc(c?c.email||'':'')}"></div><div class="field span"><label for="c_notes">Notes</label><input type="text" id="c_notes" placeholder="Who we dealt with, what they paid, capacity, parking…" value="${esc(c?c.notes||'':'')}"></div><div class="span row" style="justify-content:flex-end">${c?`<button type="button" class="btn ghost" data-act="contact-cancel">Cancel</button>`:''}<button class="btn primary" type="submit">${c?'Save changes':'Add contact'}</button></div></form></div>`}
+
+/* =========================================================
+   METRONOME & TUNER
+   ========================================================= */
+let AC=null;const getAC=()=>{const C=window.AudioContext||window.webkitAudioContext;if(!AC&&C)AC=new C();if(AC&&AC.state==='suspended')AC.resume();return AC};
+const M={timer:null,next:0,beat:0};
+function openTools(t,fromSong){const p=$('#tools');p.classList.remove('hidden');toolsTab(t);
+  const sg=fromSong?S.songs.find(x=>x.id===S.songId):null;if(sg&&+sg.tempo>0){S.metro.bpm=Math.round(+sg.tempo)}if(sg&&sg.timeSig){const n=parseInt(sg.timeSig);if(n>0)S.metro.beats=n}
+  $('#metroSave').classList.toggle('hidden',!S.songId);renderMetro()}
+function toolsTab(t){document.querySelectorAll('#tools .tt').forEach(b=>b.classList.toggle('on',b.dataset.t===t));$('#metro').classList.toggle('hidden',t!=='metro');$('#tuner').classList.toggle('hidden',t!=='tuner')}
+function renderMetro(){$('#bpmVal').textContent=S.metro.bpm;$('#bpmSig').textContent=S.metro.beats+' beats per bar';$('#beatsPerBar').value=S.metro.beats;$('#metroBtn').textContent=S.metro.on?'Stop':'Start';$('#metroBtn').classList.toggle('primary',!S.metro.on);
+  const b=$('#beats');if(b.children.length!==S.metro.beats)b.innerHTML=Array.from({length:S.metro.beats},(_,i)=>`<i class="${i===0?'acc':''}"></i>`).join('')}
+function click(time,accent){const ac=getAC();if(!ac)return;const o=ac.createOscillator(),g=ac.createGain();o.frequency.value=accent?1600:1000;g.gain.setValueAtTime(0.0001,time);g.gain.exponentialRampToValueAtTime(accent?0.6:0.35,time+0.002);g.gain.exponentialRampToValueAtTime(0.0001,time+0.06);o.connect(g).connect(ac.destination);o.start(time);o.stop(time+0.08)}
+function metroStart(){const ac=getAC();if(!ac)return toast('Audio is not available here');S.metro.on=true;M.next=ac.currentTime+0.05;M.beat=0;renderMetro();
+  M.timer=setInterval(()=>{const ac=getAC();while(M.next<ac.currentTime+0.12){const beat=M.beat%S.metro.beats;click(M.next,beat===0);const delay=Math.max(0,(M.next-ac.currentTime)*1000);const bi=beat;setTimeout(()=>{document.querySelectorAll('#beats i').forEach((el,i)=>el.classList.toggle('on',i===bi))},delay);M.next+=60/S.metro.bpm;M.beat++}},25)}
+function metroStop(){S.metro.on=false;clearInterval(M.timer);M.timer=null;document.querySelectorAll('#beats i').forEach(el=>el.classList.remove('on'));renderMetro()}
+function tapTempo(){const now=performance.now();const taps=S.metro.taps.filter(t=>now-t<3000);taps.push(now);S.metro.taps=taps;if(taps.length>=2){const iv=[];for(let i=1;i<taps.length;i++)iv.push(taps[i]-taps[i-1]);const avg=iv.reduce((a,b)=>a+b,0)/iv.length;S.metro.bpm=Math.max(20,Math.min(300,Math.round(60000/avg)));renderMetro()}}
+const T={stream:null,an:null,buf:null,raf:null};
+const NOTE_NAMES=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+function detectPitch(buf,sr){let rms=0;for(let i=0;i<buf.length;i++)rms+=buf[i]*buf[i];rms=Math.sqrt(rms/buf.length);if(rms<0.008)return-1;
+  const SIZE=buf.length;const MAX=Math.floor(SIZE/2);const c=new Float32Array(MAX);for(let lag=0;lag<MAX;lag++){let sum=0;for(let i=0;i<MAX;i++)sum+=buf[i]*buf[i+lag];c[lag]=sum}
+  let d=0;while(d<MAX-1&&c[d]>c[d+1])d++;let best=-1,bv=-1;for(let i=d;i<MAX;i++)if(c[i]>bv){bv=c[i];best=i}if(best<=0||bv<0.3*c[0])return-1;
+  const x1=c[best-1]||0,x2=c[best],x3=c[best+1]||0;const a=(x1+x3-2*x2)/2,b=(x3-x1)/2;const shift=a?-b/(2*a):0;return sr/(best+shift)}
+function tunerLoop(){if(!S.tuner.on)return;T.an.getFloatTimeDomainData(T.buf);const f=detectPitch(T.buf,getAC().sampleRate);
+  const note=$('#tnNote'),cents=$('#tnCents'),nd=$('#tnNeedle'),fr=$('#tnFreq');
+  if(f>0&&f<2000){const n=12*Math.log2(f/440)+69;const r=Math.round(n);const c=Math.round((n-r)*100);note.textContent=NOTE_NAMES[((r%12)+12)%12]+(Math.floor(r/12)-1);cents.textContent=(c>0?'+':'')+c+' cents'+(Math.abs(c)<=5?' · in tune':c<0?' · flat':' · sharp');nd.querySelector('i').style.left=(50+Math.max(-50,Math.min(50,c)))+'%';nd.classList.toggle('in',Math.abs(c)<=5);fr.textContent=f.toFixed(1)+' Hz'}
+  else{note.textContent='—';cents.textContent='play one string';nd.classList.remove('in')}
+  T.raf=requestAnimationFrame(tunerLoop)}
+async function tunerStart(){try{const ac=getAC();if(!ac)throw new Error('no audio');T.stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});const src=ac.createMediaStreamSource(T.stream);T.an=ac.createAnalyser();T.an.fftSize=4096;T.buf=new Float32Array(T.an.fftSize);src.connect(T.an);S.tuner.on=true;$('#tunerBtn').textContent='Stop';$('#tunerBtn').classList.remove('primary');tunerLoop()}catch(e){toast('Microphone access is needed for the tuner')}}
+function tunerStop(){S.tuner.on=false;cancelAnimationFrame(T.raf);if(T.stream)T.stream.getTracks().forEach(t=>t.stop());T.stream=null;$('#tunerBtn').textContent='Start';$('#tunerBtn').classList.add('primary');$('#tnNote').textContent='—';$('#tnCents').textContent='tap Start and play one string'}
+
+/* =========================================================
+   PRACTICE MODE
+   ========================================================= */
+async function openPractice(src,id){let ids=[];if(src==='set'){const sl=S.setlists.find(x=>x.id===id);ids=sl?sl.songIds.filter(i=>S.songs.find(x=>x.id===i)):[]}else if(src==='song')ids=S.songs.map(x=>x.id);else ids=S.songs.map(x=>x.id);
+  if(!ids.length)return toast('No songs to practise');let i=src==='song'&&S.songId?Math.max(0,ids.indexOf(S.songId)):0;
+  S.unsubSong.forEach(u=>u());S.unsubSong=[];stopPlayer();S.practice={ids,i,version:null,loading:false};$('#practice').classList.remove('hidden');document.body.style.overflow='hidden';await practiceLoad()}
+function closePractice(){$('#practice').classList.add('hidden');document.body.style.overflow='';stopPlayer();S.practice=null;if(S.songId){const id=S.songId;S.songId=null;openSong(id)}}
+async function practiceLoad(){const P=S.practice;if(!P)return;const sg=S.songs.find(x=>x.id===P.ids[P.i]);P.loading=true;P.version=null;stopPlayer();renderPractice();
+  try{const vs=(await Store.getCol(`songs/${sg.id}/versions`)).filter(v=>v.assetId).sort((a,b)=>(a.at||0)-(b.at||0));const v=vs[vs.length-1];if(v){const url=await resolveAudioUrl(v);if(S.practice!==P)return;P.version=v;AUDIO.src=url;S.player.versionId=v.id}}catch(e){}
+  P.loading=false;renderPractice()}
+function renderPractice(){const P=S.practice;if(!P)return;const sg=S.songs.find(x=>x.id===P.ids[P.i]);if(!sg)return;
+  $('#practice').innerHTML=`<div class="top"><button class="btn ghost sm" data-act="practice-close">✕ Exit</button><span class="small muted">${P.i+1} / ${P.ids.length}</span><span class="grow"></span><button class="btn sm" data-act="tools-open" data-t="metro" data-p="1">♩ ${esc(sg.tempo||'')}</button><button class="btn sm" data-act="tools-open" data-t="tuner">Tuner</button></div>
+    <div class="list">${P.ids.map((id,i)=>{const x=S.songs.find(y=>y.id===id);return`<button class="${i===P.i?'cur':''}" data-act="practice-go" data-i="${i}">${esc(x?x.title:'?')}</button>`}).join('')}</div>
+    <div class="title">${esc(sg.title)}</div>
+    <div class="meta">${sg.key?`<span>${esc(sg.key)}</span>`:''}${sg.tempo?`<span>${esc(sg.tempo)} bpm</span>`:''}${sg.timeSig?`<span>${esc(sg.timeSig)}</span>`:''}${sg.tuning?`<span>${esc(sg.tuning)}</span>`:''}<span class="muted">${P.loading?'loading audio…':P.version?P.version.label+' · '+esc(P.version.name||''):'no audio for this song'}</span></div>
+    <div class="lyr">${sg.lyrics?richText(sg.lyrics):'<span class="muted">No lyrics yet.</span>'}</div>
+    <div class="bar"><i id="pbar"></i></div>
+    <div class="ctl"><button data-act="practice-go" data-i="${P.i-1}" ${P.i===0?'disabled':''}>‹ Prev</button><button data-act="practice-seek" data-d="-10">−10s</button><button class="play" data-act="play" ${P.version?'':'disabled'}>${AUDIO.paused?'▶ Play':'❚❚ Pause'}</button><button class="lp ${S.loop.on||S.loop.a!=null?'on':''}" data-act="loop">${S.loop.on?'Loop ✕':S.loop.a!=null?'Set end':'Loop'}</button><button data-act="practice-go" data-i="${P.i+1}" ${P.i>=P.ids.length-1?'disabled':''}>Next ›</button></div>`}
+AUDIO.addEventListener('timeupdate',()=>{const b=$('#pbar');if(b&&S.practice){const d=AUDIO.duration||0;b.style.width=(d?AUDIO.currentTime/d*100:0)+'%'}});
+AUDIO.addEventListener('play',()=>{const p=$('#practice .play');if(p)p.textContent='❚❚ Pause'});
+AUDIO.addEventListener('pause',()=>{const p=$('#practice .play');if(p)p.textContent='▶ Play'});
+AUDIO.addEventListener('ended',()=>{if(S.practice&&!S.loop.on&&S.practice.i<S.practice.ids.length-1){S.practice.i++;practiceLoad()}});
+
+/* =========================================================
    SETLISTS
    ========================================================= */
 const setDur=sl=>sl.songIds.reduce((a,id)=>{const sg=S.songs.find(x=>x.id===id);return a+(sg?parseT(sg.length||'')||0:0)},0);
@@ -1053,7 +1279,7 @@ function renderSetDetail(){const c=$('#setDetail');if(!c)return;const sl=S.setli
   if(!sl){c.innerHTML=`<div class="empty" style="min-height:200px;display:grid;place-items:center"><div><b>Pick a setlist</b><br><span class="small">Order the songs, see the running time, print it for the stage, attach it to a gig.</span></div></div>`;return}
   const songs=sl.songIds.map(id=>S.songs.find(x=>x.id===id)).filter(Boolean);const rest=S.songs.filter(x=>!sl.songIds.includes(x.id));const gig=S.events.find(e=>e.gig&&e.gig.setlist===sl.id);
   c.innerHTML=`<div class="sdhead">
-    <div class="row"><button class="btn ghost sm" data-act="close-set">← All setlists</button><span class="grow"></span><button class="btn sm" data-act="print-set" data-id="${sl.id}">Print</button><button class="btn ghost sm danger" data-act="del-set" data-id="${sl.id}">Delete</button></div>
+    <div class="row"><button class="btn ghost sm" data-act="close-set">← All setlists</button><span class="grow"></span><button class="btn sm primary" data-act="practice-open" data-src="set" data-id="${sl.id}">▶ Practice this set</button><button class="btn sm" data-act="print-set" data-id="${sl.id}">Print</button><button class="btn ghost sm danger" data-act="del-set" data-id="${sl.id}">Delete</button></div>
     <input class="sdtitle sm" id="setName" type="text" value="${esc(sl.name)}" data-setf="name" aria-label="Setlist name">
     <div class="small muted">${songs.length} songs · running time ${fmtT(setDur(sl))}${gig?` · for <b>${esc(gig.title)}</b> ${fmtDate(gig.start)}`:' · not attached to a gig yet (edit a gig to attach it)'}</div></div>
     <div class="sec"><h3>Running order</h3><div class="settable">${songs.map((sg,i)=>`<div class="setsong"><span class="n">${i+1}</span><span><span class="t">${esc(sg.title)}</span><span class="m">${sg.key?`<span>${esc(sg.key)}</span>`:''}${sg.tempo?`<span>${esc(sg.tempo)} bpm</span>`:''}${sg.timeSig?`<span>${esc(sg.timeSig)}</span>`:''}${sg.length?`<span>${esc(sg.length)}</span>`:''}${sg.tuning?`<span>${esc(sg.tuning)}</span>`:''}</span></span><span class="acts"><button class="btn icon sm ghost" data-act="set-move" data-i="${i}" data-d="-1" aria-label="Move up">▲</button><button class="btn icon sm ghost" data-act="set-move" data-i="${i}" data-d="1" aria-label="Move down">▼</button></span><button class="btn icon sm ghost danger" data-act="set-remove" data-i="${i}" aria-label="Remove">✕</button></div>`).join('')||'<div class="empty small">Add songs below.</div>'}
@@ -1083,6 +1309,8 @@ async function runSearch(q){const out=$('#sres');q=q.trim().toLowerCase();if(q.l
   S.setlists.forEach(x=>{if(hit(x.name)||hit(x.notes))res.push({k:'set',t:x.name,s:x.songIds.length+' songs',act:'open-set-tab',id:x.id})});
   S.riffs.forEach(r=>{if(hit(r.title)||(r.tags||[]).some(hit))res.push({k:'riff',t:r.title,s:(r.tags||[]).join(', '),act:'goto-riffs',id:r.id})});
   try{const msgs=await Store.getCol('chat/general/messages');msgs.filter(m=>hit(m.text)).slice(-20).forEach(m=>res.push({k:'chat',t:member(m.by).name+' · '+fmtDT(new Date(m.at).toISOString()),s:snip(m.text),act:'goto-chat',id:'general'}))}catch(e){}
+  S.contacts.forEach(x=>{if(hit(x.name)||hit(x.notes)||hit(x.email)||hit(x.phone))res.push({k:'contact',t:x.name,s:[CONTACT_KINDS[x.kind]||'',x.phone,x.email].filter(Boolean).join(' · '),act:'goto-tab',id:'band'})});
+  S.money.forEach(e=>{if(hit(e.desc))res.push({k:'money',t:(e.desc||'')+' · '+money(+e.amount||0),s:e.date||'',act:'goto-tab',id:'money'})});
   const p=S.profile||{};if(hit(p.bio)||hit(JSON.stringify(p.epk||{})))res.push({k:'epk',t:'Bio / EPK',s:snip(p.bio),act:'goto-tab',id:'media'});
   out.innerHTML=res.length?res.slice(0,60).map(r=>`<button data-act="${r.act}" data-id="${r.id}"><span class="k">${r.k}</span><span><div class="t">${esc(r.t)}</div>${r.s?`<div class="s">${r.s}</div>`:''}</span></button>`).join(''):'<div class="empty small">Nothing matches.</div>'}
 function gotoSong(id){$('#searchDlg').open&&$('#searchDlg').close();if(S.tab!=='songs')setTab('songs');openSong(id);const d=$('#songDetail');if(d)d.scrollIntoView({block:'start'})}
@@ -1267,6 +1495,7 @@ function renderBand(){
         <div class="field"><label for="al_target">Target</label><input type="text" id="al_target" data-pf="album.target" value="${esc(al.target||'')}" placeholder="e.g. tracked by December"></div>
         <div class="field span"><label for="al_notes">Album notes</label><textarea id="al_notes" rows="5" data-pf="album.notes" placeholder="Running order ideas, producer, studio, budget, artwork…">${esc(al.notes||'')}</textarea></div>
       </div></div>
+    ${renderContacts()}
     <div class="card wide"><span class="eyebrow">Storage</span><div id="usage" class="small muted" style="margin-top:8px">${S.usage?usageHTML():(S.assets?'Checking…':'Not available in this view.')}</div>
       <p class="small muted" style="margin:12px 0 0">${S.sb?'Everyone who signs in shares this one database: songs, notes, versions, events and chat.':'Everyone with the link inside your Claude workspace shares this one database: songs, notes, versions, events and chat.'} Audio uploads are stored as versions and never overwritten, so older takes stay available.</p></div>
   </div>`;
@@ -1303,12 +1532,36 @@ document.addEventListener('click',async e=>{
     case'goto-chat':$('#searchDlg').close();S.chan=id;setTab('chat');break;
     case'goto-tab':$('#searchDlg').close();setTab(id);break;
     case'feed-toggle':S.feedOpen=!S.feedOpen;renderFeed();break;
+    case'cal-view':S.calView=b.dataset.v;renderCalendar();break;
+    case'avail':{if(b.dataset.m!==S.me)return;const cur=b.dataset.v||'';setAvail(b.dataset.k,cur===''?'no':cur==='no'?'maybe':'');break}
+    case'avail-book':{S.calSel=new Date(b.dataset.k+'T12:00:00').toDateString();openEventDialog(null);break}
+    case'money-kind':S.moneyKind=b.dataset.v;renderMoney();break;
+    case'money-del':{const e=S.money.find(x=>x.id===id);if(!e||!await ask('Delete entry?',`${e.desc||''} ${money(+e.amount||0)}`,{ok:'Delete',danger:true}))return;await Store.deleteDoc('money/'+id);break}
+    case'settle':{const amt=+b.dataset.amt;if(!await ask('Mark as paid?',`${member(b.dataset.from).name} paid ${member(b.dataset.to).name} ${money(amt)}.`,{ok:'Yes, paid'}))return;await Store.addDoc('money',{kind:'transfer',amount:amt,desc:'Settled up',date:dayKey(new Date()),by:b.dataset.from,to:b.dataset.to,at:Date.now(),addedBy:S.me});break}
+    case'sku-adj':{const x=S.merch.find(y=>y.id===id);if(x)Store.updateDoc('merch/'+id,{count:Math.max(0,(x.count|0)+ +b.dataset.d)}).catch(()=>{});break}
+    case'sku-del':{if(!await ask('Remove item?','',{ok:'Remove',danger:true}))return;await Store.deleteDoc('merch/'+id);break}
+    case'sale-open':openSale();break;
+    case'contact-edit':S.editContact=id;renderBand();{const i=$('#c_name');if(i){i.scrollIntoView({block:'center'});i.focus()}}break;
+    case'contact-cancel':S.editContact=null;renderBand();break;
+    case'contact-del':{if(!await ask('Delete contact?','',{ok:'Delete',danger:true}))return;await Store.deleteDoc('contacts/'+id);if(S.editContact===id)S.editContact=null;break}
+    case'tools-open':openTools(b.dataset.t,!b.dataset.p&&!!S.songId);if(b.dataset.p&&S.practice){const sg=S.songs.find(x=>x.id===S.practice.ids[S.practice.i]);if(sg&&+sg.tempo>0){S.metro.bpm=Math.round(+sg.tempo);const n=parseInt(sg.timeSig||'4');if(n>0)S.metro.beats=n;renderMetro()}}break;
+    case'tools-close':$('#tools').classList.add('hidden');if(S.metro.on)metroStop();if(S.tuner.on)tunerStop();break;
+    case'tools-tab':toolsTab(b.dataset.t);break;
+    case'bpm':S.metro.bpm=Math.max(20,Math.min(300,S.metro.bpm+ +b.dataset.d));renderMetro();break;
+    case'metro-toggle':S.metro.on?metroStop():metroStart();break;
+    case'tap':tapTempo();break;
+    case'metro-save':if(S.songId){songUpdate({tempo:S.metro.bpm});toast('Tempo saved to the song')}break;
+    case'tuner-toggle':S.tuner.on?tunerStop():tunerStart();break;
+    case'practice-open':openPractice(b.dataset.src,id);break;
+    case'practice-close':closePractice();break;
+    case'practice-go':{const i=+b.dataset.i;if(S.practice&&i>=0&&i<S.practice.ids.length){S.practice.i=i;practiceLoad()}break}
+    case'practice-seek':if(AUDIO.src)AUDIO.currentTime=Math.max(0,AUDIO.currentTime+ +b.dataset.d);break;
     case'riffs-toggle':S.riffsOpen=!S.riffsOpen;renderRiffs();break;
     case'riff-steal':{const r=S.riffs.find(x=>x.id===id);if(r)Store.updateDoc('riffs/'+id,{steal:!r.steal}).catch(()=>{});break}
     case'riff-song':riffToSong(id);break;
     case'riff-del':{const r=S.riffs.find(x=>x.id===id);if(!r||!await ask('Delete this idea?','',{ok:'Delete',danger:true}))return;await Store.deleteDoc('riffs/'+id);if(r.assetId&&S.assets)(r.assetIds||[r.assetId]).filter(a=>a&&!a.startsWith('local:')).forEach(a=>S.assets.delete(a).catch(()=>{}));break}
     case'ref-del':{const sg=S.songs.find(x=>x.id===S.songId);if(!sg)return;songUpdate({refs:{[id]:null}});break}
-    case'loop':{if(!AUDIO.src)return toast('Load a version first');const t=AUDIO.currentTime;if(S.loop.on){S.loop={a:null,b:null,on:false}}else if(S.loop.a==null){S.loop={a:t,b:null,on:false};toast('Loop start set. Press Loop again at the end.')}else{let a=S.loop.a,b=t;if(b<=a+0.5){b=a;a=Math.max(0,t)}if(b-a<0.5)b=a+2;S.loop={a,b,on:true};AUDIO.currentTime=a;AUDIO.play().catch(()=>{})}renderPlayer();break}
+    case'loop':{if(!AUDIO.src)return toast('Load a version first');const t=AUDIO.currentTime;if(S.loop.on){S.loop={a:null,b:null,on:false}}else if(S.loop.a==null){S.loop={a:t,b:null,on:false};toast('Loop start set. Press Loop again at the end.')}else{let a=S.loop.a,b=t;if(b<=a+0.5){b=a;a=Math.max(0,t)}if(b-a<0.5)b=a+2;S.loop={a,b,on:true};AUDIO.currentTime=a;AUDIO.play().catch(()=>{})}if(S.practice)renderPractice();else renderPlayer();break}
     case'vote':{const n=S.notes.find(x=>x.id===id);if(!n||!S.me)return;const v=+b.dataset.v;const cur=(n.votes||{})[S.me];Store.updateDoc(`songs/${S.songId}/notes/${id}`,{votes:{[S.me]:cur===v?null:v}}).catch(e=>toast('Could not save: '+errMsg(e)));break}
     case'open-set':S.setId=id;if(S.tab!=='sets')setTab('sets');else renderSets();break;
     case'close-set':S.setId=null;renderSets();break;
@@ -1362,6 +1615,9 @@ document.addEventListener('submit',async e=>{
   if(f.dataset.act==='add-note'){const i=$('#noteText');const t=i.value.trim();if(!t)return;i.value='';await addNote(t)}
   if(f.dataset.act==='send')await sendMessage();
   if(f.dataset.act==='add-ref'){const url=$('#refUrl').value.trim(),label=$('#refLabel').value.trim();if(!url)return;const id=uid();const sg=S.songs.find(x=>x.id===S.songId);await songUpdate({refs:mapPatch(sg&&sg.refs,{[id]:{id,url,label,by:S.me,at:Date.now()}})});$('#refUrl').value='';$('#refLabel').value=''}
+  if(f.dataset.act==='add-money'){if(!S.me)return askWho();await addMoney();}
+  if(f.dataset.act==='add-sku'){if(!S.me)return askWho();await Store.addDoc('merch',{name:$('#sku_name').value.trim(),variant:$('#sku_variant').value.trim(),count:parseInt($('#sku_count').value)||0,price:parseFloat($('#sku_price').value)||0,at:Date.now()});}
+  if(f.dataset.act==='save-contact'){if(!S.me)return askWho();const data={name:$('#c_name').value.trim(),kind:$('#c_kind').value,phone:$('#c_phone').value.trim(),email:$('#c_email').value.trim(),notes:$('#c_notes').value.trim()};if(!data.name)return;if(S.editContact)await Store.updateDoc('contacts/'+S.editContact,data);else await Store.addDoc('contacts',{...data,by:S.me,at:Date.now()});S.editContact=null;renderBand();toast('Saved')}
   if(f.dataset.act==='add-riff'){if(!S.me)return askWho();await addRiff();$('#riffTitle').value='';$('#riffTags').value=''}
   if(f.dataset.act==='new-set'){if(!S.me)return askWho();const n=$('#newSetName').value.trim();if(!n)return;$('#newSetName').value='';const id=await Store.addDoc('setlists',{name:n,songIds:[],notes:'',by:S.me,at:Date.now()});logActivity('set',`${meName()} started a setlist: ${n}`);S.setId=id;renderSets()}
   if(f.dataset.act==='set-add'){const sl=S.setlists.find(x=>x.id===S.setId);const sid=$('#setAddSong').value;if(sl&&sid&&!sl.songIds.includes(sid))setUpdate(sl.id,{songIds:[...sl.songIds,sid]})}
@@ -1369,6 +1625,7 @@ document.addEventListener('submit',async e=>{
 });
 $('#evForm').addEventListener('submit',e=>{e.preventDefault();saveEvent()});
 $('#loginForm').addEventListener('submit',e=>{e.preventDefault();doLogin()});
+$('#saleForm').addEventListener('submit',e=>{e.preventDefault();logSale()});
 document.addEventListener('change',async e=>{
   const t=e.target;
   if(t.dataset.sf&&!t.dataset.live){const k=t.dataset.sf;let v=t.value;if(k==='tempo')v=v===''?'':+v;songUpdate({[k]:v});return}
@@ -1384,6 +1641,8 @@ document.addEventListener('change',async e=>{
   if(t.id==='ev_type'){$('#gigFields').classList.toggle('hidden',t.value!=='gig')}
   if(t.dataset.setf&&!t.dataset.live&&S.setId){setUpdate(S.setId,{[t.dataset.setf]:t.value.trim()||'Untitled set'})}
   if(t.id==='searchIn'){runSearch(t.value)}
+  if(t.id==='beatsPerBar'){S.metro.beats=+t.value;renderMetro()}
+  if(t.id==='sale_item'){const o=t.selectedOptions[0];if(o)$('#sale_price').value=o.dataset.price||''}
   if(t.id==='drvLocalFiles'&&t.files.length){const files=[...t.files].map((f,i)=>({id:'file-'+i+'-'+f.name,title:f.name,fileSize:f.size,modifiedTime:new Date(f.lastModified||Date.now()).toISOString(),file:f}));drvRender(files,{},null);t.value=''}
   if(t.id==='chatFiles'){S.pendFiles.push(...t.files);renderPend();t.value=''}
   if(t.id==='logoFile'&&t.files[0]){try{const id=await uploadImage(t.files[0]);await profileUpdate({logo:id});toast('Logo updated')}catch(err){toast(errMsg(err))}t.value=''}
@@ -1397,6 +1656,8 @@ document.addEventListener('input',e=>{const t=e.target;if(t.dataset.sf&&t.datase
   if(t.id==='searchIn'){clearTimeout(searchTimer);searchTimer=setTimeout(()=>runSearch(t.value),200)}
   if(t.id==='chatText'){t.style.height='auto';t.style.height=Math.min(160,t.scrollHeight)+'px'}});
 document.addEventListener('keydown',e=>{if(e.target.id==='chatText'&&e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage()}
+  if(e.key==='Escape'&&S.practice){closePractice();return}
+  if(e.key===' '&&S.practice&&!isText(e.target)){e.preventDefault();if(AUDIO.src)AUDIO.paused?AUDIO.play().catch(()=>{}):AUDIO.pause()}
   if(e.key==='/'&&!isText(e.target)&&!$('#searchDlg').open){e.preventDefault();$('#searchDlg').showModal();setTimeout(()=>$('#searchIn').focus(),30)}});
 document.addEventListener('click',e=>{const w=e.target.closest('#wave');if(!w||!AUDIO.src)return;const r=w.getBoundingClientRect();const dur=S.player.duration||AUDIO.duration;if(!dur)return;AUDIO.currentTime=Math.max(0,Math.min(dur,(e.clientX-r.left)/r.width*dur));drawWave()});
 

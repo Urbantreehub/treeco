@@ -84,6 +84,18 @@ Standalone alternative: any static host can serve this folder directly; fill in
 - **Mentions** – @Name in notes and chat is highlighted and logged.
 - **Activity feed** – recent uploads, notes, new songs, events and mentions at
   the top of the Songs tab.
+- **Money** – expenses, income and settle-up transfers split between members,
+  per-member balances, a "who pays who" list, and merch stock with sizes,
+  counts and a sale log that books the income automatically.
+- **Contacts** (Band tab) – venues, promoters, engineers, photographers, bands,
+  press, with click-to-call and searchable notes.
+- **Availability** (Calendar tab) – six-week grid where each member marks nights
+  they can't do; nights everyone is free are highlighted with a "book" button.
+- **Metronome and tuner** – floating tools panel; the metronome takes the song's
+  tempo and time signature and can save a tapped tempo back to the song; the
+  tuner uses the microphone.
+- **Practice mode** – full-screen phone layout for a setlist or all songs:
+  latest audio, lyrics, big play/loop/prev/next, auto-advance.
 - **Band** – member names, instruments and colours; album title, target and
   notes; storage meter.
 - **Import from Google Drive** – on the Songs tab. Uses the viewer's own Google
