@@ -40,6 +40,23 @@ TreeCo project.
 Files are in a public bucket, so anyone with a file's link can play or download
 it; only signed-in members can add or delete. 100 MB per file, 1 GB free storage.
 
+### Push notifications (optional, ~10 minutes)
+
+1. Generate keys once on your laptop: `npx web-push generate-vapid-keys`.
+2. Supabase → Edge Functions → *Deploy a new function* → name `band-push` →
+   paste `supabase/functions/band-push/index.ts` (or run
+   `supabase functions deploy band-push --project-ref <ref> --workdir tools/mammuthus-sessions`).
+3. Supabase → Edge Functions → Secrets: add `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`
+   and `VAPID_SUBJECT` (`mailto:your@email`).
+4. Vercel → Environment Variables: add `BAND_VAPID_PUBLIC_KEY` (the public key
+   again) and redeploy.
+5. Each member: Band tab → Notifications → *Enable on this device*. iPhones
+   need the site added to the Home Screen first (Safari → Share → Add to Home
+   Screen), then enable from there.
+
+If you already ran `band-setup.sql` before the public EPK page existed, run it
+again once: it only adds the anonymous read rule for `band/profile`.
+
 Standalone alternative: any static host can serve this folder directly; fill in
 `config.js` instead of the Vercel env vars.
 
@@ -96,6 +113,14 @@ Standalone alternative: any static host can serve this folder directly; fill in
   tuner uses the microphone.
 - **Practice mode** – full-screen phone layout for a setlist or all songs:
   latest audio, lyrics, big play/loop/prev/next, auto-advance.
+- **Promo** – release checklists (a 14-step template per release, with owners
+  and due dates), a content calendar (posts with platform, caption, media and
+  an idea → drafted → scheduled → posted status; unposted ones show on the
+  calendar), and a press/radio outreach log.
+- **Public EPK page** (self-hosted) – `epk.html` renders the Media & EPK data
+  read-only for promoters and press; anonymous read of `band/profile` only.
+- **Push notifications** (self-hosted) – per-device web push for new versions,
+  notes, dates, money entries and @mentions, via the `band-push` Edge Function.
 - **Band** – member names, instruments and colours; album title, target and
   notes; storage meter.
 - **Import from Google Drive** – on the Songs tab. Uses the viewer's own Google

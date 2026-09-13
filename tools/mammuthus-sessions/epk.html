@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mammuthus — EPK</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<style>
+:root{color-scheme:dark}
+body{margin:0;background:#0F1316;color:#EDE7DA;font:16px/1.6 "IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+main{max-width:860px;margin:0 auto;padding:44px 20px 64px}
+h1{font-family:"Unbounded","IBM Plex Sans",sans-serif;font-weight:800;font-size:clamp(34px,7vw,56px);letter-spacing:.03em;margin:0 0 6px;line-height:1.05}
+h2{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#98A2AB;margin:40px 0 10px;font-weight:500;display:flex;align-items:center;gap:12px}
+h2::after{content:"";flex:1;height:1px;background:#222A31}
+p{white-space:pre-wrap;margin:0;max-width:65ch}
+.tag{font-size:19px;color:#6FD3C7;margin-top:6px;max-width:60ch}
+.logo{max-width:180px;max-height:180px;display:block;margin-bottom:22px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.grid figure{margin:0}.grid img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;background:#1F272E}.grid figcaption{font-size:13px;color:#98A2AB;margin-top:4px}
+a{color:#6FD3C7}
+dl{display:grid;grid-template-columns:auto 1fr;gap:6px 18px;margin:0}dt{color:#98A2AB}dd{margin:0;overflow-wrap:anywhere}
+.press p{border-left:3px solid #D9A05B;padding-left:14px;margin-bottom:14px}
+.docs a{display:inline-block;margin:0 10px 8px 0;padding:8px 14px;border:1px solid #2B343C;border-radius:8px;text-decoration:none}
+.foot{margin-top:48px;font-size:13px;color:#66707A}
+.empty{color:#98A2AB;padding:40px 0}
+</style></head><body><main id="m"><div class="empty">Loading…</div></main>
+<script>
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const listOf=x=>(Array.isArray(x)?x:Object.values(x||{})).filter(Boolean).sort((a,b)=>(a.at||0)-(b.at||0));
+(async()=>{const cfg=window.MAMMUTHUS_CONFIG||{};const m=document.getElementById('m');
+  if(!cfg.supabaseUrl||!window.supabase){m.innerHTML='<div class="empty">This page needs the self-hosted setup (config.js).</div>';return}
+  const sb=window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey);
+  const {data,error}=await sb.from('docs').select('data').eq('path','band/profile').maybeSingle();
+  if(error||!data){m.innerHTML='<div class="empty">The EPK isn\'t public yet. Run the latest band-setup.sql to allow anonymous reads of band/profile.</div>';return}
+  const p=data.data||{};const e=p.epk||{};const al=p.album||{};const pub=id=>sb.storage.from('media').getPublicUrl(id).data.publicUrl;
+  const links=(e.links||'').split(/\n+/).map(l=>l.trim()).filter(Boolean).map(l=>{const h=/^https?:/.test(l)?l:'https://'+l;return`<a href="${esc(h)}" rel="noopener">${esc(l.replace(/^https?:\/\//,''))}</a>`}).join('<br>');
+  const photos=listOf(p.photos);const docs=listOf(p.docs).filter(d=>!d.kind||d.kind==='pdf');
+  document.title=(al.title||'Mammuthus')+' — EPK';
+  m.innerHTML=`${p.logo?`<img class="logo" src="${pub(p.logo)}" alt="Logo">`:''}<h1>${esc(al.title||'Mammuthus')}</h1>${e.tagline?`<div class="tag">${esc(e.tagline)}</div>`:''}
+    ${p.bio?`<h2>Bio</h2><p>${esc(p.bio)}</p>`:''}
+    <h2>Details</h2><dl>${e.genre?`<dt>Genre</dt><dd>${esc(e.genre)}</dd>`:''}${e.hometown?`<dt>From</dt><dd>${esc(e.hometown)}</dd>`:''}${e.contact?`<dt>Booking</dt><dd>${esc(e.contact)}</dd>`:''}${links?`<dt>Links</dt><dd>${links}</dd>`:''}</dl>
+    ${e.press?`<h2>Press</h2><div class="press">${esc(e.press).split(/\n{2,}/).map(q=>`<p>${q}</p>`).join('')}</div>`:''}
+    ${photos.length?`<h2>Photos</h2><div class="grid">${photos.map(x=>`<figure><a href="${pub(x.assetId)}" target="_blank" rel="noopener"><img src="${pub(x.assetId)}" alt="${esc(x.caption||'Band photo')}" loading="lazy"></a><figcaption>${esc(x.caption||'')}</figcaption></figure>`).join('')}</div><p class="foot">Click a photo for the full-size file.</p>`:''}
+    ${docs.length?`<h2>Downloads</h2><div class="docs">${docs.map(d=>`<a href="${pub(d.assetId)}" target="_blank" rel="noopener">${esc(d.name)}</a>`).join('')}</div>`:''}
+    <div class="foot">${esc(al.title||'Mammuthus')} · electronic press kit</div>`})();
+</script></body></html>

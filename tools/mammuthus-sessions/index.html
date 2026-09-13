@@ -421,6 +421,31 @@ nav.tabs button.more{display:none}
 .practice .list{display:flex;gap:6px;overflow-x:auto;padding:8px 14px;scrollbar-width:none}
 .practice .list button{flex:0 0 auto;padding:6px 12px;border-radius:999px;border:1px solid var(--line-soft);font-size:13px;color:var(--muted);min-height:36px}
 .practice .list button.cur{background:var(--accent-soft);color:var(--accent);border-color:transparent}
+/* promo */
+.promo{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px;align-items:start}
+.promo .card.wide{grid-column:1/-1}
+.rel{border:1px solid var(--line-soft);border-radius:var(--r);background:var(--surface);padding:12px 14px;margin-bottom:10px}
+.rel .h{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.rel .h b{font-weight:600;font-size:16px}
+.rel .bar{height:6px;margin:8px 0}
+.ritems{display:flex;flex-direction:column;gap:2px}
+.ritem{display:grid;grid-template-columns:auto 1fr auto auto;gap:10px;align-items:center;min-height:44px;padding:4px 6px;border-radius:6px}
+.ritem:hover{background:var(--raised)}
+.ritem.done .t{text-decoration:line-through;color:var(--muted)}
+.ritem .due{font-family:var(--f-mono);font-size:12px;color:var(--muted);white-space:nowrap}
+.ritem .due.late{color:var(--crit)}
+.posts{display:flex;flex-direction:column;gap:6px}
+.post{display:grid;grid-template-columns:64px 1fr auto;gap:12px;align-items:start;padding:10px 12px;border:1px solid var(--line-soft);border-radius:var(--r-sm);background:var(--surface)}
+.post .d{font-family:var(--f-mono);font-size:12px;color:var(--muted);line-height:1.3}.post .d b{display:block;font-size:20px;font-weight:500;color:var(--text)}
+.post .cap{white-space:pre-wrap;overflow-wrap:anywhere;margin-top:2px}
+.post img,.post video{max-width:160px;max-height:120px;border-radius:6px;margin-top:6px;display:block}
+.st{display:inline-flex;align-items:center;min-height:32px;padding:2px 10px;border-radius:999px;font-size:12.5px;font-weight:500;border:1px solid transparent;background:var(--raised);color:var(--muted)}
+.st.drafted{background:var(--warn-soft);color:var(--warn)}.st.scheduled{background:var(--accent-soft);color:var(--accent)}.st.posted{background:var(--good-soft);color:var(--good)}
+.st.sent{background:var(--raised)}.st.replied{background:var(--accent-soft);color:var(--accent)}.st.reviewed{background:var(--good-soft);color:var(--good)}.st.declined,.st.noreply{background:var(--crit-soft);color:var(--crit)}
+.press{display:flex;flex-direction:column;gap:6px}
+.pr{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:8px 12px;border:1px solid var(--line-soft);border-radius:var(--r-sm);background:var(--surface)}
+.pr b{font-weight:600}.pr .m{font-size:12.5px;color:var(--muted);overflow-wrap:anywhere}
+.evc.post{background:var(--raised);color:var(--muted);font-style:italic}.dots i.post{background:var(--faint)}
 @media (prefers-reduced-motion:no-preference){.btn,.songrow,.chk,.day{transition:background .12s,border-color .12s}}
 </style>
 
@@ -567,7 +592,8 @@ const S={db:null,assets:null,downloads:null,demo:false,connecting:true,
   noteTime:null,pending:new Set(),usage:null,localUrls:{},mcp:null,drv:{files:[],existing:{}},sb:null,user:null,
   activity:[],riffs:[],setlists:[],setId:null,loop:{a:null,b:null,on:false},riffsOpen:false,feedOpen:false,
   money:[],merch:[],contacts:[],avail:{},moneyKind:'expense',editContact:null,calView:'month',
-  metro:{bpm:120,beats:4,on:false,taps:[]},tuner:{on:false},practice:null};
+  metro:{bpm:120,beats:4,on:false,taps:[]},tuner:{on:false},practice:null,
+  releases:[],posts:[],press:[],editPress:null,relOpen:null};
 const AUDIO=new Audio(); AUDIO.preload='auto';
 const urlCache=new Map();
 
@@ -594,7 +620,8 @@ function toast(msg,ms=2600){let t=$('.toast');if(!t){t=document.createElement('d
 function mentionRe(){const names=S.members.flatMap(m=>[m.name,(m.name||'').split(' ')[0]]).filter(n=>n&&n.length>1).map(n=>n.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'));return names.length?new RegExp('@('+[...new Set(names)].sort((a,b)=>b.length-a.length).join('|')+')\\b','gi'):null}
 function mentioned(text){const re=mentionRe();if(!re)return[];const out=new Set();let m;while((m=re.exec(text))){const n=m[1].toLowerCase();const mem=S.members.find(x=>x.name.toLowerCase()===n||x.name.toLowerCase().split(' ')[0]===n);if(mem)out.add(mem.id)}return[...out]}
 function richText(t){let h=esc(t);h=h.replace(/(https?:\/\/[^\s<]+)/g,u=>`<a href="${u}" target="_blank" rel="noopener">${u}</a>`);const re=mentionRe();if(re){const me=member(S.me);h=h.replace(re,(m,n)=>{const isMe=me&&(me.name.toLowerCase()===n.toLowerCase()||me.name.toLowerCase().split(' ')[0]===n.toLowerCase());return`<span class="mention ${isMe?'me':''}">${m}</span>`})}return h}
-async function logActivity(type,text,extra={}){try{await Store.addDoc('activity',{type,text,by:S.me,at:Date.now(),...extra})}catch(e){}}
+async function logActivity(type,text,extra={}){try{await Store.addDoc('activity',{type,text,by:S.me,at:Date.now(),...extra})}catch(e){}
+  const al=((S.profile||{}).album||{}).title||'Mammuthus';sendPush(type==='mention'?al+' · you were mentioned':al,text,extra.mentions||null)}
 function logMentions(text,where,extra){const ids=mentioned(text).filter(id=>id!==S.me);if(ids.length)logActivity('mention',`${meName()} mentioned ${ids.map(id=>member(id).name).join(', ')} in ${where}`,{...extra,mentions:ids})}
 const ago=t=>{const d=Date.now()-t;if(d<6e4)return'now';if(d<3.6e6)return Math.floor(d/6e4)+'m';if(d<8.64e7)return Math.floor(d/3.6e6)+'h';return Math.floor(d/8.64e7)+'d'};
 function av(id,cls=''){const m=member(id);return `<span class="av ${cls}" style="background:${m.color}" title="${esc(m.name)}">${esc((m.name||'?')[0].toUpperCase())}</span>`}
@@ -708,6 +735,9 @@ function subscribeCore(){
   Store.watchCol('money',{orderBy:'date',dir:'desc'},rows=>{S.money=rows;if(S.tab==='money')renderActive()});
   Store.watchCol('merch',{orderBy:'name'},rows=>{S.merch=rows;if(S.tab==='money')renderActive()});
   Store.watchCol('contacts',{orderBy:'name'},rows=>{S.contacts=rows;if(S.tab==='band')renderActive()});
+  Store.watchCol('releases',{orderBy:'at',dir:'desc'},rows=>{S.releases=rows;if(S.tab==='promo')renderActive()});
+  Store.watchCol('posts',{orderBy:'date'},rows=>{S.posts=rows;if(S.tab==='promo'||S.tab==='calendar')renderActive()});
+  Store.watchCol('press',{orderBy:'sentAt',dir:'desc'},rows=>{S.press=rows;if(S.tab==='promo')renderActive()});
   Store.watchCol('availability',{},rows=>{S.avail={};rows.forEach(r=>S.avail[r.id]=r.days||{});if(S.tab==='calendar'&&S.calView==='avail')renderActive()});
   Store.watchCol('riffs',{orderBy:'at',dir:'desc'},rows=>{S.riffs=rows;if(S.tab==='songs')renderRiffs()});
   Store.watchCol('setlists',{orderBy:'at',dir:'desc'},rows=>{S.setlists=rows;if(S.setId&&!rows.find(x=>x.id===S.setId))S.setId=null;if(S.tab==='sets')renderActive()});
@@ -743,8 +773,8 @@ function renderShell(){const tab=k=>`<button data-act="tab" data-tab="${k}" ${S.
   $('#tabs').innerHTML=Object.keys(TABS).map(tab).join('')+`<button class="more" data-act="more-menu" ${MORE_TABS.includes(S.tab)?'aria-current="page"':''}>${ICONS.more}<span class="short">More</span></button>`;
   const mm=$('#moreMenu');if(mm)mm.innerHTML=MORE_TABS.map(k=>`<button data-act="tab" data-tab="${k}" ${S.tab===k?'aria-current="page"':''}>${ICONS[k]}${TABS[k][0]}</button>`).join('')}
 function setTab(t){S.tab=t;ls.set('mammuthus.tab',t);renderShell();renderActive();window.scrollTo(0,0)}
-const DRAFTS=['noteText','chatText','newSongTitle','noteEdit','noteTimeIn','refUrl','refLabel','riffTitle','riffTags','setName','newSetName','m_amount','m_desc','sku_name','sku_variant','sku_count','sku_price','c_name','c_phone','c_email','c_notes'];
-function renderPromo(){$('#main').innerHTML=`<div class="empty">Release checklist, content calendar and press log are coming in a later batch.</div>`}
+const DRAFTS=['noteText','chatText','newSongTitle','noteEdit','noteTimeIn','refUrl','refLabel','riffTitle','riffTags','setName','newSetName','m_amount','m_desc','sku_name','sku_variant','sku_count','sku_price','c_name','c_phone','c_email','c_notes','rel_title','ri_text','po_caption','pr_outlet','pr_contact','pr_link','pr_notes'];
+
 function withDrafts(fn){const saved={};let focus=null,sel=null;DRAFTS.forEach(id=>{const el=document.getElementById(id);if(el){saved[id]=el.value;if(document.activeElement===el){focus=id;sel=[el.selectionStart,el.selectionEnd]}}});
   fn();
   Object.entries(saved).forEach(([id,v])=>{const el=document.getElementById(id);if(el&&v&&el.value!==v)el.value=v;if(el&&focus===id){el.focus();try{el.setSelectionRange(sel[0],sel[1])}catch(e){}}})}
@@ -1077,6 +1107,7 @@ function renderCalendar(){
   const today=new Date();const tk=today.toDateString();
   const cells=[];for(let i=0;i<42;i++){const d=new Date(y,m,1-startDow+i);cells.push(d)}
   const byDay={};S.events.forEach(e=>{const k=new Date(e.start).toDateString();(byDay[k]=byDay[k]||[]).push(e)});
+  S.posts.filter(p=>p.date&&p.status!=='posted').forEach(p=>{const k=new Date(p.date+'T12:00:00').toDateString();(byDay[k]=byDay[k]||[]).push({type:'post',title:'✎ '+(p.platform||'post')+(p.caption?': '+p.caption.slice(0,30):'')})});
   const sel=S.calSel;
   const list=(sel?S.events.filter(e=>new Date(e.start).toDateString()===sel):S.events.filter(e=>new Date(e.end||e.start)>=new Date(Date.now()-3.6e6*6)));
   main.innerHTML=`<div class="calhead">
@@ -1266,6 +1297,48 @@ AUDIO.addEventListener('pause',()=>{const p=$('#practice .play');if(p)p.textCont
 AUDIO.addEventListener('ended',()=>{if(S.practice&&!S.loop.on&&S.practice.i<S.practice.ids.length-1){S.practice.i++;practiceLoad()}});
 
 /* =========================================================
+   PROMO: releases, content calendar, press log
+   ========================================================= */
+const REL_TEMPLATE=['Final mixes approved','Mastering delivered','Artwork and credits final','Tracklist and titles locked','Distributor upload (Bandcamp / DistroKid)','ISRC and UPC codes','Pre-save / pre-order link live','Lyrics submitted (Spotify, Apple, Bandcamp)','Press release and EPK updated','Press and radio emails sent','Single and video scheduled','Launch show booked','Merch ordered','Release day posts scheduled'];
+const POST_STATUS=['idea','drafted','scheduled','posted'];const PLATFORMS=['Instagram','Facebook','TikTok','YouTube','Bandcamp','Newsletter','Other'];
+const PRESS_STATUS={sent:'Sent',replied:'Replied',reviewed:'Reviewed / played',declined:'Declined',noreply:'No reply'};
+function renderPromo(){const today=dayKey(new Date());const epkUrl=S.sb?location.pathname.replace(/[^/]*$/,'')+'epk.html':null;const pe=S.editPress?S.press.find(x=>x.id===S.editPress):null;
+  $('#main').innerHTML=`<div class="promo">
+    <div class="card wide"><div class="row"><span class="eyebrow">Release checklists</span><span class="grow"></span><form data-act="add-release" class="row" style="gap:6px"><input type="text" id="rel_title" placeholder="Release title (e.g. Mammuthus LP)" required style="min-width:220px"><input type="date" id="rel_date" style="width:auto" aria-label="Release date"><button class="btn primary sm" type="submit">＋ Release</button></form></div>
+      <div style="margin-top:12px">${S.releases.map(r=>{const items=listOf(r.items);const done=items.filter(i=>i.done).length;const open=S.relOpen===r.id;return`<div class="rel"><div class="h"><button class="btn ghost sm" data-act="rel-toggle" data-id="${r.id}" aria-label="Expand">${open?'▾':'▸'}</button><b>${esc(r.title)}</b>${r.date?`<span class="pill ${new Date(r.date)<new Date()?'good':'accent'}">${new Date(r.date+'T12:00:00').toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'})}</span>`:''}<span class="small muted">${done} / ${items.length} done</span><span class="grow"></span>${open?`<button class="btn icon sm ghost danger" data-act="rel-del" data-id="${r.id}" aria-label="Delete release">✕</button>`:''}</div>
+        <div class="bar"><i style="width:${items.length?done/items.length*100:0}%"></i></div>
+        ${open?`<div class="ritems">${items.map(i=>`<div class="ritem ${i.done?'done':''}"><input type="checkbox" ${i.done?'checked':''} data-act="ri-done" data-rel="${r.id}" data-id="${i.id}" aria-label="Done"><span class="t">${esc(i.text)}${i.by?` <span class="small muted">· ${esc(member(i.by).name.split(' ')[0])}</span>`:''}</span><span class="due ${i.due&&!i.done&&i.due<today?'late':''}">${i.due?new Date(i.due+'T12:00:00').toLocaleDateString(undefined,{day:'numeric',month:'short'}):''}</span><span class="row" style="gap:2px"><button class="btn icon sm ghost" data-act="ri-assign" data-rel="${r.id}" data-id="${i.id}" title="Assign / set due date" aria-label="Assign">✎</button><button class="btn icon sm ghost danger" data-act="ri-del" data-rel="${r.id}" data-id="${i.id}" aria-label="Remove">✕</button></span></div>`).join('')}</div>
+        <form data-act="add-ri" data-rel="${r.id}" class="row" style="margin-top:8px"><input type="text" id="ri_text" placeholder="Add a step…" required class="grow" style="min-width:200px"><button class="btn sm" type="submit">Add</button></form>`:''}</div>`}).join('')||'<div class="empty small">No releases yet. Add one and a standard checklist appears, ready to edit.</div>'}</div></div>
+    <div class="card"><span class="eyebrow">Content calendar</span>
+      <form data-act="add-post" class="formgrid" style="margin:10px 0 12px"><div class="field"><label for="po_date">Date</label><input type="date" id="po_date" value="${today}" required></div><div class="field"><label for="po_platform">Platform</label><select id="po_platform">${PLATFORMS.map(x=>`<option>${x}</option>`).join('')}</select></div><div class="field span"><label for="po_caption">Caption / idea</label><textarea id="po_caption" rows="2" placeholder="Studio photo dump, 'new riff' teaser, gig announce…"></textarea></div><div class="span row">${S.assets?`<label class="upl">＋ Photo or clip<input type="file" id="po_file" accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm"></label><span class="small muted" id="po_fileName"></span>`:''}<span class="grow"></span><button class="btn primary sm" type="submit">Add post</button></div></form>
+      <div class="posts">${S.posts.map(p=>{const d=new Date((p.date||today)+'T12:00:00');return`<div class="post"><div class="d"><b>${d.getDate()}</b>${d.toLocaleDateString(undefined,{month:'short'})}<br>${d.toLocaleDateString(undefined,{weekday:'short'})}</div><div><div class="row" style="gap:6px"><span class="pill">${esc(p.platform||'')}</span><span class="small muted">${esc(member(p.by).name.split(' ')[0])}</span></div><div class="cap">${richText(p.caption||'')}</div>${p.assetId?(p.kind==='video'?`<video src="${blobUrl(p.assetId)}" controls preload="metadata"></video>`:`<a href="${blobUrl(p.assetId)}" target="_blank" rel="noopener"><img src="${blobUrl(p.assetId)}" alt="" loading="lazy"></a>`):''}</div><span class="row" style="flex-direction:column;align-items:flex-end;gap:4px"><button class="st ${p.status||'idea'}" data-act="post-status" data-id="${p.id}" title="Click to advance">${p.status||'idea'}</button><button class="btn icon sm ghost danger" data-act="post-del" data-id="${p.id}" aria-label="Delete">✕</button></span></div>`}).join('')||'<div class="empty small">Nothing planned. Posts also show on the calendar.</div>'}</div></div>
+    <div class="card"><span class="eyebrow">Press and radio outreach</span>
+      <form data-act="save-press" class="formgrid" style="margin:10px 0 12px"><div class="field"><label for="pr_outlet">Outlet</label><input type="text" id="pr_outlet" required placeholder="The Obelisk, RNZ Music…" value="${esc(pe?pe.outlet:'')}"></div><div class="field"><label for="pr_contact">Contact</label><input type="text" id="pr_contact" placeholder="name / email" value="${esc(pe?pe.contact||'':'')}"></div><div class="field"><label for="pr_sentAt">Sent</label><input type="date" id="pr_sentAt" value="${pe?pe.sentAt||today:today}"></div><div class="field"><label for="pr_status">Status</label><select id="pr_status">${Object.entries(PRESS_STATUS).map(([k,l])=>`<option value="${k}" ${pe&&pe.status===k?'selected':''}>${l}</option>`).join('')}</select></div><div class="field span"><label for="pr_link">Link (review, premiere, playlist)</label><input type="url" id="pr_link" value="${esc(pe?pe.link||'':'')}"></div><div class="field span"><label for="pr_notes">Notes</label><input type="text" id="pr_notes" placeholder="What we sent, what they asked for" value="${esc(pe?pe.notes||'':'')}"></div><div class="span row" style="justify-content:flex-end">${pe?`<button type="button" class="btn ghost" data-act="press-cancel">Cancel</button>`:''}<button class="btn primary sm" type="submit">${pe?'Save changes':'Log outreach'}</button></div></form>
+      <div class="press">${S.press.map(x=>`<div class="pr"><div><b>${esc(x.outlet)}</b><div class="m">${[x.contact,x.sentAt?'sent '+new Date(x.sentAt+'T12:00:00').toLocaleDateString(undefined,{day:'numeric',month:'short'}):''].filter(Boolean).map(esc).join(' · ')}${x.link?` · <a href="${esc(x.link)}" target="_blank" rel="noopener">link</a>`:''}${x.notes?`<div>${richText(x.notes)}</div>`:''}</div></div><button class="st ${x.status||'sent'}" data-act="press-status" data-id="${x.id}" title="Click to advance">${PRESS_STATUS[x.status]||'Sent'}</button><span class="row" style="gap:2px"><button class="btn icon sm ghost" data-act="press-edit" data-id="${x.id}" aria-label="Edit">✎</button><button class="btn icon sm ghost danger" data-act="press-del" data-id="${x.id}" aria-label="Delete">✕</button></span></div>`).join('')||'<div class="empty small">No outreach logged yet.</div>'}</div></div>
+    <div class="card wide"><span class="eyebrow">Public EPK</span><p class="small muted" style="margin:4px 0 10px">${epkUrl?`A read-only page built from the Media &amp; EPK tab, safe to send to promoters and press: <a href="${esc(epkUrl)}" target="_blank" rel="noopener">${esc(location.origin+epkUrl)}</a>`:'The public EPK web page is available on the self-hosted version. Here, use Download EPK (.html) on the Media tab.'}</p><div class="row"><button class="btn sm" data-act="goto-tab" data-id="media">Edit EPK content</button>${epkUrl?`<button class="btn sm" data-act="copy-text" data-text="${esc(location.origin+epkUrl)}">Copy link</button>`:''}</div></div>
+  </div>`}
+function relUpdate(id,patch){return Store.updateDoc('releases/'+id,patch).catch(e=>toast('Could not save: '+errMsg(e)))}
+async function addRelease(){const title=$('#rel_title').value.trim();if(!title)return;const date=$('#rel_date').value||'';const items={};REL_TEMPLATE.forEach((t,i)=>{const id=uid()+i;items[id]={id,text:t,done:false,due:'',by:'',at:Date.now()+i}});
+  const id=await Store.addDoc('releases',{title,date,items,by:S.me,at:Date.now()});S.relOpen=id;if(S.tab==='promo')renderPromo();logActivity('release',`${meName()} started a release checklist: ${title}`)}
+async function addPost(){const caption=$('#po_caption').value.trim();const date=$('#po_date').value;const fi=$('#po_file');const f=fi&&fi.files[0];let up=null;
+  if(f){try{toast('Uploading…',8000);const kind=f.type.startsWith('video/')?'video':'image';const r=await S.assets.upload(f,{type:f.type});up={assetId:r.id,kind}}catch(e){return toast('Upload failed: '+errMsg(e),5000)}}
+  if(!caption&&!up)return;await Store.addDoc('posts',{date,platform:$('#po_platform').value,caption,status:'idea',by:S.me,at:Date.now(),...(up||{})});toast('Added to the content calendar')}
+
+/* =========================================================
+   PUSH NOTIFICATIONS (self-hosted only)
+   ========================================================= */
+const urlB64ToU8=b=>{const pad='='.repeat((4-b.length%4)%4);const raw=atob((b+pad).replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)))};
+async function sha1hex(str){const d=await crypto.subtle.digest('SHA-1',new TextEncoder().encode(str));return[...new Uint8Array(d)].map(b=>b.toString(16).padStart(2,'0')).join('')}
+const pushSupported=()=>!!(S.sb&&'serviceWorker' in navigator&&'PushManager' in window&&window.isSecureContext);
+async function pushEnable(){if(!pushSupported())return toast('Notifications aren\'t supported in this browser');const key=(window.MAMMUTHUS_CONFIG||{}).vapidPublicKey;if(!key)return toast('Notifications aren\'t set up on the server yet (see README, step "Push").',5000);
+  try{const perm=await Notification.requestPermission();if(perm!=='granted')return toast('Notifications were blocked for this site');
+    const reg=await navigator.serviceWorker.register('sw.js');await navigator.serviceWorker.ready;const sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlB64ToU8(key)});
+    const k=await sha1hex(sub.endpoint);const doc=await Store.getDoc('push/'+S.me);if(doc)await Store.updateDoc('push/'+S.me,{subs:{[k]:sub.toJSON()}});else await Store.setDoc('push/'+S.me,{subs:{[k]:sub.toJSON()}});
+    ls.set('mammuthus.push',k);toast('Notifications are on for this device');renderBand()}catch(e){toast('Could not enable notifications: '+errMsg(e),5000)}}
+async function pushDisable(){try{const reg=await navigator.serviceWorker.getRegistration('sw.js');const sub=reg&&await reg.pushManager.getSubscription();if(sub){const k=await sha1hex(sub.endpoint);await Store.updateDoc('push/'+S.me,{subs:{[k]:null}}).catch(()=>{});await sub.unsubscribe()}}catch(e){}ls.set('mammuthus.push','');toast('Notifications are off for this device');renderBand()}
+function sendPush(title,body,only){if(!S.sb||!S.sb.functions)return;try{S.sb.functions.invoke('band-push',{body:{title,body,url:location.href.split('#')[0],exclude:S.me,only:only&&only.length?only:null}}).catch(()=>{})}catch(e){}}
+
+/* =========================================================
    SETLISTS
    ========================================================= */
 const setDur=sl=>sl.songIds.reduce((a,id)=>{const sg=S.songs.find(x=>x.id===id);return a+(sg?parseT(sg.length||'')||0:0)},0);
@@ -1309,6 +1382,9 @@ async function runSearch(q){const out=$('#sres');q=q.trim().toLowerCase();if(q.l
   S.setlists.forEach(x=>{if(hit(x.name)||hit(x.notes))res.push({k:'set',t:x.name,s:x.songIds.length+' songs',act:'open-set-tab',id:x.id})});
   S.riffs.forEach(r=>{if(hit(r.title)||(r.tags||[]).some(hit))res.push({k:'riff',t:r.title,s:(r.tags||[]).join(', '),act:'goto-riffs',id:r.id})});
   try{const msgs=await Store.getCol('chat/general/messages');msgs.filter(m=>hit(m.text)).slice(-20).forEach(m=>res.push({k:'chat',t:member(m.by).name+' · '+fmtDT(new Date(m.at).toISOString()),s:snip(m.text),act:'goto-chat',id:'general'}))}catch(e){}
+  S.press.forEach(x=>{if(hit(x.outlet)||hit(x.notes)||hit(x.contact))res.push({k:'press',t:x.outlet,s:PRESS_STATUS[x.status]||'',act:'goto-tab',id:'promo'})});
+  S.posts.forEach(x=>{if(hit(x.caption))res.push({k:'post',t:(x.platform||'')+' · '+(x.date||''),s:snip(x.caption),act:'goto-tab',id:'promo'})});
+  S.releases.forEach(r=>{if(hit(r.title)||listOf(r.items).some(i=>hit(i.text)))res.push({k:'release',t:r.title,s:listOf(r.items).filter(i=>!i.done).length+' steps open',act:'goto-tab',id:'promo'})});
   S.contacts.forEach(x=>{if(hit(x.name)||hit(x.notes)||hit(x.email)||hit(x.phone))res.push({k:'contact',t:x.name,s:[CONTACT_KINDS[x.kind]||'',x.phone,x.email].filter(Boolean).join(' · '),act:'goto-tab',id:'band'})});
   S.money.forEach(e=>{if(hit(e.desc))res.push({k:'money',t:(e.desc||'')+' · '+money(+e.amount||0),s:e.date||'',act:'goto-tab',id:'money'})});
   const p=S.profile||{};if(hit(p.bio)||hit(JSON.stringify(p.epk||{})))res.push({k:'epk',t:'Bio / EPK',s:snip(p.bio),act:'goto-tab',id:'media'});
@@ -1325,7 +1401,7 @@ function renderMedia(){
       ${p.logo?`<img class="logo" src="${blobUrl(p.logo)}" alt="Band logo">`:`<div class="logo" style="display:grid;place-items:center;color:var(--faint);font-size:12px">no logo</div>`}
       <div class="grow"><span class="eyebrow">Bio</span>
         <textarea id="pf_bio" rows="7" data-pf="bio" placeholder="Who we are, where we're from, what Mammuthus is about…" style="margin-top:6px">${esc(p.bio||'')}</textarea>
-        <div class="row" style="margin-top:8px">${canUp?`<label class="upl">Upload logo<input type="file" id="logoFile" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"></label>`:''}<button class="btn sm" data-act="copy-epk">Copy EPK as text</button>${S.downloads?`<button class="btn sm" data-act="dl-epk">Download EPK (.html)</button>`:''}</div>
+        <div class="row" style="margin-top:8px">${canUp?`<label class="upl">Upload logo<input type="file" id="logoFile" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"></label>`:''}<button class="btn sm" data-act="copy-epk">Copy EPK as text</button>${S.sb?`<a class="btn sm" href="${location.pathname.replace(/[^/]*$/,'')}epk.html" target="_blank" rel="noopener">Public EPK page ↗</a>`:''}${S.downloads?`<button class="btn sm" data-act="dl-epk">Download EPK (.html)</button>`:''}</div>
       </div></div></div>
     <div class="card"><span class="eyebrow">EPK details</span>
       <div class="formgrid" style="margin-top:10px">
@@ -1495,6 +1571,7 @@ function renderBand(){
         <div class="field"><label for="al_target">Target</label><input type="text" id="al_target" data-pf="album.target" value="${esc(al.target||'')}" placeholder="e.g. tracked by December"></div>
         <div class="field span"><label for="al_notes">Album notes</label><textarea id="al_notes" rows="5" data-pf="album.notes" placeholder="Running order ideas, producer, studio, budget, artwork…">${esc(al.notes||'')}</textarea></div>
       </div></div>
+    ${S.sb?`<div class="card"><span class="eyebrow">Notifications</span><p class="small muted" style="margin:4px 0 10px">Get a ping on this device for new versions, notes, dates, money entries and @mentions.</p>${pushSupported()?(ls.get('mammuthus.push')?`<div class="row"><span class="pill good">On for this device</span><button class="btn sm" data-act="push-off">Turn off</button></div>`:`<button class="btn primary sm" data-act="push-on">Enable on this device</button>`):'<span class="small muted">Not supported in this browser. On iPhone, add the site to your Home Screen first, then enable here.</span>'}</div>`:''}
     ${renderContacts()}
     <div class="card wide"><span class="eyebrow">Storage</span><div id="usage" class="small muted" style="margin-top:8px">${S.usage?usageHTML():(S.assets?'Checking…':'Not available in this view.')}</div>
       <p class="small muted" style="margin:12px 0 0">${S.sb?'Everyone who signs in shares this one database: songs, notes, versions, events and chat.':'Everyone with the link inside your Claude workspace shares this one database: songs, notes, versions, events and chat.'} Audio uploads are stored as versions and never overwritten, so older takes stay available.</p></div>
@@ -1533,6 +1610,19 @@ document.addEventListener('click',async e=>{
     case'goto-tab':$('#searchDlg').close();setTab(id);break;
     case'feed-toggle':S.feedOpen=!S.feedOpen;renderFeed();break;
     case'cal-view':S.calView=b.dataset.v;renderCalendar();break;
+    case'copy-text':try{await navigator.clipboard.writeText(b.dataset.text);toast('Copied')}catch(err){toast('Copy not allowed here')}break;
+    case'rel-toggle':S.relOpen=S.relOpen===id?null:id;renderPromo();break;
+    case'rel-del':{const r=S.releases.find(x=>x.id===id);if(!r||!await ask('Delete release checklist?',r.title,{ok:'Delete',danger:true}))return;await Store.deleteDoc('releases/'+id);break}
+    case'ri-del':relUpdate(b.dataset.rel,{items:{[id]:null}});break;
+    case'ri-assign':{const r=S.releases.find(x=>x.id===b.dataset.rel);const it=r&&listOf(r.items).find(x=>x.id===id);if(!it)return;const who=await ask('Who owns this step?','Type a first name, or leave blank to unassign. Add a due date after a comma, e.g. "Jed, 2026-10-01".',{ok:'Save',input:'Name, YYYY-MM-DD'});if(who===false)return;const [nm,due]=String(who).split(',').map(x=>x.trim());const mem=nm?S.members.find(m=>m.name.toLowerCase().startsWith(nm.toLowerCase())):null;relUpdate(b.dataset.rel,{items:{[id]:{...it,by:mem?mem.id:'',due:/^\d{4}-\d{2}-\d{2}$/.test(due||'')?due:it.due||''}}});break}
+    case'post-status':{const p=S.posts.find(x=>x.id===id);if(!p)return;const i=POST_STATUS.indexOf(p.status||'idea');Store.updateDoc('posts/'+id,{status:POST_STATUS[(i+1)%POST_STATUS.length]}).catch(()=>{});break}
+    case'post-del':{const p=S.posts.find(x=>x.id===id);if(!p||!await ask('Delete post?','',{ok:'Delete',danger:true}))return;await Store.deleteDoc('posts/'+id);if(p.assetId&&S.assets&&!p.assetId.startsWith('local:'))S.assets.delete(p.assetId).catch(()=>{});break}
+    case'press-status':{const x=S.press.find(y=>y.id===id);if(!x)return;const keys=Object.keys(PRESS_STATUS);const i=keys.indexOf(x.status||'sent');Store.updateDoc('press/'+id,{status:keys[(i+1)%keys.length]}).catch(()=>{});break}
+    case'press-edit':S.editPress=id;renderPromo();{const i=$('#pr_outlet');if(i){i.scrollIntoView({block:'center'});i.focus()}}break;
+    case'press-cancel':S.editPress=null;renderPromo();break;
+    case'press-del':{if(!await ask('Delete this entry?','',{ok:'Delete',danger:true}))return;await Store.deleteDoc('press/'+id);if(S.editPress===id)S.editPress=null;break}
+    case'push-on':pushEnable();break;
+    case'push-off':pushDisable();break;
     case'avail':{if(b.dataset.m!==S.me)return;const cur=b.dataset.v||'';setAvail(b.dataset.k,cur===''?'no':cur==='no'?'maybe':'');break}
     case'avail-book':{S.calSel=new Date(b.dataset.k+'T12:00:00').toDateString();openEventDialog(null);break}
     case'money-kind':S.moneyKind=b.dataset.v;renderMoney();break;
@@ -1618,6 +1708,10 @@ document.addEventListener('submit',async e=>{
   if(f.dataset.act==='add-money'){if(!S.me)return askWho();await addMoney();}
   if(f.dataset.act==='add-sku'){if(!S.me)return askWho();await Store.addDoc('merch',{name:$('#sku_name').value.trim(),variant:$('#sku_variant').value.trim(),count:parseInt($('#sku_count').value)||0,price:parseFloat($('#sku_price').value)||0,at:Date.now()});}
   if(f.dataset.act==='save-contact'){if(!S.me)return askWho();const data={name:$('#c_name').value.trim(),kind:$('#c_kind').value,phone:$('#c_phone').value.trim(),email:$('#c_email').value.trim(),notes:$('#c_notes').value.trim()};if(!data.name)return;if(S.editContact)await Store.updateDoc('contacts/'+S.editContact,data);else await Store.addDoc('contacts',{...data,by:S.me,at:Date.now()});S.editContact=null;renderBand();toast('Saved')}
+  if(f.dataset.act==='add-release'){if(!S.me)return askWho();await addRelease();$('#rel_title').value=''}
+  if(f.dataset.act==='add-ri'){const r=S.releases.find(x=>x.id===f.dataset.rel);const text=$('#ri_text').value.trim();if(!r||!text)return;const id=uid();relUpdate(r.id,{items:{[id]:{id,text,done:false,due:'',by:'',at:Date.now()}}});$('#ri_text').value=''}
+  if(f.dataset.act==='add-post'){if(!S.me)return askWho();await addPost();$('#po_caption').value='';const n=$('#po_fileName');if(n)n.textContent=''}
+  if(f.dataset.act==='save-press'){if(!S.me)return askWho();const data={outlet:$('#pr_outlet').value.trim(),contact:$('#pr_contact').value.trim(),sentAt:$('#pr_sentAt').value,status:$('#pr_status').value,link:$('#pr_link').value.trim(),notes:$('#pr_notes').value.trim()};if(!data.outlet)return;if(S.editPress)await Store.updateDoc('press/'+S.editPress,data);else await Store.addDoc('press',{...data,by:S.me,at:Date.now()});S.editPress=null;renderPromo();toast('Saved')}
   if(f.dataset.act==='add-riff'){if(!S.me)return askWho();await addRiff();$('#riffTitle').value='';$('#riffTags').value=''}
   if(f.dataset.act==='new-set'){if(!S.me)return askWho();const n=$('#newSetName').value.trim();if(!n)return;$('#newSetName').value='';const id=await Store.addDoc('setlists',{name:n,songIds:[],notes:'',by:S.me,at:Date.now()});logActivity('set',`${meName()} started a setlist: ${n}`);S.setId=id;renderSets()}
   if(f.dataset.act==='set-add'){const sl=S.setlists.find(x=>x.id===S.setId);const sid=$('#setAddSong').value;if(sl&&sid&&!sl.songIds.includes(sid))setUpdate(sl.id,{songIds:[...sl.songIds,sid]})}
@@ -1635,6 +1729,8 @@ document.addEventListener('change',async e=>{
   if(ac==='mem-role')membersSave(S.members.map(m=>m.id===t.dataset.id?{...m,role:t.value.trim()}:m));
   if(ac==='photo-cap'){const ph=listOf(S.profile.photos).find(p=>p.id===t.dataset.id);if(ph)profileUpdate({photos:mapPatch(S.profile.photos,{[ph.id]:{...ph,caption:t.value}})})}
   if(t.id==='noteTimeIn'){const v=parseT(t.value);if(v==null)toast('Use m:ss, e.g. 1:23');else S.noteTime=Math.max(0,Math.floor(v));renderNotes();$('#noteText')&&$('#noteText').focus()}
+  if(t.dataset.act==='ri-done'){const r=S.releases.find(x=>x.id===t.dataset.rel);const it=r&&listOf(r.items).find(x=>x.id===t.dataset.id);if(it)relUpdate(r.id,{items:{[it.id]:{...it,done:t.checked,doneBy:t.checked?S.me:'',doneAt:t.checked?Date.now():0}}})}
+  if(t.id==='po_file'){const n=$('#po_fileName');if(n)n.textContent=t.files[0]?t.files[0].name:''}
   if(t.dataset.act==='note-done')Store.updateDoc(`songs/${S.songId}/notes/${t.dataset.id}`,{done:t.checked}).catch(e=>toast('Could not save: '+errMsg(e)));
   if(t.id==='verFile'&&t.files[0]){addVersion(t.files[0]);t.value=''}
   if(t.id==='riffFile'){const n=$('#riffFileName');if(n)n.textContent=t.files[0]?t.files[0].name:''}

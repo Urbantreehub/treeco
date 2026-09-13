@@ -1,4 +1,4 @@
--- Mammuthus Sessions: ONE-PASTE SETUP (schema + seed). Paste into Supabase SQL Editor and Run.
+-- Mammuthus Sessions: ONE-PASTE SETUP (schema + seed). Paste into Supabase SQL Editor and Run. Safe to re-run.
 
 -- Mammuthus Sessions — Supabase schema
 -- Run once in the Supabase SQL editor (Dashboard → SQL Editor → New query → paste → Run).
@@ -26,6 +26,10 @@ create policy "band read"   on public.docs for select to authenticated using (tr
 create policy "band insert" on public.docs for insert to authenticated with check (true);
 create policy "band update" on public.docs for update to authenticated using (true) with check (true);
 create policy "band delete" on public.docs for delete to authenticated using (true);
+
+-- The public EPK page (epk.html) reads one document without signing in.
+drop policy if exists "public epk" on public.docs;
+create policy "public epk" on public.docs for select to anon using (path = 'band/profile');
 
 -- Recursive merge: objects merge key by key, everything else (arrays, scalars, null) replaces.
 create or replace function public.jsonb_deep_merge(a jsonb, b jsonb)

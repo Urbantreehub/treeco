@@ -2,6 +2,7 @@
 // writes its config.js from environment variables set in the Vercel project:
 //   BAND_SUPABASE_URL       e.g. https://xxxx.supabase.co
 //   BAND_SUPABASE_ANON_KEY  the anon/public key of the band's Supabase project
+//   BAND_VAPID_PUBLIC_KEY   (optional) public VAPID key for push notifications
 // Runs after `vite build` (see vercel.json). Without the env vars the app still
 // deploys but opens in preview mode.
 const fs = require('fs');
@@ -9,9 +10,13 @@ const path = require('path');
 const src = path.join(__dirname, '..', 'tools', 'mammuthus-sessions', 'index.html');
 const outDir = path.join(__dirname, '..', 'frontend', 'dist', 'band');
 fs.mkdirSync(outDir, { recursive: true });
-fs.copyFileSync(src, path.join(outDir, 'index.html'));
+for (const f of ['index.html', 'epk.html', 'sw.js']) {
+  const from = path.join(path.dirname(src), f);
+  if (fs.existsSync(from)) fs.copyFileSync(from, path.join(outDir, f));
+}
 const url = process.env.BAND_SUPABASE_URL || '';
 const key = process.env.BAND_SUPABASE_ANON_KEY || '';
+const vapid = process.env.BAND_VAPID_PUBLIC_KEY || '';
 fs.writeFileSync(path.join(outDir, 'config.js'),
-  `window.MAMMUTHUS_CONFIG = ${JSON.stringify({ supabaseUrl: url, supabaseAnonKey: key })};\n`);
+  `window.MAMMUTHUS_CONFIG = ${JSON.stringify({ supabaseUrl: url, supabaseAnonKey: key, vapidPublicKey: vapid })};\n`);
 console.log(`[band] wrote ${outDir} (${url ? 'Supabase configured' : 'no BAND_SUPABASE_* env vars, preview mode'})`);
