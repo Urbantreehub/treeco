@@ -617,12 +617,14 @@ function renderPlayer(){
     </div>
     <div class="versions" style="margin-top:10px" id="verList"></div>
     <div class="row" style="margin-top:10px">
-      ${canUp?`<label class="upl">＋ Upload new version<input type="file" id="verFile" accept="audio/*,.mp3,.wav,.m4a,.aiff,.aif,.ogg,.flac,.mp4,.webm"></label><span class="muted small">MP3 or M4A load fastest · WAV and AIFF work too</span>`:`<span class="muted small">Uploads are available to band members with edit access.</span>`}
+      ${canUp?`<label class="upl">＋ Upload new version<input type="file" id="verFile" accept="audio/*,.mp3,.wav,.m4a,.aiff,.aif,.ogg,.flac,.mp4,.webm"></label><span class="muted small">MP3 or M4A load fastest · WAV and AIFF work too</span>`:''}
+      ${S.downloads&&S.versions.some(v=>v.assetId)?`<button class="btn sm ghost" data-act="dl-all">↓ Download all versions (.zip)</button>`:''}
+      ${canUp?``:`<span class="muted small">Uploads are available to band members with edit access.</span>`}
     </div>`;
   $('#verList').innerHTML=S.versions.length?[...S.versions].reverse().map(x=>`<div class="ver" ${x.id===S.player.versionId?'aria-current="true"':''}>
       <span class="vl">${esc(x.label)}</span>
       <div class="grow"><div class="vn">${esc(x.name||'Untitled')} ${x.id===latest.id?'<span class="pill accent">latest</span>':''}</div><div class="vm">${esc(member(x.by).name)} · ${fmtDate(new Date(x.at).toISOString())}${x.size?' · '+fmtBytes(x.size):''}${x.note?' · '+esc(x.note):''} · ${S.notes.filter(n=>n.versionId===x.id).length} notes</div></div>
-      <div class="row" style="gap:2px"><button class="btn sm ${x.id===S.player.versionId?'primary':''}" data-act="load-ver" data-id="${x.id}" ${x.assetId?'':'disabled'}>${x.id===S.player.versionId?'Loaded':'Load'}</button>${x.assetId&&!x.wrapped&&S.downloads?`<button class="btn icon sm ghost" data-act="dl-ver" data-id="${x.id}" title="Download" aria-label="Download">↓</button>`:''}<button class="btn sm ghost danger" data-act="del-ver" data-id="${x.id}" title="Delete version">✕</button></div>
+      <div class="row" style="gap:2px"><button class="btn sm ${x.id===S.player.versionId?'primary':''}" data-act="load-ver" data-id="${x.id}" ${x.assetId?'':'disabled'}>${x.id===S.player.versionId?'Loaded':'Load'}</button>${x.assetId&&S.downloads?`<button class="btn icon sm ghost" data-act="dl-ver" data-id="${x.id}" title="Download ${esc(x.name||'')}" aria-label="Download">↓</button>`:''}<button class="btn sm ghost danger" data-act="del-ver" data-id="${x.id}" title="Delete version">✕</button></div>
     </div>`).join(''):'';
   drawWave();
 }
@@ -668,6 +670,32 @@ AUDIO.addEventListener('pause',()=>{const b=$('[data-act="play"]');if(b)b.innerH
 AUDIO.addEventListener('error',()=>{if(S.player.versionId)toast('This browser could not play that file. Try uploading an MP3 or M4A.')});
 window.addEventListener('resize',drawWave);
 
+/* ---- downloads: mp4/webm save as-is; other audio is packaged into a stored .zip (an allowed download type) */
+const CRC_T=(()=>{const t=new Uint32Array(256);for(let i=0;i<256;i++){let c=i;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[i]=c}return t})();
+function crc32(u8){let c=~0;for(let i=0;i<u8.length;i++)c=CRC_T[(c^u8[i])&255]^(c>>>8);return(~c)>>>0}
+function zipStore(files){const enc=new TextEncoder();const parts=[],central=[];let off=0;const d=new Date();
+  const dt=((d.getHours()<<11)|(d.getMinutes()<<5)|(d.getSeconds()>>1))&0xffff,dd=(((d.getFullYear()-1980)<<9)|((d.getMonth()+1)<<5)|d.getDate())&0xffff;
+  for(const f of files){const n=enc.encode(f.name);const crc=crc32(f.data);const sz=f.data.length;
+    const lh=new DataView(new ArrayBuffer(30));lh.setUint32(0,0x04034b50,true);lh.setUint16(4,20,true);lh.setUint16(6,0x0800,true);lh.setUint16(8,0,true);lh.setUint16(10,dt,true);lh.setUint16(12,dd,true);lh.setUint32(14,crc,true);lh.setUint32(18,sz,true);lh.setUint32(22,sz,true);lh.setUint16(26,n.length,true);lh.setUint16(28,0,true);
+    parts.push(lh.buffer,n,f.data);
+    const ch=new DataView(new ArrayBuffer(46));ch.setUint32(0,0x02014b50,true);ch.setUint16(4,20,true);ch.setUint16(6,20,true);ch.setUint16(8,0x0800,true);ch.setUint16(10,0,true);ch.setUint16(12,dt,true);ch.setUint16(14,dd,true);ch.setUint32(16,crc,true);ch.setUint32(20,sz,true);ch.setUint32(24,sz,true);ch.setUint16(28,n.length,true);ch.setUint16(30,0,true);ch.setUint16(32,0,true);ch.setUint16(34,0,true);ch.setUint16(36,0,true);ch.setUint32(38,0,true);ch.setUint32(42,off,true);
+    central.push(ch.buffer,n);off+=30+n.length+sz}
+  const cd=central.reduce((a,b)=>a+b.byteLength,0);const e=new DataView(new ArrayBuffer(22));e.setUint32(0,0x06054b50,true);e.setUint16(4,0,true);e.setUint16(6,0,true);e.setUint16(8,files.length,true);e.setUint16(10,files.length,true);e.setUint32(12,cd,true);e.setUint32(16,off,true);e.setUint16(20,0,true);
+  return new Blob([...parts,...central,e.buffer],{type:'application/zip'})}
+const safeName=n=>String(n||'audio').replace(/[\\/:*?"<>|]+/g,'-').trim();
+async function audioBytes(item){const url=await resolveAudioUrl(item);if(!url)throw new Error('No audio file attached');const r=await fetch(url);if(!r.ok)throw new Error('Audio file missing');return new Uint8Array(await r.arrayBuffer())}
+async function downloadAudio(item,zipName){
+  if(!S.downloads)return toast('Downloads aren\'t available in this view');
+  const ext=(String(item.name||'').split('.').pop()||'').toLowerCase();
+  try{toast('Preparing download…',6000);
+    if(!item.wrapped&&(ext==='mp4'||ext==='webm')){const bytes=await audioBytes(item);return saveDownload(safeName(item.name),new Blob([bytes],{type:item.mime||'video/mp4'}))}
+    const bytes=await audioBytes(item);const name=safeName(item.name||'audio.'+(ext||'mp3'));
+    return saveDownload(safeName(zipName||name.replace(/\.[^.]+$/,''))+'.zip',zipStore([{name,data:bytes}]))
+  }catch(e){toast('Could not download: '+errMsg(e),5000)}}
+async function downloadAllVersions(){
+  if(!S.downloads)return;const s=S.songs.find(x=>x.id===S.songId);const vs=S.versions.filter(v=>v.assetId);if(!vs.length)return toast('No audio to download');
+  try{toast(`Packaging ${vs.length} file${vs.length>1?'s':''}…`,15000);const files=[];for(const v of vs){files.push({name:safeName(v.label+' - '+(v.name||'audio')),data:await audioBytes(v)})}
+    await saveDownload(safeName(s.title||'song')+' - all versions.zip',zipStore(files))}catch(e){toast('Could not download: '+errMsg(e),5000)}}
 async function uploadAudioFile(file){
   const ext=(file.name.split('.').pop()||'').toLowerCase();
   const direct=DIRECT_AUDIO[ext];
@@ -825,7 +853,7 @@ function renderMedia(){
         <div class="field span"><label for="pf_press">Press quotes / highlights</label><textarea id="pf_press" rows="3" data-pf="epk.press">${esc(epk.press||'')}</textarea></div>
       </div></div>
     <div class="card"><span class="eyebrow">Files</span><p class="small muted" style="margin:4px 0 10px">Press kit PDF, stage plot, tech rider, live video, released tracks.</p>
-      <div class="docs">${listOf(p.docs).map(d=>`<div class="doc"><span class="grow"><a href="${blobUrl(d.assetId)}" target="_blank" rel="noopener">${esc(d.name)}</a><span class="small muted"> · ${fmtBytes(d.size||0)} · ${esc(member(d.by).name)}</span></span><button class="btn icon sm ghost danger" data-act="del-doc" data-id="${d.id}" title="Remove" aria-label="Remove">✕</button>${d.kind==='video'?`<video src="${blobUrl(d.assetId)}" controls preload="metadata"></video>`:d.kind==='audio'?`<audio controls preload="none" data-aid="${d.assetId}" data-aids="${(d.assetIds||[]).join(',')}" data-wrapped="${d.wrapped?1:0}" ${d.wrapped?'':`src="${blobUrl(d.assetId)}"`}></audio>`:''}</div>`).join('')||'<div class="empty small">No files yet.</div>'}</div>
+      <div class="docs">${listOf(p.docs).map(d=>`<div class="doc"><span class="grow"><a href="${blobUrl(d.assetId)}" target="_blank" rel="noopener">${esc(d.name)}</a><span class="small muted"> · ${fmtBytes(d.size||0)} · ${esc(member(d.by).name)}</span></span>${(d.kind==='audio'||d.kind==='video')&&S.downloads?`<button class="btn icon sm ghost" data-act="dl-file" data-id="${d.id}" title="Download" aria-label="Download">↓</button>`:''}<button class="btn icon sm ghost danger" data-act="del-doc" data-id="${d.id}" title="Remove" aria-label="Remove">✕</button>${d.kind==='video'?`<video src="${blobUrl(d.assetId)}" controls preload="metadata"></video>`:d.kind==='audio'?`<audio controls preload="none" data-aid="${d.assetId}" data-aids="${(d.assetIds||[]).join(',')}" data-wrapped="${d.wrapped?1:0}" ${d.wrapped?'':`src="${blobUrl(d.assetId)}"`}></audio>`:''}</div>`).join('')||'<div class="empty small">No files yet.</div>'}</div>
       ${canUp?`<label class="upl" style="margin-top:10px">＋ Upload file<input type="file" id="docFile" accept="application/pdf,video/mp4,video/webm,audio/*,.mp3,.wav,.m4a"></label>`:''}</div>
     <div class="card wide"><div class="row"><span class="eyebrow">Photos</span><span class="grow"></span>${canUp?`<label class="upl">＋ Add photos<input type="file" id="photoFiles" accept="image/png,image/jpeg,image/webp,image/gif" multiple></label>`:''}</div>
       <div class="photos" style="margin-top:10px">${listOf(p.photos).map(ph=>`<div class="photo"><a href="${blobUrl(ph.assetId)}" target="_blank" rel="noopener"><img src="${blobUrl(ph.assetId)}" alt="${esc(ph.caption||'Band photo')}" loading="lazy"></a><input type="text" value="${esc(ph.caption||'')}" data-act-change="photo-cap" data-id="${ph.id}" placeholder="Caption / credit" aria-label="Caption"><button class="btn sm ghost danger" data-act="del-photo" data-id="${ph.id}">Remove</button></div>`).join('')||'<div class="empty small" style="grid-column:1/-1">No photos yet. Promo shots, live photos, artwork drafts.</div>'}</div></div>
@@ -883,13 +911,13 @@ function subscribeChat(){
 function renderMsgs(){
   const c=$('#msgs');if(!c)return;const atBottom=c.scrollHeight-c.scrollTop-c.clientHeight<80;
   let last='';c.innerHTML=S.messages.length?S.messages.map(m=>{const d=new Date(m.at);const dk=d.toDateString();const sep=dk!==last?`<div class="daysep">${d.toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'})}</div>`:'';last=dk;
-    return sep+`<div class="msg">${av(m.by)}<div class="grow"><div class="who"><b>${esc(member(m.by).name)}</b><span>${fmtClock(m.at)}</span></div>${m.text?`<div class="body">${esc(m.text)}</div>`:''}${(m.media||[]).length?`<div class="att">${m.media.map(att).join('')}</div>`:''}</div></div>`}).join(''):`<div class="empty small" style="margin:auto">No messages yet.</div>`;
+    return sep+`<div class="msg">${av(m.by)}<div class="grow"><div class="who"><b>${esc(member(m.by).name)}</b><span>${fmtClock(m.at)}</span></div>${m.text?`<div class="body">${esc(m.text)}</div>`:''}${(m.media||[]).length?`<div class="att">${m.media.map((a,i)=>att(a,m.id,i)).join('')}</div>`:''}</div></div>`}).join(''):`<div class="empty small" style="margin:auto">No messages yet.</div>`;
   hydrateAudio(c);if(atBottom||S.messages.length<=1)c.scrollTop=c.scrollHeight;
 }
-function att(a){const u=blobUrl(a.assetId);
+function att(a,mid,idx){const u=blobUrl(a.assetId);const dl=S.downloads&&mid!=null?`<button class="btn sm ghost" data-act="dl-att" data-msg="${mid}" data-idx="${idx}">↓ Download</button>`:'';
   if(a.kind==='image')return`<a href="${u}" target="_blank" rel="noopener"><img src="${u}" alt="${esc(a.name)}" loading="lazy"></a>`;
   if(a.kind==='video')return`<video src="${u}" controls preload="metadata"></video>`;
-  if(a.kind==='audio')return`<div><div class="small muted">${esc(a.name)}</div><audio controls preload="none" data-aid="${a.assetId}" data-aids="${(a.assetIds||[]).join(',')}" data-wrapped="${a.wrapped?1:0}" ${a.wrapped?'':`src="${u}"`}></audio></div>`;
+  if(a.kind==='audio')return`<div><div class="small muted">${esc(a.name)}</div><audio controls preload="none" data-aid="${a.assetId}" data-aids="${(a.assetIds||[]).join(',')}" data-wrapped="${a.wrapped?1:0}" ${a.wrapped?'':`src="${u}"`}></audio>${dl?`<div style="margin-top:4px">${dl}</div>`:''}</div>`;
   return`<a class="btn sm" href="${u}" target="_blank" rel="noopener">📄 ${esc(a.name)}</a>`}
 function hydrateAudio(root){root.querySelectorAll('audio[data-wrapped="1"]:not([src])').forEach(async el=>{try{const ids=(el.dataset.aids||'').split(',').filter(Boolean);el.src=await resolveAudioUrl({assetId:el.dataset.aid,assetIds:ids.length?ids:null,wrapped:true})}catch(e){}})}
 function renderPend(){const p=$('#pend');if(p)p.innerHTML=S.pendFiles.map((f,i)=>`<span>${esc(f.name)} <button data-act="unpend" data-i="${i}" aria-label="Remove">✕</button></span>`).join('')}
@@ -1014,7 +1042,10 @@ document.addEventListener('click',async e=>{
     case'dl-lyrics':{const s=S.songs.find(x=>x.id===S.songId);saveDownload((s.title||'lyrics').replace(/[^\w\- ]+/g,'')+' - lyrics.txt',(s.title||'')+'\n\n'+(s.lyrics||''));break}
     case'play':if(!AUDIO.src)return;AUDIO.paused?AUDIO.play().catch(()=>toast('Tap play again once the file has loaded')):AUDIO.pause();break;
     case'load-ver':loadVersion(id,true);break;
-    case'dl-ver':{const v=S.versions.find(x=>x.id===id);if(!v)return;try{const blob=await(await fetch(blobUrl(v.assetId))).blob();saveDownload((v.name||'audio').replace(/\.[^.]+$/,'')+(v.mime==='video/webm'?'.webm':'.mp4'),blob)}catch(e){toast('Could not fetch the file')}break}
+    case'dl-ver':{const v=S.versions.find(x=>x.id===id);if(v){const sg=S.songs.find(x=>x.id===S.songId);downloadAudio(v,(sg?sg.title+' ':'')+v.label)}break}
+    case'dl-all':downloadAllVersions();break;
+    case'dl-file':{const d=listOf(S.profile.docs).find(x=>x.id===id);if(d)downloadAudio(d);break}
+    case'dl-att':{const m=S.messages.find(x=>x.id===b.dataset.msg);const a=m&&(m.media||[])[+b.dataset.idx];if(a)downloadAudio(a);break}
     case'del-ver':deleteVersion(id);break;
     case'toggle-time':if(S.noteTime!=null)S.noteTime=null;else{if(!AUDIO.src)return toast('Load a version first to tag a time');S.noteTime=Math.floor(AUDIO.currentTime)}renderNotes();$('#noteText')&&$('#noteText').focus();break;
     case'seek-note':seekNote(id);break;

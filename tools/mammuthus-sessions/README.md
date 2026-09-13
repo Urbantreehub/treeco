@@ -16,7 +16,10 @@ Published at: https://claude.ai/code/artifact/4e7b2235-ddd1-488a-a97f-9ba6fe8218
   `.txt` download.
 - **Audio versions** – upload a bounce or phone demo per song. Every upload is a
   new version (v1, v2, …); older versions stay available. Waveform player with
-  click-to-seek. Songs can be reordered from the song header.
+  click-to-seek. Songs can be reordered from the song header. Every version
+  can be downloaded by any member: MP4/WebM save as-is; other formats are
+  packaged into a stored .zip in the browser (the sandbox's download allowlist
+  has no mp3/wav). "Download all versions" zips a whole song's history.
 - **Notes** – general comments or notes tagged to a timestamp in a specific
   version. Timestamps are drawn on the waveform and jump the player when tapped.
   Notes can be edited, marked resolved, and a time can be typed as m:ss.
