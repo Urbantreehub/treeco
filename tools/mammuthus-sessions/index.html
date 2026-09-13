@@ -1,6 +1,8 @@
 <title>Mammuthus Sessions</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
 <style>
 :root{
   --bg:#F3F1EC; --surface:#FFFFFF; --raised:#EAE6DE; --sunk:#ECE9E2; --line:#D8D2C6; --line-soft:#E6E1D7;
@@ -292,6 +294,9 @@ dialog h2{font-size:18px;margin-bottom:14px}
 .who button:hover{border-color:var(--accent)}
 .who button small{color:var(--muted);font-weight:400}
 .meter{height:8px;background:var(--line-soft);border-radius:4px;overflow:hidden}.meter i{display:block;height:100%;background:var(--accent)}
+.login{position:fixed;inset:0;z-index:50;background:var(--bg);display:grid;place-items:center;padding:16px;overflow:auto}
+.loginbox{width:100%;max-width:380px;display:flex;flex-direction:column;gap:14px;background:var(--surface);border:1px solid var(--line-soft);border-radius:14px;padding:26px 22px;box-shadow:var(--shadow)}
+.loginbox h2{font-size:20px}
 @media (prefers-reduced-motion:no-preference){.btn,.songrow,.chk,.day{transition:background .12s,border-color .12s}}
 </style>
 
@@ -303,6 +308,19 @@ dialog h2{font-size:18px;margin-bottom:14px}
   </header>
   <div id="banner"></div>
   <main id="main"></main>
+</div>
+
+<div id="login" class="login hidden">
+  <form class="loginbox" id="loginForm">
+    <div class="wordmark"><b>MAMMUTHUS</b><span>album sessions</span></div>
+    <h2 id="loginTitle">Sign in</h2>
+    <p class="muted small" id="loginHint" style="margin:0">Use the email and password set up for you.</p>
+    <div class="field" id="li_emailField"><label for="li_email">Email</label><input type="email" id="li_email" autocomplete="username" required></div>
+    <div class="field"><label for="li_pass" id="li_passLabel">Password</label><input type="password" id="li_pass" autocomplete="current-password" required minlength="6"></div>
+    <div id="loginErr" class="banner hidden" style="margin:0"></div>
+    <button class="btn primary" type="submit" id="loginBtn">Sign in</button>
+    <button class="btn ghost sm" type="button" data-act="forgot" id="forgotBtn">Forgot password?</button>
+  </form>
 </div>
 
 <dialog id="whoDlg">
@@ -319,8 +337,9 @@ dialog h2{font-size:18px;margin-bottom:14px}
 </dialog>
 
 <dialog id="drvDlg" style="max-width:720px">
-  <h2>Import from Google Drive</h2>
-  <div class="row" style="margin-bottom:12px"><div class="field grow"><label for="drvFolder">Folder name</label><input type="text" id="drvFolder" value="Nu mammuthus"></div><button type="button" class="btn primary" data-act="drv-scan" style="align-self:flex-end">Find audio</button></div>
+  <h2 id="drvTitle">Import from Google Drive</h2>
+  <div class="row" style="margin-bottom:12px" id="drvFolderRow"><div class="field grow"><label for="drvFolder">Folder name</label><input type="text" id="drvFolder" value="Nu mammuthus"></div><button type="button" class="btn primary" data-act="drv-scan" style="align-self:flex-end">Find audio</button></div>
+  <div class="row hidden" style="margin-bottom:12px" id="drvLocalRow"><label class="upl">＋ Choose audio files<input type="file" id="drvLocalFiles" multiple accept="audio/*,.mp3,.wav,.m4a,.aiff,.aif,.ogg,.flac,.mp4,.webm"></label><span class="small muted">Pick as many as you like. Each is matched to a song by its file name.</span></div>
   <div id="drvBody" class="small muted">Files in the folder appear here. Each one gets matched to a song, or can start a new one.</div>
   <div class="row" style="justify-content:flex-end;margin-top:16px"><span id="drvStatus" class="small muted grow"></span><button type="button" class="btn" data-act="dlg-close" data-dlg="drvDlg">Close</button><button type="button" class="btn primary hidden" id="drvGo" data-act="drv-import">Import selected</button></div>
 </dialog>
@@ -368,7 +387,7 @@ const S={db:null,assets:null,downloads:null,demo:false,connecting:true,
   chan:'general',messages:[],unsubChat:null,pendFiles:[],latest:{},editingNote:null,
   cal:null,calSel:null,
   player:{versionId:null,url:null,peaks:null,duration:0,loading:false},
-  noteTime:null,pending:new Set(),usage:null,localUrls:{},mcp:null,drv:{files:[],existing:{}}};
+  noteTime:null,pending:new Set(),usage:null,localUrls:{},mcp:null,drv:{files:[],existing:{}},sb:null,user:null};
 const AUDIO=new Audio(); AUDIO.preload='auto';
 const urlCache=new Map();
 
@@ -394,14 +413,15 @@ const ls={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:
 function toast(msg,ms=2600){let t=$('.toast');if(!t){t=document.createElement('div');t.className='toast';document.body.appendChild(t)}t.textContent=msg;clearTimeout(t._h);t._h=setTimeout(()=>t.remove(),ms)}
 function av(id,cls=''){const m=member(id);return `<span class="av ${cls}" style="background:${m.color}" title="${esc(m.name)}">${esc((m.name||'?')[0].toUpperCase())}</span>`}
 function localISO(d){const p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes())}
-const blobUrl=id=>id&&id.startsWith('local:')?S.localUrls[id]:'/_blob/'+id;
+const blobUrl=id=>!id?'':id.startsWith('local:')?S.localUrls[id]:S.sb?S.sb.storage.from('media').getPublicUrl(id).data.publicUrl:'/_blob/'+id;
+const colOf=p=>p.split('/').slice(0,-1).join('/');
 function errMsg(e){return (e&&e.message)||String(e)}
 
 /* ---------- store adapter (db when available, memory otherwise) */
 const Store={mem:new Map(),watchers:[],
-  async setDoc(p,d){if(S.db)return S.db.doc(p).set(d);this.mem.set(p,clone(d));this.notify(p)},
-  async updateDoc(p,d){if(S.db)return S.db.doc(p).update(d);if(!this.mem.has(p))throw{code:'invalid_argument',message:'That item no longer exists'};this.mem.set(p,deepMerge(this.mem.get(p),clone(d)));this.notify(p)},
-  async deleteDoc(p){if(S.db)return S.db.doc(p).delete();this.mem.delete(p);this.notify(p)},
+  async setDoc(p,d){if(S.db)return S.db.doc(p).set(d);this.mem.set(p,clone(d));this.notify(p);if(S.sb){const{error}=await S.sb.from('docs').upsert({path:p,collection:colOf(p),data:d});if(error)throw error}},
+  async updateDoc(p,d){if(S.db)return S.db.doc(p).update(d);if(!this.mem.has(p))throw{code:'invalid_argument',message:'That item no longer exists'};this.mem.set(p,deepMerge(this.mem.get(p),clone(d)));this.notify(p);if(S.sb){const{data,error}=await S.sb.rpc('update_doc',{p_path:p,p_patch:d});if(error)throw error;if(data){this.mem.set(p,data);this.notify(p)}}},
+  async deleteDoc(p){if(S.db)return S.db.doc(p).delete();this.mem.delete(p);this.notify(p);if(S.sb){const{error}=await S.sb.from('docs').delete().eq('path',p);if(error)throw error}},
   async addDoc(c,d){if(S.db){const r=await S.db.collection(c).add(d);return r.id}const id=uid();await this.setDoc(c+'/'+id,d);return id},
   async getDoc(p){if(S.db){const s=await S.db.doc(p).get();return s.exists?s.data():null}return this.mem.get(p)||null},
   async getCol(c){if(S.db){const s=await S.db.collection(c).get();return s.docs.map(d=>({id:d.id,...d.data()}))}return this.query(c,{})},
@@ -435,7 +455,9 @@ async function boot(){
   S.me=ls.get('mammuthus.me')||null;
   const sm=ls.get('mammuthus.tab');if(sm)S.tab=sm;
   const t=new Date();S.cal={y:t.getFullYear(),m:t.getMonth()};
-  renderShell();renderActive();
+  renderShell();renderMe();renderActive();
+  const cfg=window.MAMMUTHUS_CONFIG||{};
+  if(cfg.supabaseUrl&&cfg.supabaseAnonKey&&window.supabase){S.sb=window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey);return bootSupabase()}
   const use=n=>window.claude&&window.claude.use?window.claude.use(n).catch(()=>null):Promise.resolve(null);
   const db=await use('db');
   S.db=db;S.connecting=false;
@@ -447,13 +469,51 @@ async function boot(){
   S.downloads=downloads;
   renderBanner();subscribeCore();
 }
+/* ---------- Supabase mode: own hosting, email + password sign-in, Postgres + Storage + Realtime */
+async function bootSupabase(){
+  S.connecting=false;
+  S.assets={upload:async(blob,o)=>{const type=(o&&o.type)||blob.type||'application/octet-stream';const ext=(blob.name&&blob.name.includes('.')?blob.name.split('.').pop():({'image/png':'png','image/jpeg':'jpg','image/webp':'webp','image/gif':'gif','image/svg+xml':'svg','video/mp4':'mp4','video/webm':'webm','application/pdf':'pdf','audio/mpeg':'mp3','audio/wav':'wav','audio/mp4':'m4a','text/plain':'txt'}[type]||'bin')).toLowerCase().replace(/[^a-z0-9]/g,'');
+      const id=uid()+'.'+ext;const{error}=await S.sb.storage.from('media').upload(id,blob,{contentType:type,upsert:false});if(error)throw new Error(error.message||'upload failed');return{id,url:blobUrl(id),sizeBytes:blob.size,contentType:type}},
+    list:async()=>({assets:[],usage:null}),
+    delete:async id=>{const{error}=await S.sb.storage.from('media').remove([id]);if(error)throw error;return{deleted:true}}};
+  S.downloads={save:async({filename,data})=>{const blob=data instanceof Blob?data:new Blob([data]);const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000);return{status:'saved'}}};
+  S.sb.auth.onAuthStateChange((ev,session)=>{if(ev==='PASSWORD_RECOVERY'){showLogin('recovery');return}if(session)onSignedIn(session);else if(ev==='SIGNED_OUT')showLogin('signin')});
+  const{data:{session}}=await S.sb.auth.getSession();
+  if(session)onSignedIn(session);else if(!/type=recovery/.test(location.hash))showLogin('signin');
+}
+let sbStarted=false;
+async function onSignedIn(session){S.user=session.user;hideLogin();if(sbStarted)return;sbStarted=true;
+  try{await SBStore.load()}catch(e){toast('Could not load the band database: '+errMsg(e),6000);S.stale=true;renderBanner();return}
+  try{await ensureBandDocs()}catch(e){console.warn(e)}
+  subscribeCore();renderBanner()}
+const SBStore={
+  async load(){let from=0;const page=1000;for(;;){const{data,error}=await S.sb.from('docs').select('path,data').range(from,from+page-1);if(error)throw error;data.forEach(r=>Store.mem.set(r.path,r.data));if(data.length<page)break;from+=page}
+    S.sb.channel('docs-live').on('postgres_changes',{event:'*',schema:'public',table:'docs'},pl=>{if(pl.eventType==='DELETE'){const p=pl.old&&pl.old.path;if(p&&Store.mem.has(p)){Store.mem.delete(p);Store.notify(p)}}else{const r=pl.new;if(r&&r.path&&JSON.stringify(Store.mem.get(r.path))!==JSON.stringify(r.data)){Store.mem.set(r.path,r.data);Store.notify(r.path)}}}).subscribe();
+    setInterval(()=>{if(document.visibilityState==='visible')SBStore.refresh()},45000);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')SBStore.refresh()})},
+  async refresh(){try{const seen=new Set();let from=0;const page=1000;for(;;){const{data,error}=await S.sb.from('docs').select('path,data').range(from,from+page-1);if(error)return;for(const r of data){seen.add(r.path);if(JSON.stringify(Store.mem.get(r.path))!==JSON.stringify(r.data)){Store.mem.set(r.path,r.data);Store.notify(r.path)}}if(data.length<page)break;from+=page}
+    for(const p of [...Store.mem.keys()])if(!seen.has(p)){Store.mem.delete(p);Store.notify(p)}}catch(e){}}};
+function showLogin(mode){const l=$('#login');l.classList.remove('hidden');$('#loginErr').classList.add('hidden');l.dataset.mode=mode;
+  const rec=mode==='recovery';$('#loginTitle').textContent=rec?'Set a new password':'Sign in';$('#loginHint').textContent=rec?'Choose a password for your account.':'Use the email and password set up for you.';
+  $('#li_emailField').classList.toggle('hidden',rec);$('#li_email').required=!rec;$('#li_passLabel').textContent=rec?'New password':'Password';$('#li_pass').autocomplete=rec?'new-password':'current-password';$('#loginBtn').textContent=rec?'Save password':'Sign in';$('#forgotBtn').classList.toggle('hidden',rec)}
+function hideLogin(){$('#login').classList.add('hidden')}
+function loginError(msg){const e=$('#loginErr');e.textContent=msg;e.classList.remove('hidden')}
+async function doLogin(){const mode=$('#login').dataset.mode;const b=$('#loginBtn');b.disabled=true;$('#loginErr').classList.add('hidden');
+  try{if(mode==='recovery'){const{error}=await S.sb.auth.updateUser({password:$('#li_pass').value});if(error)throw error;toast('Password saved');history.replaceState(null,'',location.pathname);hideLogin()}
+    else{const{error}=await S.sb.auth.signInWithPassword({email:$('#li_email').value.trim(),password:$('#li_pass').value});if(error)throw error}}
+  catch(e){loginError(/invalid/i.test(e.message||'')?'Wrong email or password.':(e.message||'Could not sign in'))}
+  finally{b.disabled=false}}
+async function forgotPassword(){const email=$('#li_email').value.trim();if(!email)return loginError('Type your email first, then tap Forgot password.');
+  const{error}=await S.sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});if(error)return loginError(error.message);toast('Check your email for a reset link',5000)}
+async function signOut(){if(!await ask('Sign out?','',{ok:'Sign out'}))return;await S.sb.auth.signOut();location.reload()}
 async function ensureBandDocs(){
   const[m,p]=await Promise.all([Store.getDoc('band/members'),Store.getDoc('band/profile')]);
   if(!m)await Store.setDoc('band/members',defaultMembers());
   if(!p)await Store.setDoc('band/profile',defaultProfile());
 }
 function subscribeCore(){
-  Store.watchDoc('band/members',d=>{S.members=(d&&d.list)||[];if(!S.me||!S.members.find(m=>m.id===S.me)){S.me=null;if(S.members.length)askWho()}renderMe();const key=S.members.map(m=>m.id).join(',')+'|'+S.me;if(key!==S._chanKey){S._chanKey=key;watchLatest()}renderActive()});
+  Store.watchDoc('band/members',d=>{S.members=(d&&d.list)||[];
+    if(S.sb){const mine=S.members.find(m=>m.userId===S.user.id);S.me=mine?mine.id:null;if(!S.me)askWho();else{const w=$('#whoDlg');if(w.open)w.close()}}
+    else if(!S.me||!S.members.find(m=>m.id===S.me)){S.me=null;if(S.members.length)askWho()}renderMe();const key=S.members.map(m=>m.id).join(',')+'|'+S.me;if(key!==S._chanKey){S._chanKey=key;watchLatest()}renderActive()});
   Store.watchDoc('band/profile',d=>{S.profile=d||defaultProfile();renderActive()});
   Store.watchCol('songs',{orderBy:'order'},rows=>{S.songs=rows;if(S.songId&&!rows.find(s=>s.id===S.songId))S.songId=null;renderActive()});
   Store.watchCol('events',{orderBy:'start'},rows=>{S.events=rows;renderActive()});
@@ -467,8 +527,11 @@ function renderBanner(){
 }
 
 /* ---------- identity */
-function askWho(){const d=$('#whoDlg');$('#whoList').innerHTML=S.members.map(m=>`<button data-act="pick-me" data-id="${m.id}">${av(m.id,'lg')}<span>${esc(m.name)}</span><small>${esc(m.role||'')}</small></button>`).join('');if(!d.open)d.showModal()}
-function renderMe(){const c=$('#mechip');if(!S.me){c.innerHTML=`<span class="av" style="background:var(--line)">?</span><span>Who are you?</span>`;return}c.innerHTML=`${av(S.me)}<span>${esc(meName())}</span>`}
+function askWho(){const d=$('#whoDlg');const list=S.sb?S.members.filter(m=>!m.userId):S.members;
+  $('#whoList').innerHTML=list.map(m=>`<button data-act="pick-me" data-id="${m.id}">${av(m.id,'lg')}<span>${esc(m.name)}</span><small>${esc(m.role||'')}</small></button>`).join('')+(S.sb?`<button data-act="pick-me" data-id="+new"><span class="av lg" style="background:var(--raised);color:var(--muted)">＋</span><span>I'm new here</span><small>add me</small></button>`:'');
+  $('#whoDlg p').textContent=S.sb?'Your sign-in gets linked to this member from now on.':'Pick yourself so notes, RSVPs and chat carry your name. This device remembers your choice.';
+  if(!d.open)d.showModal()}
+function renderMe(){const c=$('#mechip');c.title=S.sb?'Sign out':'Switch member';if(!S.me){c.innerHTML=`<span class="av" style="background:var(--line)">?</span><span>Who are you?</span>`;return}c.innerHTML=`${av(S.me)}<span>${esc(meName())}</span>`}
 
 /* ---------- shell & routing */
 const ICONS={songs:'<svg viewBox="0 0 24 24"><path d="M9 18V6l11-2v12"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>',
@@ -514,7 +577,7 @@ function renderSongs(){
       <div class="stat"><span class="eyebrow">Next up</span><b style="font-size:15px;font-family:var(--f-body);font-weight:600">${next?esc(next.title)+'<span class="muted small" style="display:block;font-weight:400">'+fmtDT(next.start)+'</span>':'<span class="muted">Nothing scheduled</span>'}</b></div>
       ${album.target?`<div class="stat"><span class="eyebrow">Target</span><b style="font-size:15px;font-family:var(--f-body);font-weight:600">${esc(album.target)}</b></div>`:''}
     </div>
-    ${S.mcp&&S.assets?`<div class="row" style="margin:-8px 0 14px"><button class="btn sm" data-act="drv-open">${ICONS.media} Import audio from Google Drive</button><span class="small muted">Pulls new and updated files from the band folder into each song's versions.</span></div>`:''}
+    ${S.assets?`<div class="row" style="margin:-8px 0 14px">${S.mcp?`<button class="btn sm" data-act="drv-open">${ICONS.media} Import audio from Google Drive</button>`:''}<button class="btn sm" data-act="bulk-open">${ICONS.songs} Bulk upload audio</button><span class="small muted">Drop a batch of demos in; each file lands on the matching song as a new version.</span></div>`:''}
     <div class="songs ${cur?'detail-open':''}">
       <aside class="songlist" id="songList"></aside>
       <section class="songdetail" id="songDetail"></section>
@@ -688,7 +751,7 @@ async function downloadAudio(item,zipName){
   if(!S.downloads)return toast('Downloads aren\'t available in this view');
   const ext=(String(item.name||'').split('.').pop()||'').toLowerCase();
   try{toast('Preparing download…',6000);
-    if(!item.wrapped&&(ext==='mp4'||ext==='webm')){const bytes=await audioBytes(item);return saveDownload(safeName(item.name),new Blob([bytes],{type:item.mime||'video/mp4'}))}
+    if(S.sb||(!item.wrapped&&(ext==='mp4'||ext==='webm'))){const bytes=await audioBytes(item);return saveDownload(safeName(item.name),new Blob([bytes],{type:item.mime||'video/mp4'}))}
     const bytes=await audioBytes(item);const name=safeName(item.name||'audio.'+(ext||'mp3'));
     return saveDownload(safeName(zipName||name.replace(/\.[^.]+$/,''))+'.zip',zipStore([{name,data:bytes}]))
   }catch(e){toast('Could not download: '+errMsg(e),5000)}}
@@ -698,6 +761,7 @@ async function downloadAllVersions(){
     await saveDownload(safeName(s.title||'song')+' - all versions.zip',zipStore(files))}catch(e){toast('Could not download: '+errMsg(e),5000)}}
 async function uploadAudioFile(file){
   const ext=(file.name.split('.').pop()||'').toLowerCase();
+  if(S.sb){const mime=AUDIO_EXT[ext]||file.type||'audio/mpeg';if(file.size>100*1024*1024)throw new Error(`That file is ${fmtBytes(file.size)}; the limit is 100 MB.`);const r=await S.assets.upload(file,{type:mime});return{assetId:r.id,wrapped:false,mime}}
   const direct=DIRECT_AUDIO[ext];
   if(direct){try{const r=await S.assets.upload(file,{type:direct});return{assetId:r.id,wrapped:false,mime:direct}}catch(e){if(e&&e.code!=='unsupported_type')throw e}}
   if(file.size>WRAP_LIMIT)throw new Error(`That file is ${fmtBytes(file.size)}. Export it as a 256 kbps MP3 or an M4A first (anything up to about 120 MB works).`);
@@ -952,6 +1016,13 @@ function mcpMsg(e){const c=e&&e.code;
   return'Google Drive error: '+errMsg(e)}
 function payloadOf(r){let p=r&&r.payload;if(p==null&&r&&r.content&&r.content[0]&&r.content[0].text)p=r.content[0].text;if(typeof p==='string'){try{p=JSON.parse(p)}catch(e){}}return p}
 const norm=s=>String(s||'').toLowerCase().replace(/\.[a-z0-9]+$/,'').replace(/[^a-z0-9]+/g,' ').trim();
+function drvRender(files,ex,folderLabel){const body=$('#drvBody');S.drv={...S.drv,files,existing:ex};
+  body.innerHTML=files.length?`<div class="row small muted" style="margin-bottom:4px"><span>${files.length} audio file${files.length>1?'s':''}${folderLabel?' in "'+esc(folderLabel)+'"':''}</span></div>`+files.map((f,i)=>{const e=ex[f.id];const same=e&&e.v.driveModified===f.modifiedTime;const m=e?e.song:matchSong(f.title);
+      return`<div class="drv"><input type="checkbox" id="drv_${i}" data-i="${i}" ${same?'':'checked'} aria-label="Import ${esc(f.title)}"><label for="drv_${i}" class="grow" style="min-width:0"><div class="fn">${esc(f.title)}</div><div class="fm">${fmtBytes(+f.fileSize||0)} · ${new Date(f.modifiedTime).toLocaleDateString()}${same?' · <span class="pill good">up to date</span>':e?' · <span class="pill warn">updated on Drive</span>':''}</div></label>
+        <select data-i="${i}" aria-label="Song for ${esc(f.title)}"><option value="">Skip</option><option value="+new" ${!m?'selected':''}>＋ New song from file name</option>${S.songs.map(s=>`<option value="${s.id}" ${m&&m.id===s.id?'selected':''}>${esc(s.title)}</option>`).join('')}</select></div>`}).join(''):`<div class="empty small">No audio files there.</div>`;
+  $('#drvStatus').textContent='';$('#drvGo').classList.toggle('hidden',!files.length)}
+function openImportDialog(mode){if(!S.me)return askWho();S.drv={files:[],existing:{},mode};$('#drvTitle').textContent=mode==='local'?'Bulk upload audio':'Import from Google Drive';$('#drvFolderRow').classList.toggle('hidden',mode==='local');$('#drvLocalRow').classList.toggle('hidden',mode!=='local');
+  $('#drvBody').innerHTML=`<div class="small muted">${mode==='local'?'Choose files above. Each one gets matched to a song, or can start a new one.':'Files in the folder appear here. Each one gets matched to a song, or can start a new one.'}</div>`;$('#drvStatus').textContent='';$('#drvGo').classList.add('hidden');$('#drvDlg').showModal()}
 function matchSong(name){const n=norm(name);let best=null,score=0;
   for(const s of S.songs){const cands=[s.title,...(s.aliases||[])].map(norm).filter(Boolean);for(const c of cands){let sc=0;if(n===c)sc=3;else if(n.includes(c)||c.includes(n))sc=2;else{const toks=c.split(' ').filter(t=>t.length>2);if(toks.length&&toks.every(t=>n.includes(t)))sc=1}if(sc>score){score=sc;best=s}}}
   return best}
@@ -965,27 +1036,24 @@ async function drvScan(){
     files=files.filter(f=>(f.mimeType||'').startsWith('audio/')||AUDIO_EXT[(f.fileExtension||f.title.split('.').pop()||'').toLowerCase()]);
     st.textContent='Checking what\'s already imported…';
     const ex={};await Promise.all(S.songs.map(async s=>{const vs=await Store.getCol(`songs/${s.id}/versions`);vs.forEach(v=>{if(v.driveId)ex[v.driveId]={song:s,v}})}));
-    S.drv={files,existing:ex};
-    body.innerHTML=files.length?`<div class="row small muted" style="margin-bottom:4px"><span>${files.length} audio file${files.length>1?'s':''} in "${esc(folder.title)}"</span></div>`+files.map((f,i)=>{const e=ex[f.id];const same=e&&e.v.driveModified===f.modifiedTime;const m=e?e.song:matchSong(f.title);
-      return`<div class="drv"><input type="checkbox" id="drv_${i}" data-i="${i}" ${same?'':'checked'} aria-label="Import ${esc(f.title)}"><label for="drv_${i}" class="grow" style="min-width:0"><div class="fn">${esc(f.title)}</div><div class="fm">${fmtBytes(+f.fileSize||0)} · ${new Date(f.modifiedTime).toLocaleDateString()}${same?' · <span class="pill good">up to date</span>':e?' · <span class="pill warn">updated on Drive</span>':''}</div></label>
-        <select data-i="${i}" aria-label="Song for ${esc(f.title)}"><option value="">Skip</option><option value="+new" ${!m?'selected':''}>＋ New song from file name</option>${S.songs.map(s=>`<option value="${s.id}" ${m&&m.id===s.id?'selected':''}>${esc(s.title)}</option>`).join('')}</select></div>`}).join(''):`<div class="empty small">No audio files in that folder.</div>`;
-    st.textContent='';if(files.length)$('#drvGo').classList.remove('hidden');
+    drvRender(files,ex,folder.title);
   }catch(e){st.textContent='';body.innerHTML=`<div class="banner">${esc(mcpMsg(e))}</div>`}
 }
 async function drvImport(){
   const rows=[...document.querySelectorAll('#drvBody .drv')];const st=$('#drvStatus');const go=$('#drvGo');go.disabled=true;
   let done=0,fail=0;const total=rows.filter(r=>r.querySelector('input').checked&&r.querySelector('select').value).length;
   for(const row of rows){const cb=row.querySelector('input'),sel=row.querySelector('select');if(!cb.checked||!sel.value)continue;const f=S.drv.files[+cb.dataset.i];
-    try{st.textContent=`Downloading ${f.title} (${done+fail+1} of ${total})…`;
-      const r=payloadOf(await S.mcp.callTool(DRIVE,'download_file_content',{fileId:f.id},{cache:false}));
-      const b64=r&&r.content;if(!b64)throw new Error('empty download');
-      const bin=atob(b64);const arr=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
-      const ext=(f.fileExtension||f.title.split('.').pop()||'').toLowerCase();const file=new File([arr],f.title,{type:AUDIO_EXT[ext]||f.mimeType||'audio/mpeg'});
+    try{let file=f.file;
+      if(!file){st.textContent=`Downloading ${f.title} (${done+fail+1} of ${total})…`;
+        const r=payloadOf(await S.mcp.callTool(DRIVE,'download_file_content',{fileId:f.id},{cache:false}));
+        const b64=r&&r.content;if(!b64)throw new Error('empty download');
+        const bin=atob(b64);const arr=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
+        const ext=(f.fileExtension||f.title.split('.').pop()||'').toLowerCase();file=new File([arr],f.title,{type:AUDIO_EXT[ext]||f.mimeType||'audio/mpeg'})}
       st.textContent=`Uploading ${f.title}…`;const up=await uploadAudioFile(file);
       let songId=sel.value;
       if(songId==='+new'){const title=f.title.replace(/\.[^.]+$/,'').replace(/[_-]+/g,' ').trim();const order=S.songs.reduce((a,s)=>Math.max(a,s.order||0),0)+1;songId=await Store.addDoc('songs',{title,order,stage:'Idea',tempo:'',key:'',timeSig:'4/4',length:'',lyrics:'',parts:{},tracked:{},sessionNotes:'',createdAt:Date.now(),by:S.me});S.songs.push({id:songId,title,order});sel.innerHTML+=`<option value="${songId}" selected>${esc(title)}</option>`}
       const vs=await Store.getCol(`songs/${songId}/versions`);const label='v'+(vs.reduce((a,v)=>Math.max(a,+String(v.label||'').replace(/\D/g,'')||0),0)+1);
-      await Store.addDoc(`songs/${songId}/versions`,{label,name:f.title,by:S.me,at:Date.now(),assetId:up.assetId,assetIds:up.assetIds||[up.assetId],wrapped:up.wrapped,mime:up.mime,size:+f.fileSize||0,note:'Imported from Google Drive',driveId:f.id,driveModified:f.modifiedTime});
+      await Store.addDoc(`songs/${songId}/versions`,{label,name:f.title,by:S.me,at:Date.now(),assetId:up.assetId,assetIds:up.assetIds||[up.assetId],wrapped:up.wrapped,mime:up.mime,size:+f.fileSize||0,note:f.file?'Bulk upload':'Imported from Google Drive',...(f.file?{}:{driveId:f.id,driveModified:f.modifiedTime})});
       cb.checked=false;row.querySelector('.fm').innerHTML+=' · <span class="pill good">imported</span>';done++;
     }catch(e){fail++;row.querySelector('.fm').innerHTML+=` · <span class="pill" style="color:var(--crit)">${esc(e&&e.code?mcpMsg(e):errMsg(e))}</span>`}
   }
@@ -1000,7 +1068,7 @@ function renderBand(){
   $('#main').innerHTML=`<div class="media">
     <div class="card"><span class="eyebrow">Members</span><p class="small muted" style="margin:4px 0 12px">Names show on notes, RSVPs and chat. Roles are just labels.</p>
       <div class="members">${S.members.map(m=>`<div class="mem">${av(m.id)}<input type="text" value="${esc(m.name)}" data-act-change="mem-name" data-id="${m.id}" aria-label="Name"><input type="text" value="${esc(m.role||'')}" data-act-change="mem-role" data-id="${m.id}" placeholder="Instrument" aria-label="Instrument"><span class="swatches">${COLORS.map(c=>`<button class="sw ${m.color===c?'on':''}" style="background:${c}" data-act="mem-color" data-id="${m.id}" data-c="${c}" aria-label="Colour"></button>`).join('')}</span></div>`).join('')}</div>
-      <div class="row" style="margin-top:12px"><button class="btn sm" data-act="switch-me">Switch who I am</button><span class="small muted">You're signed in on this device as <b>${esc(S.me?meName():'nobody')}</b>.</span></div></div>
+      <div class="row" style="margin-top:12px">${S.sb?`<button class="btn sm" data-act="sign-out">Sign out</button><span class="small muted">Signed in as <b>${esc(S.me?meName():'nobody')}</b>${S.user&&S.user.email?' ('+esc(S.user.email)+')':''}.</span>`:`<button class="btn sm" data-act="switch-me">Switch who I am</button><span class="small muted">You're signed in on this device as <b>${esc(S.me?meName():'nobody')}</b>.</span>`}</div></div>
     <div class="card"><span class="eyebrow">Album</span>
       <div class="formgrid" style="margin-top:10px">
         <div class="field"><label for="al_title">Title</label><input type="text" id="al_title" data-pf="album.title" value="${esc(al.title||'Mammuthus')}"></div>
@@ -1008,7 +1076,7 @@ function renderBand(){
         <div class="field span"><label for="al_notes">Album notes</label><textarea id="al_notes" rows="5" data-pf="album.notes" placeholder="Running order ideas, producer, studio, budget, artwork…">${esc(al.notes||'')}</textarea></div>
       </div></div>
     <div class="card wide"><span class="eyebrow">Storage</span><div id="usage" class="small muted" style="margin-top:8px">${S.usage?usageHTML():(S.assets?'Checking…':'Not available in this view.')}</div>
-      <p class="small muted" style="margin:12px 0 0">Everyone with the link inside your Claude workspace shares this one database: songs, notes, versions, events and chat. Audio uploads are stored as versions and never overwritten, so older takes stay available.</p></div>
+      <p class="small muted" style="margin:12px 0 0">${S.sb?'Everyone who signs in shares this one database: songs, notes, versions, events and chat.':'Everyone with the link inside your Claude workspace shares this one database: songs, notes, versions, events and chat.'} Audio uploads are stored as versions and never overwritten, so older takes stay available.</p></div>
   </div>`;
   if(S.assets&&!S.usage&&S.assets.list){S.assets.list().then(r=>{S.usage=r.usage;const u=$('#usage');if(u)u.innerHTML=usageHTML()}).catch(()=>{})}
 }
@@ -1023,15 +1091,19 @@ document.addEventListener('click',async e=>{
   if(b.tagName==='A'&&act==='tab')e.preventDefault();
   switch(act){
     case'tab':setTab(b.dataset.tab);break;
-    case'switch-me':askWho();break;
-    case'pick-me':S.me=id;ls.set('mammuthus.me',id);$('#whoDlg').close();renderMe();S._chanKey=null;watchLatest();renderActive();break;
+    case'switch-me':if(S.sb)signOut();else askWho();break;
+    case'pick-me':{if(S.sb){if(id==='+new'){const m={id:uid(),name:(S.user.email||'Member').split('@')[0],role:'',color:COLORS[S.members.length%COLORS.length],userId:S.user.id};await membersSave([...S.members,m])}else{const m=S.members.find(x=>x.id===id);if(!m||(m.userId&&m.userId!==S.user.id))return toast('That member is already linked to another sign-in');await membersSave(S.members.map(x=>x.id===id?{...x,userId:S.user.id}:x))}$('#whoDlg').close();break}
+      S.me=id;ls.set('mammuthus.me',id);$('#whoDlg').close();renderMe();S._chanKey=null;watchLatest();renderActive();break}
+    case'sign-out':signOut();break;
+    case'forgot':forgotPassword();break;
     case'dlg-close':$('#'+b.dataset.dlg).close();break;
     case'ask-cancel':askDone(false);break;
     case'ask-ok':askDone($('#askInput').classList.contains('hidden')?true:$('#askInput').value);break;
     case'open-song':openSong(id);break;
     case'close-song':openSong(null);break;
     case'del-song':deleteSong(id);break;
-    case'drv-open':if(!S.me)return askWho();$('#drvBody').innerHTML='<div class="small muted">Files in the folder appear here. Each one gets matched to a song, or can start a new one.</div>';$('#drvStatus').textContent='';$('#drvGo').classList.add('hidden');$('#drvDlg').showModal();break;
+    case'drv-open':openImportDialog('drive');break;
+    case'bulk-open':openImportDialog('local');break;
     case'drv-scan':drvScan();break;
     case'drv-import':drvImport();break;
     case'move-song':{const i=S.songs.findIndex(x=>x.id===S.songId);const j=i+ +b.dataset.d;if(i<0||j<0||j>=S.songs.length)return;const a=S.songs[i],c=S.songs[j];const oa=a.order||i+1,oc=c.order||j+1;await Promise.all([Store.updateDoc('songs/'+a.id,{order:oa===oc?oc+ +b.dataset.d:oc}),Store.updateDoc('songs/'+c.id,{order:oa})]);break}
@@ -1078,6 +1150,7 @@ document.addEventListener('submit',async e=>{
   if(f.dataset.act==='save-note'){const i=$('#noteEdit');const t=i?i.value.trim():'';if(t)await Store.updateDoc(`songs/${S.songId}/notes/${f.dataset.id}`,{text:t,editedAt:Date.now()});S.editingNote=null;renderNotes()}
 });
 $('#evForm').addEventListener('submit',e=>{e.preventDefault();saveEvent()});
+$('#loginForm').addEventListener('submit',e=>{e.preventDefault();doLogin()});
 document.addEventListener('change',async e=>{
   const t=e.target;
   if(t.dataset.sf&&!t.dataset.live){const k=t.dataset.sf;let v=t.value;if(k==='tempo')v=v===''?'':+v;songUpdate({[k]:v});return}
@@ -1089,6 +1162,7 @@ document.addEventListener('change',async e=>{
   if(t.id==='noteTimeIn'){const v=parseT(t.value);if(v==null)toast('Use m:ss, e.g. 1:23');else S.noteTime=Math.max(0,Math.floor(v));renderNotes();$('#noteText')&&$('#noteText').focus()}
   if(t.dataset.act==='note-done')Store.updateDoc(`songs/${S.songId}/notes/${t.dataset.id}`,{done:t.checked}).catch(e=>toast('Could not save: '+errMsg(e)));
   if(t.id==='verFile'&&t.files[0]){addVersion(t.files[0]);t.value=''}
+  if(t.id==='drvLocalFiles'&&t.files.length){const files=[...t.files].map((f,i)=>({id:'file-'+i+'-'+f.name,title:f.name,fileSize:f.size,modifiedTime:new Date(f.lastModified||Date.now()).toISOString(),file:f}));drvRender(files,{},null);t.value=''}
   if(t.id==='chatFiles'){S.pendFiles.push(...t.files);renderPend();t.value=''}
   if(t.id==='logoFile'&&t.files[0]){try{const id=await uploadImage(t.files[0]);await profileUpdate({logo:id});toast('Logo updated')}catch(err){toast(errMsg(err))}t.value=''}
   if(t.id==='docFile'&&t.files[0]){const f=t.files[0];try{toast('Uploading…',6000);const up=await uploadChatFile(f);const did=uid();await profileUpdate({docs:mapPatch(S.profile.docs,{[did]:{id:did,assetId:up.assetId,assetIds:up.assetIds||null,kind:up.kind,wrapped:!!up.wrapped,name:f.name,size:f.size,by:S.me,at:Date.now()}})});toast('File added')}catch(err){toast('Upload failed: '+errMsg(err))}t.value=''}

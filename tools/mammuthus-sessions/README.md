@@ -1,10 +1,46 @@
 # Mammuthus Sessions
 
-Shared band workspace for writing and finishing the *Mammuthus* album. A single-file
-web app (`index.html`) published as a Claude Artifact with the `db`, `assets` and
-`downloads` runtime capabilities.
+Shared band workspace for writing and finishing the *Mammuthus* album. One
+single-file web app (`index.html`) that runs in two modes:
 
-Published at: https://claude.ai/code/artifact/4e7b2235-ddd1-488a-a97f-9ba6fe821814
+- **Self-hosted (for the whole band)** – Supabase for sign-in, database, file
+  storage and live updates; any static host (Vercel) for the page. Bandmates
+  sign in with an email and password; nobody needs a Claude account.
+- **Claude Artifact** – the same file published with the `db`, `assets`,
+  `downloads` and `mcp` capabilities: https://claude.ai/code/artifact/4e7b2235-ddd1-488a-a97f-9ba6fe821814
+  (only people in the owner's Claude workspace can open it).
+
+The mode is chosen at load time: if `config.js` has a Supabase URL and anon key,
+the app uses Supabase; otherwise it uses the artifact runtime.
+
+## Self-hosting setup (about 15 minutes)
+
+1. **Create a Supabase project** at https://supabase.com (free tier is plenty).
+2. **Run the SQL.** Dashboard → SQL Editor → New query. Paste `schema.sql`, Run.
+   Then paste `seed.sql`, Run. That creates the table, security rules, the
+   `media` storage bucket, and loads the current song list, notes, bio and EPK.
+3. **Create the four logins.** Dashboard → Authentication → Users → *Add user* →
+   *Create new user*: email + password, tick **Auto Confirm User**. One per
+   member. Tell each person their password; they can change it later with
+   *Forgot password* on the sign-in screen (Authentication → Email Templates →
+   set the reset link if you want branded emails).
+4. **Point the app at the project.** Dashboard → Project Settings → API: copy
+   *Project URL* and the *anon public* key into `config.js`. Commit.
+5. **Deploy the page.** On Vercel: *Add New → Project* → import this repo →
+   *Root Directory* = `tools/mammuthus-sessions` → Framework preset *Other*, no
+   build command → Deploy. Any static host works (Netlify drop, GitHub Pages,
+   Cloudflare Pages) because it is one HTML file plus `config.js`.
+6. **Allow the site URL for password resets.** Supabase → Authentication → URL
+   Configuration → add the deployed URL to *Redirect URLs*.
+7. Open the site, sign in, pick your name from the list. Each login is linked to
+   one member from then on.
+
+To load the demos: Songs tab → **Bulk upload audio** → choose the files from the
+Drive folder → each is matched to a song by name → Import.
+
+Storage notes: files are in a public bucket, so anyone with a file's link can
+play or download it, but only signed-in members can add, replace or delete.
+Uploads are capped at 100 MB per file. The free tier gives 1 GB of storage.
 
 ## What it does
 
