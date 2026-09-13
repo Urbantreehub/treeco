@@ -19,7 +19,7 @@
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     --bg:#0F1316; --surface:#161C21; --raised:#1F272E; --sunk:#0B0E11; --line:#2B343C; --line-soft:#222A31;
-    --text:#EDE7DA; --muted:#98A2AB; --faint:#66707A;
+    --text:#EDE7DA; --muted:#98A2AB; --faint:#7E8892;
     --accent:#6FD3C7; --accent-ink:#0F1316; --accent-soft:rgba(111,211,199,.14); --accent-line:rgba(111,211,199,.45);
     --ochre:#D9A05B; --ochre-soft:rgba(217,160,91,.16);
     --lilac:#B39DDB; --lilac-soft:rgba(179,157,219,.16);
@@ -30,7 +30,7 @@
 }
 :root[data-theme="dark"]{
   --bg:#0F1316; --surface:#161C21; --raised:#1F272E; --sunk:#0B0E11; --line:#2B343C; --line-soft:#222A31;
-  --text:#EDE7DA; --muted:#98A2AB; --faint:#66707A;
+  --text:#EDE7DA; --muted:#98A2AB; --faint:#7E8892;
   --accent:#6FD3C7; --accent-ink:#0F1316; --accent-soft:rgba(111,211,199,.14); --accent-line:rgba(111,211,199,.45);
   --ochre:#D9A05B; --ochre-soft:rgba(217,160,91,.16);
   --lilac:#B39DDB; --lilac-soft:rgba(179,157,219,.16);
@@ -46,7 +46,9 @@ button{cursor:pointer;background:none;border:0;padding:0}
 a{color:var(--accent)}
 h1,h2,h3,h4{margin:0;text-wrap:balance;line-height:1.2}
 input[type=text],input[type=number],input[type=datetime-local],input[type=date],input[type=email],input[type=url],select,textarea{
-  background:var(--surface);border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 10px;width:100%;min-width:0;color:var(--text)}
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r-sm);padding:9px 12px;min-height:42px;width:100%;min-width:0;color:var(--text)}
+@media (max-width:640px){input[type=text],input[type=number],input[type=datetime-local],input[type=date],select,textarea{font-size:16px}}
+input[type=checkbox]{width:22px;height:22px;flex:0 0 auto}
 textarea{resize:vertical;line-height:1.5}
 input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 ::placeholder{color:var(--faint)}
@@ -66,10 +68,23 @@ header.top{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding-block
 .wordmark span{font-family:var(--f-mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ochre)}
 nav.tabs{display:flex;gap:2px;flex:1 1 auto;overflow-x:auto;scrollbar-width:none}
 nav.tabs::-webkit-scrollbar{display:none}
-nav.tabs button{padding:8px 12px;border-radius:var(--r-sm);color:var(--muted);font-weight:500;white-space:nowrap}
+nav.tabs button{display:inline-flex;align-items:center;gap:7px;min-height:40px;padding:8px 14px;border-radius:var(--r-sm);color:var(--muted);font-weight:500;white-space:nowrap}
+nav.tabs svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
+nav.tabs .short{display:none}
+nav.tabs .dot{width:8px;height:8px;border-radius:50%;background:var(--ochre);margin-left:-2px}
+@media (max-width:640px){
+  nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:40;display:grid;grid-template-columns:repeat(5,1fr);gap:2px;background:var(--surface);border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom));overflow:visible}
+  nav.tabs button{flex-direction:column;gap:3px;min-height:52px;padding:6px 2px;font-size:11px;position:relative}
+  nav.tabs svg{width:22px;height:22px}
+  nav.tabs .full{display:none}nav.tabs .short{display:inline}
+  nav.tabs button[aria-current="page"]{box-shadow:none;background:var(--accent-soft);color:var(--accent)}
+  nav.tabs .dot{position:absolute;top:6px;right:calc(50% - 16px);margin:0}
+  .shell{padding-bottom:calc(88px + env(safe-area-inset-bottom))}
+}
 nav.tabs button:hover{color:var(--text);background:var(--raised)}
 nav.tabs button[aria-current="page"]{color:var(--text);background:var(--raised);box-shadow:inset 0 -2px 0 var(--accent)}
-.mechip{display:flex;align-items:center;gap:8px;padding:5px 10px 5px 5px;border:1px solid var(--line);border-radius:999px;background:var(--surface)}
+.mechip{display:flex;align-items:center;gap:8px;min-height:40px;padding:5px 12px 5px 6px;border:1px solid var(--line);border-radius:999px;background:var(--surface)}
+@media (max-width:640px){header.top{justify-content:space-between;padding-block:12px 8px}.mechip{order:2}}
 .mechip:hover{border-color:var(--accent-line)}
 .av{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;font-weight:600;font-size:12px;color:#0F1316;flex:0 0 auto}
 .av.lg{width:40px;height:40px;font-size:16px}
@@ -78,16 +93,18 @@ nav.tabs button[aria-current="page"]{color:var(--text);background:var(--raised);
 .banner.info{background:var(--accent-soft);border-color:var(--accent-line)}
 
 /* ---------- controls */
-.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:var(--r-sm);border:1px solid var(--line);background:var(--surface);font-weight:500;font-size:14px;line-height:1.2;white-space:nowrap}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:40px;padding:8px 14px;border-radius:var(--r-sm);border:1px solid var(--line);background:var(--surface);font-weight:500;font-size:14px;line-height:1.2;white-space:nowrap}
 .btn:hover{background:var(--raised)}
 .btn.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent}
 .btn.primary:hover{filter:brightness(1.06)}
 .btn.ghost{border-color:transparent;background:transparent;color:var(--muted)}
 .btn.ghost:hover{background:var(--raised);color:var(--text)}
 .btn.danger{color:var(--crit)}
-.btn.sm{padding:4px 8px;font-size:13px}
-.btn.icon{padding:6px;width:32px;height:32px;justify-content:center}
+.btn.sm{min-height:36px;padding:6px 12px;font-size:13.5px}
+.btn.icon{padding:0;width:40px;height:40px;min-height:0;justify-content:center;font-size:16px}
+.btn.icon.sm{width:36px;height:36px}
 .btn:disabled{opacity:.5;cursor:default}
+@media (pointer:coarse){.btn,.btn.sm{min-height:44px}.btn.icon{width:44px;height:44px}.btn.icon.sm{width:44px;height:44px}}
 .pill{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:500;background:var(--raised);color:var(--muted);white-space:nowrap}
 .pill.accent{background:var(--accent-soft);color:var(--accent)}
 .pill.ochre{background:var(--ochre-soft);color:var(--ochre)}
@@ -107,16 +124,16 @@ dialog h2{font-size:18px;margin-bottom:14px}
 .formgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .formgrid .span{grid-column:1/-1}
 @media (max-width:520px){.formgrid{grid-template-columns:1fr}}
-.empty{color:var(--muted);padding:24px;text-align:center;border:1px dashed var(--line);border-radius:var(--r)}
+.empty{color:var(--muted);padding:28px 20px;text-align:center;border:1px dashed var(--line);border-radius:var(--r)}
 
 /* ---------- songs */
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:18px}
 .stat{background:var(--surface);border:1px solid var(--line-soft);border-radius:var(--r);padding:12px 14px}
-.stat b{display:block;font-family:var(--f-display);font-weight:600;font-size:22px;line-height:1.1;margin-top:2px}
+.stat b{display:block;font-family:var(--f-display);font-weight:600;font-size:clamp(17px,4.5vw,22px);line-height:1.1;margin-top:2px}
 .songs{display:grid;grid-template-columns:340px minmax(0,1fr);gap:22px;align-items:start}
 @media (max-width:860px){.songs{grid-template-columns:1fr}.songs.detail-open .songlist{display:none}.songs:not(.detail-open) .songdetail{display:none}}
 .songlist{display:flex;flex-direction:column;gap:6px}
-.songrow{display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:center;padding:10px 12px;border-radius:var(--r);border:1px solid transparent;background:var(--surface);text-align:left;width:100%}
+.songrow{display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:center;min-height:60px;padding:12px 14px;border-radius:var(--r);border:1px solid transparent;background:var(--surface);text-align:left;width:100%}
 .songrow:hover{border-color:var(--line)}
 .songrow[aria-current="true"]{border-color:var(--accent-line);background:var(--accent-soft)}
 .songrow .n{font-family:var(--f-mono);font-size:12px;color:var(--faint);text-align:right}
@@ -135,27 +152,28 @@ dialog h2{font-size:18px;margin-bottom:14px}
 .progress{display:grid;grid-template-columns:auto 1fr auto;gap:8px 12px;align-items:center;font-size:13px}
 .progress .bar{height:8px;border-radius:4px}
 .checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
-.chk{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line-soft);border-radius:var(--r-sm);background:var(--surface);text-align:left}
+.chk{display:flex;align-items:center;gap:12px;min-height:56px;padding:10px 14px;border:1px solid var(--line-soft);border-radius:var(--r-sm);background:var(--surface);text-align:left}
 .chk:hover{border-color:var(--line)}
-.chk .dot{width:16px;height:16px;border-radius:50%;border:2px solid var(--line);flex:0 0 auto;position:relative}
+.chk .dot{width:20px;height:20px;border-radius:50%;border:2px solid var(--line);flex:0 0 auto;position:relative}
 .chk[data-state="wip"] .dot{border-color:var(--warn);background:linear-gradient(90deg,var(--warn) 50%,transparent 50%)}
 .chk[data-state="done"] .dot{border-color:var(--good);background:var(--good)}
 .chk[data-state="scratch"] .dot{border-color:var(--warn);background:linear-gradient(90deg,var(--warn) 50%,transparent 50%)}
 .chk[data-state="final"] .dot{border-color:var(--good);background:var(--good)}
 .chk .l{font-weight:500;line-height:1.2}.chk .s{font-size:11.5px;color:var(--muted);display:block}
 .stages{display:flex;gap:4px;flex-wrap:wrap}
-.stages button{padding:4px 10px;border-radius:999px;font-size:12.5px;font-weight:500;border:1px solid var(--line-soft);color:var(--muted);background:var(--surface)}
+.stages button{min-height:36px;padding:6px 14px;border-radius:999px;font-size:13px;font-weight:500;border:1px solid var(--line-soft);color:var(--muted);background:var(--surface)}
+@media (pointer:coarse){.stages button{min-height:44px}}
 .stages button.past{border-color:var(--accent-line);color:var(--accent)}
 .stages button.cur{background:var(--accent);color:var(--accent-ink);border-color:transparent}
 
 /* player */
 .player{background:var(--sunk);border:1px solid var(--line-soft);border-radius:var(--r);padding:12px}
 .player .top{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
-.player .play{width:40px;height:40px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;flex:0 0 auto}
-.player .play svg{width:18px;height:18px;fill:currentColor}
+.player .play{width:48px;height:48px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;flex:0 0 auto}
+.player .play svg{width:22px;height:22px;fill:currentColor}
 .player .vname{font-weight:600}
 .player .time{font-family:var(--f-mono);font-size:13px;color:var(--muted);margin-left:auto}
-.wave{position:relative;width:100%;height:84px;cursor:pointer;display:block;border-radius:6px;background:var(--surface)}
+.wave{position:relative;width:100%;height:96px;cursor:pointer;display:block;border-radius:6px;background:var(--surface)}
 .wave canvas{width:100%;height:100%;display:block;border-radius:6px}
 .wave .marks{position:absolute;inset:0;pointer-events:none}
 .wave .mk{position:absolute;top:0;bottom:0;width:2px;background:var(--ochre);opacity:.9}
@@ -166,16 +184,18 @@ dialog h2{font-size:18px;margin-bottom:14px}
 .ver .vl{font-family:var(--f-mono);font-size:12px;padding:2px 6px;border-radius:4px;background:var(--raised)}
 .ver .vn{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ver .vm{font-size:12px;color:var(--muted)}
-.upl{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:var(--r-sm);border:1px dashed var(--line);cursor:pointer;font-size:14px;font-weight:500}
+.upl{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:8px 14px;border-radius:var(--r-sm);border:1px dashed var(--line);cursor:pointer;font-size:14px;font-weight:500}
 .upl:hover{border-color:var(--accent);color:var(--accent)}
 .upl input{display:none}
 
 /* notes */
 .notef{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:start;margin-bottom:12px}
-.tchip{display:inline-flex;align-items:center;gap:4px;padding:7px 10px;border-radius:var(--r-sm);border:1px solid var(--line);font-family:var(--f-mono);font-size:13px;background:var(--surface);white-space:nowrap}
+.notef .tin{width:84px;font-family:var(--f-mono);text-align:center}
+@media (max-width:520px){.notef{grid-template-columns:auto 1fr}.notef .btn{grid-column:1/-1}}
+.tchip{display:inline-flex;align-items:center;gap:4px;min-height:42px;padding:8px 12px;border-radius:var(--r-sm);border:1px solid var(--line);font-family:var(--f-mono);font-size:13px;background:var(--surface);white-space:nowrap}
 .tchip.on{border-color:var(--ochre);color:var(--ochre)}
 .notes{display:flex;flex-direction:column;gap:6px}
-.note{display:grid;grid-template-columns:auto auto 1fr auto;gap:10px;align-items:start;padding:8px 10px;border-radius:var(--r-sm);background:var(--surface);border:1px solid var(--line-soft)}
+.note{display:grid;grid-template-columns:auto auto 1fr auto;gap:10px;align-items:start;min-height:52px;padding:10px 12px;border-radius:var(--r-sm);background:var(--surface);border:1px solid var(--line-soft)}
 .note.done{opacity:.55}
 .note.done .txt{text-decoration:line-through}
 .note .tm{font-family:var(--f-mono);font-size:13px;color:var(--ochre);padding:2px 6px;border-radius:4px;background:var(--ochre-soft);min-width:52px;text-align:center}
@@ -183,7 +203,8 @@ dialog h2{font-size:18px;margin-bottom:14px}
 .note .by{font-size:12px;color:var(--muted)}
 .note .txt{white-space:pre-wrap;overflow-wrap:anywhere}
 .note .acts{display:flex;gap:2px}
-.note input[type=checkbox]{margin-top:5px;accent-color:var(--good)}
+.note input[type=checkbox]{margin-top:6px;accent-color:var(--good)}
+.note .edit{width:100%}
 .lyrics{font-family:var(--f-mono);font-size:14px;min-height:260px;line-height:1.65}
 
 /* ---------- calendar */
@@ -201,7 +222,7 @@ dialog h2{font-size:18px;margin-bottom:14px}
 .dots{display:none;gap:3px}
 .dots i{width:6px;height:6px;border-radius:50%;background:var(--accent)}
 .dots i.gig{background:var(--ochre)}.dots i.jam{background:var(--good)}.dots i.recording{background:var(--lilac)}
-@media (max-width:640px){.day{min-height:52px}.evc{display:none}.dots{display:flex}}
+@media (max-width:640px){.day{min-height:58px;padding:4px}.evc{display:none}.dots{display:flex;flex-wrap:wrap}}
 .evlist{display:flex;flex-direction:column;gap:10px;margin-top:18px}
 .ev{display:grid;grid-template-columns:64px 1fr;gap:14px;padding:14px;border-radius:var(--r);background:var(--surface);border:1px solid var(--line-soft);border-left-width:4px}
 .ev.practice{border-left-color:var(--accent)}.ev.gig{border-left-color:var(--ochre)}.ev.jam{border-left-color:var(--good)}.ev.recording{border-left-color:var(--lilac)}
@@ -214,7 +235,8 @@ dialog h2{font-size:18px;margin-bottom:14px}
 .rs i{position:absolute;right:-3px;bottom:-3px;width:13px;height:13px;border-radius:50%;background:var(--surface);font-size:9px;display:grid;place-items:center;font-style:normal;font-weight:700;border:1px solid var(--surface)}
 .rs i.yes{background:var(--good);color:#0F1316}.rs i.maybe{background:var(--warn);color:#0F1316}.rs i.no{background:var(--crit);color:#fff}
 .rsvpbtns{display:inline-flex;border:1px solid var(--line);border-radius:var(--r-sm);overflow:hidden}
-.rsvpbtns button{padding:4px 10px;font-size:13px;font-weight:500;color:var(--muted)}
+.rsvpbtns button{min-height:40px;padding:6px 14px;font-size:13.5px;font-weight:500;color:var(--muted)}
+@media (pointer:coarse){.rsvpbtns button{min-height:44px}}
 .rsvpbtns button+button{border-left:1px solid var(--line)}
 .rsvpbtns button.on.yes{background:var(--good-soft);color:var(--good)}.rsvpbtns button.on.maybe{background:var(--warn-soft);color:var(--warn)}.rsvpbtns button.on.no{background:var(--crit-soft);color:var(--crit)}
 
@@ -224,17 +246,19 @@ dialog h2{font-size:18px;margin-bottom:14px}
 .photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
 .photo{display:flex;flex-direction:column;gap:6px}
 .photo img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:var(--r-sm);background:var(--raised)}
-.photo input{font-size:12px;padding:4px 6px}
+.photo input{font-size:13px;padding:6px 8px;min-height:36px}
 .docs{display:flex;flex-direction:column;gap:6px}
-.doc{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--line-soft);border-radius:var(--r-sm)}
+.doc{display:flex;align-items:center;gap:10px;min-height:48px;padding:8px 12px;border:1px solid var(--line-soft);border-radius:var(--r-sm);flex-wrap:wrap}
+.doc video,.doc audio{width:100%;max-height:300px;border-radius:var(--r-sm)}
 .logo{width:120px;height:120px;border-radius:var(--r);object-fit:contain;background:var(--raised);border:1px solid var(--line-soft)}
 
 /* ---------- chat */
 .chat{display:grid;grid-template-columns:220px minmax(0,1fr);gap:18px;min-height:60vh}
-@media (max-width:760px){.chat{grid-template-columns:1fr}.chat .chans{flex-direction:row;overflow-x:auto;scrollbar-width:none}}
+@media (max-width:760px){.chat{grid-template-columns:1fr;min-height:0}.chat .chans{flex-direction:row;overflow-x:auto;scrollbar-width:none;align-items:center;gap:6px;padding-bottom:4px}.chat .chans p{display:none}.chat .chans button{flex:0 0 auto;border:1px solid var(--line-soft)}.chatpane{min-height:50vh;max-height:calc(100dvh - 240px)}}
 .chans{display:flex;flex-direction:column;gap:2px}
-.chans button{text-align:left;padding:8px 10px;border-radius:var(--r-sm);color:var(--muted);font-weight:500;white-space:nowrap;display:flex;align-items:center;gap:8px}
+.chans button{text-align:left;min-height:44px;padding:8px 12px;border-radius:var(--r-sm);color:var(--muted);font-weight:500;white-space:nowrap;display:flex;align-items:center;gap:8px}
 .chans button[aria-current="true"]{background:var(--raised);color:var(--text)}
+.chans .dot{width:8px;height:8px;border-radius:50%;background:var(--ochre);margin-left:auto}
 .chatpane{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line-soft);border-radius:var(--r);min-height:60vh;max-height:78vh}
 .msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
 .daysep{text-align:center;font-family:var(--f-mono);font-size:11px;color:var(--faint);letter-spacing:.08em;text-transform:uppercase;margin-block:6px}
@@ -246,16 +270,17 @@ dialog h2{font-size:18px;margin-bottom:14px}
 .msg .att audio{max-width:100%}
 .composer{border-top:1px solid var(--line-soft);padding:10px;display:flex;flex-direction:column;gap:8px}
 .composer .rowc{display:flex;gap:8px;align-items:flex-end}
-.composer textarea{min-height:42px;max-height:160px}
+.composer textarea{min-height:44px;max-height:160px}
 .pend{display:flex;gap:6px;flex-wrap:wrap}
 .pend span{font-size:12px;padding:3px 8px;border-radius:999px;background:var(--raised)}
 
 /* ---------- band */
 .members{display:flex;flex-direction:column;gap:8px}
 .mem{display:grid;grid-template-columns:auto 1fr 1fr auto;gap:10px;align-items:center}
-@media (max-width:520px){.mem{grid-template-columns:auto 1fr;}.mem select{grid-column:2}}
+@media (max-width:520px){.mem{grid-template-columns:auto 1fr 1fr}.mem .swatches{grid-column:2/-1}}
 .swatches{display:flex;gap:6px}
-.sw{width:24px;height:24px;border-radius:50%;border:2px solid transparent}
+.sw{width:32px;height:32px;border-radius:50%;border:3px solid transparent}
+.swatches{gap:8px}
 .sw.on{border-color:var(--text)}
 .who{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
 .who button{display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 10px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);font-weight:600}
@@ -279,6 +304,13 @@ dialog h2{font-size:18px;margin-bottom:14px}
   <h2>Who's this?</h2>
   <p class="muted small" style="margin:0 0 14px">Pick yourself so notes, RSVPs and chat carry your name. This device remembers your choice.</p>
   <div class="who" id="whoList"></div>
+</dialog>
+
+<dialog id="askDlg">
+  <h2 id="askTitle">Are you sure?</h2>
+  <p id="askMsg" class="muted small" style="margin:0 0 14px"></p>
+  <input type="text" id="askInput" class="hidden" style="margin-bottom:14px" aria-label="Value">
+  <div class="row" style="justify-content:flex-end"><button type="button" class="btn" data-act="ask-cancel">Cancel</button><button type="button" class="btn primary" id="askOk" data-act="ask-ok">OK</button></div>
 </dialog>
 
 <dialog id="evDlg">
@@ -316,12 +348,12 @@ const COLORS=['#6FD3C7','#D9A05B','#8FBF7F','#B39DDB','#E8A0BF','#F0C96B'];
 const KEYS=['C','C#/Db','D','D#/Eb','E','F','F#/Gb','G','G#/Ab','A','A#/Bb','B'];
 const AUDIO_EXT={mp3:'audio/mpeg',wav:'audio/wav',aif:'audio/aiff',aiff:'audio/aiff',ogg:'audio/ogg',oga:'audio/ogg',flac:'audio/flac',m4a:'audio/mp4',mp4:'video/mp4',webm:'video/webm',opus:'audio/ogg',aac:'audio/aac'};
 const DIRECT_AUDIO={m4a:'video/mp4',mp4:'video/mp4',webm:'video/webm'};
-const WRAP_LIMIT=14.5*1024*1024;
+const CHUNK=14*1024*1024;const WRAP_LIMIT=120*1024*1024;
 
 const S={db:null,assets:null,downloads:null,demo:false,connecting:true,
   me:null,members:[],songs:[],events:[],profile:null,
   tab:'songs',songId:null,notes:[],versions:[],unsubSong:[],
-  chan:'general',messages:[],unsubChat:null,pendFiles:[],
+  chan:'general',messages:[],unsubChat:null,pendFiles:[],latest:{},editingNote:null,
   cal:null,calSel:null,
   player:{versionId:null,url:null,peaks:null,duration:0,loading:false},
   noteTime:null,pending:new Set(),usage:null,localUrls:{}};
@@ -343,6 +375,10 @@ function deepMerge(a,b){const o={...(a||{})};for(const k in b){const v=b[k];if(v
 const member=id=>S.members.find(m=>m.id===id)||{id,name:'Someone',color:'#999',role:''};
 const meName=()=>member(S.me).name;
 const isText=e=>e&&(/^(INPUT|TEXTAREA|SELECT)$/.test(e.tagName))&&!/^(checkbox|file|button|range)$/.test(e.type||'');
+let askResolve=null;
+function ask(title,msg,{ok='OK',danger=false,input=null}={}){return new Promise(res=>{askResolve=res;$('#askTitle').textContent=title;$('#askMsg').textContent=msg||'';const i=$('#askInput');i.classList.toggle('hidden',input==null);i.value='';i.placeholder=input||'';const b=$('#askOk');b.textContent=ok;b.classList.toggle('danger',danger);b.classList.toggle('primary',!danger);const d=$('#askDlg');if(!d.open)d.showModal();if(input!=null)setTimeout(()=>i.focus(),30)})}
+function askDone(v){const d=$('#askDlg');if(d.open)d.close();const r=askResolve;askResolve=null;if(r)r(v)}
+const ls={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}}};
 function toast(msg,ms=2600){let t=$('.toast');if(!t){t=document.createElement('div');t.className='toast';document.body.appendChild(t)}t.textContent=msg;clearTimeout(t._h);t._h=setTimeout(()=>t.remove(),ms)}
 function av(id,cls=''){const m=member(id);return `<span class="av ${cls}" style="background:${m.color}" title="${esc(m.name)}">${esc((m.name||'?')[0].toUpperCase())}</span>`}
 function localISO(d){const p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes())}
@@ -352,12 +388,12 @@ function errMsg(e){return (e&&e.message)||String(e)}
 /* ---------- store adapter (db when available, memory otherwise) */
 const Store={mem:new Map(),watchers:[],
   async setDoc(p,d){if(S.db)return S.db.doc(p).set(d);this.mem.set(p,clone(d));this.notify(p)},
-  async updateDoc(p,d){if(S.db)return S.db.doc(p).update(d);this.mem.set(p,deepMerge(this.mem.get(p)||{},clone(d)));this.notify(p)},
+  async updateDoc(p,d){if(S.db)return S.db.doc(p).update(d);if(!this.mem.has(p))throw{code:'invalid_argument',message:'That item no longer exists'};this.mem.set(p,deepMerge(this.mem.get(p),clone(d)));this.notify(p)},
   async deleteDoc(p){if(S.db)return S.db.doc(p).delete();this.mem.delete(p);this.notify(p)},
   async addDoc(c,d){if(S.db){const r=await S.db.collection(c).add(d);return r.id}const id=uid();await this.setDoc(c+'/'+id,d);return id},
   async getDoc(p){if(S.db){const s=await S.db.doc(p).get();return s.exists?s.data():null}return this.mem.get(p)||null},
-  watchDoc(p,cb){if(S.db)return S.db.doc(p).onSnapshot(s=>cb(s.exists?s.data():null),e=>console.warn('db',p,e));const w={t:'d',p,cb};this.watchers.push(w);cb(this.mem.get(p)||null);return()=>{this.watchers=this.watchers.filter(x=>x!==w)}},
-  watchCol(c,o,cb){if(S.db){let q=S.db.collection(c);if(o.orderBy)q=q.orderBy(o.orderBy,o.dir||'asc');if(o.limit)q=q.limit(o.limit);return q.onSnapshot(s=>cb(s.docs.map(d=>({id:d.id,...d.data()}))),e=>console.warn('db',c,e))}
+  watchDoc(p,cb){if(S.db)return S.db.doc(p).onSnapshot(s=>cb(s.exists?s.data():null),e=>lostConnection(p,e));const w={t:'d',p,cb};this.watchers.push(w);cb(this.mem.get(p)||null);return()=>{this.watchers=this.watchers.filter(x=>x!==w)}},
+  watchCol(c,o,cb){if(S.db){let q=S.db.collection(c);if(o.orderBy)q=q.orderBy(o.orderBy,o.dir||'asc');if(o.limit)q=q.limit(o.limit);return q.onSnapshot(s=>cb(s.docs.map(d=>({id:d.id,...d.data()}))),e=>lostConnection(c,e))}
     const w={t:'c',c,o,cb};this.watchers.push(w);cb(this.query(c,o));return()=>{this.watchers=this.watchers.filter(x=>x!==w)}},
   query(c,o){const n=c.split('/').length;const rows=[];for(const[p,d]of this.mem){if(p.startsWith(c+'/')&&p.split('/').length===n+1)rows.push({id:p.split('/')[n],...clone(d)})}
     if(o.orderBy){const k=o.orderBy,dir=o.dir==='desc'?-1:1;rows.sort((a,b)=>(a[k]==null)-(b[k]==null)||(a[k]>b[k]?dir:a[k]<b[k]?-dir:0))}else rows.sort((a,b)=>a.id<b.id?-1:1);
@@ -383,8 +419,8 @@ function seedDemo(){
 
 /* ---------- boot */
 async function boot(){
-  S.me=localStorage.getItem('mammuthus.me')||null;
-  const sm=localStorage.getItem('mammuthus.tab');if(sm)S.tab=sm;
+  S.me=ls.get('mammuthus.me')||null;
+  const sm=ls.get('mammuthus.tab');if(sm)S.tab=sm;
   const t=new Date();S.cal={y:t.getFullYear(),m:t.getMonth()};
   renderShell();renderActive();
   const use=n=>window.claude&&window.claude.use?window.claude.use(n).catch(()=>null):Promise.resolve(null);
@@ -403,13 +439,15 @@ async function ensureBandDocs(){
   if(!p)await Store.setDoc('band/profile',defaultProfile());
 }
 function subscribeCore(){
-  Store.watchDoc('band/members',d=>{S.members=(d&&d.list)||[];if(!S.me||!S.members.find(m=>m.id===S.me)){S.me=null;if(S.members.length)askWho()}renderMe();renderActive()});
+  Store.watchDoc('band/members',d=>{S.members=(d&&d.list)||[];if(!S.me||!S.members.find(m=>m.id===S.me)){S.me=null;if(S.members.length)askWho()}renderMe();const key=S.members.map(m=>m.id).join(',')+'|'+S.me;if(key!==S._chanKey){S._chanKey=key;watchLatest()}renderActive()});
   Store.watchDoc('band/profile',d=>{S.profile=d||defaultProfile();renderActive()});
   Store.watchCol('songs',{orderBy:'order'},rows=>{S.songs=rows;if(S.songId&&!rows.find(s=>s.id===S.songId))S.songId=null;renderActive()});
   Store.watchCol('events',{orderBy:'start'},rows=>{S.events=rows;renderActive()});
 }
+function lostConnection(p,e){console.warn('db',p,e);if(e&&e.code==='invalid_argument')return;S.stale=true;renderBanner()}
 function renderBanner(){
   const b=$('#banner');
+  if(S.stale){b.innerHTML=`<div class="banner">Live updates stopped. <a href="#" onclick="location.reload();return false">Reload the page</a> to reconnect.</div>`;return}
   if(S.demo)b.innerHTML=`<div class="banner">Preview mode: this copy isn't connected to the shared band database, so changes stay on this screen only. Open the published link from claude.ai to work together.</div>`;
   else b.innerHTML='';
 }
@@ -419,16 +457,28 @@ function askWho(){const d=$('#whoDlg');$('#whoList').innerHTML=S.members.map(m=>
 function renderMe(){const c=$('#mechip');if(!S.me){c.innerHTML=`<span class="av" style="background:var(--line)">?</span><span>Who are you?</span>`;return}c.innerHTML=`${av(S.me)}<span>${esc(meName())}</span>`}
 
 /* ---------- shell & routing */
-const TABS={songs:'Songs',calendar:'Calendar',media:'Media & EPK',chat:'Chat',band:'Band'};
-function renderShell(){$('#tabs').innerHTML=Object.entries(TABS).map(([k,l])=>`<button data-act="tab" data-tab="${k}" ${S.tab===k?'aria-current="page"':''}>${l}</button>`).join('')}
-function setTab(t){S.tab=t;localStorage.setItem('mammuthus.tab',t);renderShell();renderActive();window.scrollTo(0,0)}
+const ICONS={songs:'<svg viewBox="0 0 24 24"><path d="M9 18V6l11-2v12"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>',
+  calendar:'<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
+  media:'<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-8 8"/></svg>',
+  chat:'<svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg>',
+  band:'<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.5a5 5 0 0 1 6 5"/></svg>'};
+const TABS={songs:['Songs','Songs'],calendar:['Calendar','Dates'],media:['Media & EPK','Media'],chat:['Chat','Chat'],band:['Band','Band']};
+function renderShell(){$('#tabs').innerHTML=Object.entries(TABS).map(([k,[l,sh]])=>`<button data-act="tab" data-tab="${k}" ${S.tab===k?'aria-current="page"':''}>${ICONS[k]}<span class="full">${l}</span><span class="short">${sh}</span>${k==='chat'&&hasUnread()?'<span class="dot" aria-label="Unread messages"></span>':''}</button>`).join('')}
+function setTab(t){S.tab=t;ls.set('mammuthus.tab',t);renderShell();renderActive();window.scrollTo(0,0)}
+const DRAFTS=['noteText','chatText','newSongTitle','noteEdit','noteTimeIn'];
+function withDrafts(fn){const saved={};let focus=null,sel=null;DRAFTS.forEach(id=>{const el=document.getElementById(id);if(el){saved[id]=el.value;if(document.activeElement===el){focus=id;sel=[el.selectionStart,el.selectionEnd]}}});
+  fn();
+  Object.entries(saved).forEach(([id,v])=>{const el=document.getElementById(id);if(el&&v&&el.value!==v)el.value=v;if(el&&focus===id){el.focus();try{el.setSelectionRange(sel[0],sel[1])}catch(e){}}})}
 function renderActive(){
   const main=$('#main');const a=document.activeElement;
-  if(a&&main.contains(a)&&isText(a)){S.pending.add('main');return}
+  if((a&&main.contains(a)&&isText(a))||Date.now()<(S.holdRender||0)){S.pending.add('main');return}
   S.pending.delete('main');
-  ({songs:renderSongs,calendar:renderCalendar,media:renderMedia,chat:renderChat,band:renderBand}[S.tab]||renderSongs)();
+  withDrafts(()=>({songs:renderSongs,calendar:renderCalendar,media:renderMedia,chat:renderChat,band:renderBand}[S.tab]||renderSongs)());
 }
-document.addEventListener('focusout',()=>{setTimeout(()=>{if(S.pending.size){const a=document.activeElement;if(!(a&&$('#main').contains(a)&&isText(a)))renderActive()}},60)});
+function flushPending(){if(!S.pending.size)return;const a=document.activeElement;if(!(a&&$('#main').contains(a)&&isText(a))&&Date.now()>=(S.holdRender||0))renderActive()}
+document.addEventListener('pointerdown',e=>{if(e.target.closest('#main button,#main .btn,#main label'))S.holdRender=Date.now()+700});
+document.addEventListener('focusout',()=>{setTimeout(flushPending,80)});
+setInterval(flushPending,900);
 
 /* =========================================================
    SONGS
@@ -456,7 +506,8 @@ function renderSongs(){
     </div>`;
   renderSongList();renderSongDetail();
 }
-function renderSongList(){
+function renderSongList(){withDrafts(renderSongListInner)}
+function renderSongListInner(){
   const c=$('#songList');if(!c)return;
   c.innerHTML=(S.songs.length?S.songs.map((s,i)=>{const p=progressOf(s);return`<button class="songrow" data-act="open-song" data-id="${s.id}" ${s.id===S.songId?'aria-current="true"':''}>
       <span class="n">${String(i+1).padStart(2,'0')}</span>
@@ -494,7 +545,7 @@ function renderSongDetail(){
 function renderSongHead(s){
   const p=progressOf(s);const si=STAGES.indexOf(s.stage||'Idea');
   $('#sdHead').innerHTML=`<div class="sdhead">
-    <div class="row"><button class="btn ghost sm" data-act="close-song">← All songs</button><span class="grow"></span><button class="btn ghost sm danger" data-act="del-song" data-id="${s.id}">Delete song</button></div>
+    <div class="row"><button class="btn ghost sm" data-act="close-song">← All songs</button><span class="grow"></span><button class="btn icon sm ghost" data-act="move-song" data-d="-1" title="Move up in the running order" aria-label="Move up">▲</button><button class="btn icon sm ghost" data-act="move-song" data-d="1" title="Move down in the running order" aria-label="Move down">▼</button><button class="btn ghost sm danger" data-act="del-song" data-id="${s.id}">Delete</button></div>
     <input class="sdtitle" id="songTitle" type="text" value="${esc(s.title)}" data-sf="title" aria-label="Song title">
     <div class="stages" role="group" aria-label="Stage">${STAGES.map((st,i)=>`<button data-act="stage" data-v="${st}" class="${i<si?'past':i===si?'cur':''}">${st}</button>`).join('')}</div>
     <div class="meta">
@@ -520,15 +571,18 @@ function renderLyrics(s){
 }
 async function songUpdate(patch){if(!S.songId)return;try{await Store.updateDoc('songs/'+S.songId,patch)}catch(e){toast('Could not save: '+errMsg(e))}}
 async function addSong(title){
+  if(!S.me)return askWho();
   const order=S.songs.reduce((a,s)=>Math.max(a,s.order||0),0)+1;
   const id=await Store.addDoc('songs',{title,order,stage:'Idea',tempo:'',key:'',timeSig:'4/4',length:'',lyrics:'',parts:{},tracked:{},sessionNotes:'',createdAt:Date.now(),by:S.me});
   openSong(id);
 }
 async function deleteSong(id){
   const s=S.songs.find(x=>x.id===id);if(!s)return;
-  if(!confirm(`Delete "${s.title}" and all its notes and versions? This can't be undone.`))return;
+  if(!await ask('Delete song?',`"${s.title}" and all its notes and audio versions will be removed. This can't be undone.`,{ok:'Delete',danger:true}))return;
   const dels=[...S.notes.map(n=>Store.deleteDoc(`songs/${id}/notes/${n.id}`)),...S.versions.map(v=>Store.deleteDoc(`songs/${id}/versions/${v.id}`))];
+  const ids=S.versions.flatMap(v=>v.assetIds||(v.assetId?[v.assetId]:[])).filter(a=>!a.startsWith('local:'));
   await Promise.all(dels);await Store.deleteDoc('songs/'+id);openSong(null);toast('Song deleted');
+  if(S.assets)ids.forEach(a=>S.assets.delete(a).catch(()=>{}));
 }
 
 /* ---------- audio versions & player */
@@ -548,12 +602,12 @@ function renderPlayer(){
     </div>
     <div class="versions" style="margin-top:10px" id="verList"></div>
     <div class="row" style="margin-top:10px">
-      ${canUp?`<label class="upl">＋ Upload new version<input type="file" id="verFile" accept="audio/*,.mp3,.wav,.m4a,.aiff,.aif,.ogg,.flac,.mp4,.webm"></label><span class="muted small">MP3, M4A, WAV, AIFF, OGG, FLAC · up to ~14 MB</span>`:`<span class="muted small">Uploads are available to band members with edit access.</span>`}
+      ${canUp?`<label class="upl">＋ Upload new version<input type="file" id="verFile" accept="audio/*,.mp3,.wav,.m4a,.aiff,.aif,.ogg,.flac,.mp4,.webm"></label><span class="muted small">MP3 or M4A load fastest · WAV and AIFF work too</span>`:`<span class="muted small">Uploads are available to band members with edit access.</span>`}
     </div>`;
   $('#verList').innerHTML=S.versions.length?[...S.versions].reverse().map(x=>`<div class="ver" ${x.id===S.player.versionId?'aria-current="true"':''}>
       <span class="vl">${esc(x.label)}</span>
       <div class="grow"><div class="vn">${esc(x.name||'Untitled')} ${x.id===latest.id?'<span class="pill accent">latest</span>':''}</div><div class="vm">${esc(member(x.by).name)} · ${fmtDate(new Date(x.at).toISOString())}${x.size?' · '+fmtBytes(x.size):''}${x.note?' · '+esc(x.note):''} · ${S.notes.filter(n=>n.versionId===x.id).length} notes</div></div>
-      <div class="row" style="gap:2px"><button class="btn sm ${x.id===S.player.versionId?'primary':''}" data-act="load-ver" data-id="${x.id}" ${x.assetId?'':'disabled'}>${x.id===S.player.versionId?'Loaded':'Load'}</button>${x.assetId&&!x.wrapped?`<a class="btn sm ghost" href="${blobUrl(x.assetId)}" download="${esc(x.name||'audio')}" title="Download">↓</a>`:''}<button class="btn sm ghost danger" data-act="del-ver" data-id="${x.id}" title="Delete version">✕</button></div>
+      <div class="row" style="gap:2px"><button class="btn sm ${x.id===S.player.versionId?'primary':''}" data-act="load-ver" data-id="${x.id}" ${x.assetId?'':'disabled'}>${x.id===S.player.versionId?'Loaded':'Load'}</button>${x.assetId&&!x.wrapped&&S.downloads?`<button class="btn icon sm ghost" data-act="dl-ver" data-id="${x.id}" title="Download" aria-label="Download">↓</button>`:''}<button class="btn sm ghost danger" data-act="del-ver" data-id="${x.id}" title="Delete version">✕</button></div>
     </div>`).join(''):'';
   drawWave();
 }
@@ -562,7 +616,10 @@ async function resolveAudioUrl(v){
   if(urlCache.has(v.assetId))return urlCache.get(v.assetId);
   let url;
   if(!v.wrapped)url=blobUrl(v.assetId);
-  else{const txt=await(await fetch(blobUrl(v.assetId))).text();const nl=txt.indexOf('\n');const mime=txt.slice(0,nl).trim()||'audio/mpeg';const b64=txt.slice(nl+1);const bin=atob(b64);const arr=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);url=URL.createObjectURL(new Blob([arr],{type:mime}))}
+  else{const ids=v.assetIds&&v.assetIds.length?v.assetIds:[v.assetId];const texts=await Promise.all(ids.map(id=>fetch(blobUrl(id)).then(r=>{if(!r.ok)throw new Error('Audio file missing');return r.text()})));
+    const nl=texts[0].indexOf('\n');const mime=texts[0].slice(0,nl).trim()||v.mime||'audio/mpeg';texts[0]=texts[0].slice(nl+1);
+    const parts=texts.map(t=>{const bin=atob(t.replace(/\s+/g,''));const arr=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);return arr});
+    url=URL.createObjectURL(new Blob(parts,{type:mime}))}
   urlCache.set(v.assetId,url);return url;
 }
 async function loadVersion(id,autoplay){
@@ -570,7 +627,7 @@ async function loadVersion(id,autoplay){
   AUDIO.pause();S.player={versionId:id,url:null,peaks:null,duration:0,loading:true};renderPlayer();
   try{const url=await resolveAudioUrl(v);if(S.player.versionId!==id)return;S.player.url=url;AUDIO.src=url;if(autoplay)AUDIO.play().catch(()=>{});
     computePeaks(url,id);
-  }catch(e){toast('Could not load audio: '+errMsg(e));S.player.loading=false}
+  }catch(e){toast('Could not load audio: '+errMsg(e));if(S.player.versionId===id)stopPlayer();renderPlayer()}
 }
 async function computePeaks(url,id){
   try{const buf=await(await fetch(url)).arrayBuffer();const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;const ctx=new AC();const ab=await ctx.decodeAudioData(buf);ctx.close&&ctx.close();
@@ -600,33 +657,37 @@ async function uploadAudioFile(file){
   const ext=(file.name.split('.').pop()||'').toLowerCase();
   const direct=DIRECT_AUDIO[ext];
   if(direct){try{const r=await S.assets.upload(file,{type:direct});return{assetId:r.id,wrapped:false,mime:direct}}catch(e){if(e&&e.code!=='unsupported_type')throw e}}
-  if(file.size>WRAP_LIMIT)throw new Error(`That file is ${fmtBytes(file.size)}. Files over 14 MB need to be exported as MP3 or M4A first.`);
+  if(file.size>WRAP_LIMIT)throw new Error(`That file is ${fmtBytes(file.size)}. Export it as a 256 kbps MP3 or an M4A first (anything up to about 120 MB works).`);
   const mime=AUDIO_EXT[ext]||file.type||'audio/mpeg';
   const b64=await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(String(fr.result).split(',')[1]||'');fr.onerror=rej;fr.readAsDataURL(file)});
-  const r=await S.assets.upload(new Blob([mime+'\n'+b64],{type:'text/plain'}),{type:'text/plain'});
-  return{assetId:r.id,wrapped:true,mime};
+  const chunks=[];for(let i=0;i<b64.length;i+=CHUNK)chunks.push(b64.slice(i,i+CHUNK));
+  const ids=[];
+  try{for(let i=0;i<chunks.length;i++){if(chunks.length>1)toast(`Uploading part ${i+1} of ${chunks.length}…`,20000);const r=await S.assets.upload(new Blob([(i===0?mime+'\n':'')+chunks[i]],{type:'text/plain'}),{type:'text/plain'});ids.push(r.id)}}
+  catch(e){ids.forEach(id=>S.assets.delete(id).catch(()=>{}));throw e}
+  return{assetId:ids[0],assetIds:ids,wrapped:true,mime};
 }
 async function addVersion(file){
   if(!S.songId||!S.assets)return;
-  const label='v'+(S.versions.length+1);
+  const label='v'+(S.versions.reduce((a,v)=>Math.max(a,+String(v.label||'').replace(/\D/g,'')||0),0)+1);
   toast(`Uploading ${label} (${fmtBytes(file.size)})…`,8000);
   try{const up=await uploadAudioFile(file);
-    const note=prompt(`${label} uploaded. Add a short description? (optional)`,'')||'';
-    const id=await Store.addDoc(`songs/${S.songId}/versions`,{label,name:file.name,by:S.me,at:Date.now(),assetId:up.assetId,wrapped:up.wrapped,mime:up.mime,size:file.size,note});
+    const note=(await ask(`${label} uploaded`,'Add a short description so the others know what changed (optional).',{ok:'Save',input:'e.g. new bridge, slower tempo'}))||'';
+    const id=await Store.addDoc(`songs/${S.songId}/versions`,{label,name:file.name,by:S.me,at:Date.now(),assetId:up.assetId,assetIds:up.assetIds||[up.assetId],wrapped:up.wrapped,mime:up.mime,size:file.size,note});
     toast(`${label} added`);setTimeout(()=>loadVersion(id,false),300);
   }catch(e){toast('Upload failed: '+errMsg(e),5000)}
 }
 async function deleteVersion(id){
   const v=S.versions.find(x=>x.id===id);if(!v)return;
-  if(!confirm(`Delete ${v.label} (${v.name})? Notes tagged to it keep their timestamps but lose the audio.`))return;
+  if(!await ask(`Delete ${v.label}?`,`${v.name} will be removed. Notes tagged to it keep their timestamps but lose the audio.`,{ok:'Delete',danger:true}))return;
   if(S.player.versionId===id)stopPlayer();
   await Store.deleteDoc(`songs/${S.songId}/versions/${id}`);
-  if(v.assetId&&S.assets&&!v.assetId.startsWith('local:')){try{await S.assets.delete(v.assetId)}catch(e){}}
+  if(S.assets)(v.assetIds||[v.assetId]).filter(a=>a&&!a.startsWith('local:')).forEach(a=>S.assets.delete(a).catch(()=>{}));
   toast('Version deleted');
 }
 
 /* ---------- notes */
-function renderNotes(){
+function renderNotes(){withDrafts(renderNotesInner)}
+function renderNotesInner(){
   const c=$('#sdNotes');if(!c||!S.songId)return;
   const v=curVersion();
   const timed=S.notes.filter(n=>n.time!=null).sort((a,b)=>(a.versionId===b.versionId?0:(a.versionId===S.player.versionId?-1:b.versionId===S.player.versionId?1:0))||a.time-b.time);
@@ -635,11 +696,11 @@ function renderNotes(){
   const noteRow=n=>{const vv=S.versions.find(x=>x.id===n.versionId);return`<div class="note ${n.done?'done':''}">
       <input type="checkbox" ${n.done?'checked':''} data-act="note-done" data-id="${n.id}" aria-label="Resolved">
       ${n.time!=null?`<button class="tm" data-act="seek-note" data-id="${n.id}" title="Jump to ${fmtT(n.time)}${vv?' in '+esc(vv.label):''}">${fmtT(n.time)}</button>`:`<span class="tm g">general</span>`}
-      <div class="grow"><div class="txt">${esc(n.text)}</div><div class="by">${esc(member(n.by).name)} · ${fmtDT(new Date(n.at).toISOString())}${vv&&n.time!=null?' · '+esc(vv.label):''}</div></div>
-      <div class="acts"><button class="btn icon ghost" data-act="del-note" data-id="${n.id}" title="Delete note">✕</button></div>
+      <div class="grow">${S.editingNote===n.id?`<form data-act="save-note" data-id="${n.id}"><input type="text" class="edit" id="noteEdit" value="${esc(n.text)}" aria-label="Edit note"></form><div class="row small" style="margin-top:6px"><button class="btn sm primary" data-act="save-note" data-id="${n.id}">Save</button><button class="btn sm ghost" data-act="cancel-edit">Cancel</button></div>`:`<div class="txt">${esc(n.text)}</div>`}<div class="by">${esc(member(n.by).name)} · ${fmtDT(new Date(n.at).toISOString())}${vv&&n.time!=null?' · '+esc(vv.label):''}${n.editedAt?' · edited':''}</div></div>
+      <div class="acts"><button class="btn icon sm ghost" data-act="edit-note" data-id="${n.id}" title="Edit note" aria-label="Edit note">✎</button><button class="btn icon sm ghost" data-act="del-note" data-id="${n.id}" title="Delete note" aria-label="Delete note">✕</button></div>
     </div>`};
   c.innerHTML=`<form class="notef" data-act="add-note">
-      <button type="button" class="tchip ${t!=null?'on':''}" data-act="toggle-time" title="Tag this note to the current playback time">${t!=null?'@ '+fmtT(t):'general'}</button>
+      <span class="row" style="gap:6px;flex-wrap:nowrap"><button type="button" class="tchip ${t!=null?'on':''}" data-act="toggle-time" title="${t!=null?'Switch to a general comment':'Tag this note to the play head'}">${t!=null?'@':'general'}</button>${t!=null?`<input type="text" class="tin" id="noteTimeIn" value="${fmtT(t)}" aria-label="Time in the song, m:ss" placeholder="m:ss" inputmode="numeric">`:''}</span>
       <input type="text" id="noteText" placeholder="${t!=null?'What happens at '+fmtT(t)+'?':'Comment on the song…'}" required autocomplete="off">
       <button class="btn primary" type="submit">Add</button>
     </form>
@@ -649,7 +710,7 @@ function renderNotes(){
     ${!S.notes.length?`<div class="empty small">No notes yet.</div>`:''}`;
 }
 async function addNote(text){
-  if(!S.songId)return;
+  if(!S.songId)return;if(!S.me)return askWho();
   const time=S.noteTime;const versionId=time!=null?S.player.versionId:null;
   await Store.addDoc(`songs/${S.songId}/notes`,{text,time,versionId,by:S.me,at:Date.now(),done:false});
   S.noteTime=null;
@@ -677,7 +738,6 @@ function renderCalendar(){
       <button class="btn icon" data-act="cal-nav" data-d="1" aria-label="Next month">›</button>
       <button class="btn ghost sm" data-act="cal-today">Today</button>
       <span class="grow"></span>
-      ${S.downloads&&S.events.length?`<button class="btn sm" data-act="ics-all">Export all (.ics)</button>`:''}
       <button class="btn primary" data-act="ev-new">＋ Event</button>
     </div>
     <div class="grid7">${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d=>`<div class="dow">${d}</div>`).join('')}
@@ -701,9 +761,9 @@ function evCard(e){
         <span class="grow"></span>
         <span class="rsvpbtns" role="group" aria-label="Your RSVP">${[['yes','Going'],['maybe','Maybe'],['no',"Can't"]].map(([k,l])=>`<button class="${k} ${my===k?'on':''}" data-act="rsvp" data-id="${e.id}" data-v="${k}">${l}</button>`).join('')}</span>
       </div>
-      <div class="row small" style="margin-top:8px;gap:12px">
-        ${S.downloads?`<button class="btn sm ghost" data-act="ics-one" data-id="${e.id}">Add to my calendar (.ics)</button>`:''}
+      <div class="row small" style="margin-top:8px;gap:8px"><span class="muted">Add to my phone:</span>
         <a class="btn sm ghost" href="${gcalLink(e)}" target="_blank" rel="noopener">Google Calendar ↗</a>
+        <a class="btn sm ghost" href="${outlookLink(e)}" target="_blank" rel="noopener">Outlook ↗</a>
       </div>
     </div></article>`;
 }
@@ -715,15 +775,17 @@ function openEventDialog(e){
   $('#evDlg').showModal();
 }
 async function saveEvent(){
+  if(!S.me){$('#evDlg').close();return askWho()}
   const id=$('#ev_id').value;const start=$('#ev_start').value,end=$('#ev_end').value;
   const data={title:$('#ev_title').value.trim(),type:$('#ev_type').value,location:$('#ev_location').value.trim(),start:new Date(start).toISOString(),end:end?new Date(end).toISOString():null,plan:$('#ev_plan').value.trim()};
-  if(id)await Store.updateDoc('events/'+id,data);else await Store.addDoc('events',{...data,rsvp:{[S.me]:'yes'},by:S.me,at:Date.now()});
-  $('#evDlg').close();toast(id?'Event updated':'Event added');
+  const prev=id?S.events.find(x=>x.id===id):null;data.updatedAt=Date.now();data.seq=prev?(prev.seq||0)+1:0;
+  try{if(id)await Store.updateDoc('events/'+id,data);else await Store.addDoc('events',{...data,rsvp:{[S.me]:'yes'},by:S.me,at:Date.now()});toast(id?'Event updated':'Event added')}
+  catch(e){toast('Could not save: '+errMsg(e))}finally{$('#evDlg').close()}
 }
-const icsEsc=s=>String(s||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\r?\n/g,'\\n');
 const icsDate=iso=>new Date(iso).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');
-function icsFor(evs){const now=icsDate(new Date().toISOString());return['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Mammuthus Sessions//EN','CALSCALE:GREGORIAN','X-WR-CALNAME:Mammuthus',...evs.flatMap(e=>['BEGIN:VEVENT',`UID:${e.id}@mammuthus`,`DTSTAMP:${now}`,`DTSTART:${icsDate(e.start)}`,`DTEND:${icsDate(e.end||new Date(new Date(e.start).getTime()+2*3.6e6).toISOString())}`,`SUMMARY:${icsEsc((EV_TYPES[e.type]||'')+': '+e.title)}`,e.location?`LOCATION:${icsEsc(e.location)}`:null,e.plan?`DESCRIPTION:${icsEsc(e.plan)}`:null,'END:VEVENT'].filter(Boolean)),'END:VCALENDAR'].join('\r\n')+'\r\n'}
-function gcalLink(e){const end=e.end||new Date(new Date(e.start).getTime()+2*3.6e6).toISOString();const q=new URLSearchParams({action:'TEMPLATE',text:(EV_TYPES[e.type]||'')+': '+e.title,dates:icsDate(e.start)+'/'+icsDate(end),details:e.plan||'',location:e.location||''});return'https://calendar.google.com/calendar/render?'+q}
+function evEnd(e){return e.end||new Date(new Date(e.start).getTime()+2*3.6e6).toISOString()}
+function outlookLink(e){const q=new URLSearchParams({path:'/calendar/action/compose',rru:'addevent',subject:(EV_TYPES[e.type]||'')+': '+e.title,startdt:new Date(e.start).toISOString(),enddt:new Date(evEnd(e)).toISOString(),body:e.plan||'',location:e.location||''});return'https://outlook.live.com/calendar/0/deeplink/compose?'+q}
+function gcalLink(e){const end=evEnd(e);const q=new URLSearchParams({action:'TEMPLATE',text:(EV_TYPES[e.type]||'')+': '+e.title,dates:icsDate(e.start)+'/'+icsDate(end),details:e.plan||'',location:e.location||''});return'https://calendar.google.com/calendar/render?'+q}
 async function saveDownload(filename,data){if(!S.downloads)return toast('Downloads are not available in this view');try{await S.downloads.save({filename,data});toast('Saved')}catch(e){if(e&&e.code!=='declined')toast('Could not save: '+errMsg(e))}}
 
 /* =========================================================
@@ -736,7 +798,7 @@ function renderMedia(){
       ${p.logo?`<img class="logo" src="${blobUrl(p.logo)}" alt="Band logo">`:`<div class="logo" style="display:grid;place-items:center;color:var(--faint);font-size:12px">no logo</div>`}
       <div class="grow"><span class="eyebrow">Bio</span>
         <textarea id="pf_bio" rows="7" data-pf="bio" placeholder="Who we are, where we're from, what Mammuthus is about…" style="margin-top:6px">${esc(p.bio||'')}</textarea>
-        <div class="row" style="margin-top:8px">${canUp?`<label class="upl">Upload logo<input type="file" id="logoFile" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"></label>`:''}<button class="btn sm" data-act="copy-epk">Copy EPK as text</button></div>
+        <div class="row" style="margin-top:8px">${canUp?`<label class="upl">Upload logo<input type="file" id="logoFile" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"></label>`:''}<button class="btn sm" data-act="copy-epk">Copy EPK as text</button>${S.downloads?`<button class="btn sm" data-act="dl-epk">Download EPK (.html)</button>`:''}</div>
       </div></div></div>
     <div class="card"><span class="eyebrow">EPK details</span>
       <div class="formgrid" style="margin-top:10px">
@@ -747,28 +809,47 @@ function renderMedia(){
         <div class="field span"><label for="pf_links">Links (one per line)</label><textarea id="pf_links" rows="3" data-pf="epk.links" placeholder="Bandcamp, Spotify, Instagram, YouTube…">${esc(epk.links||'')}</textarea></div>
         <div class="field span"><label for="pf_press">Press quotes / highlights</label><textarea id="pf_press" rows="3" data-pf="epk.press">${esc(epk.press||'')}</textarea></div>
       </div></div>
-    <div class="card"><span class="eyebrow">Documents</span><p class="small muted" style="margin:4px 0 10px">Press kit PDF, stage plot, tech rider, input list.</p>
-      <div class="docs">${(p.docs||[]).map(d=>`<div class="doc"><span class="grow"><a href="${blobUrl(d.assetId)}" target="_blank" rel="noopener">${esc(d.name)}</a><span class="small muted"> · ${fmtBytes(d.size||0)} · ${esc(member(d.by).name)}</span></span><button class="btn icon ghost danger" data-act="del-doc" data-id="${d.id}" title="Remove">✕</button></div>`).join('')||'<div class="empty small">No documents yet.</div>'}</div>
-      ${canUp?`<label class="upl" style="margin-top:10px">＋ Upload PDF<input type="file" id="docFile" accept="application/pdf"></label>`:''}</div>
+    <div class="card"><span class="eyebrow">Files</span><p class="small muted" style="margin:4px 0 10px">Press kit PDF, stage plot, tech rider, live video, released tracks.</p>
+      <div class="docs">${listOf(p.docs).map(d=>`<div class="doc"><span class="grow"><a href="${blobUrl(d.assetId)}" target="_blank" rel="noopener">${esc(d.name)}</a><span class="small muted"> · ${fmtBytes(d.size||0)} · ${esc(member(d.by).name)}</span></span><button class="btn icon sm ghost danger" data-act="del-doc" data-id="${d.id}" title="Remove" aria-label="Remove">✕</button>${d.kind==='video'?`<video src="${blobUrl(d.assetId)}" controls preload="metadata"></video>`:d.kind==='audio'?`<audio controls preload="none" data-aid="${d.assetId}" data-aids="${(d.assetIds||[]).join(',')}" data-wrapped="${d.wrapped?1:0}" ${d.wrapped?'':`src="${blobUrl(d.assetId)}"`}></audio>`:''}</div>`).join('')||'<div class="empty small">No files yet.</div>'}</div>
+      ${canUp?`<label class="upl" style="margin-top:10px">＋ Upload file<input type="file" id="docFile" accept="application/pdf,video/mp4,video/webm,audio/*,.mp3,.wav,.m4a"></label>`:''}</div>
     <div class="card wide"><div class="row"><span class="eyebrow">Photos</span><span class="grow"></span>${canUp?`<label class="upl">＋ Add photos<input type="file" id="photoFiles" accept="image/png,image/jpeg,image/webp,image/gif" multiple></label>`:''}</div>
-      <div class="photos" style="margin-top:10px">${(p.photos||[]).map(ph=>`<div class="photo"><a href="${blobUrl(ph.assetId)}" target="_blank" rel="noopener"><img src="${blobUrl(ph.assetId)}" alt="${esc(ph.caption||'Band photo')}" loading="lazy"></a><input type="text" value="${esc(ph.caption||'')}" data-act-change="photo-cap" data-id="${ph.id}" placeholder="Caption / credit" aria-label="Caption"><button class="btn sm ghost danger" data-act="del-photo" data-id="${ph.id}">Remove</button></div>`).join('')||'<div class="empty small" style="grid-column:1/-1">No photos yet. Promo shots, live photos, artwork drafts.</div>'}</div></div>
+      <div class="photos" style="margin-top:10px">${listOf(p.photos).map(ph=>`<div class="photo"><a href="${blobUrl(ph.assetId)}" target="_blank" rel="noopener"><img src="${blobUrl(ph.assetId)}" alt="${esc(ph.caption||'Band photo')}" loading="lazy"></a><input type="text" value="${esc(ph.caption||'')}" data-act-change="photo-cap" data-id="${ph.id}" placeholder="Caption / credit" aria-label="Caption"><button class="btn sm ghost danger" data-act="del-photo" data-id="${ph.id}">Remove</button></div>`).join('')||'<div class="empty small" style="grid-column:1/-1">No photos yet. Promo shots, live photos, artwork drafts.</div>'}</div></div>
   </div>`;
+  hydrateAudio($('#main'));
 }
+function mapPatch(cur,patch){if(Array.isArray(cur)){const o={};cur.forEach(x=>{if(x&&x.id)o[x.id]=x});return{...o,...patch}}return patch}
+function listOf(x){const a=Array.isArray(x)?x:Object.values(x||{});return a.filter(Boolean).sort((p,q)=>(p.at||0)-(q.at||0))}
 function setPath(obj,path,val){const o={};let c=o;const ps=path.split('.');ps.forEach((k,i)=>{if(i===ps.length-1)c[k]=val;else c=c[k]={}});return o}
 async function profileUpdate(patch){try{await Store.updateDoc('band/profile',patch)}catch(e){toast('Could not save: '+errMsg(e))}}
 function epkText(){const p=S.profile||{};const e=p.epk||{};const al=p.album||{};return[`${al.title||'Mammuthus'} — EPK`,e.tagline,'',p.bio,'',e.genre?`Genre: ${e.genre}`:'',e.hometown?`Hometown: ${e.hometown}`:'',e.contact?`Contact: ${e.contact}`:'','',e.links?'Links:\n'+e.links:'','',e.press?'Press:\n'+e.press:''].filter(x=>x!=null).join('\n').replace(/\n{3,}/g,'\n\n').trim()}
+async function toDataUrl(id){try{const b=await(await fetch(blobUrl(id))).blob();return await new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.onerror=()=>r(null);fr.readAsDataURL(b)})}catch(e){return null}}
+async function epkHTML(){const p=S.profile||{};const e=p.epk||{};const al=p.album||{};
+  const logo=p.logo?await toDataUrl(p.logo):null;const photos=[];for(const ph of listOf(p.photos).slice(0,8)){const u=await toDataUrl(ph.assetId);if(u)photos.push({u,c:ph.caption||''})}
+  const links=(e.links||'').split(/\n+/).map(l=>l.trim()).filter(Boolean).map(l=>{const h=/^https?:/.test(l)?l:'https://'+l;return`<a href="${esc(h)}">${esc(l)}</a>`}).join('<br>');
+  return`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(al.title||'Mammuthus')} — EPK</title><style>body{margin:0;background:#101418;color:#EDE7DA;font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}main{max-width:820px;margin:0 auto;padding:40px 20px}h1{font-size:40px;letter-spacing:.04em;margin:0 0 4px}h2{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:#98A2AB;margin:36px 0 10px}p{white-space:pre-wrap;margin:0}.tag{font-size:19px;color:#6FD3C7}.logo{max-width:180px;max-height:180px;display:block;margin-bottom:18px}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}.grid figure{margin:0}.grid img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px}.grid figcaption{font-size:13px;color:#98A2AB;margin-top:4px}a{color:#6FD3C7}dl{display:grid;grid-template-columns:auto 1fr;gap:6px 18px}dt{color:#98A2AB}dd{margin:0}</style></head><body><main>
+  ${logo?`<img class="logo" src="${logo}" alt="Logo">`:''}<h1>${esc(al.title||'Mammuthus')}</h1>${e.tagline?`<div class="tag">${esc(e.tagline)}</div>`:''}
+  ${p.bio?`<h2>Bio</h2><p>${esc(p.bio)}</p>`:''}
+  <h2>Details</h2><dl>${e.genre?`<dt>Genre</dt><dd>${esc(e.genre)}</dd>`:''}${e.hometown?`<dt>Hometown</dt><dd>${esc(e.hometown)}</dd>`:''}${e.contact?`<dt>Contact</dt><dd>${esc(e.contact)}</dd>`:''}${links?`<dt>Links</dt><dd>${links}</dd>`:''}</dl>
+  ${e.press?`<h2>Press</h2><p>${esc(e.press)}</p>`:''}
+  ${photos.length?`<h2>Photos</h2><div class="grid">${photos.map(x=>`<figure><img src="${x.u}" alt="${esc(x.c||'Band photo')}"><figcaption>${esc(x.c)}</figcaption></figure>`).join('')}</div>`:''}
+  </main></body></html>`}
 async function uploadImage(file){const ok=['image/png','image/jpeg','image/webp','image/gif','image/svg+xml'];if(!ok.includes(file.type))throw new Error('Use PNG, JPG, WebP or GIF');const r=await S.assets.upload(file,{type:file.type});return r.id}
 
 /* =========================================================
    CHAT
    ========================================================= */
 function dmId(a,b){return'dm-'+[a,b].sort().join('-')}
+function lastRead(){try{return JSON.parse(ls.get('mammuthus.read')||'{}')}catch(e){return{}}}
+function markRead(ch){const r=lastRead();r[ch]=Date.now();ls.set('mammuthus.read',JSON.stringify(r))}
+function unread(ch){const l=S.latest[ch];if(!l||l.by===S.me)return false;return l.at>(lastRead()[ch]||0)}
+function hasUnread(){return channels().some(c=>unread(c.id))}
+function watchLatest(){if(S._latestSubs)S._latestSubs.forEach(u=>u());S._latestSubs=channels().map(c=>Store.watchCol(`chat/${c.id}/messages`,{orderBy:'at',dir:'desc',limit:1},rows=>{S.latest[c.id]=rows[0]||null;if(S.tab==='chat'&&S.chan===c.id&&rows[0])markRead(c.id);renderShell();if(S.tab==='chat'){const btn=$(`.chans [data-id="${c.id}"]`);if(btn){const b=btn.querySelector('.dot');const want=unread(c.id);if(want&&!b)btn.insertAdjacentHTML('beforeend','<span class="dot"></span>');if(!want&&b)b.remove()}}}))}
 function channels(){const list=[{id:'general',label:'# Band'}];if(S.me)S.members.filter(m=>m.id!==S.me).forEach(m=>list.push({id:dmId(S.me,m.id),label:m.name,dm:m.id}));return list}
 function renderChat(){
   const chs=channels();if(!chs.find(c=>c.id===S.chan))S.chan='general';
   $('#main').innerHTML=`<div class="chat">
-    <div class="chans">${chs.map(c=>`<button data-act="chan" data-id="${c.id}" ${c.id===S.chan?'aria-current="true"':''}>${c.dm?av(c.dm,'sm'):'<span class="av sm" style="background:var(--raised);color:var(--muted)">#</span>'}${esc(c.label)}</button>`).join('')}
-      <p class="small muted" style="padding:10px;margin:0">Direct chats are between two members. Anything you upload here is shared with the band.</p></div>
+    <div class="chans">${chs.map(c=>`<button data-act="chan" data-id="${c.id}" ${c.id===S.chan?'aria-current="true"':''}>${c.dm?av(c.dm,'sm'):'<span class="av sm" style="background:var(--raised);color:var(--muted)">#</span>'}${esc(c.label)}${unread(c.id)?'<span class="dot"></span>':''}</button>`).join('')}
+      <p class="small muted" style="padding:10px;margin:0">Direct chats keep a conversation between two of you tidy, but nothing here is private from the band.</p></div>
     <div class="chatpane"><div class="msgs" id="msgs"></div>
       <form class="composer" data-act="send" id="composer">
         <div class="pend" id="pend"></div>
@@ -781,7 +862,8 @@ function renderChat(){
 }
 function subscribeChat(){
   if(S.unsubChat)S.unsubChat();
-  S.unsubChat=Store.watchCol(`chat/${S.chan}/messages`,{orderBy:'at',dir:'desc',limit:200},rows=>{S.messages=rows.slice().reverse();renderMsgs()});
+  markRead(S.chan);renderShell();
+  S.unsubChat=Store.watchCol(`chat/${S.chan}/messages`,{orderBy:'at',dir:'desc',limit:200},rows=>{S.messages=rows.slice().reverse();renderMsgs();markRead(S.chan);renderShell()});
 }
 function renderMsgs(){
   const c=$('#msgs');if(!c)return;const atBottom=c.scrollHeight-c.scrollTop-c.clientHeight<80;
@@ -792,19 +874,20 @@ function renderMsgs(){
 function att(a){const u=blobUrl(a.assetId);
   if(a.kind==='image')return`<a href="${u}" target="_blank" rel="noopener"><img src="${u}" alt="${esc(a.name)}" loading="lazy"></a>`;
   if(a.kind==='video')return`<video src="${u}" controls preload="metadata"></video>`;
-  if(a.kind==='audio')return`<div><div class="small muted">${esc(a.name)}</div><audio controls preload="none" data-aid="${a.assetId}" data-wrapped="${a.wrapped?1:0}" ${a.wrapped?'':`src="${u}"`}></audio></div>`;
+  if(a.kind==='audio')return`<div><div class="small muted">${esc(a.name)}</div><audio controls preload="none" data-aid="${a.assetId}" data-aids="${(a.assetIds||[]).join(',')}" data-wrapped="${a.wrapped?1:0}" ${a.wrapped?'':`src="${u}"`}></audio></div>`;
   return`<a class="btn sm" href="${u}" target="_blank" rel="noopener">📄 ${esc(a.name)}</a>`}
-function hydrateAudio(root){root.querySelectorAll('audio[data-wrapped="1"]:not([src])').forEach(async el=>{try{el.src=await resolveAudioUrl({assetId:el.dataset.aid,wrapped:true})}catch(e){}})}
+function hydrateAudio(root){root.querySelectorAll('audio[data-wrapped="1"]:not([src])').forEach(async el=>{try{const ids=(el.dataset.aids||'').split(',').filter(Boolean);el.src=await resolveAudioUrl({assetId:el.dataset.aid,assetIds:ids.length?ids:null,wrapped:true})}catch(e){}})}
 function renderPend(){const p=$('#pend');if(p)p.innerHTML=S.pendFiles.map((f,i)=>`<span>${esc(f.name)} <button data-act="unpend" data-i="${i}" aria-label="Remove">✕</button></span>`).join('')}
 async function uploadChatFile(file){
   const ext=(file.name.split('.').pop()||'').toLowerCase();
   if(['image/png','image/jpeg','image/webp','image/gif'].includes(file.type)){const r=await S.assets.upload(file,{type:file.type});return{assetId:r.id,kind:'image',name:file.name}}
   if(file.type==='application/pdf'){const r=await S.assets.upload(file,{type:'application/pdf'});return{assetId:r.id,kind:'pdf',name:file.name}}
   if(file.type==='video/mp4'||file.type==='video/webm'){const r=await S.assets.upload(file,{type:file.type});return{assetId:r.id,kind:'video',name:file.name}}
-  if(file.type.startsWith('audio/')||AUDIO_EXT[ext]){const up=await uploadAudioFile(file);return{assetId:up.assetId,kind:'audio',name:file.name,wrapped:up.wrapped}}
+  if(file.type.startsWith('audio/')||AUDIO_EXT[ext]){const up=await uploadAudioFile(file);return{assetId:up.assetId,assetIds:up.assetIds||[up.assetId],kind:'audio',name:file.name,wrapped:up.wrapped}}
   throw new Error(`${file.name}: only images, MP4/WebM video, audio and PDF can be shared here`);
 }
 async function sendMessage(){
+  if(!S.me)return askWho();
   const ta=$('#chatText');const text=ta.value.trim();if(!text&&!S.pendFiles.length)return;
   const files=S.pendFiles;S.pendFiles=[];renderPend();ta.value='';
   let media=[];
@@ -844,35 +927,41 @@ document.addEventListener('click',async e=>{
   switch(act){
     case'tab':setTab(b.dataset.tab);break;
     case'switch-me':askWho();break;
-    case'pick-me':S.me=id;localStorage.setItem('mammuthus.me',id);$('#whoDlg').close();renderMe();renderActive();break;
+    case'pick-me':S.me=id;ls.set('mammuthus.me',id);$('#whoDlg').close();renderMe();S._chanKey=null;watchLatest();renderActive();break;
     case'dlg-close':$('#'+b.dataset.dlg).close();break;
+    case'ask-cancel':askDone(false);break;
+    case'ask-ok':askDone($('#askInput').classList.contains('hidden')?true:$('#askInput').value);break;
     case'open-song':openSong(id);break;
     case'close-song':openSong(null);break;
     case'del-song':deleteSong(id);break;
+    case'move-song':{const i=S.songs.findIndex(x=>x.id===S.songId);const j=i+ +b.dataset.d;if(i<0||j<0||j>=S.songs.length)return;const a=S.songs[i],c=S.songs[j];const oa=a.order||i+1,oc=c.order||j+1;await Promise.all([Store.updateDoc('songs/'+a.id,{order:oa===oc?oc+ +b.dataset.d:oc}),Store.updateDoc('songs/'+c.id,{order:oa})]);break}
     case'stage':songUpdate({stage:b.dataset.v});break;
-    case'cycle-part':{const s=S.songs.find(x=>x.id===S.songId);const cur=((s.parts||{})[b.dataset.k])||'todo';const nx={todo:'wip',wip:'done',done:'todo'}[cur];songUpdate({parts:{...(s.parts||{}),[b.dataset.k]:nx}});break}
-    case'cycle-track':{const s=S.songs.find(x=>x.id===S.songId);const cur=((s.tracked||{})[b.dataset.k])||'todo';const nx={todo:'scratch',scratch:'final',final:'todo'}[cur];songUpdate({tracked:{...(s.tracked||{}),[b.dataset.k]:nx}});break}
+    case'cycle-part':{const s=S.songs.find(x=>x.id===S.songId);const cur=((s.parts||{})[b.dataset.k])||'todo';const nx={todo:'wip',wip:'done',done:'todo'}[cur];songUpdate({parts:{[b.dataset.k]:nx}});break}
+    case'cycle-track':{const s=S.songs.find(x=>x.id===S.songId);const cur=((s.tracked||{})[b.dataset.k])||'todo';const nx={todo:'scratch',scratch:'final',final:'todo'}[cur];songUpdate({tracked:{[b.dataset.k]:nx}});break}
     case'copy-lyrics':{const s=S.songs.find(x=>x.id===S.songId);try{await navigator.clipboard.writeText(s.lyrics||'');toast('Lyrics copied')}catch(err){toast('Copy not allowed here; select the text instead')}break}
     case'dl-lyrics':{const s=S.songs.find(x=>x.id===S.songId);saveDownload((s.title||'lyrics').replace(/[^\w\- ]+/g,'')+' - lyrics.txt',(s.title||'')+'\n\n'+(s.lyrics||''));break}
     case'play':if(!AUDIO.src)return;AUDIO.paused?AUDIO.play().catch(()=>toast('Tap play again once the file has loaded')):AUDIO.pause();break;
     case'load-ver':loadVersion(id,true);break;
+    case'dl-ver':{const v=S.versions.find(x=>x.id===id);if(!v)return;try{const blob=await(await fetch(blobUrl(v.assetId))).blob();saveDownload((v.name||'audio').replace(/\.[^.]+$/,'')+(v.mime==='video/webm'?'.webm':'.mp4'),blob)}catch(e){toast('Could not fetch the file')}break}
     case'del-ver':deleteVersion(id);break;
     case'toggle-time':if(S.noteTime!=null)S.noteTime=null;else{if(!AUDIO.src)return toast('Load a version first to tag a time');S.noteTime=Math.floor(AUDIO.currentTime)}renderNotes();$('#noteText')&&$('#noteText').focus();break;
     case'seek-note':seekNote(id);break;
-    case'del-note':if(confirm('Delete this note?'))await Store.deleteDoc(`songs/${S.songId}/notes/${id}`);break;
+    case'edit-note':S.editingNote=id;renderNotes();{const i=$('#noteEdit');if(i){i.focus();i.select()}}break;
+    case'cancel-edit':S.editingNote=null;renderNotes();break;
+    case'save-note':{const i=$('#noteEdit');const t=i?i.value.trim():'';if(t)await Store.updateDoc(`songs/${S.songId}/notes/${id}`,{text:t,editedAt:Date.now()});S.editingNote=null;renderNotes();break}
+    case'del-note':if(await ask('Delete note?','',{ok:'Delete',danger:true})){try{await Store.deleteDoc(`songs/${S.songId}/notes/${id}`)}catch(e){toast('Could not delete: '+errMsg(e))}}break;
     case'cal-nav':{const d=new Date(S.cal.y,S.cal.m+ +b.dataset.d,1);S.cal={y:d.getFullYear(),m:d.getMonth()};renderCalendar();break}
     case'cal-today':{const t=new Date();S.cal={y:t.getFullYear(),m:t.getMonth()};S.calSel=null;renderCalendar();break}
     case'cal-sel':{const k=b.dataset.k;S.calSel=S.calSel===k?null:k;const d=new Date(k);S.cal={y:d.getFullYear(),m:d.getMonth()};renderCalendar();break}
     case'cal-clear':S.calSel=null;renderCalendar();break;
     case'ev-new':openEventDialog(null);break;
     case'ev-edit':openEventDialog(S.events.find(x=>x.id===id));break;
-    case'ev-delete':{const eid=$('#ev_id').value;if(eid&&confirm('Delete this event?')){await Store.deleteDoc('events/'+eid);$('#evDlg').close();toast('Event deleted')}break}
-    case'rsvp':{if(!S.me)return askWho();const ev=S.events.find(x=>x.id===id);const cur=(ev.rsvp||{})[S.me];await Store.updateDoc('events/'+id,{rsvp:{[S.me]:cur===b.dataset.v?'':b.dataset.v}});break}
-    case'ics-one':{const ev=S.events.find(x=>x.id===id);saveDownload(ev.title.replace(/[^\w\- ]+/g,'')+'.ics',icsFor([ev]));break}
-    case'ics-all':saveDownload('mammuthus-calendar.ics',icsFor(S.events));break;
+    case'ev-delete':{const eid=$('#ev_id').value;if(!eid)return;$('#evDlg').close();if(await ask('Delete event?','Everyone\'s RSVPs for it go too.',{ok:'Delete',danger:true})){try{await Store.deleteDoc('events/'+eid);toast('Event deleted')}catch(e){toast('Could not delete: '+errMsg(e))}}break}
+    case'rsvp':{if(!S.me)return askWho();const ev=S.events.find(x=>x.id===id);const cur=(ev.rsvp||{})[S.me];try{await Store.updateDoc('events/'+id,{rsvp:{[S.me]:cur===b.dataset.v?null:b.dataset.v}})}catch(e){toast('Could not save: '+errMsg(e))}break}
+    case'dl-epk':toast('Building EPK…',4000);saveDownload(((S.profile.album||{}).title||'Mammuthus').replace(/[^\w\- ]+/g,'')+' EPK.html',await epkHTML());break;
     case'copy-epk':try{await navigator.clipboard.writeText(epkText());toast('EPK text copied')}catch(err){toast('Copy not allowed here')}break;
-    case'del-doc':{if(!confirm('Remove this document?'))return;const p=S.profile;const d=(p.docs||[]).find(x=>x.id===id);await profileUpdate({docs:(p.docs||[]).filter(x=>x.id!==id)});if(d&&d.assetId&&S.assets&&!d.assetId.startsWith('local:'))S.assets.delete(d.assetId).catch(()=>{});break}
-    case'del-photo':{if(!confirm('Remove this photo?'))return;const p=S.profile;const d=(p.photos||[]).find(x=>x.id===id);await profileUpdate({photos:(p.photos||[]).filter(x=>x.id!==id)});if(d&&d.assetId&&S.assets&&!d.assetId.startsWith('local:'))S.assets.delete(d.assetId).catch(()=>{});break}
+    case'del-doc':{if(!await ask('Remove file?','',{ok:'Remove',danger:true}))return;const d=listOf(S.profile.docs).find(x=>x.id===id);await profileUpdate({docs:{[id]:null}});if(d&&S.assets)(d.assetIds||[d.assetId]).filter(a=>a&&!a.startsWith('local:')).forEach(a=>S.assets.delete(a).catch(()=>{}));break}
+    case'del-photo':{if(!await ask('Remove photo?','',{ok:'Remove',danger:true}))return;const d=listOf(S.profile.photos).find(x=>x.id===id);await profileUpdate({photos:{[id]:null}});if(d&&d.assetId&&S.assets&&!d.assetId.startsWith('local:'))S.assets.delete(d.assetId).catch(()=>{});break}
     case'chan':S.chan=id;S.pendFiles=[];renderChat();break;
     case'unpend':S.pendFiles.splice(+b.dataset.i,1);renderPend();break;
     case'mem-color':membersSave(S.members.map(m=>m.id===id?{...m,color:b.dataset.c}:m));break;
@@ -883,6 +972,7 @@ document.addEventListener('submit',async e=>{
   if(f.dataset.act==='new-song'){const i=$('#newSongTitle');const t=i.value.trim();if(!t)return;i.value='';await addSong(t)}
   if(f.dataset.act==='add-note'){const i=$('#noteText');const t=i.value.trim();if(!t)return;i.value='';await addNote(t)}
   if(f.dataset.act==='send')await sendMessage();
+  if(f.dataset.act==='save-note'){const i=$('#noteEdit');const t=i?i.value.trim():'';if(t)await Store.updateDoc(`songs/${S.songId}/notes/${f.dataset.id}`,{text:t,editedAt:Date.now()});S.editingNote=null;renderNotes()}
 });
 $('#evForm').addEventListener('submit',e=>{e.preventDefault();saveEvent()});
 document.addEventListener('change',async e=>{
@@ -892,19 +982,20 @@ document.addEventListener('change',async e=>{
   const ac=t.dataset.actChange;
   if(ac==='mem-name')membersSave(S.members.map(m=>m.id===t.dataset.id?{...m,name:t.value.trim()||m.name}:m));
   if(ac==='mem-role')membersSave(S.members.map(m=>m.id===t.dataset.id?{...m,role:t.value.trim()}:m));
-  if(ac==='photo-cap')profileUpdate({photos:(S.profile.photos||[]).map(p=>p.id===t.dataset.id?{...p,caption:t.value}:p)});
-  if(t.dataset.act==='note-done')Store.updateDoc(`songs/${S.songId}/notes/${t.dataset.id}`,{done:t.checked});
+  if(ac==='photo-cap'){const ph=listOf(S.profile.photos).find(p=>p.id===t.dataset.id);if(ph)profileUpdate({photos:mapPatch(S.profile.photos,{[ph.id]:{...ph,caption:t.value}})})}
+  if(t.id==='noteTimeIn'){const v=parseT(t.value);if(v==null)toast('Use m:ss, e.g. 1:23');else S.noteTime=Math.max(0,Math.floor(v));renderNotes();$('#noteText')&&$('#noteText').focus()}
+  if(t.dataset.act==='note-done')Store.updateDoc(`songs/${S.songId}/notes/${t.dataset.id}`,{done:t.checked}).catch(e=>toast('Could not save: '+errMsg(e)));
   if(t.id==='verFile'&&t.files[0]){addVersion(t.files[0]);t.value=''}
   if(t.id==='chatFiles'){S.pendFiles.push(...t.files);renderPend();t.value=''}
   if(t.id==='logoFile'&&t.files[0]){try{const id=await uploadImage(t.files[0]);await profileUpdate({logo:id});toast('Logo updated')}catch(err){toast(errMsg(err))}t.value=''}
-  if(t.id==='docFile'&&t.files[0]){const f=t.files[0];try{toast('Uploading…',6000);const r=await S.assets.upload(f,{type:'application/pdf'});await profileUpdate({docs:[...(S.profile.docs||[]),{id:uid(),assetId:r.id,name:f.name,size:f.size,by:S.me,at:Date.now()}]});toast('Document added')}catch(err){toast('Upload failed: '+errMsg(err))}t.value=''}
-  if(t.id==='photoFiles'&&t.files.length){const files=[...t.files];t.value='';toast(`Uploading ${files.length} photo${files.length>1?'s':''}…`,8000);const added=[];for(const f of files){try{added.push({id:uid(),assetId:await uploadImage(f),caption:'',by:S.me,at:Date.now()})}catch(err){toast(f.name+': '+errMsg(err))}}if(added.length)await profileUpdate({photos:[...(S.profile.photos||[]),...added]});toast(`${added.length} added`)}
+  if(t.id==='docFile'&&t.files[0]){const f=t.files[0];try{toast('Uploading…',6000);const up=await uploadChatFile(f);const did=uid();await profileUpdate({docs:mapPatch(S.profile.docs,{[did]:{id:did,assetId:up.assetId,assetIds:up.assetIds||null,kind:up.kind,wrapped:!!up.wrapped,name:f.name,size:f.size,by:S.me,at:Date.now()}})});toast('File added')}catch(err){toast('Upload failed: '+errMsg(err))}t.value=''}
+  if(t.id==='photoFiles'&&t.files.length){const files=[...t.files];t.value='';toast(`Uploading ${files.length} photo${files.length>1?'s':''}…`,8000);const added={};let n=0;for(const f of files){try{const id=uid();added[id]={id,assetId:await uploadImage(f),caption:'',by:S.me,at:Date.now()+n++}}catch(err){toast(f.name+': '+errMsg(err))}}if(n)await profileUpdate({photos:mapPatch(S.profile.photos,added)});toast(`${n} added`)}
 });
 let lyricsTimer=null;
 document.addEventListener('input',e=>{const t=e.target;if(t.dataset.sf&&t.dataset.live){clearTimeout(lyricsTimer);const v=t.value,k=t.dataset.sf;lyricsTimer=setTimeout(()=>songUpdate({[k]:v}),700)}
   if(t.id==='chatText'){t.style.height='auto';t.style.height=Math.min(160,t.scrollHeight)+'px'}});
 document.addEventListener('keydown',e=>{if(e.target.id==='chatText'&&e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage()}});
-$('#wave')||document.addEventListener('click',e=>{const w=e.target.closest('#wave');if(!w||!AUDIO.src)return;const r=w.getBoundingClientRect();const dur=S.player.duration||AUDIO.duration;if(!dur)return;AUDIO.currentTime=Math.max(0,Math.min(dur,(e.clientX-r.left)/r.width*dur));drawWave()});
+document.addEventListener('click',e=>{const w=e.target.closest('#wave');if(!w||!AUDIO.src)return;const r=w.getBoundingClientRect();const dur=S.player.duration||AUDIO.duration;if(!dur)return;AUDIO.currentTime=Math.max(0,Math.min(dur,(e.clientX-r.left)/r.width*dur));drawWave()});
 
 boot();
 </script>

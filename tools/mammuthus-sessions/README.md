@@ -16,18 +16,19 @@ Published at: https://claude.ai/code/artifact/4e7b2235-ddd1-488a-a97f-9ba6fe8218
   `.txt` download.
 - **Audio versions** – upload a bounce or phone demo per song. Every upload is a
   new version (v1, v2, …); older versions stay available. Waveform player with
-  click-to-seek.
+  click-to-seek. Songs can be reordered from the song header.
 - **Notes** – general comments or notes tagged to a timestamp in a specific
   version. Timestamps are drawn on the waveform and jump the player when tapped.
-  Notes can be marked resolved.
+  Notes can be edited, marked resolved, and a time can be typed as m:ss.
 - **Calendar** – practices, gigs, jams and recording sessions with a plan/gig
-  info field. Each member RSVPs Going / Maybe / Can't. Any event (or the whole
-  calendar) exports as `.ics` for phone calendars, plus a Google Calendar link.
+  info field. Each member RSVPs Going / Maybe / Can't. Each event has
+  "Add to my phone" links for Google Calendar and Outlook (the artifact sandbox
+  does not permit `.ics` downloads).
 - **Media & EPK** – bio, one-line pitch, genre, hometown, contact, links, press
-  quotes, logo, photo gallery with captions, PDF documents (press kit, stage
-  plot, rider). "Copy EPK as text" button.
+  quotes, logo, photo gallery with captions, files (PDF, video, audio). "Copy
+  EPK as text" and "Download EPK (.html)" with logo and photos inlined.
 - **Chat** – a band channel plus direct chats between any two members, with
-  photo, video, audio and PDF attachments.
+  photo, video, audio and PDF attachments and unread indicators.
 - **Band** – member names, instruments and colours; album title, target and
   notes; storage meter.
 
@@ -37,6 +38,9 @@ Published at: https://claude.ai/code/artifact/4e7b2235-ddd1-488a-a97f-9ba6fe8218
   themselves once ("Who's this?") and the choice is remembered per device.
 - The asset store accepts mp4/m4a/webm directly. Other audio (mp3, wav, aiff,
   ogg, flac) is base64-wrapped into a `text/plain` asset on upload and unwrapped
-  into a blob URL on playback. Wrapped files are limited to ~14 MB.
+  into a blob URL on playback, split into 14 MB chunks so full WAV bounces
+  (up to ~120 MB) work.
+- Touch targets follow the 44 pt / 48 dp guidance; on phones the tabs become a
+  fixed bottom bar and form fields use 16 px text to avoid iOS zoom.
 - Without the Claude runtime (opening the file directly) the app runs in a
   preview mode with in-memory example data.
