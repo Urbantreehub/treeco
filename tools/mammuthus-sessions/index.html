@@ -350,6 +350,18 @@ nav.tabs button.more{display:none}
 .setsong .m{font-family:var(--f-mono);font-size:11.5px;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap}
 .setsong .acts{display:flex;gap:2px}
 .settotal{display:flex;justify-content:space-between;font-family:var(--f-mono);font-size:13px;color:var(--muted);padding:8px 10px}
+.pill.crit{background:var(--crit-soft);color:var(--crit)}
+.settarget{display:flex;gap:8px 12px;align-items:center;flex-wrap:wrap;margin-top:8px}
+.settarget label{font-size:12px;font-weight:500;color:var(--muted)}
+.settarget input[type=number]{width:90px;min-height:36px}
+.setall{display:flex;flex-direction:column;gap:4px}
+.setall .r{display:flex;gap:8px 10px;align-items:center;flex-wrap:wrap;min-height:48px;padding:6px 10px;border:1px solid var(--line-soft);border-radius:var(--r-sm);background:var(--surface)}
+.setall .r input[type=checkbox]{width:22px;height:22px;margin:0;flex:0 0 auto}
+.setall .r .t{font-weight:500;flex:1 1 140px;min-width:0;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.setall .r .m{font-family:var(--f-mono);font-size:11.5px;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap;flex:1 1 160px}
+.setall .r .vt{display:flex;gap:4px;align-items:center;flex-wrap:wrap;margin-left:auto}
+.setall .r .vote{min-height:36px;padding:4px 10px;border-radius:999px;border:1px solid var(--line-soft);background:var(--surface);color:var(--muted);font-size:13px;cursor:pointer}
+.setall .r .vote.on{background:var(--accent-soft);color:var(--accent);border-color:transparent}
 .sdtitle.sm{font-size:clamp(20px,3vw,26px)}
 @media print{body *{visibility:hidden}#printSet,#printSet *{visibility:visible}#printSet{position:absolute;left:0;top:0;width:100%;padding:24px;font-size:16pt;color:#000;background:#fff}#printSet h1{font-size:26pt;margin:0 0 6pt}#printSet ol{margin:0;padding-left:1.4em}#printSet li{padding:4pt 0;border-bottom:1px solid #ccc;display:flex;justify-content:space-between;gap:12pt}#printSet .k{font-family:var(--f-mono);font-size:12pt;color:#444}}
 /* money */
@@ -653,7 +665,7 @@ function seedDemo(){
   const now=Date.now();
   Store.mem.set('band/members',defaultMembers());
   Store.mem.set('band/profile',defaultProfile());
-  Store.mem.set('songs/s1',{title:'Example: Permafrost',order:1,stage:'Demoed',tempo:128,key:'D',timeSig:'4/4',lyrics:'(example) Verse 1\nIce in the marrow, salt in the wound…',parts:{bass:'done',drums:'done',gtr1:'done',gtr2:'wip',melody:'wip',lyrics:'todo'},tracked:{drums:'scratch',bass:'todo',gtr1:'todo',gtr2:'todo',vox:'todo'},sessionNotes:'',createdAt:now-8.64e7*10});
+  Store.mem.set('songs/s1',{title:'Example: Permafrost',order:1,stage:'Demoed',tempo:128,key:'D',timeSig:'4/4',length:'3:52',tuning:'D standard',lyrics:'(example) Verse 1\nIce in the marrow, salt in the wound…',parts:{bass:'done',drums:'done',gtr1:'done',gtr2:'wip',melody:'wip',lyrics:'todo'},tracked:{drums:'scratch',bass:'todo',gtr1:'todo',gtr2:'todo',vox:'todo'},sessionNotes:'',createdAt:now-8.64e7*10});
   Store.mem.set('songs/s1/notes/n1',{text:'Second guitar should drop out here, let the bass carry it.',time:74,versionId:'v1',by:'m3',at:now-3.6e6,done:false});
   Store.mem.set('songs/s1/notes/n2',{text:'Chorus needs a lift, maybe go up to the relative minor for the last one?',time:null,versionId:null,by:'m1',at:now-7.2e6,done:false});
   Store.mem.set('songs/s1/versions/v1',{label:'v1',name:'permafrost-demo-1.m4a',by:'m1',at:now-8.64e7*3,assetId:null,wrapped:false,mime:'',size:0,note:'Phone demo from the shed (example; upload a real file to replace)'});
@@ -1344,25 +1356,32 @@ function sendPush(title,body,only){if(!S.sb||!S.sb.functions)return;try{S.sb.fun
 const setDur=sl=>sl.songIds.reduce((a,id)=>{const sg=S.songs.find(x=>x.id===id);return a+(sg?parseT(sg.length||'')||0:0)},0);
 function renderSets(){const cur=S.setlists.find(x=>x.id===S.setId);
   $('#main').innerHTML=`<div class="sets ${cur?'detail-open':''}">
-    <aside class="setlist">${S.setlists.map(sl=>{const gig=S.events.find(e=>e.gig&&e.gig.setlist===sl.id);return`<button class="setrow" data-act="open-set" data-id="${sl.id}" ${sl.id===S.setId?'aria-current="true"':''}><b>${esc(sl.name)}</b><span class="m">${sl.songIds.length} songs · ${fmtT(setDur(sl))}${gig?' · '+esc(gig.title)+' '+fmtDate(gig.start):''}</span></button>`}).join('')||'<div class="empty">No setlists yet.</div>'}
+    <aside class="setlist">${S.setlists.map(sl=>{const gig=S.events.find(e=>e.gig&&e.gig.setlist===sl.id);return`<button class="setrow" data-act="open-set" data-id="${sl.id}" ${sl.id===S.setId?'aria-current="true"':''}><b>${esc(sl.name)}</b><span class="m">${sl.songIds.length} song${sl.songIds.length===1?'':'s'} · ${fmtT(setDur(sl))}${gig?' · '+esc(gig.title)+' '+fmtDate(gig.start):''}</span></button>`}).join('')||'<div class="empty">No setlists yet.</div>'}
       <form class="newsong" data-act="new-set"><input type="text" id="newSetName" placeholder="New setlist name" required aria-label="Setlist name"><button class="btn primary" type="submit">Add</button></form></aside>
     <section class="setdetail" id="setDetail"></section></div>`;
   renderSetDetail()}
 function renderSetDetail(){const c=$('#setDetail');if(!c)return;const sl=S.setlists.find(x=>x.id===S.setId);
   if(!sl){c.innerHTML=`<div class="empty" style="min-height:200px;display:grid;place-items:center"><div><b>Pick a setlist</b><br><span class="small">Order the songs, see the running time, print it for the stage, attach it to a gig.</span></div></div>`;return}
-  const songs=sl.songIds.map(id=>S.songs.find(x=>x.id===id)).filter(Boolean);const rest=S.songs.filter(x=>!sl.songIds.includes(x.id));const gig=S.events.find(e=>e.gig&&e.gig.setlist===sl.id);
+  const songs=sl.songIds.map(id=>S.songs.find(x=>x.id===id)).filter(Boolean);const gig=S.events.find(e=>e.gig&&e.gig.setlist===sl.id);
+  const gm=gig&&gig.gig.setLength?String(gig.gig.setLength).match(/\d+(?:\.\d+)?/):null;const target=gm?+gm[0]*60:(+sl.targetMin>0?+sl.targetMin*60:0);const dur=setDur(sl);const diff=target-dur;
+  const missing=songs.filter(sg=>!(parseT(sg.length||'')>0)).length;
+  const pill=!target?'<span class="pill">no target set</span>':diff>=0?`<span class="pill good">${fmtT(diff)} to spare</span>`:`<span class="pill crit">over by ${fmtT(-diff)}</span>`;
+  const votersOf=sid=>Object.entries((sl.votes||{})[sid]||{}).filter(([,v])=>v).map(([m])=>m);
+  const all=S.songs.map((sg,i)=>({sg,i,pos:sl.songIds.indexOf(sg.id),v:votersOf(sg.id)})).sort((a,b)=>{const ao=a.pos<0,bo=b.pos<0;if(ao!==bo)return ao?1:-1;if(!ao)return a.pos-b.pos;return b.v.length-a.v.length||a.i-b.i});
   c.innerHTML=`<div class="sdhead">
     <div class="row"><button class="btn ghost sm" data-act="close-set">← All setlists</button><span class="grow"></span><button class="btn sm primary" data-act="practice-open" data-src="set" data-id="${sl.id}">▶ Practice this set</button><button class="btn sm" data-act="print-set" data-id="${sl.id}">Print</button><button class="btn ghost sm danger" data-act="del-set" data-id="${sl.id}">Delete</button></div>
     <input class="sdtitle sm" id="setName" type="text" value="${esc(sl.name)}" data-setf="name" aria-label="Setlist name">
-    <div class="small muted">${songs.length} songs · running time ${fmtT(setDur(sl))}${gig?` · for <b>${esc(gig.title)}</b> ${fmtDate(gig.start)}`:' · not attached to a gig yet (edit a gig to attach it)'}</div></div>
-    <div class="sec"><h3>Running order</h3><div class="settable">${songs.map((sg,i)=>`<div class="setsong"><span class="n">${i+1}</span><span><span class="t">${esc(sg.title)}</span><span class="m">${sg.key?`<span>${esc(sg.key)}</span>`:''}${sg.tempo?`<span>${esc(sg.tempo)} bpm</span>`:''}${sg.timeSig?`<span>${esc(sg.timeSig)}</span>`:''}${sg.length?`<span>${esc(sg.length)}</span>`:''}${sg.tuning?`<span>${esc(sg.tuning)}</span>`:''}</span></span><span class="acts"><button class="btn icon sm ghost" data-act="set-move" data-i="${i}" data-d="-1" aria-label="Move up">▲</button><button class="btn icon sm ghost" data-act="set-move" data-i="${i}" data-d="1" aria-label="Move down">▼</button></span><button class="btn icon sm ghost danger" data-act="set-remove" data-i="${i}" aria-label="Remove">✕</button></div>`).join('')||'<div class="empty small">Add songs below.</div>'}
+    <div class="small muted">${songs.length} song${songs.length===1?'':'s'} · running time ${fmtT(dur)}${target?' of '+fmtT(target)+' target':''} ${pill}${gig?` · for <b>${esc(gig.title)}</b> ${fmtDate(gig.start)}`:' · not attached to a gig yet (edit a gig to attach it)'}</div>
+    <div class="settarget"><label for="setTarget">Set length for this show, minutes</label><input type="number" id="setTarget" min="0" step="1" inputmode="numeric" value="${gm?esc(gm[0]):(+sl.targetMin>0?+sl.targetMin:'')}" ${gm?'disabled title="Comes from the gig\'s set length"':''}>${gm?'<span class="small muted">from the gig\'s set length (edit the gig to change it)</span>':''}${missing?`<span class="small muted">${missing} song${missing===1?' has':'s have'} no length yet</span>`:''}</div></div>
+    <div class="sec"><h3>Running order</h3><div class="settable">${songs.map((sg,i)=>`<div class="setsong"><span class="n">${i+1}</span><span><span class="t">${esc(sg.title)}</span><span class="m">${sg.key?`<span>${esc(sg.key)}</span>`:''}${sg.tempo?`<span>${esc(sg.tempo)} bpm</span>`:''}${sg.timeSig?`<span>${esc(sg.timeSig)}</span>`:''}<span>${sg.length?esc(sg.length):'—'}</span>${sg.tuning?`<span>${esc(sg.tuning)}</span>`:''}</span></span><span class="acts"><button class="btn icon sm ghost" data-act="set-move" data-i="${i}" data-d="-1" aria-label="Move up">▲</button><button class="btn icon sm ghost" data-act="set-move" data-i="${i}" data-d="1" aria-label="Move down">▼</button></span><button class="btn icon sm ghost danger" data-act="set-remove" data-i="${i}" aria-label="Remove">✕</button></div>`).join('')||'<div class="empty small">Add songs below.</div>'}
       <div class="settotal"><span>Total</span><span>${fmtT(setDur(sl))}</span></div></div>
-      ${rest.length?`<form data-act="set-add" class="row"><select id="setAddSong" class="grow" style="min-width:200px" aria-label="Add song">${rest.map(x=>`<option value="${x.id}">${esc(x.title)}</option>`).join('')}</select><button class="btn primary" type="submit">Add to set</button></form>`:'<div class="small muted">Every song is in this set.</div>'}
       <div class="small muted" style="margin-top:8px">Song lengths come from each song's Length field; tunings from each song's Tuning field.</div></div>
+    <div class="sec"><h3>All songs</h3><div class="small muted" style="margin-bottom:8px">Tick to add to the set. Vote for the songs you think should be in it.</div>
+      <div class="setall">${all.map(({sg,pos,v})=>{const mine=!!S.me&&v.includes(S.me);return`<div class="r"><input type="checkbox" data-act="set-toggle" data-id="${sg.id}" ${pos>=0?'checked':''} aria-label="${esc(sg.title)} in set"><span class="t"><span>${esc(sg.title)}</span>${pos>=0?'<span class="pill accent">in set</span>':''}</span><span class="m">${sg.key?`<span>${esc(sg.key)}</span>`:''}${sg.tempo?`<span>${esc(sg.tempo)} bpm</span>`:''}${sg.timeSig?`<span>${esc(sg.timeSig)}</span>`:''}<span>${sg.length?esc(sg.length):'—'}</span></span><span class="vt"><button type="button" class="vote ${mine?'on':''}" data-act="set-vote" data-id="${sg.id}" aria-pressed="${mine}" aria-label="Vote for ${esc(sg.title)}">👍 ${v.length}</button>${v.map(m=>av(m,'sm')).join('')}</span></div>`}).join('')||'<div class="empty small">No songs yet. Add songs in the Songs tab.</div>'}</div></div>
     <div class="sec"><h3>Notes</h3><textarea id="setNotes" rows="3" data-setf="notes" data-live="1" placeholder="Talk breaks, who counts in, encore plan…">${esc(sl.notes||'')}</textarea></div>`}
 async function setUpdate(id,patch){try{await Store.updateDoc('setlists/'+id,patch)}catch(e){toast('Could not save: '+errMsg(e))}}
 function printSet(id){const sl=S.setlists.find(x=>x.id===id);if(!sl)return;const songs=sl.songIds.map(i=>S.songs.find(x=>x.id===i)).filter(Boolean);const gig=S.events.find(e=>e.gig&&e.gig.setlist===sl.id);
-  const box=$('#printSet');box.innerHTML=`<h1>${esc(((S.profile||{}).album||{}).title||'Mammuthus')} · ${esc(sl.name)}</h1><div class="k">${gig?esc(gig.title)+' · '+fmtDate(gig.start)+' · ':''}${songs.length} songs · ${fmtT(setDur(sl))}</div><ol>${songs.map(sg=>`<li><span>${esc(sg.title)}</span><span class="k">${[sg.key,sg.tempo?sg.tempo+' bpm':'',sg.length].filter(Boolean).map(esc).join(' · ')}</span></li>`).join('')}</ol>${sl.notes?`<p class="k">${esc(sl.notes)}</p>`:''}`;
+  const box=$('#printSet');box.innerHTML=`<h1>${esc(((S.profile||{}).album||{}).title||'Mammuthus')} · ${esc(sl.name)}</h1><div class="k">${gig?esc(gig.title)+' · '+fmtDate(gig.start)+' · ':''}${songs.length} song${songs.length===1?'':'s'} · ${fmtT(setDur(sl))}</div><ol>${songs.map(sg=>`<li><span>${esc(sg.title)}</span><span class="k">${[sg.key,sg.tempo?sg.tempo+' bpm':'',sg.length].filter(Boolean).map(esc).join(' · ')}</span></li>`).join('')}</ol>${sl.notes?`<p class="k">${esc(sl.notes)}</p>`:''}`;
   box.hidden=false;const done=()=>{box.hidden=true;window.removeEventListener('afterprint',done)};window.addEventListener('afterprint',done);setTimeout(()=>{try{window.print()}catch(e){toast('Printing is not available here')}setTimeout(done,2000)},50)}
 
 /* =========================================================
@@ -1659,6 +1678,7 @@ document.addEventListener('click',async e=>{
     case'print-set':printSet(id);break;
     case'set-move':{const sl=S.setlists.find(x=>x.id===S.setId);if(!sl)return;const i=+b.dataset.i,j=i+ +b.dataset.d;if(j<0||j>=sl.songIds.length)return;const ids=[...sl.songIds];[ids[i],ids[j]]=[ids[j],ids[i]];setUpdate(sl.id,{songIds:ids});break}
     case'set-remove':{const sl=S.setlists.find(x=>x.id===S.setId);if(!sl)return;const ids=[...sl.songIds];ids.splice(+b.dataset.i,1);setUpdate(sl.id,{songIds:ids});break}
+    case'set-vote':{if(!S.me)return askWho();const sl=S.setlists.find(x=>x.id===S.setId);if(!sl)return;const cur=!!(((sl.votes||{})[id]||{})[S.me]);setUpdate(sl.id,{votes:{[id]:{[S.me]:cur?null:true}}});break}
     case'drv-open':openImportDialog('drive');break;
     case'bulk-open':openImportDialog('local');break;
     case'drv-scan':drvScan();break;
@@ -1714,7 +1734,6 @@ document.addEventListener('submit',async e=>{
   if(f.dataset.act==='save-press'){if(!S.me)return askWho();const data={outlet:$('#pr_outlet').value.trim(),contact:$('#pr_contact').value.trim(),sentAt:$('#pr_sentAt').value,status:$('#pr_status').value,link:$('#pr_link').value.trim(),notes:$('#pr_notes').value.trim()};if(!data.outlet)return;if(S.editPress)await Store.updateDoc('press/'+S.editPress,data);else await Store.addDoc('press',{...data,by:S.me,at:Date.now()});S.editPress=null;renderPromo();toast('Saved')}
   if(f.dataset.act==='add-riff'){if(!S.me)return askWho();await addRiff();$('#riffTitle').value='';$('#riffTags').value=''}
   if(f.dataset.act==='new-set'){if(!S.me)return askWho();const n=$('#newSetName').value.trim();if(!n)return;$('#newSetName').value='';const id=await Store.addDoc('setlists',{name:n,songIds:[],notes:'',by:S.me,at:Date.now()});logActivity('set',`${meName()} started a setlist: ${n}`);S.setId=id;renderSets()}
-  if(f.dataset.act==='set-add'){const sl=S.setlists.find(x=>x.id===S.setId);const sid=$('#setAddSong').value;if(sl&&sid&&!sl.songIds.includes(sid))setUpdate(sl.id,{songIds:[...sl.songIds,sid]})}
   if(f.dataset.act==='save-note'){const i=$('#noteEdit');const t=i?i.value.trim():'';if(t)await Store.updateDoc(`songs/${S.songId}/notes/${f.dataset.id}`,{text:t,editedAt:Date.now()});S.editingNote=null;renderNotes()}
 });
 $('#evForm').addEventListener('submit',e=>{e.preventDefault();saveEvent()});
@@ -1736,6 +1755,8 @@ document.addEventListener('change',async e=>{
   if(t.id==='riffFile'){const n=$('#riffFileName');if(n)n.textContent=t.files[0]?t.files[0].name:''}
   if(t.id==='ev_type'){$('#gigFields').classList.toggle('hidden',t.value!=='gig')}
   if(t.dataset.setf&&!t.dataset.live&&S.setId){setUpdate(S.setId,{[t.dataset.setf]:t.value.trim()||'Untitled set'})}
+  if(t.id==='setTarget'&&S.setId){const n=Number(t.value);setUpdate(S.setId,{targetMin:t.value===''||!(n>0)?null:n})}
+  if(t.dataset.act==='set-toggle'&&S.setId){const sl=S.setlists.find(x=>x.id===S.setId);if(!sl)return;const sid=t.dataset.id;const has=sl.songIds.includes(sid);if(t.checked&&!has)setUpdate(sl.id,{songIds:[...sl.songIds,sid]});else if(!t.checked&&has)setUpdate(sl.id,{songIds:sl.songIds.filter(x=>x!==sid)})}
   if(t.id==='searchIn'){runSearch(t.value)}
   if(t.id==='beatsPerBar'){S.metro.beats=+t.value;renderMetro()}
   if(t.id==='sale_item'){const o=t.selectedOptions[0];if(o)$('#sale_price').value=o.dataset.price||''}
