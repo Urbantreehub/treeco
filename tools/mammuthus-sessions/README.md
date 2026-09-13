@@ -13,34 +13,35 @@ single-file web app (`index.html`) that runs in two modes:
 The mode is chosen at load time: if `config.js` has a Supabase URL and anon key,
 the app uses Supabase; otherwise it uses the artifact runtime.
 
-## Self-hosting setup (about 15 minutes)
+## Setup on the existing TreeCo Vercel project
 
-1. **Create a Supabase project** at https://supabase.com (free tier is plenty).
-2. **Run the SQL.** Dashboard → SQL Editor → New query. Paste `schema.sql`, Run.
-   Then paste `seed.sql`, Run. That creates the table, security rules, the
-   `media` storage bucket, and loads the current song list, notes, bio and EPK.
-3. **Create the four logins.** Dashboard → Authentication → Users → *Add user* →
-   *Create new user*: email + password, tick **Auto Confirm User**. One per
-   member. Tell each person their password; they can change it later with
-   *Forgot password* on the sign-in screen (Authentication → Email Templates →
-   set the reset link if you want branded emails).
-4. **Point the app at the project.** Dashboard → Project Settings → API: copy
-   *Project URL* and the *anon public* key into `config.js`. Commit.
-5. **Deploy the page.** On Vercel: *Add New → Project* → import this repo →
-   *Root Directory* = `tools/mammuthus-sessions` → Framework preset *Other*, no
-   build command → Deploy. Any static host works (Netlify drop, GitHub Pages,
-   Cloudflare Pages) because it is one HTML file plus `config.js`.
-6. **Allow the site URL for password resets.** Supabase → Authentication → URL
-   Configuration → add the deployed URL to *Redirect URLs*.
-7. Open the site, sign in, pick your name from the list. Each login is linked to
-   one member from then on.
+The band app deploys with TreeCo: `scripts/build-band.js` runs after the Vite
+build and publishes this folder at **https://<treeco-domain>/band/**. It reads
+two Vercel environment variables for its Supabase connection. Use a **separate,
+free Supabase project** for the band: TreeCo's `handle_new_user` trigger turns
+every auth user into a TreeCo user row, so band logins must not live in the
+TreeCo project.
 
-To load the demos: Songs tab → **Bulk upload audio** → choose the files from the
-Drive folder → each is matched to a song by name → Import.
+1. **Supabase → New project** (free tier). Name it e.g. `mammuthus`.
+2. **SQL Editor → New query**: paste `band-setup.sql`, Run. (Table, security
+   rules, storage bucket, and the current songs/notes/bio/EPK in one go.)
+3. **Authentication → URL Configuration**: Site URL = `https://<treeco-domain>/band/`;
+   add the same URL under Redirect URLs.
+4. **Authentication → Users → Invite user**: enter each bandmate's email. They
+   get an email, tap the link, choose a password, and land in the app. Invite
+   yourself too, or add yourself with *Create new user* (Auto Confirm on).
+5. **Project Settings → API**: copy *Project URL* and the *anon public* key.
+6. **Vercel → TreeCo project → Settings → Environment Variables**: add
+   `BAND_SUPABASE_URL` and `BAND_SUPABASE_ANON_KEY` (Production), then merge
+   this branch (or *Redeploy*).
+7. Open `/band/`, sign in, pick your name. Songs tab → **Bulk upload audio**
+   to load the demos from the Drive folder.
 
-Storage notes: files are in a public bucket, so anyone with a file's link can
-play or download it, but only signed-in members can add, replace or delete.
-Uploads are capped at 100 MB per file. The free tier gives 1 GB of storage.
+Files are in a public bucket, so anyone with a file's link can play or download
+it; only signed-in members can add or delete. 100 MB per file, 1 GB free storage.
+
+Standalone alternative: any static host can serve this folder directly; fill in
+`config.js` instead of the Vercel env vars.
 
 ## What it does
 

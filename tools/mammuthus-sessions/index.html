@@ -477,9 +477,10 @@ async function bootSupabase(){
     list:async()=>({assets:[],usage:null}),
     delete:async id=>{const{error}=await S.sb.storage.from('media').remove([id]);if(error)throw error;return{deleted:true}}};
   S.downloads={save:async({filename,data})=>{const blob=data instanceof Blob?data:new Blob([data]);const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000);return{status:'saved'}}};
-  S.sb.auth.onAuthStateChange((ev,session)=>{if(ev==='PASSWORD_RECOVERY'){showLogin('recovery');return}if(session)onSignedIn(session);else if(ev==='SIGNED_OUT')showLogin('signin')});
+  const needsPassword=/type=(invite|recovery|signup|magiclink)/.test(location.hash);
+  S.sb.auth.onAuthStateChange((ev,session)=>{if(ev==='PASSWORD_RECOVERY'||(session&&needsPassword&&!S._pwSet)){showLogin('recovery');return}if(session)onSignedIn(session);else if(ev==='SIGNED_OUT')showLogin('signin')});
   const{data:{session}}=await S.sb.auth.getSession();
-  if(session)onSignedIn(session);else if(!/type=recovery/.test(location.hash))showLogin('signin');
+  if(session&&!needsPassword)onSignedIn(session);else if(!needsPassword)showLogin('signin');
 }
 let sbStarted=false;
 async function onSignedIn(session){S.user=session.user;hideLogin();if(sbStarted)return;sbStarted=true;
@@ -498,7 +499,7 @@ function showLogin(mode){const l=$('#login');l.classList.remove('hidden');$('#lo
 function hideLogin(){$('#login').classList.add('hidden')}
 function loginError(msg){const e=$('#loginErr');e.textContent=msg;e.classList.remove('hidden')}
 async function doLogin(){const mode=$('#login').dataset.mode;const b=$('#loginBtn');b.disabled=true;$('#loginErr').classList.add('hidden');
-  try{if(mode==='recovery'){const{error}=await S.sb.auth.updateUser({password:$('#li_pass').value});if(error)throw error;toast('Password saved');history.replaceState(null,'',location.pathname);hideLogin()}
+  try{if(mode==='recovery'){const{error}=await S.sb.auth.updateUser({password:$('#li_pass').value});if(error)throw error;S._pwSet=true;toast('Password saved');history.replaceState(null,'',location.pathname);hideLogin();const{data:{session}}=await S.sb.auth.getSession();if(session)onSignedIn(session)}
     else{const{error}=await S.sb.auth.signInWithPassword({email:$('#li_email').value.trim(),password:$('#li_pass').value});if(error)throw error}}
   catch(e){loginError(/invalid/i.test(e.message||'')?'Wrong email or password.':(e.message||'Could not sign in'))}
   finally{b.disabled=false}}
